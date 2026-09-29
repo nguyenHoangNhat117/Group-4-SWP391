@@ -1,0 +1,167 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : Jun 13, 2025, 10:30:25 PM
+    Author     : Đặng Hoàng Vũ
+*/
+
+img {
+    border-radius: 1rem;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    /* outline: 2px red solid; */
+
+}
+
+html {
+    scroll-behavior: smooth;
+    scroll-snap-type: y mandatory;
+    --litepicker-day-color-hover: #b29a7b !important;
+}
+
+.body-wrapper {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: 100vh;
+}
+
+section {
+    scroll-snap-align: start;
+}
+
+section:first-of-type {
+    scroll-snap-align: start;
+    scroll-margin-top: 7rem;
+}
+
+body {
+    font-family: Inter, Arial, sans-serif;
+}
+
+.user-dropdown:hover {
+    opacity: 1 !important;
+}
+
+.user-avatar {
+    transition: all 0.3s;
+}
+
+.user-avatar:hover {
+    box-shadow: 0px 0px 10px #afb2b5;
+}
+
+nav {
+    display: grid;
+    grid-template-columns: 25% 50% 25%;
+    align-items: center;
+    width: 100%;
+    padding: 1.5rem 2.5rem;
+    font-size: 1.1rem;
+}
+
+.auth-nav {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+header hr, footer hr {
+    margin: 0;
+}
+
+#navbar {
+    padding-left: 0;
+    display: flex;
+    list-style-type: none;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0;
+    justify-self: center;
+}
+
+#navbar li a,
+nav span a,
+.auth-nav a{
+    text-decoration: none;
+    color: black;
+    transition: all 0.2s;
+}
+
+nav span a {
+    font-weight: bold;
+    font-size: 1.125rem;
+}
+
+#login {
+    text-align: end;
+}
+
+#navbar li a:hover,
+.auth-nav a:hover {
+    text-decoration: underline;
+    opacity: 0.6;
+}
+
+footer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 4rem;
+}
+
+footer p {
+    text-align: center;
+    padding-top: 1rem;
+}
+
+.btn-primary {
+    color: white !important;
+    background-color: #b29a7b !important;
+    border-color: #b29a7b !important;
+    transition: all 0.3s;
+}
+
+.text-primary {
+    color: #b29a7b !important;
+}
+
+.text-decoration-none-hover:hover {
+    text-decoration: none;
+}
+
+
+.btn-primary:hover {
+    background-color: #89745a !important;
+    border-color: #89745a !important;
+}
+
+.litepicker .day-item.is-start-date,
+.litepicker .day-item.is-end-date {
+    background-color: #b29a7b !important;
+    color: white !important;
+    border-radius: 10px;
+}
+
+.litepicker .day-item:hover {
+    border: 1px #b29a7b solid !important;
+}
+
+.litepicker .day-item.is-in-range {
+    background-color: #edeae7 !important;
+    color: black !important;
+}
+
+.pagination {
+    --bs-pagination-active-bg: #b29a7b !important;
+    --bs-pagination-active-border-color: #b29a7b !important;
+    --bs-pagination-color: black !important;
+}
+
+
+

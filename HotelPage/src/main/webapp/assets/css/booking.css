@@ -1,0 +1,32 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : Jun 17, 2025, 4:47:25 PM
+    Author     : Đặng Hoàng Vũ
+*/
+
+
+#find-rooms-button {
+    background-color: #b29a7b;
+    color: white;
+    transition: all 0.3s;
+}
+
+#find-rooms-button:hover {
+    opacity: 0.7;
+}
+
+form {
+    width: 45%;
+    background-color: #edeae7;
+    padding: 3rem;
+    border-radius: 1rem;
+}
+
+.form-floating .form-control:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
