@@ -1,49 +1,59 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package dao;
 
 import db.DBContext;
+
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import java.time.LocalDate;
+
 import java.util.ArrayList;
 import java.util.List;
+
 import model.Discount;
 
-/**
- * DiscountDAO provides data access methods for performing CRUD operations
- * on the Discount table in the database.
- *
- * Author: Đặng Hoàng Vũ
- */
 public class DiscountDAO extends DBContext {
 
-    /**
-     * Retrieves all discount records from the database.
-     *
-     * @return a list of all Discount objects.
+    /*
+     * =========================================================
+     * GET ALL PROMOTIONS
+     * =========================================================
      */
     public List<Discount> getAll() {
-        List<Discount> discounts = new ArrayList<>();
-        String query = "SELECT * FROM Discount;";
 
-        try {
-            PreparedStatement pstatement = this.getConnection().prepareStatement(query);
-            ResultSet rs = pstatement.executeQuery();
+        List<Discount> discounts =
+                new ArrayList<>();
 
-            // Iterate through each record and convert it to a Discount object
+        String sql =
+                "SELECT "
+                + "DiscountID, "
+                + "Code, "
+                + "Quantity, "
+                + "SaleOff, "
+                + "StartDate, "
+                + "EndDate, "
+                + "MinimumAmount, "
+                + "MaximumDiscount, "
+                + "IsActive "
+                + "FROM Discount "
+                + "ORDER BY DiscountID DESC";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql);
+             ResultSet rs =
+                     ps.executeQuery()) {
+
             while (rs.next()) {
-                int id = rs.getInt("DiscountID");
-                String code = rs.getString("Code");
-                int quantity = rs.getInt("Quantity");
-                BigDecimal sale = rs.getBigDecimal("SaleOff");
 
-                Discount discount = new Discount(id, code, quantity, sale);
-                discounts.add(discount);
+                discounts.add(
+                        mapDiscount(rs)
+                );
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -51,116 +61,502 @@ public class DiscountDAO extends DBContext {
         return discounts;
     }
 
-    /**
-     * Inserts a new discount record into the database.
+    /*
+     * =========================================================
+     * CREATE
      *
-     * @param code the discount code
-     * @param quantity the number of times this discount can be used
-     * @param saleOff the discount amount (as a BigDecimal)
+     * Old signature preserved.
+     * =========================================================
      */
-    public void createDiscount(String code, int quantity, BigDecimal saleOff) {
-        String sql = "INSERT INTO Discount (Code, Quantity, SaleOff) VALUES (?, ?, ?)";
-        try {
-            executeQuery(sql, new Object[]{code, quantity, saleOff});
+    public void createDiscount(
+            String code,
+            int quantity,
+            BigDecimal saleOff) {
+
+        createDiscount(
+                code,
+                quantity,
+                saleOff,
+                null,
+                null,
+                null,
+                null,
+                true
+        );
+    }
+
+    /*
+     * Full version matching new HotelDB.
+     */
+    public boolean createDiscount(
+            String code,
+            int quantity,
+            BigDecimal saleOff,
+            LocalDate startDate,
+            LocalDate endDate,
+            BigDecimal minimumAmount,
+            BigDecimal maximumDiscount,
+            boolean active) {
+
+        String sql =
+                "INSERT INTO Discount "
+                + "(Code, Quantity, SaleOff, "
+                + "StartDate, EndDate, "
+                + "MinimumAmount, MaximumDiscount, "
+                + "IsActive) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setString(1, code);
+            ps.setInt(2, quantity);
+            ps.setBigDecimal(3, saleOff);
+            ps.setObject(4, startDate);
+            ps.setObject(5, endDate);
+            ps.setBigDecimal(6, minimumAmount);
+            ps.setBigDecimal(7, maximumDiscount);
+            ps.setBoolean(8, active);
+
+            return ps.executeUpdate() > 0;
+
         } catch (SQLException e) {
+
             e.printStackTrace();
+            return false;
         }
     }
 
-    /**
-     * Updates an existing discount record.
+    /*
+     * =========================================================
+     * UPDATE
      *
-     * @param id the ID of the discount to update
-     * @param code updated discount code
-     * @param quantity updated quantity
-     * @param saleOff updated sale value
+     * Old method preserved.
+     * =========================================================
      */
-    public void updateDiscount(int id, String code, int quantity, BigDecimal saleOff) {
-        String sql = "UPDATE Discount SET Code = ?, Quantity = ?, SaleOff = ? WHERE DiscountID = ?";
-        try {
-            executeQuery(sql, new Object[]{code, quantity, saleOff, id});
+    public void updateDiscount(
+            int id,
+            String code,
+            int quantity,
+            BigDecimal saleOff) {
+
+        Discount old =
+                getDiscountById(id);
+
+        if (old == null) {
+            return;
+        }
+
+        updateDiscount(
+                id,
+                code,
+                quantity,
+                saleOff,
+                old.getStartDate(),
+                old.getEndDate(),
+                old.getMinimumAmount(),
+                old.getMaximumDiscount(),
+                old.isActive()
+        );
+    }
+
+    public boolean updateDiscount(
+            int id,
+            String code,
+            int quantity,
+            BigDecimal saleOff,
+            LocalDate startDate,
+            LocalDate endDate,
+            BigDecimal minimumAmount,
+            BigDecimal maximumDiscount,
+            boolean active) {
+
+        String sql =
+                "UPDATE Discount "
+                + "SET "
+                + "Code = ?, "
+                + "Quantity = ?, "
+                + "SaleOff = ?, "
+                + "StartDate = ?, "
+                + "EndDate = ?, "
+                + "MinimumAmount = ?, "
+                + "MaximumDiscount = ?, "
+                + "IsActive = ? "
+                + "WHERE DiscountID = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setString(1, code);
+            ps.setInt(2, quantity);
+            ps.setBigDecimal(3, saleOff);
+            ps.setObject(4, startDate);
+            ps.setObject(5, endDate);
+            ps.setBigDecimal(6, minimumAmount);
+            ps.setBigDecimal(7, maximumDiscount);
+            ps.setBoolean(8, active);
+            ps.setInt(9, id);
+
+            return ps.executeUpdate() > 0;
+
         } catch (SQLException e) {
+
             e.printStackTrace();
+            return false;
         }
     }
 
-    /**
-     * Deletes a discount record based on the discount ID.
+    /*
+     * =========================================================
+     * DELETE
      *
-     * @param id the ID of the discount to delete
+     * Không DELETE vật lý nữa.
+     *
+     * Payment có FK tới Discount nên promotion đã được sử dụng
+     * phải được giữ để bảo toàn lịch sử.
+     * =========================================================
      */
     public void deleteDiscount(int id) {
-        String sql = "DELETE FROM Discount WHERE DiscountID = ?";
-        try {
-            executeQuery(sql, new Object[]{id});
+
+        deactivateDiscount(id);
+    }
+
+    public boolean deactivateDiscount(int id) {
+
+        String sql =
+                "UPDATE Discount "
+                + "SET IsActive = 0 "
+                + "WHERE DiscountID = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setInt(1, id);
+
+            return ps.executeUpdate() > 0;
+
         } catch (SQLException e) {
+
             e.printStackTrace();
+            return false;
         }
     }
 
-    /**
-     * Retrieves a Discount object by its ID.
-     *
-     * @param id the ID of the discount to retrieve
-     * @return the Discount object if found, otherwise null
+    /*
+     * =========================================================
+     * GET BY ID
+     * =========================================================
      */
     public Discount getDiscountById(int id) {
-        String sql = "SELECT * FROM Discount WHERE DiscountID = ?";
 
-        try {
-            ResultSet rs = executeSelectionQuery(sql, new Object[]{id});
-            if (rs.next()) {
-                Discount d = new Discount();
-                d.setId(rs.getInt("DiscountID"));
-                d.setCode(rs.getString("Code"));
-                d.setQuantity(rs.getInt("Quantity"));
-                d.setSaleOff(rs.getBigDecimal("SaleOff"));
-                return d;
+        String sql =
+                "SELECT "
+                + "DiscountID, "
+                + "Code, "
+                + "Quantity, "
+                + "SaleOff, "
+                + "StartDate, "
+                + "EndDate, "
+                + "MinimumAmount, "
+                + "MaximumDiscount, "
+                + "IsActive "
+                + "FROM Discount "
+                + "WHERE DiscountID = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setInt(1, id);
+
+            try (ResultSet rs =
+                    ps.executeQuery()) {
+
+                if (rs.next()) {
+                    return mapDiscount(rs);
+                }
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return null; // Discount not found
+        return null;
     }
 
-    /**
-     * Retrieves the ID of a discount based on its code.
-     *
-     * @param code the discount code to search for
-     * @return the DiscountID if found, otherwise null
+    /*
+     * =========================================================
+     * GET ID BY CODE
+     * Kept for compatibility.
+     * =========================================================
      */
-    public Integer getDiscountIDByCode(String code) {
-        String sql = "SELECT DiscountID FROM Discount WHERE code = ?";
+    public Integer getDiscountIDByCode(
+            String code) {
 
-        try {
-            ResultSet rs = executeSelectionQuery(sql, new Object[]{code});
-            if (rs.next()) {
-                return rs.getInt("DiscountID");
+        if (code == null
+                || code.trim().isEmpty()) {
+
+            return null;
+        }
+
+        String sql =
+                "SELECT DiscountID "
+                + "FROM Discount "
+                + "WHERE Code = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setString(
+                    1,
+                    code.trim()
+            );
+
+            try (ResultSet rs =
+                    ps.executeQuery()) {
+
+                if (rs.next()) {
+                    return rs.getInt(
+                            "DiscountID"
+                    );
+                }
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return null; // Code not found
+        return null;
     }
 
-    /**
-     * Decreases the quantity of a discount by 1 if the quantity is greater than 0.
+    /*
+     * =========================================================
+     * VALIDATE PROMOTION
      *
-     * @param discountID the ID of the discount
-     * @return true if the quantity was successfully decreased, false otherwise
+     * RDS:
+     * - active
+     * - correct date range
+     * - quantity > 0
+     * - minimum amount satisfied
+     * =========================================================
      */
-    public boolean decreaseDiscountQuantity(int discountID) {
-        String sql = "UPDATE Discount SET Quantity = Quantity - 1 WHERE DiscountID = ? AND Quantity > 0";
+    public Discount getValidDiscount(
+            String code,
+            BigDecimal bookingAmount) {
 
-        try {
-            int rows = executeQuery(sql, new Object[]{discountID});
-            return rows > 0; // Return true if an update occurred
+        if (code == null
+                || code.trim().isEmpty()
+                || bookingAmount == null) {
+
+            return null;
+        }
+
+        String sql =
+                "SELECT "
+                + "DiscountID, "
+                + "Code, "
+                + "Quantity, "
+                + "SaleOff, "
+                + "StartDate, "
+                + "EndDate, "
+                + "MinimumAmount, "
+                + "MaximumDiscount, "
+                + "IsActive "
+                + "FROM Discount "
+                + "WHERE Code = ? "
+                + "AND IsActive = 1 "
+                + "AND Quantity > 0 "
+                + "AND (StartDate IS NULL "
+                + "     OR StartDate <= "
+                + "        CAST(GETDATE() AS DATE)) "
+                + "AND (EndDate IS NULL "
+                + "     OR EndDate >= "
+                + "        CAST(GETDATE() AS DATE)) "
+                + "AND (MinimumAmount IS NULL "
+                + "     OR ? >= MinimumAmount)";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setString(
+                    1,
+                    code.trim()
+            );
+
+            ps.setBigDecimal(
+                    2,
+                    bookingAmount
+            );
+
+            try (ResultSet rs =
+                    ps.executeQuery()) {
+
+                if (rs.next()) {
+                    return mapDiscount(rs);
+                }
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return false;
+        return null;
+    }
+
+    /*
+     * =========================================================
+     * PUBLIC ACTIVE PROMOTIONS
+     * UC23
+     * =========================================================
+     */
+    public List<Discount> getActivePromotions() {
+
+        List<Discount> list =
+                new ArrayList<>();
+
+        String sql =
+                "SELECT "
+                + "DiscountID, "
+                + "Code, "
+                + "Quantity, "
+                + "SaleOff, "
+                + "StartDate, "
+                + "EndDate, "
+                + "MinimumAmount, "
+                + "MaximumDiscount, "
+                + "IsActive "
+                + "FROM Discount "
+                + "WHERE IsActive = 1 "
+                + "AND Quantity > 0 "
+                + "AND (StartDate IS NULL "
+                + "     OR StartDate <= "
+                + "        CAST(GETDATE() AS DATE)) "
+                + "AND (EndDate IS NULL "
+                + "     OR EndDate >= "
+                + "        CAST(GETDATE() AS DATE)) "
+                + "ORDER BY SaleOff DESC";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql);
+             ResultSet rs =
+                     ps.executeQuery()) {
+
+            while (rs.next()) {
+
+                list.add(
+                        mapDiscount(rs)
+                );
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    /*
+     * =========================================================
+     * DECREASE QUANTITY
+     *
+     * PaymentDAO sẽ thực hiện việc này trong cùng transaction.
+     *
+     * Method này vẫn giữ cho compatibility.
+     * =========================================================
+     */
+    public boolean decreaseDiscountQuantity(
+            int discountID) {
+
+        String sql =
+                "UPDATE Discount "
+                + "SET Quantity = Quantity - 1 "
+                + "WHERE DiscountID = ? "
+                + "AND Quantity > 0";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setInt(
+                    1,
+                    discountID
+            );
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /*
+     * =========================================================
+     * RESULTSET -> DISCOUNT
+     * =========================================================
+     */
+    private Discount mapDiscount(
+            ResultSet rs)
+            throws SQLException {
+
+        Discount d =
+                new Discount();
+
+        d.setId(
+                rs.getInt("DiscountID")
+        );
+
+        d.setCode(
+                rs.getString("Code")
+        );
+
+        d.setQuantity(
+                rs.getInt("Quantity")
+        );
+
+        d.setSaleOff(
+                rs.getBigDecimal("SaleOff")
+        );
+
+        d.setStartDate(
+                rs.getObject(
+                        "StartDate",
+                        LocalDate.class
+                )
+        );
+
+        d.setEndDate(
+                rs.getObject(
+                        "EndDate",
+                        LocalDate.class
+                )
+        );
+
+        d.setMinimumAmount(
+                rs.getBigDecimal(
+                        "MinimumAmount"
+                )
+        );
+
+        d.setMaximumDiscount(
+                rs.getBigDecimal(
+                        "MaximumDiscount"
+                )
+        );
+
+        d.setActive(
+                rs.getBoolean(
+                        "IsActive"
+                )
+        );
+
+        return d;
     }
 }

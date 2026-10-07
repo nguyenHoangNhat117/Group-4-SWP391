@@ -78,7 +78,7 @@ public class ReportsServlet extends HttpServlet {
             case "bookings": {
                 // Load all bookings, delete unpaid overdue ones
                 BookingDAO bDAO = new BookingDAO();
-                bDAO.deleteUnpaidOverdueBookings();
+                bDAO.expirePendingBookings();
                 List<Booking> allBookings = bDAO.getAll();
 
                 int pageSize = 5;

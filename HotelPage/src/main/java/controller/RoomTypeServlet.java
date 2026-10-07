@@ -218,7 +218,7 @@ public class RoomTypeServlet extends HttpServlet {
                         beds = Integer.parseInt(request.getParameter("beds").trim());
                         capacity = Integer.parseInt(request.getParameter("capacity").trim());
 
-                        if (pricePerNight.compareTo(BigDecimal.ZERO) < 0 || beds < 0 || capacity < 0) {
+                        if (pricePerNight.compareTo(BigDecimal.ZERO) < 0 || beds <= 0 || capacity <= 0) {
                             response.sendRedirect("./room-type?view=create&error=number-format");
                             return;
                         }
@@ -313,7 +313,7 @@ public class RoomTypeServlet extends HttpServlet {
                         beds = Integer.parseInt(request.getParameter("beds").trim());
                         capacity = Integer.parseInt(request.getParameter("capacity").trim());
 
-                        if (pricePerNight.compareTo(BigDecimal.ZERO) < 0 || beds < 0 || capacity < 0) {
+                        if (pricePerNight.compareTo(BigDecimal.ZERO) < 0 || beds <= 0 || capacity <= 0) {
                             response.sendRedirect("./room-type?view=update&id=" + currentId + "&error=number-format");
                             return;
                         }

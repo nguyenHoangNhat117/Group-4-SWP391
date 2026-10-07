@@ -1,18 +1,14 @@
-/*
- * RoomDAO.java
- * Data Access Object class to handle operations related to rooms in the hotel system.
- * Extends DBContext to manage database connectivity.
- * 
- * Author: Đặng Hoàng Vũ
- */
-
 package dao;
 
 import db.DBContext;
-import java.math.BigDecimal;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Room;
@@ -20,228 +16,854 @@ import model.RoomType;
 
 public class RoomDAO extends DBContext {
 
-    /**
-     * Calculates the total number of pages required to display all rooms,
-     * assuming each page displays 5 rooms.
+    private static final int PAGE_SIZE = 5;
+
+    /*
+     * =========================================================
+     * 1. GET TOTAL ROOM PAGES
+     * Used by Admin Room Management.
+     * =========================================================
      */
     public int getTotalPages() {
-        try {
-            String query = "SELECT CEILING(COUNT(*) * 1.0 / 5) AS TotalPages FROM Room r;";
-            PreparedStatement pstatement = this.getConnection().prepareStatement(query);
-            ResultSet rs = pstatement.executeQuery();
+
+        String sql =
+                "SELECT COUNT(*) AS TotalRooms "
+                + "FROM Room";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
 
             if (rs.next()) {
-                return rs.getInt(1); // Get total pages from first column
+
+                int totalRooms =
+                        rs.getInt("TotalRooms");
+
+                return (int) Math.ceil(
+                        totalRooms * 1.0 / PAGE_SIZE
+                );
             }
+
         } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
+
+            Logger.getLogger(
+                    RoomDAO.class.getName()
+            ).log(Level.SEVERE, null, ex);
         }
+
         return 0;
     }
 
-    /**
-     * Retrieves all rooms with their corresponding room types.
-     * @return List of Room objects.
+    /*
+     * =========================================================
+     * 2. GET ALL ROOMS
+     * =========================================================
      */
     public List<Room> getAll() {
-        List<Room> rooms = new ArrayList<>();
-        try {
-            String query = "SELECT RoomNumber, Status, r.RoomTypeID, Name, Description, PricePerNight, Beds, Capacity, Picture "
-                         + "FROM Room r JOIN RoomType rt ON r.RoomTypeID = rt.RoomTypeID;";
-            PreparedStatement ps = this.getConnection().prepareStatement(query);
-            ResultSet rs = ps.executeQuery();
+
+        List<Room> rooms =
+                new ArrayList<>();
+
+        String sql =
+                "SELECT "
+                + "r.RoomNumber, "
+                + "r.Status, "
+                + "rt.RoomTypeID, "
+                + "rt.Name, "
+                + "rt.Description, "
+                + "rt.PricePerNight, "
+                + "rt.Beds, "
+                + "rt.Capacity, "
+                + "rt.Picture "
+                + "FROM Room r "
+                + "JOIN RoomType rt "
+                + "ON rt.RoomTypeID = r.RoomTypeID "
+                + "ORDER BY r.RoomNumber";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql);
+             ResultSet rs =
+                     ps.executeQuery()) {
 
             while (rs.next()) {
-                // Extract room and room type data
-                RoomType roomType = new RoomType(
-                    rs.getInt(3), rs.getString(4), rs.getString(5),
-                    rs.getBigDecimal(6), rs.getInt(7),
-                    rs.getInt(8), rs.getString(9)
+
+                rooms.add(
+                        mapRoom(rs)
                 );
-                Room room = new Room(rs.getInt(1), rs.getString(2), roomType);
-                rooms.add(room);
             }
 
         } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
+
+            Logger.getLogger(
+                    RoomDAO.class.getName()
+            ).log(Level.SEVERE, null, ex);
         }
+
         return rooms;
     }
 
-    /**
-     * Retrieves a specific page of rooms for pagination.
-     * Each page contains 5 rooms.
-     * @param index Page index (starting from 1).
+    /*
+     * =========================================================
+     * 3. GET PAGINATED ROOM LIST
+     * Admin management.
+     * =========================================================
      */
     public List<Room> getPage(int index) {
-        List<Room> rooms = new ArrayList<>();
-        try {
-            String query = "SELECT * FROM ("
-                         + "SELECT ROW_NUMBER() OVER (ORDER BY RoomNumber ASC) AS i, RoomNumber, Status, r.RoomTypeID, "
-                         + "Name, Description, PricePerNight, Beds, Capacity, Picture "
-                         + "FROM Room r JOIN RoomType rt ON r.RoomTypeID = rt.RoomTypeID"
-                         + ") AS Rooms WHERE i BETWEEN ? AND ?";
-            Object[] params = { (index - 1) * 5 + 1, index * 5 };
-            ResultSet rs = this.executeSelectionQuery(query, params);
 
-            while (rs.next()) {
-                RoomType roomType = new RoomType(
-                    rs.getInt(4), rs.getString(5), rs.getString(6),
-                    rs.getBigDecimal(7), rs.getInt(8),
-                    rs.getInt(9), rs.getString(10)
-                );
-                Room room = new Room(rs.getInt(2), rs.getString(3), roomType);
-                rooms.add(room);
+        List<Room> rooms =
+                new ArrayList<>();
+
+        if (index < 1) {
+            index = 1;
+        }
+
+        String sql =
+                "SELECT "
+                + "r.RoomNumber, "
+                + "r.Status, "
+                + "rt.RoomTypeID, "
+                + "rt.Name, "
+                + "rt.Description, "
+                + "rt.PricePerNight, "
+                + "rt.Beds, "
+                + "rt.Capacity, "
+                + "rt.Picture "
+                + "FROM Room r "
+                + "JOIN RoomType rt "
+                + "ON rt.RoomTypeID = r.RoomTypeID "
+                + "ORDER BY r.RoomNumber "
+                + "OFFSET ? ROWS "
+                + "FETCH NEXT ? ROWS ONLY";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setInt(
+                    1,
+                    (index - 1) * PAGE_SIZE
+            );
+
+            ps.setInt(
+                    2,
+                    PAGE_SIZE
+            );
+
+            try (ResultSet rs =
+                    ps.executeQuery()) {
+
+                while (rs.next()) {
+
+                    rooms.add(
+                            mapRoom(rs)
+                    );
+                }
             }
 
         } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
+
+            Logger.getLogger(
+                    RoomDAO.class.getName()
+            ).log(Level.SEVERE, null, ex);
         }
+
         return rooms;
     }
 
-    /**
-     * Retrieves a specific page of available rooms within a date range.
+    /*
+     * =========================================================
+     * 4. GET ALL AVAILABLE ROOMS FOR DATE RANGE
+     *
+     * Availability rule:
+     *
+     * room status = available
+     * room type is active
+     * no non-cancelled BookingDetail overlaps
+     * requested date range
+     * =========================================================
      */
-    public List<Room> getAvailableRoomPage(int index, LocalDate checkInDate, LocalDate checkOutDate) {
-        List<Room> availableRooms = new ArrayList<>();
-        try {
-            String query = "SELECT * FROM ("
-                         + "SELECT ROW_NUMBER() OVER (ORDER BY RoomNumber ASC) AS i, "
-                         + "r.RoomNumber, r.Status, r.RoomTypeID, rt.Name, rt.Description, rt.PricePerNight, "
-                         + "rt.Beds, rt.Capacity, rt.Picture "
-                         + "FROM Room r JOIN RoomType rt ON r.RoomTypeID = rt.RoomTypeID "
-                         + "WHERE r.Status = 'available' AND r.RoomNumber NOT IN ("
-                         + "SELECT RoomNumber FROM Booking WHERE NOT (CheckOutDate <= ? OR CheckInDate >= ?)"
-                         + ")) AS AvailableRooms WHERE i BETWEEN ? AND ?";
-            Object[] params = { checkInDate, checkOutDate, (index - 1) * 5 + 1, index * 5 };
-            ResultSet rs = this.executeSelectionQuery(query, params);
+    public List<Room> getAvailableRooms(
+            LocalDate checkInDate,
+            LocalDate checkOutDate) {
 
-            while (rs.next()) {
-                RoomType roomType = new RoomType(
-                    rs.getInt(4), rs.getString(5), rs.getString(6),
-                    rs.getBigDecimal(7), rs.getInt(8),
-                    rs.getInt(9), rs.getString(10)
-                );
-                Room room = new Room(rs.getInt(2), rs.getString(3), roomType);
-                availableRooms.add(room);
+        List<Room> rooms =
+                new ArrayList<>();
+
+        if (!isValidDateRange(
+                checkInDate,
+                checkOutDate)) {
+
+            return rooms;
+        }
+
+        String sql =
+                "SELECT "
+                + "r.RoomNumber, "
+                + "r.Status, "
+                + "rt.RoomTypeID, "
+                + "rt.Name, "
+                + "rt.Description, "
+                + "rt.PricePerNight, "
+                + "rt.Beds, "
+                + "rt.Capacity, "
+                + "rt.Picture "
+                + "FROM Room r "
+                + "JOIN RoomType rt "
+                + "ON rt.RoomTypeID = r.RoomTypeID "
+                + "WHERE r.Status = 'available' "
+                + "AND rt.IsActive = 1 "
+                + "AND NOT EXISTS ( "
+                + "    SELECT 1 "
+                + "    FROM BookingDetail bd "
+                + "    JOIN Booking b "
+                + "    ON b.BookingID = bd.BookingID "
+                + "    WHERE bd.RoomNumber = r.RoomNumber "
+                + "    AND b.Status <> 'cancelled' "
+                + "    AND bd.CheckInDate < ? "
+                + "    AND bd.CheckOutDate > ? "
+                + ") "
+                + "ORDER BY r.RoomNumber";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            /*
+             * Existing CheckIn < requested CheckOut
+             * Existing CheckOut > requested CheckIn
+             */
+            ps.setObject(
+                    1,
+                    checkOutDate
+            );
+
+            ps.setObject(
+                    2,
+                    checkInDate
+            );
+
+            try (ResultSet rs =
+                    ps.executeQuery()) {
+
+                while (rs.next()) {
+
+                    rooms.add(
+                            mapRoom(rs)
+                    );
+                }
             }
 
         } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
+
+            Logger.getLogger(
+                    RoomDAO.class.getName()
+            ).log(Level.SEVERE, null, ex);
         }
-        return availableRooms;
+
+        return rooms;
     }
 
-    /**
-     * Retrieves all available rooms (without pagination) for a given date range.
+    /*
+     * =========================================================
+     * 5. AVAILABLE ROOM PAGINATION
+     * =========================================================
      */
-    public List<Room> getAvailableRooms(LocalDate checkInDate, LocalDate checkOutDate) {
-        List<Room> availableRooms = new ArrayList<>();
-        try {
-            String query = "SELECT r.RoomNumber, r.Status, r.RoomTypeID, rt.Name, rt.Description, "
-                         + "rt.PricePerNight, rt.Beds, rt.Capacity, rt.Picture "
-                         + "FROM Room r JOIN RoomType rt ON r.RoomTypeID = rt.RoomTypeID "
-                         + "WHERE r.Status = 'available' AND r.RoomNumber NOT IN ("
-                         + "SELECT RoomNumber FROM Booking WHERE NOT (CheckOutDate <= ? OR CheckInDate >= ?))";
-            Object[] params = { checkInDate, checkOutDate };
-            ResultSet rs = this.executeSelectionQuery(query, params);
+    public List<Room> getAvailableRoomPage(
+            int index,
+            LocalDate checkInDate,
+            LocalDate checkOutDate) {
 
-            while (rs.next()) {
-                RoomType roomType = new RoomType(
-                    rs.getInt("RoomTypeID"), rs.getString("Name"), rs.getString("Description"),
-                    rs.getBigDecimal("PricePerNight"), rs.getInt("Beds"),
-                    rs.getInt("Capacity"), rs.getString("Picture")
-                );
-                Room room = new Room(rs.getInt("RoomNumber"), rs.getString("Status"), roomType);
-                availableRooms.add(room);
+        List<Room> rooms =
+                new ArrayList<>();
+
+        if (index < 1) {
+            index = 1;
+        }
+
+        if (!isValidDateRange(
+                checkInDate,
+                checkOutDate)) {
+
+            return rooms;
+        }
+
+        String sql =
+                "SELECT "
+                + "r.RoomNumber, "
+                + "r.Status, "
+                + "rt.RoomTypeID, "
+                + "rt.Name, "
+                + "rt.Description, "
+                + "rt.PricePerNight, "
+                + "rt.Beds, "
+                + "rt.Capacity, "
+                + "rt.Picture "
+                + "FROM Room r "
+                + "JOIN RoomType rt "
+                + "ON rt.RoomTypeID = r.RoomTypeID "
+                + "WHERE r.Status = 'available' "
+                + "AND rt.IsActive = 1 "
+                + "AND NOT EXISTS ( "
+                + "    SELECT 1 "
+                + "    FROM BookingDetail bd "
+                + "    JOIN Booking b "
+                + "    ON b.BookingID = bd.BookingID "
+                + "    WHERE bd.RoomNumber = r.RoomNumber "
+                + "    AND b.Status <> 'cancelled' "
+                + "    AND bd.CheckInDate < ? "
+                + "    AND bd.CheckOutDate > ? "
+                + ") "
+                + "ORDER BY r.RoomNumber "
+                + "OFFSET ? ROWS "
+                + "FETCH NEXT ? ROWS ONLY";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setObject(
+                    1,
+                    checkOutDate
+            );
+
+            ps.setObject(
+                    2,
+                    checkInDate
+            );
+
+            ps.setInt(
+                    3,
+                    (index - 1) * PAGE_SIZE
+            );
+
+            ps.setInt(
+                    4,
+                    PAGE_SIZE
+            );
+
+            try (ResultSet rs =
+                    ps.executeQuery()) {
+
+                while (rs.next()) {
+
+                    rooms.add(
+                            mapRoom(rs)
+                    );
+                }
             }
 
         } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
+
+            Logger.getLogger(
+                    RoomDAO.class.getName()
+            ).log(Level.SEVERE, null, ex);
         }
-        return availableRooms;
+
+        return rooms;
     }
 
-    /**
-     * Retrieves a specific room based on its room number.
+    /*
+     * =========================================================
+     * 6. COUNT AVAILABLE ROOMS
+     *
+     * Useful for correct pagination after search.
+     * =========================================================
      */
-    public Room getRoomByNumber(int roomNumber) {
-        try {
-            String query = "SELECT Status, r.RoomTypeID, Name, Description, PricePerNight, Beds, Capacity, Picture "
-                         + "FROM Room r JOIN RoomType rt ON r.RoomTypeID = rt.RoomTypeID "
-                         + "WHERE RoomNumber = ?";
-            Object[] params = { roomNumber };
-            ResultSet rs = this.executeSelectionQuery(query, params);
+    public int countAvailableRooms(
+            LocalDate checkInDate,
+            LocalDate checkOutDate) {
 
-            if (rs.next()) {
-                RoomType roomType = new RoomType(
-                    rs.getInt(2), rs.getString(3), rs.getString(4),
-                    rs.getBigDecimal(5), rs.getInt(6),
-                    rs.getInt(7), rs.getString(8)
-                );
-                return new Room(roomNumber, rs.getString(1), roomType);
+        if (!isValidDateRange(
+                checkInDate,
+                checkOutDate)) {
+
+            return 0;
+        }
+
+        String sql =
+                "SELECT COUNT(*) AS Total "
+                + "FROM Room r "
+                + "JOIN RoomType rt "
+                + "ON rt.RoomTypeID = r.RoomTypeID "
+                + "WHERE r.Status = 'available' "
+                + "AND rt.IsActive = 1 "
+                + "AND NOT EXISTS ( "
+                + "    SELECT 1 "
+                + "    FROM BookingDetail bd "
+                + "    JOIN Booking b "
+                + "    ON b.BookingID = bd.BookingID "
+                + "    WHERE bd.RoomNumber = r.RoomNumber "
+                + "    AND b.Status <> 'cancelled' "
+                + "    AND bd.CheckInDate < ? "
+                + "    AND bd.CheckOutDate > ? "
+                + ")";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setObject(
+                    1,
+                    checkOutDate
+            );
+
+            ps.setObject(
+                    2,
+                    checkInDate
+            );
+
+            try (ResultSet rs =
+                    ps.executeQuery()) {
+
+                if (rs.next()) {
+                    return rs.getInt("Total");
+                }
             }
 
         } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
+
+            Logger.getLogger(
+                    RoomDAO.class.getName()
+            ).log(Level.SEVERE, null, ex);
         }
+
+        return 0;
+    }
+
+    /*
+     * =========================================================
+     * 7. GET ROOM BY ROOM NUMBER
+     * =========================================================
+     */
+    public Room getRoomByNumber(
+            int roomNumber) {
+
+        String sql =
+                "SELECT "
+                + "r.RoomNumber, "
+                + "r.Status, "
+                + "rt.RoomTypeID, "
+                + "rt.Name, "
+                + "rt.Description, "
+                + "rt.PricePerNight, "
+                + "rt.Beds, "
+                + "rt.Capacity, "
+                + "rt.Picture "
+                + "FROM Room r "
+                + "JOIN RoomType rt "
+                + "ON rt.RoomTypeID = r.RoomTypeID "
+                + "WHERE r.RoomNumber = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setInt(
+                    1,
+                    roomNumber
+            );
+
+            try (ResultSet rs =
+                    ps.executeQuery()) {
+
+                if (rs.next()) {
+                    return mapRoom(rs);
+                }
+            }
+
+        } catch (SQLException ex) {
+
+            Logger.getLogger(
+                    RoomDAO.class.getName()
+            ).log(Level.SEVERE, null, ex);
+        }
+
         return null;
     }
 
-    /**
-     * Creates a new room record in the database.
+    /*
+     * =========================================================
+     * 8. CHECK ROOM EXISTS
+     * =========================================================
      */
-    public int create(int roomNumber, String status, int roomTypeId) {
-        try {
-            String query = "INSERT INTO Room (RoomNumber, Status, RoomTypeId) VALUES (?, ?, ?);";
-            Object[] params = { roomNumber, status, roomTypeId };
-            return this.executeQuery(query, params);
-        } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return 0;
-    }
+    public boolean doesRoomExist(
+            int roomNumber) {
 
-    /**
-     * Deletes a room from the database based on its room number.
-     */
-    public int delete(int roomNumber) {
-        try {
-            String query = "DELETE FROM Room WHERE RoomNumber = ?;";
-            Object[] params = { roomNumber };
-            return this.executeQuery(query, params);
-        } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return 0;
-    }
+        String sql =
+                "SELECT 1 "
+                + "FROM Room "
+                + "WHERE RoomNumber = ?";
 
-    /**
-     * Updates a room's status and type based on its room number.
-     */
-    public int update(int roomNumber, String status, int roomTypeId) {
-        try {
-            String query = "UPDATE Room SET Status = ?, RoomTypeID = ? WHERE RoomNumber = ?;";
-            Object[] params = { status, roomTypeId, roomNumber };
-            return this.executeQuery(query, params);
-        } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return 0;
-    }
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
 
-    /**
-     * Checks if a room with the given room number exists in the database.
-     */
-    public boolean doesRoomExist(int roomNumber) {
-        String sql = "SELECT 1 FROM Room WHERE RoomNumber = ?";
-        try {
-            ResultSet rs = executeSelectionQuery(sql, new Object[]{roomNumber});
-            return rs.next(); // True if a result exists
-        } catch (SQLException e) {
-            e.printStackTrace();
+            ps.setInt(
+                    1,
+                    roomNumber
+            );
+
+            try (ResultSet rs =
+                    ps.executeQuery()) {
+
+                return rs.next();
+            }
+
+        } catch (SQLException ex) {
+
+            Logger.getLogger(
+                    RoomDAO.class.getName()
+            ).log(Level.SEVERE, null, ex);
         }
+
         return false;
+    }
+
+    /*
+     * =========================================================
+     * 9. CREATE ROOM
+     *
+     * IMPORTANT:
+     * RoomNumber in your new database is IDENTITY(100,1).
+     *
+     * Therefore Admin should NOT manually supply
+     * RoomNumber when creating a room.
+     *
+     * Method returns generated RoomNumber.
+     * Returns -1 if creation fails.
+     * =========================================================
+     */
+    public int create(
+            String status,
+            int roomTypeId) {
+
+        if (!isValidRoomStatus(status)) {
+            return -1;
+        }
+
+        String sql =
+                "INSERT INTO Room "
+                + "(RoomTypeID, Status) "
+                + "VALUES (?, ?)";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(
+                             sql,
+                             Statement.RETURN_GENERATED_KEYS
+                     )) {
+
+            ps.setInt(
+                    1,
+                    roomTypeId
+            );
+
+            ps.setString(
+                    2,
+                    status
+            );
+
+            int affectedRows =
+                    ps.executeUpdate();
+
+            if (affectedRows == 0) {
+                return -1;
+            }
+
+            try (ResultSet rs =
+                    ps.getGeneratedKeys()) {
+
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+
+        } catch (SQLException ex) {
+
+            Logger.getLogger(
+                    RoomDAO.class.getName()
+            ).log(Level.SEVERE, null, ex);
+        }
+
+        return -1;
+    }
+
+    /*
+     * =========================================================
+     * 10. UPDATE ROOM
+     *
+     * RoomNumber is primary key / identity.
+     * We do not change the room number.
+     * =========================================================
+     */
+    public int update(
+            int roomNumber,
+            String status,
+            int roomTypeId) {
+
+        if (!isValidRoomStatus(status)) {
+            return 0;
+        }
+
+        String sql =
+                "UPDATE Room "
+                + "SET "
+                + "RoomTypeID = ?, "
+                + "Status = ? "
+                + "WHERE RoomNumber = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setInt(
+                    1,
+                    roomTypeId
+            );
+
+            ps.setString(
+                    2,
+                    status
+            );
+
+            ps.setInt(
+                    3,
+                    roomNumber
+            );
+
+            return ps.executeUpdate();
+
+        } catch (SQLException ex) {
+
+            Logger.getLogger(
+                    RoomDAO.class.getName()
+            ).log(Level.SEVERE, null, ex);
+        }
+
+        return 0;
+    }
+
+    /*
+     * =========================================================
+     * 11. CHECK WHETHER ROOM HAS BOOKING HISTORY
+     * =========================================================
+     */
+    public boolean hasBookingHistory(
+            int roomNumber) {
+
+        String sql =
+                "SELECT 1 "
+                + "FROM BookingDetail "
+                + "WHERE RoomNumber = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setInt(
+                    1,
+                    roomNumber
+            );
+
+            try (ResultSet rs =
+                    ps.executeQuery()) {
+
+                return rs.next();
+            }
+
+        } catch (SQLException ex) {
+
+            Logger.getLogger(
+                    RoomDAO.class.getName()
+            ).log(Level.SEVERE, null, ex);
+        }
+
+        /*
+         * Safer to assume history exists
+         * when DB checking fails.
+         */
+        return true;
+    }
+
+    /*
+     * =========================================================
+     * 12. DELETE ROOM
+     *
+     * RDS requires booking history to remain intact.
+     *
+     * If the room has BookingDetail history:
+     * do NOT physically delete it.
+     *
+     * Instead mark it out_of_service.
+     * =========================================================
+     */
+    public int delete(
+            int roomNumber) {
+
+        if (!doesRoomExist(roomNumber)) {
+            return 0;
+        }
+
+        /*
+         * Room already appeared in a booking.
+         * Preserve historical foreign-key references.
+         */
+        if (hasBookingHistory(roomNumber)) {
+
+            return setRoomOutOfService(
+                    roomNumber
+            );
+        }
+
+        /*
+         * Room has never been booked.
+         * Physical delete is safe.
+         */
+        String sql =
+                "DELETE FROM Room "
+                + "WHERE RoomNumber = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setInt(
+                    1,
+                    roomNumber
+            );
+
+            return ps.executeUpdate();
+
+        } catch (SQLException ex) {
+
+            Logger.getLogger(
+                    RoomDAO.class.getName()
+            ).log(Level.SEVERE, null, ex);
+        }
+
+        return 0;
+    }
+
+    /*
+     * =========================================================
+     * 13. SOFT REMOVE / DISABLE ROOM
+     * =========================================================
+     */
+    public int setRoomOutOfService(
+            int roomNumber) {
+
+        String sql =
+                "UPDATE Room "
+                + "SET Status = 'out_of_service' "
+                + "WHERE RoomNumber = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps =
+                     conn.prepareStatement(sql)) {
+
+            ps.setInt(
+                    1,
+                    roomNumber
+            );
+
+            return ps.executeUpdate();
+
+        } catch (SQLException ex) {
+
+            Logger.getLogger(
+                    RoomDAO.class.getName()
+            ).log(Level.SEVERE, null, ex);
+        }
+
+        return 0;
+    }
+
+    /*
+     * =========================================================
+     * 14. CHECK ROOM STATUS
+     *
+     * Must match HotelDB CHECK constraint:
+     *
+     * available
+     * maintenance
+     * out_of_service
+     * =========================================================
+     */
+    private boolean isValidRoomStatus(
+            String status) {
+
+        if (status == null) {
+            return false;
+        }
+
+        return status.equals("available")
+                || status.equals("maintenance")
+                || status.equals("out_of_service");
+    }
+
+    /*
+     * =========================================================
+     * 15. DATE VALIDATION
+     * =========================================================
+     */
+    private boolean isValidDateRange(
+            LocalDate checkInDate,
+            LocalDate checkOutDate) {
+
+        if (checkInDate == null
+                || checkOutDate == null) {
+
+            return false;
+        }
+
+        return checkOutDate.isAfter(
+                checkInDate
+        );
+    }
+
+    /*
+     * =========================================================
+     * 16. MAP RESULTSET -> ROOM
+     * =========================================================
+     */
+    private Room mapRoom(
+            ResultSet rs)
+            throws SQLException {
+
+        RoomType roomType =
+                new RoomType(
+                        rs.getInt(
+                                "RoomTypeID"
+                        ),
+                        rs.getString(
+                                "Name"
+                        ),
+                        rs.getString(
+                                "Description"
+                        ),
+                        rs.getBigDecimal(
+                                "PricePerNight"
+                        ),
+                        rs.getInt(
+                                "Beds"
+                        ),
+                        rs.getInt(
+                                "Capacity"
+                        ),
+                        rs.getString(
+                                "Picture"
+                        )
+                );
+
+        return new Room(
+                rs.getInt(
+                        "RoomNumber"
+                ),
+                rs.getString(
+                        "Status"
+                ),
+                roomType
+        );
     }
 }

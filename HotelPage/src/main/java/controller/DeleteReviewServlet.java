@@ -1,72 +1,235 @@
 package controller;
 
 import dao.ReviewDAO;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 
-/**
- * Servlet that handles deletion of a review by its ID.
- * 
- * URL pattern: /reports/delete-reviews
- * 
- * This servlet accepts POST requests to delete a review, and redirects
- * to the reviews page after successful deletion.
- * 
- * GET requests are redirected to the reviews list page.
- */
-@WebServlet(name = "DeleteReviewServlet", urlPatterns = {"/reports/delete-reviews"})
-public class DeleteReviewServlet extends HttpServlet {
+import model.User;
 
-    /**
-     * Handles HTTP POST requests for deleting a review.
-     *
-     * @param request  the HttpServletRequest containing the review ID to delete
-     * @param response the HttpServletResponse used to redirect or return error
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException      if an I/O error occurs
-     */
+@WebServlet(
+        name = "DeleteReviewServlet",
+        urlPatterns = {"/admin/reviews/moderate"}
+)
+public class DeleteReviewServlet
+        extends HttpServlet {
+
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException {
-        try {
-            // Parse the reviewID from the request parameters
-            int reviewID = Integer.parseInt(request.getParameter("reviewID"));
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
 
-            // Create DAO instance to interact with the database
-            ReviewDAO dao = new ReviewDAO();
+        request.setCharacterEncoding(
+                "UTF-8"
+        );
 
-            // Call the delete method to remove the review from DB
-            dao.deleteReview(reviewID);
+        HttpSession session =
+                request.getSession(false);
 
-            // ✅ Redirect to the review list page after successful deletion
-            response.sendRedirect(request.getContextPath() + "/reports?view=reviews");
-        } catch (Exception e) {
-            // Print the error for debugging
-            e.printStackTrace();
+        /*
+         * Authentication.
+         */
+        if (session == null
+                || session.getAttribute("loggedUser") == null) {
 
-            // Output error message to client
-            response.getWriter().println("Error deleting review: " + e.getMessage());
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/login"
+            );
+
+            return;
+        }
+
+        User user =
+                (User) session.getAttribute(
+                        "loggedUser"
+                );
+
+        /*
+         * Admin only.
+         */
+        if (!"admin".equalsIgnoreCase(
+                user.getRole())) {
+
+            response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN
+            );
+
+            return;
+        }
+
+        /*
+         * ===============================================
+         * 1. REVIEW ID
+         * ===============================================
+         */
+        Integer reviewId =
+                parsePositiveInt(
+                        request.getParameter(
+                                "reviewID"
+                        )
+                );
+
+        /*
+         * ===============================================
+         * 2. ACTION
+         *
+         * approve
+         * reject
+         * ===============================================
+         */
+        String action =
+                request.getParameter(
+                        "action"
+                );
+
+        if (reviewId == null
+                || action == null
+                || action.trim().isEmpty()) {
+
+            redirect(
+                    request,
+                    response,
+                    "invalid-review"
+            );
+
+            return;
+        }
+
+        ReviewDAO reviewDAO =
+                new ReviewDAO();
+
+        boolean success;
+
+        switch (action) {
+
+            case "approve":
+
+                success =
+                        reviewDAO.approveReview(
+                                reviewId
+                        );
+
+                break;
+
+            case "reject":
+
+                success =
+                        reviewDAO.rejectReview(
+                                reviewId
+                        );
+
+                break;
+
+            default:
+
+                response.sendError(
+                        HttpServletResponse.SC_BAD_REQUEST
+                );
+
+                return;
+        }
+
+        /*
+         * ===============================================
+         * 3. RESULT
+         * ===============================================
+         */
+        if (!success) {
+
+            redirect(
+                    request,
+                    response,
+                    "update-failed"
+            );
+
+            return;
+        }
+
+        if ("approve".equals(action)) {
+
+            redirect(
+                    request,
+                    response,
+                    "approved"
+            );
+
+        } else {
+
+            redirect(
+                    request,
+                    response,
+                    "rejected"
+            );
         }
     }
 
-    /**
-     * Handles HTTP GET requests by redirecting to the reviews list.
-     * 
-     * GET is not supported for deletion, so this ensures safe redirection.
-     *
-     * @param request  the HttpServletRequest
-     * @param response the HttpServletResponse
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException      if an I/O error occurs
+    /*
+     * Prevent moderation through GET.
      */
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException {
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
 
-        // Redirect GET requests to the review list page to prevent deletion
-        response.sendRedirect(request.getContextPath() + "/admin/reports?view=reviews");
+        response.sendRedirect(
+                request.getContextPath()
+                + "/admin/reviews"
+        );
+    }
+
+    private Integer parsePositiveInt(
+            String value) {
+
+        if (value == null
+                || value.trim().isEmpty()) {
+
+            return null;
+        }
+
+        try {
+
+            int id =
+                    Integer.parseInt(
+                            value.trim()
+                    );
+
+            return id > 0
+                    ? id
+                    : null;
+
+        } catch (NumberFormatException e) {
+
+            return null;
+        }
+    }
+
+    private void redirect(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            String message)
+            throws IOException {
+
+        response.sendRedirect(
+                request.getContextPath()
+                + "/admin/reviews"
+                + "?message="
+                + message
+        );
+    }
+
+    @Override
+    public String getServletInfo() {
+
+        return "Admin review approval/rejection.";
     }
 }

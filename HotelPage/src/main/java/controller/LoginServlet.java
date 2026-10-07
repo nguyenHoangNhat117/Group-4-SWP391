@@ -1,14 +1,8 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
 package controller;
 
 import dao.CustomerDAO;
-import model.User;
 import dao.UserDAO;
-import java.io.IOException;
-import java.io.PrintWriter;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.Cookie;
@@ -16,166 +10,537 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import model.Customer;
 
-/**
- *
- * @author Đặng Hoàng Vũ
- */
-@WebServlet(name = "LoginServlet", urlPatterns = {"/login"})
+import java.io.IOException;
+
+import model.Customer;
+import model.User;
+
+@WebServlet(
+        name = "LoginServlet",
+        urlPatterns = {"/login"}
+)
 public class LoginServlet extends HttpServlet {
 
-    /**
-     * Processes both GET and POST requests.
-     *
-     * @param request the HttpServletRequest object
-     * @param response the HttpServletResponse object
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try ( PrintWriter out = response.getWriter()) {
-            /* Example HTML output (unused in production) */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet LoginServlet</title>");
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet LoginServlet at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
-        }
-    }
-
-    /**
-     * Handles the HTTP GET method.
-     * Used for displaying the login page and pre-filling saved cookies.
-     *
-     * @param request the HttpServletRequest object
-     * @param response the HttpServletResponse object
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
+    /*
+     * =========================================================
+     * GET LOGIN PAGE
+     * =========================================================
      */
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
-        // Check if the user was redirected after password reset
-        String success = request.getParameter("success");
+
+        /*
+         * If already logged in, there is no reason
+         * to display login page again.
+         */
+        HttpSession currentSession =
+                request.getSession(false);
+
+        if (currentSession != null
+                && currentSession.getAttribute(
+                        "loggedUser"
+                ) != null) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/"
+            );
+
+            return;
+        }
+
+        /*
+         * Password reset success message.
+         */
+        String success =
+                request.getParameter(
+                        "success"
+                );
+
         if ("reset".equals(success)) {
-            request.setAttribute("message", "Password reset successful. Please sign in.");
+
+            request.setAttribute(
+                    "message",
+                    "Password reset successful. "
+                    + "Please sign in."
+            );
         }
 
-        // Retrieve cookies from the request
-        Cookie[] cookies = request.getCookies();
+        /*
+         * Remember Username only.
+         *
+         * NEVER restore/store password in cookies.
+         */
+        Cookie[] cookies =
+                request.getCookies();
+
         if (cookies != null) {
+
             for (Cookie cookie : cookies) {
-                // Set saved username in the request
-                if ("username".equals(cookie.getName())) {
-                    request.setAttribute("enteredUsername", cookie.getValue());
-                }
-                // Set saved password (if any - though insecure)
-                if ("password".equals(cookie.getName())) {
-                    request.setAttribute("savedPassword", cookie.getValue());
+
+                if ("username".equals(
+                        cookie.getName())) {
+
+                    request.setAttribute(
+                            "enteredUsername",
+                            cookie.getValue()
+                    );
                 }
             }
         }
 
-        // Forward the request to login.jsp for display
-        request.getRequestDispatcher("/WEB-INF/login/login.jsp").forward(request, response);
+        request.getRequestDispatcher(
+                "/WEB-INF/login/login.jsp"
+        ).forward(request, response);
     }
 
-    /**
-     * Handles the HTTP POST method.
-     * Used for authenticating the user based on form input.
-     *
-     * @param request the HttpServletRequest object containing form data
-     * @param response the HttpServletResponse object for redirecting or forwarding
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
+    /*
+     * =========================================================
+     * LOGIN
+     * =========================================================
      */
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
 
-        // Check if username is missing or empty
-        if (request.getParameter("username") == null || request.getParameter("username").trim().equals("")) {
-            request.setAttribute("error", "Missing username, Please try again.");
-            request.getRequestDispatcher("/WEB-INF/login/login.jsp").forward(request, response);
+        request.setCharacterEncoding(
+                "UTF-8"
+        );
+
+        /*
+         * =====================================================
+         * 1. READ INPUT
+         * =====================================================
+         */
+        String username =
+                request.getParameter(
+                        "username"
+                );
+
+        String password =
+                request.getParameter(
+                        "password"
+                );
+
+        /*
+         * =====================================================
+         * 2. VALIDATE USERNAME
+         * =====================================================
+         */
+        if (username == null
+                || username.trim().isEmpty()) {
+
+            request.setAttribute(
+                    "error",
+                    "Username is required."
+            );
+
+            request.getRequestDispatcher(
+                    "/WEB-INF/login/login.jsp"
+            ).forward(request, response);
+
             return;
         }
 
-        // Get the username from the form
-        String username = request.getParameter("username");
+        username =
+                username.trim();
 
-        // Check if password is missing or empty
-        if (request.getParameter("password") == null || request.getParameter("password").trim().equals("")) {
-            request.setAttribute("error", "Missing password, Please try again.");
-            request.setAttribute("enteredUsername", username);
-            request.getRequestDispatcher("/WEB-INF/login/login.jsp").forward(request, response);
+        /*
+         * =====================================================
+         * 3. VALIDATE PASSWORD
+         * =====================================================
+         */
+        if (password == null
+                || password.isEmpty()) {
+
+            request.setAttribute(
+                    "error",
+                    "Password is required."
+            );
+
+            request.setAttribute(
+                    "enteredUsername",
+                    username
+            );
+
+            request.getRequestDispatcher(
+                    "/WEB-INF/login/login.jsp"
+            ).forward(request, response);
+
             return;
         }
 
-        // Get the password from the form
-        String password = request.getParameter("password");
+        /*
+         * =====================================================
+         * 4. AUTHENTICATE
+         * =====================================================
+         */
+        UserDAO userDAO =
+                new UserDAO();
 
-        // Instantiate DAO to access user data
-        UserDAO dao = new UserDAO();
+        UserDAO.AuthenticationResult result =
+                userDAO.authenticate(
+                        username,
+                        password
+                );
 
-        // Attempt to log in with the given credentials
-        User loggedUser = dao.login(username, password);
+        /*
+         * =====================================================
+         * 5. INVALID CREDENTIALS
+         * =====================================================
+         */
+        if (UserDAO.LOGIN_INVALID.equals(
+                result.getStatus())) {
 
-        // If login is successful
-        if (loggedUser != null) {
-            // Get or create the current session
-            HttpSession session = request.getSession();
+            request.setAttribute(
+                    "error",
+                    "Invalid username or password."
+            );
 
-            // Save the logged-in user in the session
-            session.setAttribute("loggedUser", loggedUser);
+            request.setAttribute(
+                    "enteredUsername",
+                    username
+            );
 
-            // If the user role is "customer", also load and save customer details
-            if (loggedUser.getRole().equals("customer")) {
-                CustomerDAO cDAO = new CustomerDAO();
-                Customer customer = cDAO.getCustomerByUserID(loggedUser.getId());
-                session.setAttribute("customer", customer);
+            request.getRequestDispatcher(
+                    "/WEB-INF/login/login.jsp"
+            ).forward(request, response);
+
+            return;
+        }
+
+        /*
+         * =====================================================
+         * 6. LOCKED ACCOUNT
+         * =====================================================
+         */
+        if (UserDAO.LOGIN_LOCKED.equals(
+                result.getStatus())) {
+
+            request.setAttribute(
+                    "error",
+                    "Your account is locked. "
+                    + "Please contact hotel staff "
+                    + "or an administrator."
+            );
+
+            request.setAttribute(
+                    "enteredUsername",
+                    username
+            );
+
+            request.getRequestDispatcher(
+                    "/WEB-INF/login/login.jsp"
+            ).forward(request, response);
+
+            return;
+        }
+
+        /*
+         * =====================================================
+         * 7. INACTIVE ACCOUNT
+         * =====================================================
+         */
+        if (UserDAO.LOGIN_INACTIVE.equals(
+                result.getStatus())) {
+
+            request.setAttribute(
+                    "error",
+                    "Your account is inactive."
+            );
+
+            request.setAttribute(
+                    "enteredUsername",
+                    username
+            );
+
+            request.getRequestDispatcher(
+                    "/WEB-INF/login/login.jsp"
+            ).forward(request, response);
+
+            return;
+        }
+
+        /*
+         * =====================================================
+         * 8. LOGIN SUCCESS
+         * =====================================================
+         */
+        User loggedUser =
+                result.getUser();
+
+        if (loggedUser == null) {
+
+            request.setAttribute(
+                    "error",
+                    "Login could not be completed."
+            );
+
+            request.setAttribute(
+                    "enteredUsername",
+                    username
+            );
+
+            request.getRequestDispatcher(
+                    "/WEB-INF/login/login.jsp"
+            ).forward(request, response);
+
+            return;
+        }
+
+        /*
+         * Prevent session fixation:
+         * invalidate old session before creating a new one.
+         */
+        HttpSession oldSession =
+                request.getSession(false);
+
+        if (oldSession != null) {
+
+            oldSession.invalidate();
+        }
+
+        HttpSession session =
+                request.getSession(true);
+
+        /*
+         * 30 minute inactivity timeout.
+         */
+        session.setMaxInactiveInterval(
+                30 * 60
+        );
+
+        session.setAttribute(
+                "loggedUser",
+                loggedUser
+        );
+
+        /*
+         * =====================================================
+         * 9. LOAD CUSTOMER PROFILE
+         * =====================================================
+         */
+        if ("customer".equalsIgnoreCase(
+                loggedUser.getRole())) {
+
+            CustomerDAO customerDAO =
+                    new CustomerDAO();
+
+            Customer customer =
+                    customerDAO
+                            .getCustomerByUserID(
+                                    loggedUser.getId()
+                            );
+
+            /*
+             * A customer account should have
+             * matching Customer profile.
+             */
+            if (customer == null) {
+
+                session.invalidate();
+
+                request.setAttribute(
+                        "error",
+                        "Customer profile could not "
+                        + "be loaded."
+                );
+
+                request.setAttribute(
+                        "enteredUsername",
+                        username
+                );
+
+                request.getRequestDispatcher(
+                        "/WEB-INF/login/login.jsp"
+                ).forward(request, response);
+
+                return;
             }
 
-            // Get the "remember" checkbox value
-            String remember = request.getParameter("remember");
+            session.setAttribute(
+                    "customer",
+                    customer
+            );
+        }
 
-            if ("on".equals(remember)) {
-                // If checked, create a cookie to store the username
-                Cookie userCookie = new Cookie("username", username);
-                userCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days in seconds
-                response.addCookie(userCookie);
-            } else {
-                // If not checked, delete the username cookie
-                Cookie userCookie = new Cookie("username", "");
-                userCookie.setMaxAge(0); // delete immediately
-                response.addCookie(userCookie);
-            }
+        /*
+         * =====================================================
+         * 10. REMEMBER USERNAME
+         *
+         * Only username is stored.
+         * Password is NEVER stored.
+         * =====================================================
+         */
+        String remember =
+                request.getParameter(
+                        "remember"
+                );
 
-            // Redirect to the home page after successful login
-            response.sendRedirect(request.getContextPath() + "/");
+        if ("on".equals(remember)) {
+
+            Cookie usernameCookie =
+                    new Cookie(
+                            "username",
+                            username
+                    );
+
+            usernameCookie.setMaxAge(
+                    7 * 24 * 60 * 60
+            );
+
+            usernameCookie.setHttpOnly(
+                    true
+            );
+
+            usernameCookie.setPath(
+                    request.getContextPath()
+                            .isEmpty()
+                            ? "/"
+                            : request.getContextPath()
+            );
+
+            /*
+             * If production uses HTTPS,
+             * enable this:
+             *
+             * usernameCookie.setSecure(true);
+             */
+
+            response.addCookie(
+                    usernameCookie
+            );
 
         } else {
-            // If login fails, return to login page with error message
-            request.setAttribute("error", "No account found. Please sign up first!");
-            request.setAttribute("enteredUsername", username);
-            request.getRequestDispatcher("/WEB-INF/login/login.jsp").forward(request, response);
+
+            Cookie usernameCookie =
+                    new Cookie(
+                            "username",
+                            ""
+                    );
+
+            usernameCookie.setMaxAge(0);
+
+            usernameCookie.setHttpOnly(
+                    true
+            );
+
+            usernameCookie.setPath(
+                    request.getContextPath()
+                            .isEmpty()
+                            ? "/"
+                            : request.getContextPath()
+            );
+
+            response.addCookie(
+                    usernameCookie
+            );
         }
+
+        /*
+         * =====================================================
+         * 11. REDIRECT BY ROLE
+         * =====================================================
+         */
+        redirectAfterLogin(
+                request,
+                response,
+                loggedUser
+        );
     }
 
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String containing servlet description
+    /*
+     * =========================================================
+     * ROLE BASED REDIRECT
+     * =========================================================
      */
+    private void redirectAfterLogin(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            User user)
+            throws IOException {
+
+        String role =
+                user.getRole();
+
+        /*
+         * Keep customer on public/customer home.
+         */
+        if ("customer".equalsIgnoreCase(
+                role)) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/"
+            );
+
+            return;
+        }
+
+        /*
+         * Staff mainly works with
+         * customer / booking management.
+         */
+        if ("staff".equalsIgnoreCase(
+                role)) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/customers"
+            );
+
+            return;
+        }
+
+        /*
+         * Administrator manages rooms,
+         * promotions, reviews, etc.
+         */
+        if ("admin".equalsIgnoreCase(
+                role)) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/room"
+            );
+
+            return;
+        }
+
+        /*
+         * Manager goes to reports/dashboard.
+         */
+        if ("manager".equalsIgnoreCase(
+                role)) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/reports"
+            );
+
+            return;
+        }
+
+        /*
+         * IT Support currently does not have
+         * a dedicated module in source.
+         */
+        response.sendRedirect(
+                request.getContextPath()
+                + "/"
+        );
+    }
+
     @Override
     public String getServletInfo() {
-        return "LoginServlet handles user login authentication and session setup.";
-    }
 
+        return "Authenticates users and creates "
+                + "role-aware sessions.";
+    }
 }

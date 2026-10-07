@@ -1,66 +1,108 @@
 package controller;
 
-// Import the ReviewDAO class to interact with the database for Review-related operations
 import dao.ReviewDAO;
 
-import java.io.IOException;
-
-// Import servlet-related packages
-import jakarta.servlet.*;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
 
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+
+import java.io.IOException;
 import java.util.List;
 
-// Import the Review model class
 import model.Review;
+import model.User;
 
-/**
- * This servlet handles administrative access to reports,
- * specifically review-related data.
- * 
- * Mapped to the URL pattern "/admin/reports".
- */
-@WebServlet(name = "AdminReviewServlet", urlPatterns = {"/admin/reports"})
-public class AdminReviewServlet extends HttpServlet {
+@WebServlet(
+        name = "AdminReviewServlet",
+        urlPatterns = {"/admin/reviews"}
+)
+public class AdminReviewServlet
+        extends HttpServlet {
 
-    /**
-     * Handles HTTP GET requests to display admin reports.
-     * 
-     * Depending on the value of the "view" parameter, this method
-     * retrieves data and forwards it to the appropriate JSP page.
-     *
-     * @param request  the HttpServletRequest object containing client request data
-     * @param response the HttpServletResponse object for sending responses to the client
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException      if an input or output error occurs
-     */
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException {
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
 
-        // Retrieve the "view" parameter from the request to determine which report to show
-        String view = request.getParameter("view");
+        HttpSession session =
+                request.getSession(false);
 
-        // If the requested view is "reviews", handle the logic for displaying reviews
-        if ("reviews".equals(view)) {
-            // Create an instance of ReviewDAO to interact with the database
-            ReviewDAO dao = new ReviewDAO();
+        /*
+         * AuthenticationFilter already protects /admin/*,
+         * but servlet checks again for safety.
+         */
+        if (session == null
+                || session.getAttribute("loggedUser") == null) {
 
-            // Get a list of all reviews from the database
-            List<Review> reviews = dao.getAllReviews();
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/login"
+            );
 
-            // Set the list of reviews as a request attribute so it can be accessed in the JSP
-            request.setAttribute("reviews", reviews);
-
-            // Forward the request to the JSP page that will display the reviews
-            request.getRequestDispatcher("/WEB-INF/reports/reviews.jsp").forward(request, response);
+            return;
         }
 
-        // If the "view" parameter does not match any known value, return a 404 error
-        // Additional view types such as "payments", "bookings", etc. can be added here
-        else {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+        User user =
+                (User) session.getAttribute(
+                        "loggedUser"
+                );
+
+        /*
+         * Review Management is Admin-only.
+         */
+        if (!"admin".equalsIgnoreCase(
+                user.getRole())) {
+
+            response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN
+            );
+
+            return;
         }
+
+        ReviewDAO reviewDAO =
+                new ReviewDAO();
+
+        List<Review> reviews =
+                reviewDAO.getAllReviews();
+
+        request.setAttribute(
+                "reviews",
+                reviews
+        );
+
+        request.getRequestDispatcher(
+                "/WEB-INF/reports/reviews.jsp"
+        ).forward(
+                request,
+                response
+        );
+    }
+
+    @Override
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        /*
+         * Moderation is handled by:
+         *
+         * /admin/reviews/moderate
+         */
+        response.sendError(
+                HttpServletResponse.SC_METHOD_NOT_ALLOWED
+        );
+    }
+
+    @Override
+    public String getServletInfo() {
+
+        return "Admin Review Management.";
     }
 }

@@ -1,117 +1,102 @@
-
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package model;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
-/**
- *
- * @author Diệp Vỹ Khang
- */
-/**
- * Represents a customer review for a hotel booking experience. Contains review
- * details including rating, comments, and associated booking information.
- */
 public class Review {
-    private int reviewID;        // Unique identifier for the review
-    private Booking booking;    // Booking associated with this review
-    private String comment;     // Customer's written feedback (nullable)
-    private BigDecimal star;    // Numeric rating (typically 1-5 scale)
 
-    /**
-     * Default constructor creates an empty Review object. Used when
-     * initializing a review before setting properties.
-     */
+    private int reviewID;
+    private Booking booking;
+    private String comment;
+    private BigDecimal star;
+
+    private LocalDateTime reviewDate;
+    private String reviewStatus;
+
     public Review() {
     }
 
-    /**
-     * Creates a fully initialized Review with all properties.
-     *
-     * @param reviewID Unique identifier for the review
-     * @param booking The Booking this review references
-     * @param comment Customer's written feedback (can be null or empty)
-     * @param star Numeric rating value (e.g., 4.5 for four and half stars)
+    /*
+     * Giữ constructor cũ để các phần chưa sửa
+     * không bị lỗi compile ngay.
      */
-    public Review(int reviewID, Booking booking, String comment, BigDecimal star) {
+    public Review(
+            int reviewID,
+            Booking booking,
+            String comment,
+            BigDecimal star) {
+
         this.reviewID = reviewID;
         this.booking = booking;
         this.comment = comment;
         this.star = star;
     }
 
-    /**
-     * Gets the unique review identifier.
-     *
-     * @return int value of review ID
-     */
+    public Review(
+            int reviewID,
+            Booking booking,
+            String comment,
+            BigDecimal star,
+            LocalDateTime reviewDate,
+            String reviewStatus) {
+
+        this.reviewID = reviewID;
+        this.booking = booking;
+        this.comment = comment;
+        this.star = star;
+        this.reviewDate = reviewDate;
+        this.reviewStatus = reviewStatus;
+    }
+
     public int getReviewID() {
         return reviewID;
     }
 
-    /**
-     * Gets the booking associated with this review.
-     *
-     * @return Booking object containing reservation details
-     */
-    public Booking getBooking() {
-        return booking;
-    }
-
-    /**
-     * Gets the customer's written feedback.
-     *
-     * @return String containing review comments (may be empty)
-     */
-    public String getComment() {
-        return comment;
-    }
-
-    /**
-     * Gets the numeric rating value.
-     *
-     * @return BigDecimal representing star rating (1.0-5.0 scale)
-     */
-    public BigDecimal getStar() {
-        return star;
-    }
-
-    /**
-     * Sets the unique review identifier.
-     *
-     * @param reviewID The ID number to assign
-     */
     public void setReviewID(int reviewID) {
         this.reviewID = reviewID;
     }
 
-    /**
-     * Sets the booking associated with this review.
-     *
-     * @param booking The Booking object to associate
-     */
+    public Booking getBooking() {
+        return booking;
+    }
+
     public void setBooking(Booking booking) {
         this.booking = booking;
     }
 
-    /**
-     * Sets the customer's written feedback.
-     *
-     * @param comment The review text to set (can be null or empty)
-     */
+    public String getComment() {
+        return comment;
+    }
+
     public void setComment(String comment) {
         this.comment = comment;
     }
 
-    /**
-     * Sets the numeric rating value.
-     *
-     * @param star The star rating to set (should be 1.0-5.0)
-     */
+    public BigDecimal getStar() {
+        return star;
+    }
+
     public void setStar(BigDecimal star) {
         this.star = star;
+    }
+
+    public LocalDateTime getReviewDate() {
+        return reviewDate;
+    }
+
+    public void setReviewDate(
+            LocalDateTime reviewDate) {
+
+        this.reviewDate = reviewDate;
+    }
+
+    public String getReviewStatus() {
+        return reviewStatus;
+    }
+
+    public void setReviewStatus(
+            String reviewStatus) {
+
+        this.reviewStatus = reviewStatus;
     }
 }

@@ -1,120 +1,368 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
 package controller;
 
 import dao.BookingDAO;
-import java.io.IOException;
-import java.io.PrintWriter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+
+import java.io.IOException;
+
+import model.Booking;
 import model.Customer;
+import model.User;
 
-/**
- * Servlet that handles the cancellation of a booking made by a customer.
- * 
- * URL mapping: /history/cancel-booking
- * 
- * Author: Đặng Hoàng Vũ
- */
-@WebServlet(name = "CancelBookingServlet", urlPatterns = {"/history/cancel-booking"})
-public class CancelBookingServlet extends HttpServlet {
+@WebServlet(
+        name = "CancelBookingServlet",
+        urlPatterns = {"/history/cancel-booking"}
+)
+public class CancelBookingServlet
+        extends HttpServlet {
 
-    /**
-     * This method is auto-generated for demo HTML purposes and is not used in real logic.
+    /*
+     * =========================================================
+     * GET
      *
-     * @param request  HttpServletRequest from the client
-     * @param response HttpServletResponse to send content to the client
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException      if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        response.setContentType("text/html;charset=UTF-8");
-
-        // Output a sample HTML page
-        try (PrintWriter out = response.getWriter()) {
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet CancelBookingServlet</title>");
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet CancelBookingServlet at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
-        }
-    }
-
-    /**
-     * Handles HTTP GET requests. Used to display the booking cancellation confirmation page.
-     *
-     * @param request  HttpServletRequest object containing the booking ID parameter
-     * @param response HttpServletResponse to forward to the JSP view
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException      if an I/O error occurs
+     * Display cancellation confirmation.
+     * =========================================================
      */
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
 
-        // If the "id" parameter is missing or empty, redirect to homepage
-        if (request.getParameter("id") == null || request.getParameter("id").trim().equals("")) {
-            response.sendRedirect("./");
+        HttpSession session =
+                request.getSession(false);
+
+        /*
+         * Only authenticated Customer may cancel
+         * their own booking from this screen.
+         */
+        if (session == null
+                || session.getAttribute("loggedUser") == null
+                || session.getAttribute("customer") == null) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/login"
+            );
             return;
         }
 
-        // Forward the request to the JSP confirmation page
-        request.getRequestDispatcher("/WEB-INF/history/cancelBooking/cancel-booking.jsp").forward(request, response);
-    }
+        User user =
+                (User) session.getAttribute(
+                        "loggedUser"
+                );
 
-    /**
-     * Handles HTTP POST requests. Cancels a booking if a valid ID is provided.
-     * After cancellation, it redirects back to the user's booking history.
-     *
-     * @param request  HttpServletRequest object containing booking ID to cancel
-     * @param response HttpServletResponse object to redirect to booking history
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException      if an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+        Customer customer =
+                (Customer) session.getAttribute(
+                        "customer"
+                );
 
-        // Get current session
-        HttpSession session = request.getSession();
+        if (!"customer".equalsIgnoreCase(
+                user.getRole())) {
 
-        // Get the logged-in customer object from session
-        Customer customer = (Customer) session.getAttribute("customer");
-
-        // Try parsing the booking ID from the request
-        int id = Integer.parseInt(request.getParameter("id"));
-
-        // If the ID is valid (greater than 0), attempt to delete the booking
-        if (id > 0) {
-            BookingDAO bDAO = new BookingDAO(); // DAO for booking operations
-            bDAO.deleteBooking(id); // Delete booking by ID
+            response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN
+            );
+            return;
         }
 
-        // Redirect back to the user's booking history after deletion
-        response.sendRedirect(request.getContextPath() + "/history?id=" + customer.getCustomerID() + "&view=bookings");
+        Integer bookingId =
+                parseBookingId(
+                        request.getParameter("id")
+                );
 
-        // Note: You had a commented-out try-catch for NumberFormatException; it's not needed here
+        if (bookingId == null) {
+
+            redirectHistory(
+                    request,
+                    response,
+                    customer.getCustomerID(),
+                    "invalid-booking"
+            );
+
+            return;
+        }
+
+        BookingDAO bookingDAO =
+                new BookingDAO();
+
+        /*
+         * Prevent Customer A from opening
+         * cancellation page of Customer B.
+         */
+        if (!bookingDAO.isBookingOwnedByCustomer(
+                bookingId,
+                customer.getCustomerID())) {
+
+            response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN
+            );
+
+            return;
+        }
+
+        Booking booking =
+                bookingDAO.getBookingById(
+                        bookingId
+                );
+
+        if (booking == null) {
+
+            redirectHistory(
+                    request,
+                    response,
+                    customer.getCustomerID(),
+                    "booking-not-found"
+            );
+
+            return;
+        }
+
+        /*
+         * Only pending / confirmed booking
+         * may enter cancellation flow.
+         */
+        if (!"pending".equalsIgnoreCase(
+                    booking.getStatus())
+                && !"confirmed".equalsIgnoreCase(
+                    booking.getStatus())) {
+
+            redirectHistory(
+                    request,
+                    response,
+                    customer.getCustomerID(),
+                    "cannot-cancel"
+            );
+
+            return;
+        }
+
+        request.setAttribute(
+                "booking",
+                booking
+        );
+
+        request.getRequestDispatcher(
+                "/WEB-INF/history/cancelBooking/"
+                + "cancel-booking.jsp"
+        ).forward(request, response);
     }
 
-    /**
-     * Provides a short description of this servlet.
+    /*
+     * =========================================================
+     * POST
      *
-     * @return A brief description string
+     * Perform cancellation.
+     * =========================================================
      */
     @Override
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        request.setCharacterEncoding("UTF-8");
+
+        HttpSession session =
+                request.getSession(false);
+
+        if (session == null
+                || session.getAttribute("loggedUser") == null
+                || session.getAttribute("customer") == null) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/login"
+            );
+            return;
+        }
+
+        User user =
+                (User) session.getAttribute(
+                        "loggedUser"
+                );
+
+        Customer customer =
+                (Customer) session.getAttribute(
+                        "customer"
+                );
+
+        if (!"customer".equalsIgnoreCase(
+                user.getRole())) {
+
+            response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN
+            );
+            return;
+        }
+
+        Integer bookingId =
+                parseBookingId(
+                        request.getParameter("id")
+                );
+
+        if (bookingId == null) {
+
+            redirectHistory(
+                    request,
+                    response,
+                    customer.getCustomerID(),
+                    "invalid-booking"
+            );
+
+            return;
+        }
+
+        BookingDAO bookingDAO =
+                new BookingDAO();
+
+        /*
+         * Ownership check is mandatory.
+         */
+        if (!bookingDAO.isBookingOwnedByCustomer(
+                bookingId,
+                customer.getCustomerID())) {
+
+            response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN
+            );
+            return;
+        }
+
+        String reason =
+                request.getParameter(
+                        "reason"
+                );
+
+        if (reason != null) {
+
+            reason =
+                    reason.trim();
+
+            if (reason.isEmpty()) {
+                reason = null;
+            }
+
+            /*
+             * Keep DB input reasonable.
+             */
+            if (reason != null
+                    && reason.length() > 500) {
+
+                reason =
+                        reason.substring(
+                                0,
+                                500
+                        );
+            }
+        }
+
+        /*
+         * Store a readable default reason.
+         */
+        if (reason == null) {
+
+            reason =
+                    "Cancelled by customer";
+        }
+
+        /*
+         * cancelBooking() already checks:
+         *
+         * - BookingID
+         * - CustomerID
+         * - pending / confirmed status
+         * - at least 24h before check-in
+         *
+         * It performs UPDATE, not DELETE.
+         */
+        boolean cancelled =
+                bookingDAO.cancelBooking(
+                        bookingId,
+                        customer.getCustomerID(),
+                        reason
+                );
+
+        if (!cancelled) {
+
+            redirectHistory(
+                    request,
+                    response,
+                    customer.getCustomerID(),
+                    "cannot-cancel"
+            );
+
+            return;
+        }
+
+        redirectHistory(
+                request,
+                response,
+                customer.getCustomerID(),
+                "cancel-success"
+        );
+    }
+
+    /*
+     * =========================================================
+     * PARSE BOOKING ID
+     * =========================================================
+     */
+    private Integer parseBookingId(
+            String idParam) {
+
+        if (idParam == null
+                || idParam.trim().isEmpty()) {
+
+            return null;
+        }
+
+        try {
+
+            int id =
+                    Integer.parseInt(
+                            idParam.trim()
+                    );
+
+            return id > 0
+                    ? id
+                    : null;
+
+        } catch (NumberFormatException e) {
+
+            return null;
+        }
+    }
+
+    /*
+     * =========================================================
+     * REDIRECT TO CUSTOMER HISTORY
+     * =========================================================
+     */
+    private void redirectHistory(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            int customerId,
+            String message)
+            throws IOException {
+
+        response.sendRedirect(
+                request.getContextPath()
+                + "/history?id="
+                + customerId
+                + "&view=bookings"
+                + "&message="
+                + message
+        );
+    }
+
+    @Override
     public String getServletInfo() {
-        return "Servlet that cancels customer bookings and redirects to booking history.";
-    }// </editor-fold>
+        return "Cancels eligible customer bookings without deleting history.";
+    }
 }

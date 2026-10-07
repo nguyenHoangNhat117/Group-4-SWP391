@@ -1,172 +1,112 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package model;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- *
- * @author Đặng Hoàng Vũ
- */
-/**
- * Represents a hotel room booking with customer details, room information, stay
- * dates, and pricing. Maintains all necessary booking information.
- */
 public class Booking {
-    private int id;                 // Unique identifier for the booking
-    private Customer customer;      // Customer who made the booking
-    private int roomNumber;         // Room number assigned for the stay
-    private LocalDate checkInDate;  // Scheduled arrival date
-    private LocalDate checkOutDate; // Scheduled departure date
-    private BigDecimal totalPrice;  // Total cost for the entire stay
 
-    /**
-     * Creates an empty Booking object with no initialized values.
-     */
+    private int id;
+    private Customer customer;
+    private LocalDateTime bookingDate;
+    private String status;
+    private BigDecimal totalPrice;
+    private String specialRequest;
+    private LocalDateTime cancellationDate;
+    private String cancellationReason;
+
+    // Một Booking có thể chứa một hoặc nhiều BookingDetail
+    private List<BookingDetail> details = new ArrayList<>();
+
     public Booking() {
     }
 
-    /**
-     * Creates a Booking object with all required details. The constructor
-     * initializes all fields with the provided values.
-     *
-     * @param id The unique booking identifier (typically from database)
-     * @param customer The Customer object associated with this booking
-     * @param roomNumber The room number being booked
-     * @param checkInDate The starting date of the reservation
-     * @param checkOutDate The ending date of the reservation
-     * @param totalPrice The full price for the entire booking period
-     */
-    public Booking(int id, Customer customer, int roomNumber, LocalDate checkInDate,
-            LocalDate checkOutDate, BigDecimal totalPrice) {
+    public Booking(int id, Customer customer, LocalDateTime bookingDate,
+            String status, BigDecimal totalPrice,
+            String specialRequest,
+            LocalDateTime cancellationDate,
+            String cancellationReason) {
+
         this.id = id;
         this.customer = customer;
-        this.roomNumber = roomNumber;
-        this.checkInDate = checkInDate;
-        this.checkOutDate = checkOutDate;
+        this.bookingDate = bookingDate;
+        this.status = status;
         this.totalPrice = totalPrice;
+        this.specialRequest = specialRequest;
+        this.cancellationDate = cancellationDate;
+        this.cancellationReason = cancellationReason;
     }
 
-    /**
-     * Retrieves the unique identifier for this booking. The ID is typically
-     * assigned by the database when the booking is created.
-     *
-     * @return The booking's unique ID number
-     */
     public int getId() {
         return id;
     }
 
-    /**
-     * Updates the unique identifier for this booking. Should only be used when
-     * syncing with database records.
-     *
-     * @param id The new ID number to assign to this booking
-     */
     public void setId(int id) {
         this.id = id;
     }
 
-    /**
-     * Gets the Customer object associated with this booking. Contains all
-     * customer details including personal information and contact methods.
-     *
-     * @return The Customer who made this booking
-     */
     public Customer getCustomer() {
         return customer;
     }
 
-    /**
-     * Associates a Customer with this booking. Typically used when creating new
-     * bookings or updating customer information.
-     *
-     * @param customer The Customer to associate with this booking
-     */
     public void setCustomer(Customer customer) {
         this.customer = customer;
     }
 
-    /**
-     * Retrieves the room number assigned to this booking. The number
-     * corresponds to the physical room in the hotel property.
-     *
-     * @return The booked room's number
-     */
-    public int getRoomNumber() {
-        return roomNumber;
+    public LocalDateTime getBookingDate() {
+        return bookingDate;
     }
 
-    /**
-     * Assigns a room number to this booking. Used during room assignment or
-     * when changing rooms for an existing booking.
-     *
-     * @param roomNumber The room number to assign
-     */
-    public void setRoomNumber(int roomNumber) {
-        this.roomNumber = roomNumber;
+    public void setBookingDate(LocalDateTime bookingDate) {
+        this.bookingDate = bookingDate;
     }
 
-    /**
-     * Gets the scheduled arrival date for this booking. The date when the guest
-     * is expected to check in.
-     *
-     * @return The check-in date
-     */
-    public LocalDate getCheckInDate() {
-        return checkInDate;
+    public String getStatus() {
+        return status;
     }
 
-    /**
-     * Sets the arrival date for this booking. Used when creating or modifying
-     * reservation dates.
-     *
-     * @param checkInDate The new check-in date to set
-     */
-    public void setCheckInDate(LocalDate checkInDate) {
-        this.checkInDate = checkInDate;
+    public void setStatus(String status) {
+        this.status = status;
     }
 
-    /**
-     * Gets the scheduled departure date for this booking. The date when the
-     * guest is expected to check out.
-     *
-     * @return The check-out date
-     */
-    public LocalDate getCheckOutDate() {
-        return checkOutDate;
-    }
-
-    /**
-     * Sets the departure date for this booking. Used when creating or modifying
-     * reservation dates.
-     *
-     * @param checkOutDate The new check-out date to set
-     */
-    public void setCheckOutDate(LocalDate checkOutDate) {
-        this.checkOutDate = checkOutDate;
-    }
-
-    /**
-     * Retrieves the total price for this booking. Includes all charges for the
-     * entire stay duration.
-     *
-     * @return The total booking price
-     */
     public BigDecimal getTotalPrice() {
         return totalPrice;
     }
 
-    /**
-     * Updates the total price for this booking. Typically calculated based on
-     * room rate and stay duration.
-     *
-     * @param totalPrice The new total price to set
-     */
     public void setTotalPrice(BigDecimal totalPrice) {
         this.totalPrice = totalPrice;
+    }
+
+    public String getSpecialRequest() {
+        return specialRequest;
+    }
+
+    public void setSpecialRequest(String specialRequest) {
+        this.specialRequest = specialRequest;
+    }
+
+    public LocalDateTime getCancellationDate() {
+        return cancellationDate;
+    }
+
+    public void setCancellationDate(LocalDateTime cancellationDate) {
+        this.cancellationDate = cancellationDate;
+    }
+
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
+    }
+
+    public List<BookingDetail> getDetails() {
+        return details;
+    }
+
+    public void setDetails(List<BookingDetail> details) {
+        this.details = details;
     }
 }

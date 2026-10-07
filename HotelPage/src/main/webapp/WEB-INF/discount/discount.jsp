@@ -1,90 +1,78 @@
-<%-- 
-    Document   : list
-    Created on : Jun 26, 2025, 10:11:27 PM
-    Author     : Đặng Hoàng Vũ
---%>
-
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@page import="java.util.List"%>
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ page contentType="text/html" pageEncoding="UTF-8" %>
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>Booking Reports</title>
-        <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
-        <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">
-    </head>
-    <body>
-        <div class="body-wrapper">
-            <%@include file="/WEB-INF/include/header.jsp" %>
-            <main>
-                
-                <div class="w-75 mx-auto mt-5">
-                    <a href="./discounts?view=create" class="btn btn-primary mb-4">Create</a>
-                    <c:choose>
-                        <c:when test="${discounts != null}">
-                            <table class="table table-hover table-bordered" >
-                                <caption class="text-end">List of Discounts</caption>
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th scope="col" class="text-center">ID</th>
-                                        <th scope="col">Code</th>
-                                        <th scope="col">Quantity</th>
-                                        <th scope="col">Sale Off</th>
-                                        <th scope="col" class="text-center">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <c:forEach var="discount" items="${discounts}">
-                                        <tr>
-                                            <th scope="row" class="text-center">${discount.id}</th>
-                                            <td>${discount.code}</td>
-                                            <td>${discount.quantity}</td>
-                                            <td>${discount.saleOff}%</td>
-                                            <td>
-                                                <div class="text-center">
-                                                    <a href="./discounts?view=update&id=${discount.id}" class="btn btn-primary btn-sm">Edit</a>
-                                                    <a href="./discounts?view=delete&id=${discount.id}" class="btn btn-danger btn-sm">Delete</a>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </c:forEach>
-                                </tbody>
-                            </table>
-
-                        </c:when>
-                        <c:otherwise>
-                            <h2 class="mt-3">There are no discounts yet...</h2>
-                        </c:otherwise>
-                    </c:choose>
-                    <c:if test="${totalPages > 1}">
-                        <nav aria-label="Page navigation" class="d-flex w-100 justify-content-center mt-4">
-                            <ul class="pagination">
-                                <li class="page-item ${currentPage == 1 ? 'disabled' : ''} rounded-4">
-                                    <a class="page-link" href="?page-index=${currentPage - 1}">Previous</a>
-                                </li>
-                                <c:forEach var="i" begin="1" end="${totalPages}">
-                                    <li class="page-item ${i == currentPage ? 'active' : ''}">
-                                        <a class="page-link" href="?page-index=${i}">${i}</a>
-                                    </li>
-                                </c:forEach>
-                                <li class="page-item ${currentPage == totalPages ? 'disabled' : ''} rounded-4">
-                                    <a class="page-link" href="?page-index=${currentPage + 1}">Next</a>
-                                </li>
-                            </ul>
-                        </nav>
-                    </c:if>
-
-                </div>
-            </main>
-
-            <%@include file="/WEB-INF/include/footer.jsp" %>
+<head>
+    <meta charset="UTF-8">
+    <title>Promotion Management</title>
+    <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">
+</head>
+<body>
+<div class="body-wrapper">
+    <%@ include file="/WEB-INF/include/header.jsp" %>
+    <main class="container-fluid px-5 py-5 min-vh-100">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Promotion Management</h2>
+            <a href="${pageContext.request.contextPath}/discounts?view=create"
+               class="btn btn-primary">Create Promotion</a>
         </div>
 
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered align-middle">
+                <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Code</th>
+                    <th>Quantity</th>
+                    <th>Discount</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Minimum</th>
+                    <th>Max Discount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <c:forEach var="discount" items="${discounts}">
+                    <tr>
+                        <td>${discount.id}</td>
+                        <td>${discount.code}</td>
+                        <td>${discount.quantity}</td>
+                        <td>${discount.saleOff}%</td>
+                        <td>${discount.startDate}</td>
+                        <td>${discount.endDate}</td>
+                        <td>${discount.minimumAmount}</td>
+                        <td>${discount.maximumDiscount}</td>
+                        <td>
+                            <c:choose>
+                                <c:when test="${discount.active}">
+                                    <span class="badge bg-success">Active</span>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="badge bg-secondary">Inactive</span>
+                                </c:otherwise>
+                            </c:choose>
+                        </td>
+                        <td class="text-nowrap">
+                            <a href="${pageContext.request.contextPath}/discounts?view=update&id=${discount.id}"
+                               class="btn btn-primary btn-sm">Edit</a>
+                            <a href="${pageContext.request.contextPath}/discounts?view=delete&id=${discount.id}"
+                               class="btn btn-danger btn-sm">Deactivate</a>
+                        </td>
+                    </tr>
+                </c:forEach>
+                </tbody>
+            </table>
+        </div>
 
-        <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
-    </body>
+        <c:if test="${empty discounts}">
+            <div class="alert alert-info">There are no promotions yet.</div>
+        </c:if>
+    </main>
+    <%@ include file="/WEB-INF/include/footer.jsp" %>
+</div>
+<script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
-

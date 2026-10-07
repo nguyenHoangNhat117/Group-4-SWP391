@@ -59,19 +59,17 @@
                                 <a href="./details?roomNumber=${room.roomNumber}" class="details-link">More details</a>
                                 <div class="price-rate">
                                     <div class="price">${room.roomType.pricePerNight} USD / Night</div>
-                                    <c:if test="${not empty sessionScope.loggedUser}">
-                                        <c:choose>
-                                            <c:when test="${sessionScope.loggedUser.role == 'admin'}">
-                                                <div>
-                                                    <a class="btn btn-primary btn-sm" href="./room?view=update&roomNumber=${room.roomNumber}">Edit</a>
-                                                    <a class="btn btn-danger btn-sm" href="room?view=delete&roomNumber=${room.roomNumber}">Delete</a>
-                                                </div>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <a class="view-button text-decoration-none" href="./booking?roomNumber=${room.roomNumber}">Book</a>
-                                            </c:otherwise>
-                                        </c:choose>
-                                    </c:if>
+                                    <c:choose>
+                                        <c:when test="${not empty sessionScope.loggedUser && sessionScope.loggedUser.role == 'admin'}">
+                                            <div>
+                                                <a class="btn btn-primary btn-sm" href="./room?view=update&roomNumber=${room.roomNumber}">Edit</a>
+                                                <a class="btn btn-danger btn-sm" href="./room?view=delete&roomNumber=${room.roomNumber}">Delete</a>
+                                            </div>
+                                        </c:when>
+                                        <c:when test="${empty sessionScope.loggedUser || sessionScope.loggedUser.role == 'customer'}">
+                                            <a class="view-button text-decoration-none" href="./booking?roomNumber=${room.roomNumber}">Book</a>
+                                        </c:when>
+                                    </c:choose>
                                 </div>
                             </div>
                         </div>

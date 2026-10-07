@@ -1,327 +1,279 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
 package controller;
 
 import dao.RoomDAO;
 import dao.RoomTypeDAO;
-import db.DBContext;
-import java.io.IOException;
-import java.io.PrintWriter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import model.Room;
 import model.RoomType;
 import model.User;
 
-/**
- *
- * @author Đặng Hoàng Vũ
- */
 @WebServlet(name = "RoomServlet", urlPatterns = {"/room"})
 public class RoomServlet extends HttpServlet {
 
-    /**
-     * Outputs a basic HTML page (default template-generated).
-     *
-     * @param request HTTP request object
-     * @param response HTTP response object
-     * @throws ServletException if servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try ( PrintWriter out = response.getWriter()) {
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet RoomServlet</title>");
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet RoomServlet at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
+    private static final int PAGE_SIZE = 5;
+    private static final DateTimeFormatter DATE_FORMAT =
+            DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
+
+    private boolean isAdmin(HttpSession session) {
+        if (session == null) return false;
+        Object value = session.getAttribute("loggedUser");
+        return value instanceof User
+                && "admin".equalsIgnoreCase(((User) value).getRole());
+    }
+
+    private void showRoomTypes(HttpServletRequest request) {
+        List<RoomType> types = new RoomTypeDAO().getAll();
+        // The original JSP templates use categorys, whereas earlier servlet
+        // code used roomTypes. Supply both until the JSPs are standardized.
+        request.setAttribute("categorys", types);
+        request.setAttribute("roomTypes", types);
+    }
+
+    private Integer positiveInt(String value) {
+        try {
+            int number = Integer.parseInt(value);
+            return number > 0 ? number : null;
+        } catch (NumberFormatException | NullPointerException ex) {
+            return null;
         }
     }
 
-    /**
-     * Show list of rooms for admin or search result for customers (with pagination).
-     *
-     * @param request HTTP request object
-     * @param response HTTP response object
-     * @throws ServletException if servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void showList(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        RoomDAO roomDAO = new RoomDAO();
-        HttpSession session = request.getSession();
-        List<Room> availableRooms = (List<Room>) session.getAttribute("availableRooms");
-
-        int totalPages;
-
-        // If room list is already in session (e.g., from customer search)
-        if (availableRooms != null) {
-            totalPages = (int) (Math.ceil(availableRooms.size() * 1.0 / 5));
-            request.setAttribute("totalPages", totalPages);
-        } else {
-            totalPages = roomDAO.getTotalPages();
-            request.setAttribute("totalPages", totalPages);
-        }
-
-        // Redirect to first page if no page index is provided
-        if (request.getParameter("page-index") == null) {
-            response.sendRedirect("./room?page-index=1");
-            return;
-        } else {
-            int pageIndex = Integer.parseInt(request.getParameter("page-index"));
-            if (pageIndex < 1) {
-                response.sendRedirect("./room?page-index=1");
-                return;
-            }
-            if (pageIndex > totalPages) {
-                response.sendRedirect("./room?page-index=" + totalPages);
-                return;
-            }
-
-            // If session contains filtered room list (from search), paginate from that
-            if (availableRooms != null) {
-                LocalDate checkInDate = (LocalDate) session.getAttribute("checkInDate");
-                LocalDate checkOutDate = (LocalDate) session.getAttribute("checkOutDate");
-                availableRooms = roomDAO.getAvailableRoomPage(pageIndex, checkInDate, checkOutDate);
-                request.setAttribute("rooms", availableRooms);
-            } else {
-                List<Room> rooms = roomDAO.getPage(pageIndex);
-                request.setAttribute("rooms", rooms);
-            }
-        }
-
-        request.getRequestDispatcher("/WEB-INF/room/room.jsp").forward(request, response);
+    private boolean isValidStatus(String status) {
+        return "available".equals(status)
+                || "maintenance".equals(status)
+                || "out_of_service".equals(status);
     }
 
-    /**
-     * Handles the HTTP <code>GET</code> method.
-     * Used for displaying views like list, create, update, delete.
-     *
-     * @param request HTTP request object
-     * @param response HTTP response object
-     * @throws ServletException if servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
+    private void redirect(HttpServletRequest request,
+                          HttpServletResponse response, String relativeUrl)
+            throws IOException {
+        response.sendRedirect(request.getContextPath() + relativeUrl);
+    }
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
+        User user = session == null ? null :
+                (session.getAttribute("loggedUser") instanceof User
+                        ? (User) session.getAttribute("loggedUser") : null);
 
-        User loggedUser = (User) session.getAttribute("loggedUser");
-
-        // Redirect customer to booking if they have not searched rooms
-        if (loggedUser.getRole().equals("customer") && session.getAttribute("availableRooms") == null) {
-            response.sendRedirect("./booking");
+        String view = request.getParameter("view");
+        if (view == null || view.isBlank()) {
+            showList(request, response, session, user);
+            return;
         }
 
-        try {
-            if (request.getParameter("view") == null) {
-                showList(request, response);
+        if (!isAdmin(session)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN,
+                    "Only administrators can manage rooms.");
+            return;
+        }
+
+        RoomDAO roomDAO = new RoomDAO();
+        switch (view) {
+            case "create":
+                showRoomTypes(request);
+                request.getRequestDispatcher("/WEB-INF/room/create.jsp")
+                        .forward(request, response);
+                return;
+            case "update": {
+                Integer roomNumber = positiveInt(request.getParameter("roomNumber"));
+                if (roomNumber == null) {
+                    redirect(request, response, "/room?page-index=1");
+                    return;
+                }
+                Room room = roomDAO.getRoomByNumber(roomNumber);
+                if (room == null) {
+                    redirect(request, response, "/room?page-index=1");
+                    return;
+                }
+                showRoomTypes(request);
+                request.setAttribute("room", room);
+                request.getRequestDispatcher("/WEB-INF/room/update.jsp")
+                        .forward(request, response);
                 return;
             }
-
-            String view = request.getParameter("view").strip();
-            switch (view) {
-                case "create": {
-                    RoomTypeDAO rtDAO = new RoomTypeDAO();
-                    List<RoomType> roomTypes = rtDAO.getAll();
-                    request.setAttribute("roomTypes", roomTypes);
-                    request.getRequestDispatcher("/WEB-INF/room/create.jsp").forward(request, response);
-                    break;
+            case "delete": {
+                Integer roomNumber = positiveInt(request.getParameter("roomNumber"));
+                if (roomNumber == null || !roomDAO.doesRoomExist(roomNumber)) {
+                    redirect(request, response, "/room?page-index=1");
+                    return;
                 }
-                case "delete": {
-                    if (request.getParameter("roomNumber") == null || request.getParameter("roomNumber").trim().equals("")) {
-                        response.sendRedirect("./room");
-                        return;
-                    }
-                    request.getRequestDispatcher("/WEB-INF/room/delete.jsp").forward(request, response);
-                    break;
-                }
-                case "update": {
-                    RoomTypeDAO rtDAO = new RoomTypeDAO();
-                    RoomDAO roomDAO = new RoomDAO();
-                    List<RoomType> roomTypes = rtDAO.getAll();
-                    request.setAttribute("roomTypes", roomTypes);
-
-                    if (request.getParameter("roomNumber") == null || request.getParameter("roomNumber").trim().equals("")) {
-                        response.sendRedirect("./room");
-                        return;
-                    }
-
-                    int roomNumber = Integer.parseInt(request.getParameter("roomNumber"));
-
-                    if (!roomDAO.doesRoomExist(roomNumber)) {
-                        response.sendRedirect("./room");
-                        return;
-                    }
-
-                    Room room = roomDAO.getRoomByNumber(roomNumber);
-                    request.setAttribute("room", room);
-                    session.setAttribute("updateRoomNumber", roomNumber);
-
-                    request.getRequestDispatcher("/WEB-INF/room/update.jsp").forward(request, response);
-                    break;
-                }
-                default: {
-                    request.getRequestDispatcher("/WEB-INF/error/error404.jsp").forward(request, response);
-                }
+                request.setAttribute("room", roomDAO.getRoomByNumber(roomNumber));
+                request.getRequestDispatcher("/WEB-INF/room/delete.jsp")
+                        .forward(request, response);
+                return;
             }
-        } catch (Exception ex) {
-            Logger.getLogger(DBContext.class.getName()).log(Level.SEVERE, null, ex);
+            default:
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
         }
     }
 
-    /**
-     * Handles the HTTP <code>POST</code> method.
-     * Handles form submission for create, update, delete, and search actions.
-     *
-     * @param request HTTP request object
-     * @param response HTTP response object
-     * @throws ServletException if servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
+    private void showList(HttpServletRequest request, HttpServletResponse response,
+                          HttpSession session, User user)
+            throws ServletException, IOException {
+        RoomDAO roomDAO = new RoomDAO();
+        boolean admin = user != null && "admin".equalsIgnoreCase(user.getRole());
+        LocalDate checkIn = session == null ? null :
+                (LocalDate) session.getAttribute("checkInDate");
+        LocalDate checkOut = session == null ? null :
+                (LocalDate) session.getAttribute("checkOutDate");
+
+        if (!admin && (checkIn == null || checkOut == null)) {
+            redirect(request, response, "/booking");
+            return;
+        }
+
+        int totalRooms = admin
+                ? roomDAO.getAll().size()
+                : roomDAO.countAvailableRooms(checkIn, checkOut);
+        int totalPages = (totalRooms + PAGE_SIZE - 1) / PAGE_SIZE;
+        int page = 1;
+        Integer parsedPage = positiveInt(request.getParameter("page-index"));
+        if (parsedPage != null) page = parsedPage;
+        if (totalPages > 0 && page > totalPages) page = totalPages;
+
+        List<Room> rooms = totalRooms == 0
+                ? java.util.Collections.emptyList()
+                : (admin ? roomDAO.getPage(page)
+                         : roomDAO.getAvailableRoomPage(page, checkIn, checkOut));
+        request.setAttribute("rooms", rooms);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("pageIndex", page);
+
+        // Existing pagination JSP expects a page-index request parameter.
+        if (request.getParameter("page-index") == null && totalPages > 0) {
+            redirect(request, response, "/room?page-index=1");
+            return;
+        }
+        request.getRequestDispatcher("/WEB-INF/room/room.jsp")
+                .forward(request, response);
+    }
+
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        RoomDAO roomDAO = new RoomDAO();
+        request.setCharacterEncoding("UTF-8");
         String action = request.getParameter("action");
-
-        switch (action) {
-            case "create": {
-                // Validate parameters
-                if (request.getParameter("room-number") == null
-                        || request.getParameter("status") == null
-                        || request.getParameter("room-type-id") == null
-                        || request.getParameter("room-number").trim().equals("")
-                        || request.getParameter("status").trim().equals("")
-                        || request.getParameter("room-type-id").trim().equals("")) {
-                    response.sendRedirect("./room?view=create&error=missing-params");
-                    return;
-                }
-
-                int roomNumber = Integer.parseInt(request.getParameter("room-number").trim());
-
-                if (roomDAO.doesRoomExist(roomNumber)) {
-                    response.sendRedirect("./room?view=create&error=room-exist");
-                    return;
-                }
-
-                String status = request.getParameter("status").trim();
-                int roomTypeId = Integer.parseInt(request.getParameter("room-type-id").trim());
-                roomDAO.create(roomNumber, status, roomTypeId);
-                break;
-            }
-            case "delete": {
-                if (request.getParameter("roomNumber") == null || request.getParameter("roomNumber").trim().equals("")) {
-                    response.sendRedirect("./room");
-                    return;
-                }
-                int roomNumber = Integer.parseInt(request.getParameter("roomNumber"));
-
-                if (!roomDAO.doesRoomExist(roomNumber)) {
-                    response.sendRedirect("./room");
-                    return;
-                }
-
-                roomDAO.delete(roomNumber);
-                break;
-            }
-            case "update": {
-                HttpSession session = request.getSession();
-                int currentRoomNumber = (int) session.getAttribute("updateRoomNumber");
-
-                if (request.getParameter("room-number") == null
-                        || request.getParameter("status") == null
-                        || request.getParameter("room-type-id") == null
-                        || request.getParameter("room-number").trim().equals("")
-                        || request.getParameter("status").trim().equals("")
-                        || request.getParameter("room-type-id").trim().equals("")) {
-                    response.sendRedirect("./room?view=update&roomNumber=" + currentRoomNumber + "&error=missing-params");
-                    return;
-                }
-
-                int roomNumber;
-
-                try {
-                    roomNumber = Integer.parseInt(request.getParameter("room-number").trim());
-                } catch (NumberFormatException e) {
-                    response.sendRedirect("./room?view=update&id=" + currentRoomNumber + "&error=number-format");
-                    return;
-                }
-
-                if (!roomDAO.doesRoomExist(roomNumber)) {
-                    response.sendRedirect("./room?view=update&roomNumber=" + currentRoomNumber + "&error=room-not-exist");
-                    return;
-                }
-
-                if (roomNumber != currentRoomNumber) {
-                    response.sendRedirect("./room?view=update&roomNumber=" + currentRoomNumber + "&error=room-different");
-                    return;
-                }
-
-                String status = request.getParameter("status").trim();
-                int roomTypeId = Integer.parseInt(request.getParameter("room-type-id").trim());
-                roomDAO.update(roomNumber, status, roomTypeId);
-                break;
-            }
-            case "search": {
-                HttpSession session = request.getSession();
-                if (request.getParameter("booking-dates") == null || request.getParameter("booking-dates").trim().equals("")) {
-                    response.sendRedirect("./booking?error=missing-dates");
-                    return;
-                }
-
-                String bookingDates = request.getParameter("booking-dates");
-                session.setAttribute("dates", bookingDates);
-                String[] dates = bookingDates.split(" - ");
-
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
-                LocalDate checkInDate = LocalDate.parse(dates[0], formatter);
-                LocalDate checkOutDate = LocalDate.parse(dates[1], formatter);
-
-                List<Room> availableRooms = roomDAO.getAvailableRooms(checkInDate, checkOutDate);
-
-                session.setAttribute("checkInDate", checkInDate);
-                session.setAttribute("checkOutDate", checkOutDate);
-                session.setAttribute("availableRooms", availableRooms);
-                break;
-            }
-            default: {
-                break;
-            }
+        // Search is public for Guest/Customer. Create a session so the selected
+        // dates survive until the user logs in and proceeds to booking.
+        if ("search".equals(action)) {
+            HttpSession searchSession = request.getSession(true);
+            handleSearch(request, response, searchSession);
+            return;
         }
 
-        response.sendRedirect("./room?page-index=1");
+        HttpSession session = request.getSession(false);
+        if (session == null || !(session.getAttribute("loggedUser") instanceof User)) {
+            redirect(request, response, "/login");
+            return;
+        }
+        if (!isAdmin(session)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN,
+                    "Only administrators can create, update or delete rooms.");
+            return;
+        }
+
+        RoomDAO roomDAO = new RoomDAO();
+        switch (action == null ? "" : action) {
+            case "create": {
+                String status = request.getParameter("status");
+                Integer roomTypeId = positiveInt(request.getParameter("room-type-id"));
+                if (!isValidStatus(status) || roomTypeId == null
+                        || new RoomTypeDAO().getRoomTypeById(roomTypeId) == null) {
+                    redirect(request, response, "/room?view=create&error=missing-params");
+                    return;
+                }
+                // HotelDB.RoomNumber is IDENTITY; do not take room-number from form.
+                int generatedNumber = roomDAO.create(status, roomTypeId);
+                if (generatedNumber <= 0) {
+                    redirect(request, response, "/room?view=create&error=create-failed");
+                    return;
+                }
+                redirect(request, response, "/room?page-index=1");
+                return;
+            }
+            case "update": {
+                Integer roomNumber = positiveInt(request.getParameter("room-number"));
+                Integer roomTypeId = positiveInt(request.getParameter("room-type-id"));
+                String status = request.getParameter("status");
+                if (roomNumber == null || roomTypeId == null || !isValidStatus(status)) {
+                    redirect(request, response, "/room?page-index=1");
+                    return;
+                }
+                if (roomDAO.getRoomByNumber(roomNumber) == null
+                        || new RoomTypeDAO().getRoomTypeById(roomTypeId) == null) {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                    return;
+                }
+                int changed = roomDAO.update(roomNumber, status, roomTypeId);
+                if (changed <= 0) {
+                    redirect(request, response, "/room?view=update&roomNumber="
+                            + roomNumber + "&error=update-failed");
+                    return;
+                }
+                redirect(request, response, "/room?page-index=1");
+                return;
+            }
+            case "delete": {
+                // Original delete.jsp submits room-number, not roomNumber.
+                Integer roomNumber = positiveInt(request.getParameter("room-number"));
+                if (roomNumber == null) {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                    return;
+                }
+                int changed = roomDAO.delete(roomNumber);
+                if (changed <= 0) {
+                    response.sendError(HttpServletResponse.SC_CONFLICT,
+                            "Room removal failed; check booking history or database constraints.");
+                    return;
+                }
+                redirect(request, response, "/room?page-index=1");
+                return;
+            }
+            default:
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action.");
+        }
     }
 
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String containing servlet description
-     */
-    @Override
-    public String getServletInfo() {
-        return "Short description";
+    private void handleSearch(HttpServletRequest request, HttpServletResponse response,
+                              HttpSession session) throws IOException {
+        String rawDates = request.getParameter("booking-dates");
+        if (rawDates == null || rawDates.isBlank()) {
+            redirect(request, response, "/booking?error=missing-dates");
+            return;
+        }
+        String[] dates = rawDates.trim().split("\\s+-\\s+");
+        if (dates.length != 2) {
+            redirect(request, response, "/booking?error=invalid-dates");
+            return;
+        }
+        try {
+            LocalDate checkIn = LocalDate.parse(dates[0].trim(), DATE_FORMAT);
+            LocalDate checkOut = LocalDate.parse(dates[1].trim(), DATE_FORMAT);
+            if (checkIn.isBefore(LocalDate.now()) || !checkOut.isAfter(checkIn)) {
+                redirect(request, response, "/booking?error=invalid-dates");
+                return;
+            }
+            session.setAttribute("dates", rawDates.trim());
+            session.setAttribute("checkInDate", checkIn);
+            session.setAttribute("checkOutDate", checkOut);
+            session.removeAttribute("availableRooms"); // prevent stale results
+            redirect(request, response, "/room?page-index=1");
+        } catch (DateTimeParseException ex) {
+            redirect(request, response, "/booking?error=invalid-dates");
+        }
     }
-
 }

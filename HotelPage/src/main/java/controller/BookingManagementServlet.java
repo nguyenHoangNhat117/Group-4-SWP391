@@ -1,6 +1,7 @@
 package controller;
 
-import dao.CustomerDAO;
+import dao.BookingDAO;
+import dao.PaymentDAO;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -11,20 +12,18 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
-import model.Customer;
+import model.Booking;
 import model.User;
 
 @WebServlet(
-        name = "CustomerServlet",
-        urlPatterns = {"/customers"}
+        name = "BookingManagementServlet",
+        urlPatterns = {"/booking-management"}
 )
-public class CustomerServlet
+public class BookingManagementServlet
         extends HttpServlet {
 
     private static final int PAGE_SIZE = 10;
@@ -32,6 +31,9 @@ public class CustomerServlet
     /*
      * =========================================================
      * GET
+     *
+     * list
+     * detail
      * =========================================================
      */
     @Override
@@ -40,15 +42,14 @@ public class CustomerServlet
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        /*
-         * Filter already protects /customers,
-         * but servlet checks role again.
-         */
         User user =
                 getAuthorizedUser(
                         request
                 );
 
+        /*
+         * Staff + Admin only.
+         */
         if (user == null) {
 
             response.sendError(
@@ -64,14 +65,13 @@ public class CustomerServlet
                 );
 
         /*
-         * Default:
-         * customer list.
+         * Default view.
          */
         if (view == null
                 || view.trim().isEmpty()
                 || "list".equals(view)) {
 
-            showCustomerList(
+            showBookingList(
                     request,
                     response
             );
@@ -79,12 +79,9 @@ public class CustomerServlet
             return;
         }
 
-        /*
-         * Customer details.
-         */
         if ("detail".equals(view)) {
 
-            showCustomerDetail(
+            showBookingDetail(
                     request,
                     response
             );
@@ -97,18 +94,19 @@ public class CustomerServlet
         );
     }
 
+
     /*
      * =========================================================
-     * CUSTOMER LIST + SEARCH
+     * LIST / SEARCH / FILTER
      * =========================================================
      */
-    private void showCustomerList(
+    private void showBookingList(
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        CustomerDAO customerDAO =
-                new CustomerDAO();
+        BookingDAO bookingDAO =
+                new BookingDAO();
 
         String keyword =
                 request.getParameter(
@@ -126,31 +124,73 @@ public class CustomerServlet
                         "status"
                 );
 
-        if (!isValidAccountStatus(
+        if (status != null) {
+
+            status =
+                    status.trim();
+        }
+
+        /*
+         * Invalid / empty status becomes null.
+         */
+        if (!isValidBookingStatus(
                 status)) {
 
             status = null;
         }
 
+        LocalDate fromDate =
+                parseDate(
+                        request.getParameter(
+                                "from-date"
+                        )
+                );
+
+        LocalDate toDate =
+                parseDate(
+                        request.getParameter(
+                                "to-date"
+                        )
+                );
+
+        /*
+         * Date range validation.
+         */
+        if (fromDate != null
+                && toDate != null
+                && toDate.isBefore(
+                        fromDate)) {
+
+            request.setAttribute(
+                    "dateError",
+                    "To Date cannot be earlier "
+                    + "than From Date."
+            );
+
+            toDate = null;
+        }
+
         int currentPage =
                 parsePositiveInt(
                         request.getParameter(
-                                "page-index"
+                                "page"
                         ),
                         1
                 );
 
-        int totalCustomers =
-                customerDAO.countCustomers(
+        int totalBookings =
+                bookingDAO.countBookings(
                         keyword,
-                        status
+                        status,
+                        fromDate,
+                        toDate
                 );
 
         int totalPages =
-                totalCustomers == 0
+                totalBookings == 0
                         ? 0
                         : (int) Math.ceil(
-                                totalCustomers
+                                totalBookings
                                 / (double) PAGE_SIZE
                         );
 
@@ -161,17 +201,19 @@ public class CustomerServlet
                     totalPages;
         }
 
-        List<Customer> customers =
-                customerDAO.searchCustomers(
+        List<Booking> bookings =
+                bookingDAO.searchBookings(
                         keyword,
                         status,
+                        fromDate,
+                        toDate,
                         currentPage,
                         PAGE_SIZE
                 );
 
         request.setAttribute(
-                "customers",
-                customers
+                "bookings",
+                bookings
         );
 
         request.setAttribute(
@@ -185,6 +227,16 @@ public class CustomerServlet
         );
 
         request.setAttribute(
+                "fromDate",
+                fromDate
+        );
+
+        request.setAttribute(
+                "toDate",
+                toDate
+        );
+
+        request.setAttribute(
                 "currentPage",
                 currentPage
         );
@@ -195,33 +247,37 @@ public class CustomerServlet
         );
 
         request.setAttribute(
-                "totalCustomers",
-                totalCustomers
+                "totalBookings",
+                totalBookings
         );
 
         request.getRequestDispatcher(
-                "/WEB-INF/customer/customer.jsp"
-        ).forward(request, response);
+                "/WEB-INF/booking-management/list.jsp"
+        ).forward(
+                request,
+                response
+        );
     }
+
 
     /*
      * =========================================================
-     * CUSTOMER DETAIL
+     * BOOKING DETAIL
      * =========================================================
      */
-    private void showCustomerDetail(
+    private void showBookingDetail(
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        Integer customerId =
+        Integer bookingId =
                 parseId(
                         request.getParameter(
                                 "id"
                         )
                 );
 
-        if (customerId == null) {
+        if (bookingId == null) {
 
             response.sendError(
                     HttpServletResponse.SC_BAD_REQUEST
@@ -230,15 +286,15 @@ public class CustomerServlet
             return;
         }
 
-        CustomerDAO customerDAO =
-                new CustomerDAO();
+        BookingDAO bookingDAO =
+                new BookingDAO();
 
-        Customer customer =
-                customerDAO.getCustomerById(
-                        customerId
+        Booking booking =
+                bookingDAO.getBookingById(
+                        bookingId
                 );
 
-        if (customer == null) {
+        if (booking == null) {
 
             response.sendError(
                     HttpServletResponse.SC_NOT_FOUND
@@ -247,21 +303,49 @@ public class CustomerServlet
             return;
         }
 
+        PaymentDAO paymentDAO =
+                new PaymentDAO();
+
+        boolean paid =
+                paymentDAO.isBookingPaid(
+                        bookingId
+                );
+
         request.setAttribute(
-                "customerDetail",
-                customer
+                "booking",
+                booking
+        );
+
+        request.setAttribute(
+                "paid",
+                paid
+        );
+
+        /*
+         * Used by JSP to display only valid
+         * next status options.
+         */
+        request.setAttribute(
+                "nextStatuses",
+                getNextStatuses(
+                        booking.getStatus()
+                )
         );
 
         request.getRequestDispatcher(
-                "/WEB-INF/customer/detail.jsp"
-        ).forward(request, response);
+                "/WEB-INF/booking-management/detail.jsp"
+        ).forward(
+                request,
+                response
+        );
     }
+
 
     /*
      * =========================================================
      * POST
      *
-     * Account status management.
+     * Update Booking Status.
      * =========================================================
      */
     @Override
@@ -303,69 +387,106 @@ public class CustomerServlet
             return;
         }
 
-        Integer customerId =
+        Integer bookingId =
                 parseId(
                         request.getParameter(
-                                "customer-id"
+                                "booking-id"
                         )
                 );
 
-        String accountStatus =
+        String newStatus =
                 request.getParameter(
-                        "account-status"
+                        "status"
                 );
 
-        if (customerId == null
-                || !isValidAccountStatus(
-                        accountStatus
-                )) {
+        if (bookingId == null
+                || !isValidBookingStatus(
+                        newStatus)) {
 
             response.sendRedirect(
                     request.getContextPath()
-                    + "/customers"
+                    + "/booking-management"
                     + "?message=invalid-data"
             );
 
             return;
         }
 
-        CustomerDAO customerDAO =
-                new CustomerDAO();
+        BookingDAO bookingDAO =
+                new BookingDAO();
 
-        /*
-         * Ensure selected customer exists.
-         */
-        Customer customer =
-                customerDAO.getCustomerById(
-                        customerId
+        Booking booking =
+                bookingDAO.getBookingById(
+                        bookingId
                 );
 
-        if (customer == null) {
+        if (booking == null) {
 
             response.sendRedirect(
                     request.getContextPath()
-                    + "/customers"
-                    + "?message=customer-not-found"
+                    + "/booking-management"
+                    + "?message=booking-not-found"
             );
 
             return;
         }
 
+        /*
+         * Important payment rule:
+         *
+         * A pending booking should normally become
+         * confirmed through successful payment.
+         *
+         * Therefore Staff/Admin should not manually
+         * confirm an unpaid booking.
+         */
+        if ("pending".equals(
+                    booking.getStatus())
+                && "confirmed".equals(
+                    newStatus)) {
+
+            PaymentDAO paymentDAO =
+                    new PaymentDAO();
+
+            if (!paymentDAO.isBookingPaid(
+                    bookingId)) {
+
+                response.sendRedirect(
+                        request.getContextPath()
+                        + "/booking-management"
+                        + "?view=detail"
+                        + "&id="
+                        + bookingId
+                        + "&message=payment-required"
+                );
+
+                return;
+            }
+        }
+
+        /*
+         * BookingDAO checks valid transitions:
+         *
+         * pending -> confirmed/cancelled
+         * confirmed -> checked_in/cancelled
+         * checked_in -> checked_out
+         * checked_out -> completed
+         */
         boolean updated =
-                customerDAO.updateAccountStatus(
-                        customerId,
-                        accountStatus
+                bookingDAO.updateBookingStatus(
+                        bookingId,
+                        newStatus
                 );
 
         if (!updated) {
 
             response.sendRedirect(
                     request.getContextPath()
-                    + "/customers"
+                    + "/booking-management"
                     + "?view=detail"
                     + "&id="
-                    + customerId
-                    + "&message=update-failed"
+                    + bookingId
+                    + "&message=invalid-transition"
             );
 
             return;
@@ -373,19 +494,20 @@ public class CustomerServlet
 
         response.sendRedirect(
                 request.getContextPath()
-                + "/customers"
+                + "/booking-management"
                 + "?view=detail"
                 + "&id="
-                + customerId
+                + bookingId
                 + "&message=status-updated"
         );
     }
+
 
     /*
      * =========================================================
      * AUTHORIZATION
      *
-     * UC17:
+     * UC22:
      * Staff + Admin.
      * =========================================================
      */
@@ -421,9 +543,114 @@ public class CustomerServlet
         return user;
     }
 
+
     /*
      * =========================================================
-     * HELPERS
+     * NEXT VALID STATUS
+     *
+     * Used only for UI.
+     *
+     * DAO performs final validation.
+     * =========================================================
+     */
+    private String[] getNextStatuses(
+            String currentStatus) {
+
+        if (currentStatus == null) {
+
+            return new String[0];
+        }
+
+        switch (currentStatus) {
+
+            case "pending":
+
+                return new String[]{
+                    "confirmed",
+                    "cancelled"
+                };
+
+            case "confirmed":
+
+                return new String[]{
+                    "checked_in",
+                    "cancelled"
+                };
+
+            case "checked_in":
+
+                return new String[]{
+                    "checked_out"
+                };
+
+            case "checked_out":
+
+                return new String[]{
+                    "completed"
+                };
+
+            case "completed":
+            case "cancelled":
+            default:
+
+                return new String[0];
+        }
+    }
+
+
+    /*
+     * =========================================================
+     * STATUS VALIDATION
+     * =========================================================
+     */
+    private boolean isValidBookingStatus(
+            String status) {
+
+        if (status == null
+                || status.trim().isEmpty()) {
+
+            return false;
+        }
+
+        return "pending".equals(status)
+                || "confirmed".equals(status)
+                || "cancelled".equals(status)
+                || "checked_in".equals(status)
+                || "checked_out".equals(status)
+                || "completed".equals(status);
+    }
+
+
+    /*
+     * =========================================================
+     * PARSE DATE
+     * =========================================================
+     */
+    private LocalDate parseDate(
+            String raw) {
+
+        if (raw == null
+                || raw.trim().isEmpty()) {
+
+            return null;
+        }
+
+        try {
+
+            return LocalDate.parse(
+                    raw.trim()
+            );
+
+        } catch (DateTimeParseException e) {
+
+            return null;
+        }
+    }
+
+
+    /*
+     * =========================================================
+     * PARSE ID
      * =========================================================
      */
     private Integer parseId(
@@ -452,6 +679,12 @@ public class CustomerServlet
         }
     }
 
+
+    /*
+     * =========================================================
+     * PARSE POSITIVE INTEGER
+     * =========================================================
+     */
     private int parsePositiveInt(
             String raw,
             int defaultValue) {
@@ -479,17 +712,9 @@ public class CustomerServlet
         }
     }
 
-    private boolean isValidAccountStatus(
-            String status) {
-
-        return "active".equals(status)
-                || "locked".equals(status)
-                || "inactive".equals(status);
-    }
-
     @Override
     public String getServletInfo() {
 
-        return "Staff/Admin Customer Management.";
+        return "Staff/Admin Booking Management.";
     }
 }
