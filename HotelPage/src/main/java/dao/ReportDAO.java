@@ -9,97 +9,165 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ReportDAO handles the retrieval of revenue reports from the database.
- * It allows querying revenue grouped by month and year, and available years with data.
- * 
- * Author: Trần Nguyễn
+ * Handles revenue report data.
+ *
+ * Revenue is calculated from successful payments.
  */
 public class ReportDAO extends DBContext {
 
     /**
-     * Retrieves total revenue for each month of a specific year.
+     * Get total paid revenue grouped by month
+     * for a selected year.
      *
-     * @param year The year to filter the revenue by.
-     * @return A list of RevenueReport objects, each representing revenue in a specific month.
+     * @param year selected report year
+     * @return monthly revenue report
      */
     public List<RevenueReport> getRevenueByMonth(int year) {
+
         List<RevenueReport> list = new ArrayList<>();
 
-        // SQL query to group revenue by month for the given year
-        String sql = "SELECT MONTH(p.PaymentDate) AS Month, SUM(b.TotalPrice) AS Revenue\n"
-                + "FROM Payment p\n"
-                + "JOIN Booking b ON p.BookingID = b.BookingID\n"
-                + "WHERE YEAR(p.PaymentDate) = ?\n"
-                + "GROUP BY MONTH(p.PaymentDate)\n"
-                + "ORDER BY MONTH(p.PaymentDate)";
+        String sql
+                = "SELECT "
+                + "MONTH(PaymentDate) AS Month, "
+                + "SUM(Amount) AS Revenue "
+                + "FROM Payment "
+                + "WHERE PaymentStatus = 'paid' "
+                + "AND PaymentDate IS NOT NULL "
+                + "AND YEAR(PaymentDate) = ? "
+                + "GROUP BY MONTH(PaymentDate) "
+                + "ORDER BY MONTH(PaymentDate)";
 
         try {
-            // Execute the query and pass the year as a parameter
-            ResultSet rs = executeSelectionQuery(sql, new Object[]{year});
+
+            ResultSet rs = executeSelectionQuery(
+                    sql,
+                    new Object[]{year}
+            );
+
             while (rs.next()) {
-                // Retrieve the month and revenue from the result set
-                String month = String.valueOf(rs.getInt("Month"));
-                double revenue = rs.getDouble("Revenue");
-                // Add a new RevenueReport to the list
-                list.add(new RevenueReport(month, revenue));
+
+                String month
+                        = String.valueOf(
+                                rs.getInt("Month")
+                        );
+
+                double revenue
+                        = rs.getDouble("Revenue");
+
+                RevenueReport report
+                        = new RevenueReport(
+                                month,
+                                revenue
+                        );
+
+                list.add(report);
             }
+
             rs.close();
+
         } catch (SQLException e) {
-            // Print any SQL exceptions for debugging
+
             e.printStackTrace();
         }
 
         return list;
     }
 
+
     /**
-     * Retrieves total revenue grouped by each year available in the database.
+     * Get total paid revenue grouped by year.
      *
-     * @return A list of RevenueReport objects, each representing revenue in a specific year.
+     * @return yearly revenue report
      */
     public List<RevenueReport> getRevenueByYear() {
+
         List<RevenueReport> list = new ArrayList<>();
 
-        // SQL query to group revenue by year
-        String sql = "SELECT YEAR(p.PaymentDate) AS Year, SUM(b.TotalPrice) AS Revenue\n"
-                + "FROM Payment p\n"
-                + "JOIN Booking b ON p.BookingID = b.BookingID\n"
-                + "GROUP BY YEAR(p.PaymentDate)\n"
-                + "ORDER BY YEAR(p.PaymentDate)";
+        String sql
+                = "SELECT "
+                + "YEAR(PaymentDate) AS Year, "
+                + "SUM(Amount) AS Revenue "
+                + "FROM Payment "
+                + "WHERE PaymentStatus = 'paid' "
+                + "AND PaymentDate IS NOT NULL "
+                + "GROUP BY YEAR(PaymentDate) "
+                + "ORDER BY YEAR(PaymentDate)";
 
         try {
-            ResultSet rs = executeSelectionQuery(sql, null);
+
+            ResultSet rs = executeSelectionQuery(
+                    sql,
+                    null
+            );
+
             while (rs.next()) {
-                String year = String.valueOf(rs.getInt("Year"));
-                double revenue = rs.getDouble("Revenue");
-                list.add(new RevenueReport(year, revenue));
+
+                String year
+                        = String.valueOf(
+                                rs.getInt("Year")
+                        );
+
+                double revenue
+                        = rs.getDouble("Revenue");
+
+                RevenueReport report
+                        = new RevenueReport(
+                                year,
+                                revenue
+                        );
+
+                list.add(report);
             }
+
             rs.close();
+
         } catch (SQLException e) {
+
             e.printStackTrace();
         }
 
         return list;
     }
 
+
     /**
-     * Retrieves all distinct years for which payments exist in the database.
+     * Get all years that contain successful
+     * payment records.
      *
-     * @return A list of years (integers) where payment data is available.
+     * @return available report years
      */
     public List<Integer> getAvailableYears() {
-        List<Integer> years = new ArrayList<>();
 
-        // SQL query to select distinct years from the Payment table
-        String sql = "SELECT DISTINCT YEAR(PaymentDate) AS Year FROM Payment ORDER BY Year";
+        List<Integer> years
+                = new ArrayList<>();
+
+        String sql
+                = "SELECT DISTINCT "
+                + "YEAR(PaymentDate) AS Year "
+                + "FROM Payment "
+                + "WHERE PaymentStatus = 'paid' "
+                + "AND PaymentDate IS NOT NULL "
+                + "ORDER BY Year";
 
         try {
-            ResultSet rs = executeSelectionQuery(sql, null);
+
+            ResultSet rs
+                    = executeSelectionQuery(
+                            sql,
+                            null
+                    );
+
             while (rs.next()) {
-                years.add(rs.getInt("Year"));
+
+                years.add(
+                        rs.getInt("Year")
+                );
             }
+
             rs.close();
+
         } catch (SQLException e) {
+
             e.printStackTrace();
         }
 
