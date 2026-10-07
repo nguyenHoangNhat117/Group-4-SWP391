@@ -1,0 +1,23 @@
+# Maven build folder
+target/
+**/target/
+
+# Java compiled files
+*.class
+
+# NetBeans
+nbproject/private/
+
+# IntelliJ
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
