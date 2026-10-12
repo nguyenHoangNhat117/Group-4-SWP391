@@ -1,70 +1,181 @@
-<%-- 
-    Document   : room
-    Created on : Jun 18, 2025, 1:35:35 PM
-    Author     : Hà Thái Phát
---%>
-
-<%@page import="java.util.HashMap"%>
-<%@page import="java.util.Map"%>
-<%@page import="java.util.List"%>
-<%@page import="model.Room"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+
 <!DOCTYPE html>
 <html>
     <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>Hotel Room Types</title>
-        <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/general.css" />
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/room.css" />
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Room Type Management</title>
+
+        <link href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css"
+              rel="stylesheet">
+        <link href="${pageContext.request.contextPath}/assets/css/general.css"
+              rel="stylesheet">
+        <link href="${pageContext.request.contextPath}/assets/css/admin-list.css"
+              rel="stylesheet">
     </head>
+
     <body>
         <div class="body-wrapper">
             <%@include file="../include/header.jsp" %>
-            <main>
-                <div class="search-bar">
-                    <c:if test="${sessionScope.loggedUser.role == 'admin'}">
-                        <a class="btn btn-primary" href="./room-type?view=create">Create</a>
-                    </c:if>
+
+            <main class="admin-list">
+                <div class="list-heading">
+                    <div>
+                        <h1>Room Type Management</h1>
+                        <p class="text-muted mb-0">
+                            Manage room categories, nightly rates and guest capacity.
+                        </p>
+                    </div>
+
+                    <a class="btn btn-primary"
+                       href="${pageContext.request.contextPath}/room-type?view=create">
+                        + Add Room Type
+                    </a>
                 </div>
-                <!-- List of hotel cards -->
-                <div class="hotel-list">
-                    <c:forEach var="roomType" items="${roomTypes}">
-                        <div class="hotel-card w-4">
-                            <img src="<%= request.getContextPath()%>/assets/img/${roomType.picture}" alt="${roomType.name}">
-                            <div class="hotel-details">
-                                <div class="hotel-name">${roomType.name}</div>
-                                <div class="hotel-info">${roomType.description}</div>
-                                <div class="price-rate">
-                                    <div class="price">${roomType.pricePerNight} USD / Night</div>
-                                    <div>
-                                        <a href="./room-type?view=update&id=${roomType.id}" class="btn btn-primary btn-sm">Edit</a>
-                                        <a href="./room-type?view=delete&roomType=${roomType.name}&id=${roomType.id}" class="btn btn-danger btn-sm">Delete</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </c:forEach>
+
+                <div class="table-panel">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <caption class="visually-hidden">
+                                Room types on the current page
+                            </caption>
+
+                            <thead>
+                                <tr>
+                                    <th scope="col">ID</th>
+                                    <th scope="col">Image</th>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Description</th>
+                                    <th scope="col">Price / Night</th>
+                                    <th scope="col">Beds</th>
+                                    <th scope="col">Capacity</th>
+                                    <th scope="col">Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <c:forEach var="roomType" items="${roomTypes}">
+                                    <c:url var="pictureUrl"
+                                           value="/assets/img/${empty roomType.picture ? 'avatar.jpg' : roomType.picture}"/>
+
+                                    <c:url var="deleteUrl" value="/room-type">
+                                        <c:param name="view" value="delete"/>
+                                        <c:param name="id" value="${roomType.id}"/>
+                                    </c:url>
+
+                                    <tr>
+                                        <td class="fw-semibold">
+                                            #${roomType.id}
+                                        </td>
+
+                                        <td>
+                                            <img class="room-thumbnail"
+                                                 src="<c:out value='${pictureUrl}'/>"
+                                                 alt="Room type thumbnail"
+                                                 loading="lazy">
+                                        </td>
+
+                                        <td class="fw-semibold">
+                                            <c:out value="${roomType.name}"/>
+                                        </td>
+
+                                        <td class="description">
+                                            <c:out value="${roomType.description}"/>
+                                        </td>
+
+                                        <td>${roomType.pricePerNight} USD</td>
+                                        <td>${roomType.beds}</td>
+                                        <td>${roomType.capacity}</td>
+
+                                        <td>
+                                            <div class="row-actions">
+                                                <a class="btn btn-outline-primary btn-sm"
+                                                   href="${pageContext.request.contextPath}/room-type?view=update&id=${roomType.id}"
+                                                   aria-label="Edit room type ${roomType.id}">
+                                                    Edit
+                                                </a>
+
+                                                <a class="btn btn-outline-danger btn-sm"
+                                                   href="<c:out value='${deleteUrl}'/>"
+                                                   aria-label="Delete room type ${roomType.id}">
+                                                    Delete
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </c:forEach>
+
+                                <c:if test="${empty roomTypes}">
+                                    <tr>
+                                        <td colspan="8" class="empty-list">
+                                            No room types found.
+                                            Add a room type to get started.
+                                        </td>
+                                    </tr>
+                                </c:if>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </main>
-            <c:if test="${requestScope.totalPages > 1}">
-                <nav aria-label="Page navigation" class="d-flex w-100 justify-content-center">
-                    <ul class="pagination">
-                        <li class="page-item ${param["page-index"] == 1 ? "disabled" : ""} rounded-4">
-                            <a class="page-link" href="./room-type?page-index=${param["page-index"] - 1}" tabindex="-1">Previous</a>
-                        </li>
-                        <c:forEach var = "i" begin = "1" end = "${totalPages}">
-                            <li class="page-item" ><a class="page-link ${param["page-index"] == i ? "active" : ""}" href="./room-type?page-index=${i}">${i}</a></li>
+
+                <c:if test="${totalPages > 1}">
+                    <nav class="list-pagination" aria-label="Pagination">
+                        <ul class="pagination mb-0">
+                            <li class="page-item ${pageIndex <= 1 ? 'disabled' : ''}">
+                                <c:choose>
+                                    <c:when test="${pageIndex > 1}">
+                                        <a class="page-link"
+                                           href="${pageContext.request.contextPath}/room-type?page-index=${pageIndex - 1}">
+                                            Previous
+                                        </a>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="page-link">Previous</span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </li>
+
+                            <c:forEach var="i" begin="1" end="${totalPages}">
+                                <li class="page-item ${pageIndex == i ? 'active' : ''}">
+                                    <c:choose>
+                                        <c:when test="${pageIndex == i}">
+                                            <span class="page-link" aria-current="page">
+                                                ${i}
+                                            </span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <a class="page-link"
+                                               href="${pageContext.request.contextPath}/room-type?page-index=${i}">
+                                                ${i}
+                                            </a>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </li>
                             </c:forEach>
-                        <li class="page-item ${param["page-index"] == requestScope.totalPages ? "disabled" : ""} rounded-4">
-                            <a class="page-link" href="./room-type?page-index=${param["page-index"] + 1}">Next</a>
-                        </li>
-                    </ul>
-                </nav>
-            </c:if>
+
+                            <li class="page-item ${pageIndex >= totalPages ? 'disabled' : ''}">
+                                <c:choose>
+                                    <c:when test="${pageIndex < totalPages}">
+                                        <a class="page-link"
+                                           href="${pageContext.request.contextPath}/room-type?page-index=${pageIndex + 1}">
+                                            Next
+                                        </a>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="page-link">Next</span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </li>
+                        </ul>
+                    </nav>
+                </c:if>
+            </main>
+
             <%@include file="../include/footer.jsp" %>
         </div>
-        <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
+
+        <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js"></script>
     </body>
 </html>

@@ -1,0 +1,89 @@
+/* Giao diện bảng quản lý phòng và loại phòng */
+.admin-list {
+    max-width: 1440px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 32px 24px;
+}
+
+.admin-list .list-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.admin-list h1 {
+    font-size: 1.75rem;
+    margin-bottom: 6px;
+}
+
+.admin-list .table-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.admin-list .table {
+    margin-bottom: 0;
+}
+
+.admin-list .table th {
+    background: #f5f3ef;
+    color: #555;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    padding: 16px;
+}
+
+.admin-list .table td {
+    padding: 16px;
+    vertical-align: middle;
+}
+
+.admin-list .row-actions {
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.admin-list .room-thumbnail {
+    width: 64px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.admin-list .description {
+    max-width: 280px;
+    white-space: normal;
+    color: #6b7280;
+}
+
+.admin-list .list-pagination {
+    display: flex;
+    grid-template-columns: none;
+    justify-content: center;
+    padding: 24px 0 0;
+    font-size: 1rem;
+}
+
+.admin-list .empty-list {
+    text-align: center;
+    padding: 48px 16px !important;
+    color: #6b7280;
+}
+
+@media (max-width: 600px) {
+    .admin-list {
+        padding: 24px 12px;
+    }
+
+    .admin-list .table td,
+    .admin-list .table th {
+        padding: 12px;
+    }
+}

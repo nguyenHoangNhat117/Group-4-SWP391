@@ -90,7 +90,7 @@
         </main>
 
         <footer>
-            &copy; 2025 FPT University SE1908 Group 3. All right reserved
+            &copy; 2026 FPT University SE2001 Group 4. All right reserved
         </footer>
 
         <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
