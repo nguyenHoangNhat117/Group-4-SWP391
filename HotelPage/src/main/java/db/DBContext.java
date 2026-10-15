@@ -20,7 +20,7 @@ public class DBContext {
 
     private final String DB_URL = "jdbc:sqlserver://127.0.0.1:1433;databaseName=HotelDB;encrypt=false";
     private final String DB_USER = "sa";
-    private final String DB_PWD = "123456";
+    private final String DB_PWD = "123";
 
     public DBContext() {
         try {
