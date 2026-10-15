@@ -11,6 +11,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import model.User;
+import dao.UserDAO;
+import java.util.Objects;
 
 @WebFilter(
         filterName = "AuthenticationFilter",
@@ -64,16 +66,33 @@ public class AuthenticationFilter implements Filter {
         User user = session == null ? null : (User) session.getAttribute("loggedUser");
 
         if (user == null) {
+            if ("/booking".equals(servletPath) && "GET".equalsIgnoreCase(req.getMethod())) {
+                String room = req.getParameter("roomNumber");
+                if (room != null && room.matches("[0-9]+")) {
+                    req.getSession().setAttribute("pendingBookingUrl", "/booking?roomNumber=" + room);
+                }
+            }
             res.sendRedirect(req.getContextPath() + "/login");
             return;
         }
 
-        if (user.getAccountStatus() != null
-                && !"active".equalsIgnoreCase(user.getAccountStatus())) {
+        User current;
+        try {
+            current = new UserDAO().getUserById(user.getId());
+        } catch (IllegalStateException e) {
+            res.sendError(503, "Authentication is temporarily unavailable.");
+            return;
+        }
+        if (current == null || !"active".equalsIgnoreCase(current.getAccountStatus())
+                || !Objects.equals(current.getPassword(), user.getPassword())) {
             session.invalidate();
             res.sendRedirect(req.getContextPath() + "/login?error=account-status");
             return;
         }
+        // Refresh role/status so an old session cannot retain revoked privileges.
+        user = current;
+        session.setAttribute("loggedUser", current);
+        res.setHeader("Cache-Control", "no-store");
 
         String role = user.getRole();
 

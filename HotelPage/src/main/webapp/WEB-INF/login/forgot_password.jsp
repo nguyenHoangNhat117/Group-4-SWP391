@@ -1,7 +1,8 @@
+<%@page import="util.AuthSupport"%>
 <%-- 
-    Document   : forgot_password
-    Created on : Jul 1, 2025, 6:10:42 PM
-    Author     : Trần Nguyễn
+    Document   : forgot password
+    Created on : Oct 14, 2026, 6:16:24 PM
+    Author     : Nguyễn Hoàng Nhật
 --%>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
@@ -25,17 +26,18 @@
 
         <main class="form-signin wrapper">
             <div class="form-box">
-                <form action="forgot-password" method="post">
+                <form action="<%= request.getContextPath()%>/forgot-password" method="post">
+                    <input type="hidden" name="csrfToken" value="<%= AuthSupport.token(session)%>"/>
                     <h1 class="text-center">Forgot Password</h1>
                     <%
                         String error = (String) request.getAttribute("error");
                         String message = (String) request.getAttribute("message");
                     %>
                     <% if (error != null) {%>
-                    <div class="alert alert-danger text-center form-error"><%= error%></div>
+                    <div class="alert alert-danger text-center form-error"><%= AuthSupport.html(error)%></div>
                     <% } %>
                     <% if (message != null) {%>
-                    <div class="alert alert-success text-center form-error"><%= message%></div>
+                    <div class="alert alert-success text-center form-error"><%= AuthSupport.html(message)%></div>
                     <% }%>
                     <div class="input-box">
                         <input type="email" name="email" required autocomplete="off" placeholder=" "  />
@@ -50,7 +52,7 @@
         </main>
 
         <footer>
-    &copy; 2025 FPT University SE1908 Group 3. All right reserved
+    &copy; 2026 FPT University SE2001 Group 4. All rights reserved
 </footer>
         <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
         <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>

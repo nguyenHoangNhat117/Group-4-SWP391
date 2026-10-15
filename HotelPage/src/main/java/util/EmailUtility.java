@@ -1,46 +1,53 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package util;
-import java.util.Properties;
+
 import jakarta.mail.*;
 import jakarta.mail.internet.*;
-/**
- *
- * @author Trần Nguyễn
- */
-public class EmailUtility {
-    public static void sendOtpEmail(String to, String otp) {
-        final String from = "loitester0001@gmail.com";
-        final String pass = "jaon eztb azfv igxw"; // App password from Gmail
+import java.util.Properties;
+
+public final class EmailUtility {
+
+    private EmailUtility() {
+    }
+
+    public static void sendOtpEmail(String to, String otp) throws MessagingException {
+        String from = setting("SMTP_USER");
+        String password = setting("SMTP_APP_PASSWORD").replace(" ", "");
+        System.out.println("SMTP sender: " + from);
+System.out.println("SMTP password length: " + password.length());
 
         Properties props = new Properties();
-        props.put("mail.smtp.host", "smtp.gmail.com");
-        props.put("mail.smtp.port", "587");
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-
+        props.setProperty("mail.smtp.host", "smtp.gmail.com");
+        props.setProperty("mail.smtp.port", "587");
+        props.setProperty("mail.smtp.auth", "true");
+        props.setProperty("mail.smtp.starttls.enable", "true");
+        props.setProperty("mail.smtp.starttls.required", "true");
+        props.setProperty("mail.smtp.ssl.checkserveridentity", "true");
+        props.setProperty("mail.smtp.connectiontimeout", "10000");
+        props.setProperty("mail.smtp.timeout", "10000");
+        props.setProperty("mail.smtp.writetimeout", "10000");
         Session session = Session.getInstance(props, new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(from, pass);
+                return new PasswordAuthentication(from, password);
             }
         });
+        MimeMessage message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(from));
+        message.setRecipient(Message.RecipientType.TO, new InternetAddress(to, true));
+        message.setSubject("Luxe Escape - Password reset OTP", "UTF-8");
+        message.setText("Your OTP is: " + otp + "\nValid for 5 minutes. Do not share this code."
+                + "\nIgnore this email if you did not request a password reset.", "UTF-8");
+        Transport.send(message);
+    }
 
-        try {
-            Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress(from));
-            message.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
-            message.setSubject("Your OTP Code for Password Reset");
-            message.setText("Dear user,\n\nYour One-Time Password (OTP) is: " + otp +
-                            "\n\nPlease use this code to reset your password. This code is valid for a limited time.\n\n" +
-                            "If you did not request a password reset, please ignore this email.\n\n" +
-                            "Best regards,\nLuxe Escape Support Team");
-
-            Transport.send(message);
-        } catch (MessagingException e) {
-            e.printStackTrace();
+    private static String setting(String name) throws MessagingException {
+        String value = System.getenv(name);
+        if (value == null || value.trim().isEmpty()) {
+            value = System.getProperty(name);
         }
+        if (value == null || value.trim().isEmpty()) {
+            throw new MessagingException("Missing email configuration: " + name);
+        }
+        return value.trim();
     }
 }

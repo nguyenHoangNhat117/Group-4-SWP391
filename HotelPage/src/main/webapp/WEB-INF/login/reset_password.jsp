@@ -1,7 +1,8 @@
+<%@page import="util.AuthSupport"%>
 <%-- 
     Document   : reset_password
-    Created on : Jul 1, 2025, 6:18:17 PM
-    Author     : Trần Nguyễn
+    Created on : Oct 14, 2026, 6:16:24 PM
+    Author     : Nguyễn Hoàng Nhật
 --%>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
@@ -29,21 +30,27 @@
                 String message = (String) request.getAttribute("message");
             %>
             <% if (error != null) {%>
-            <div class="alert alert-danger text-center form-error"><%= error%></div>
+            <div class="alert alert-danger text-center form-error"><%= AuthSupport.html(error)%></div>
             <% } %>
             <% if (message != null) {%>
-            <div class="alert alert-success text-center form-error"><%= message%></div>
+            <div class="alert alert-success text-center form-error"><%= AuthSupport.html(message)%></div>
             <% }%>
             <main class="form-signin wrapper">
                 <div class="form-box">
-                    <form action="reset-password" method="post">
+                    <form action="<%= request.getContextPath()%>/reset-password" method="post">
+                    <input type="hidden" name="csrfToken" value="<%= AuthSupport.token(session)%>"/>
                         <h1 class="text-center">Reset Password</h1>
                         <div class="input-box">
-                            <input type="password" name="password" required placeholder=" " minlength="6"/>
+                            <input type="password" name="password" required placeholder=" " minlength="7" maxlength="128"/>
                             <label>New Password</label>
                             <span class="icon">
                                 <ion-icon name="lock-closed-outline"></ion-icon>
                             </span>
+                        </div>
+                        <div class="input-box">
+                            <input type="password" name="confirmPassword" required placeholder=" " minlength="7" maxlength="128" autocomplete="new-password"/>
+                            <label>Confirm Password</label>
+                            <span class="icon"><ion-icon name="lock-closed-outline"></ion-icon></span>
                         </div>
                         <button class="btn" type="submit">Reset</button>
                     </form>
@@ -53,7 +60,7 @@
         </div>
 
         <footer>
-            &copy; 2025 FPT University SE1908 Group 3. All right reserved
+            &copy; 2026 FPT University SE2001 Group 4. All rights reserved
         </footer>
         <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
         <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>

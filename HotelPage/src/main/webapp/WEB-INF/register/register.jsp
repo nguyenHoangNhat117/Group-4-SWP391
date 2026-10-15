@@ -1,3 +1,9 @@
+<%-- 
+    Document   : register
+    Created on : Oct 14, 2026, 6:16:24 PM
+    Author     : Nguyễn Hoàng Nhật
+--%>
+<%@page import="util.AuthSupport"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html lang="en">
@@ -21,18 +27,19 @@
         <main class="form-signin wrapper">
             <div class="form-box">
 
-                <form method="post" action="<%= request.getContextPath()%>/register">
+                <form method="post" action="<%= request.getContextPath()%>
+                    <input type="hidden" name="csrfToken" value="<%= AuthSupport.token(session)%>"/>/register">
                     <h1 class="text-center">Register</h1>
 
                     <%
                         String error = (String) request.getAttribute("error");
                         if (error != null) {
                     %>
-                    <div class="alert alert-danger mt-3 text-center text-danger" style="font-size: 0.9rem;"><%= error%></div>
+                    <div class="alert alert-danger mt-3 text-center text-danger" style="font-size: 0.9rem;"><%= AuthSupport.html(error)%></div>
                     <% }%>
 
                     <div class="input-box">
-                        <input type="text" name="username" required autocomplete="off" placeholder=" " minlength="2"/>
+                        <input type="text" name="username" value="<%= AuthSupport.html(request.getAttribute("enteredUsername"))%>" required autocomplete="off" placeholder=" " minlength="3" maxlength="100"/>
                         <label for="username">Username</label>
                         <span class="icon">
                             <ion-icon name="person-outline"></ion-icon>
@@ -41,7 +48,7 @@
 
                     <div class="input-box">
                         <input type="email" name="email" required autocomplete="off" placeholder=" "
-                               value="<%= request.getAttribute("enteredEmail") != null ? request.getAttribute("enteredEmail") : ""%>"/>
+                               value="<%= AuthSupport.html(request.getAttribute("enteredEmail"))%>"/>
                         <label for="email">Email</label>
                         <span class="icon">
                             <ion-icon name="mail-outline"></ion-icon>
@@ -49,7 +56,7 @@
                     </div>
 
                     <div class="input-box">
-                        <input type="password" name="password" required autocomplete="off" id="floatingPassword" placeholder=" " minlength="6"/>
+                        <input type="password" name="password" required autocomplete="off" id="floatingPassword" placeholder=" " minlength="7" maxlength="128"/>
                         <label for="floatingPassword">Password</label>
                         <span class="icon">
                             <ion-icon name="lock-closed-outline"></ion-icon>
@@ -57,7 +64,7 @@
                     </div>
 
                     <div class="input-box">
-                        <input type="password" name="confirmPassword" required autocomplete="off" placeholder=" " minlength="6"/>
+                        <input type="password" name="confirmPassword" required autocomplete="off" placeholder=" " minlength="7" maxlength="128"/>
                         <label for="confirmPassword">Confirm Password</label>
                         <span class="icon">
                             <ion-icon name="checkmark-circle-outline"></ion-icon>
@@ -80,7 +87,7 @@
         </main>
 
         <footer>
-            &copy; 2025 FPT University SE1902 Group 3. All right reserved
+            &copy; 2026 FPT University SE2001 Group 4. All rights reserved
         </footer>
 
         <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>

@@ -1,7 +1,8 @@
+<%@page import="util.AuthSupport"%>
 <%-- 
     Document   : enter_otp
-    Created on : Jul 1, 2025, 6:16:24 PM
-    Author     : Trần Nguyễn
+    Created on : Oct 14, 2026, 6:16:24 PM
+    Author     : Nguyễn Hoàng Nhật
 --%>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
@@ -25,20 +26,21 @@
 
         <main class="form-signin wrapper">
             <div class="form-box">
-                <form action="verify-otp" method="post">
+                <form action="<%= request.getContextPath()%>/verify-otp" method="post">
+                    <input type="hidden" name="csrfToken" value="<%= AuthSupport.token(session)%>"/>
                     <h1 class="text-center">Enter OTP</h1>
                     <%
                         String error = (String) request.getAttribute("error");
                         String message = (String) request.getAttribute("message");
                     %>
                     <% if (error != null) {%>
-                    <div class="alert alert-danger text-center form-error"><%= error%></div>
+                    <div class="alert alert-danger text-center form-error"><%= AuthSupport.html(error)%></div>
                     <% } %>
                     <% if (message != null) {%>
-                    <div class="alert alert-success text-center form-error"><%= message%></div>
+                    <div class="alert alert-success text-center form-error"><%= AuthSupport.html(message)%></div>
                     <% }%>
                     <div class="input-box">
-                        <input type="text" name="otp" required placeholder=" " />
+                        <input type="text" name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required placeholder=" " />
                         <label>OTP</label>
                         <span class="icon">
                             <ion-icon name="key-outline"></ion-icon>
@@ -46,11 +48,12 @@
                     </div>
                     <button class="btn" type="submit">Verify</button>
                 </form>
+                <p class="text-center mt-3"><a href="<%= request.getContextPath()%>/forgot-password">Request a new OTP</a></p>
             </div>
         </main>
 
         <footer>
-    &copy; 2025 FPT University SE1908 Group 3. All right reserved
+    &copy; 2026 FPT University SE2001 Group 4. All rights reserved
 </footer>
         <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
         <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
