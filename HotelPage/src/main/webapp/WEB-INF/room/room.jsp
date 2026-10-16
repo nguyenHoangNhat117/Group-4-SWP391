@@ -22,19 +22,32 @@
         <c:if test="${sessionScope.loggedUser.role == 'admin'}">
             <link href="${pageContext.request.contextPath}/assets/css/admin-list.css"
                   rel="stylesheet">
+            <link href="${pageContext.request.contextPath}/assets/css/luxe-admin-rooms.css"
+                  rel="stylesheet">
         </c:if>
-    </head>
+    
+    <link href="${pageContext.request.contextPath}/assets/css/luxe-admin-suite.css" rel="stylesheet">
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+</head>
 
-    <body>
+    <body class="luxe-admin-suite luxe-admin-rooms luxe-room-management-page">
         <div class="body-wrapper">
             <%@include file="../include/header.jsp" %>
 
             <c:choose>
                 <%-- ADMIN: BẢNG QUẢN LÝ --%>
                 <c:when test="${sessionScope.loggedUser.role == 'admin'}">
-                    <main class="admin-list">
+                    <main class="admin-list luxe-room-admin">
+        <div class="luxe-admin-banner" aria-label="Room inventory">
+          <span class="luxe-admin-banner-eyebrow">LUXE ESCAPE <span aria-hidden="true">/</span> ROOMS & AVAILABILITY</span>
+          <span class="luxe-admin-banner-title">Room inventory</span>
+          <span class="luxe-admin-banner-art" aria-hidden="true"></span>
+        </div>
+
                         <div class="list-heading">
                             <div>
+                                <div class="luxe-eyebrow"><span class="luxe-eyebrow-dot"></span> LUXE ESCAPE / ADMINISTRATION</div>
                                 <h1>Room Management</h1>
                                 <p class="text-muted mb-0">
                                     Manage room types, capacity and operational status.
@@ -43,11 +56,12 @@
 
                             <a class="btn btn-primary"
                                href="${pageContext.request.contextPath}/room?view=create">
-                                + Add Room
+                                <span aria-hidden="true" class="luxe-add-symbol">+</span> Add Room
                             </a>
                         </div>
 
                         <div class="table-panel">
+                            <div class="luxe-table-topline"><div><span class="luxe-table-label">ROOM INVENTORY</span><span class="luxe-table-subtitle">Overview of rooms on this page</span></div><span class="luxe-table-accent" aria-hidden="true"></span></div>
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle">
                                     <caption class="visually-hidden">
@@ -68,9 +82,9 @@
 
                                     <tbody>
                                         <c:forEach var="room" items="${rooms}">
-                                            <tr>
+                                            <tr class="luxe-data-row">
                                                 <td class="fw-semibold">
-                                                    #${room.roomNumber}
+                                                    <span class="luxe-room-number">#${room.roomNumber}</span>
                                                 </td>
 
                                                 <td>

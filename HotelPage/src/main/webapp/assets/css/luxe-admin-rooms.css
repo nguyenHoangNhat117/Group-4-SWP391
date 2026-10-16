@@ -1,0 +1,103 @@
+/* Luxe Escape | Room Management UI — presentation-only styles.
+   Scoped to admin branch to avoid affecting guest search or backend behavior. */
+body.luxe-room-management-page:has(.luxe-room-admin) {
+    background: #f8f6f2;
+    color: #302a26;
+    scroll-snap-type: none;
+}
+.luxe-room-management-page:has(.luxe-room-admin) header {
+    background: #fffdfa;
+    border-bottom: 1px solid #eee7dc;
+    box-shadow: 0 3px 24px rgba(51,38,25,.035);
+}
+.luxe-room-management-page:has(.luxe-room-admin) header hr {display:none}
+.luxe-room-management-page:has(.luxe-room-admin) header nav {
+    min-height: 84px;
+    padding: 18px clamp(24px,4.5vw,76px);
+    gap: 18px;
+    font-size: .94rem;
+}
+.luxe-room-management-page:has(.luxe-room-admin) #nav-heading a {
+    color: #312a22;
+    font: 700 1.4rem Georgia, 'Times New Roman',serif;
+    letter-spacing: -.045em;
+}
+.luxe-room-management-page:has(.luxe-room-admin) #navbar {gap:clamp(12px,1.6vw,28px)}
+.luxe-room-management-page:has(.luxe-room-admin) #navbar a {
+    color:#686057;
+    font-weight:550;
+    font-size:.9rem;
+    padding: 9px 0;
+    display:inline-block;
+    position:relative;
+    white-space:nowrap;
+}
+.luxe-room-management-page:has(.luxe-room-admin) #navbar li:first-child a {color:#957856;font-weight:700}
+.luxe-room-management-page:has(.luxe-room-admin) #navbar li:first-child a:after {
+    content:"";position:absolute;bottom:0;left:0;right:0;height:2px;background:#ac9170;border-radius:2px
+}
+.luxe-room-management-page:has(.luxe-room-admin) #navbar a:hover {color:#997a55;opacity:1;text-decoration:none}
+.luxe-room-management-page:has(.luxe-room-admin) .auth-nav {align-items:center;gap:20px;white-space:nowrap;font-size:.86rem}
+.luxe-room-management-page:has(.luxe-room-admin) .auth-nav .fw-bold {font-weight:600!important;color:#55493e}
+.luxe-room-management-page:has(.luxe-room-admin) #logout {
+    padding:9px 15px;border:1px solid #e9e0d4;border-radius:9px;background:#faf7f2;
+    text-decoration:none;color:#705a45;transition:.2s ease;
+}
+.luxe-room-management-page:has(.luxe-room-admin) #logout:hover {background:#ede4d8;opacity:1}
+.luxe-room-admin.admin-list {max-width:1540px;padding:clamp(30px,4vw,60px) clamp(20px,5vw,78px) 56px}
+.luxe-room-admin .list-heading {margin-bottom:28px;gap:22px;align-items:end}
+.luxe-room-admin .luxe-eyebrow {display:flex;align-items:center;gap:8px;color:#a38b6a;font-size:.7rem;font-weight:750;letter-spacing:.19em;margin-bottom:14px}
+.luxe-room-admin .luxe-eyebrow-dot {width:7px;height:7px;background:#bc9e77;border-radius:50%}
+.luxe-room-admin h1 {font-family:Georgia,'Times New Roman',serif;letter-spacing:-.035em;color:#29251f;font-size:clamp(2rem,3vw,2.75rem);font-weight:600;margin-bottom:10px}
+.luxe-room-admin .list-heading .text-muted {color:#80776f!important;font-size:.95rem}
+.luxe-room-admin .list-heading>.btn {
+    display:inline-flex;align-items:center;gap:9px;padding:12px 23px;border-radius:10px;
+    background:#a98f70!important;border:1px solid #a98f70!important;color:white!important;
+    font-size:.9rem;font-weight:650;box-shadow:0 6px 15px rgba(133,102,65,.15);
+    transition:transform .2s,box-shadow .2s,background .2s;
+}
+.luxe-room-admin .list-heading>.btn:hover {background:#927657!important;transform:translateY(-2px);box-shadow:0 9px 18px rgba(133,102,65,.22)}
+.luxe-room-admin .luxe-add-symbol{font-size:1.35rem;font-weight:400;line-height:1}
+.luxe-room-admin .table-panel {background:#fff;border:1px solid #ebe4d9;border-radius:17px;overflow:hidden;box-shadow:0 14px 48px rgba(53,42,29,.055)}
+.luxe-room-admin .luxe-table-topline {display:flex;align-items:center;justify-content:space-between;padding:21px 26px;background:linear-gradient(115deg,#fffdfa,#f7f1e9);border-bottom:1px solid #eae2d7}
+.luxe-room-admin .luxe-table-label {display:block;color:#65523d;font-weight:800;font-size:.76rem;letter-spacing:.13em}
+.luxe-room-admin .luxe-table-subtitle {display:block;color:#918779;margin-top:5px;font-size:.8rem}
+.luxe-room-admin .luxe-table-accent {width:48px;height:5px;border-radius:10px;background:linear-gradient(90deg,#c7a67d,#eee1ce)}
+.luxe-room-admin .table-responsive {overflow-x:auto;max-height:none}
+.luxe-room-admin .table {--bs-table-bg:transparent;--bs-table-hover-bg:#fcf9f4;margin:0;min-width:840px}
+.luxe-room-admin .table thead th {background:#fcfaf7;color:#8e806f;letter-spacing:.085em;font-weight:750;font-size:.69rem;text-transform:uppercase;border-bottom:1px solid #eee8df;padding:19px 22px;vertical-align:middle}
+.luxe-room-admin .table tbody td {border-bottom:1px solid #f0ece6;padding:20px 22px;font-size:.91rem;color:#514a44}
+.luxe-room-admin .table tbody tr:last-child td{border-bottom:0}
+.luxe-room-admin .table tbody tr {transition:background .18s ease}
+.luxe-room-admin .table tbody tr:hover {background:#fcf9f4}
+.luxe-room-admin .luxe-room-number {font-weight:750;color:#55402c;letter-spacing:.02em}
+.luxe-room-admin .badge {border-radius:99px;padding:7px 12px;font-size:.71rem;font-weight:700;letter-spacing:.015em}
+.luxe-room-admin .bg-success {background:#e7f4ed!important;color:#287653!important}
+.luxe-room-admin .bg-warning {background:#fff0cf!important;color:#a2711b!important}
+.luxe-room-admin .bg-secondary {background:#eeedf0!important;color:#6e6874!important}
+.luxe-room-admin .row-actions {gap:7px}
+.luxe-room-admin .row-actions .btn {padding:7px 12px;border-radius:8px;font-size:.81rem;font-weight:650;transition:transform .18s, background .18s,border-color .18s}
+.luxe-room-admin .row-actions .btn:hover{transform:translateY(-1px)}
+.luxe-room-admin .btn-outline-secondary{background:#faf8f5;border-color:#e1d9ce;color:#77634f}
+.luxe-room-admin .btn-outline-secondary:hover{background:#eae0d4;color:#533e29;border-color:#d9cabb}
+.luxe-room-admin .btn-outline-primary{background:#eef3fb;border-color:#dbe6f7;color:#42699b}
+.luxe-room-admin .btn-outline-primary:hover{background:#dfe9f8;border-color:#c8d8ec;color:#2d557e}
+.luxe-room-admin .btn-outline-danger{background:#fff2f1;border-color:#f7dcd8;color:#b95d57}
+.luxe-room-admin .btn-outline-danger:hover{background:#fce1de;border-color:#efcac5;color:#a64843}
+.luxe-room-admin .list-pagination{padding-top:28px}
+.luxe-room-admin .pagination{gap:7px}
+.luxe-room-admin .page-link {border:1px solid #e8dfd3;border-radius:9px!important;background:#fff;color:#74624e!important;min-width:38px;text-align:center;padding:9px 12px;font-weight:600}
+.luxe-room-admin .page-item.active .page-link{background:#ad9270!important;border-color:#ad9270!important;color:#fff!important;box-shadow:0 5px 15px rgba(173,146,112,.2)}
+.luxe-room-admin .page-item.disabled .page-link{background:#f1efed;color:#aea9a3!important}
+.luxe-room-management-page:has(.luxe-room-admin) footer {background:#fffdfa;border-top:1px solid #ede6dd;color:#83776b;font-size:.85rem}
+@media(max-width:1050px){
+ .luxe-room-management-page:has(.luxe-room-admin) header nav{display:flex;flex-wrap:wrap;justify-content:space-between}
+ .luxe-room-management-page:has(.luxe-room-admin) #navbar{order:3;width:100%;justify-content:center;overflow-x:auto;flex-wrap:wrap}
+}
+@media(max-width:640px){
+ .luxe-room-admin .list-heading{align-items:flex-start}
+ .luxe-room-admin .list-heading>.btn{width:100%;justify-content:center}
+ .luxe-room-admin .luxe-table-topline{padding:17px}
+ .luxe-room-admin .table tbody td,.luxe-room-admin .table thead th{padding:15px}
+}
+@media(prefers-reduced-motion:reduce){.luxe-room-admin *, .luxe-room-management-page:has(.luxe-room-admin) header * {transition:none!important}}

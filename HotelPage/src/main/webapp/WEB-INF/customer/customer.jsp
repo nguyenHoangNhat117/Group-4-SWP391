@@ -24,9 +24,13 @@
         href="<%= request.getContextPath()%>/assets/css/general.css"
         rel="stylesheet">
 
+
+    <link href="${pageContext.request.contextPath}/assets/css/luxe-admin-suite.css" rel="stylesheet">
+    <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
 </head>
 
-<body>
+<body class="luxe-admin-suite luxe-admin-customers">
 
 <div class="body-wrapper">
 
@@ -34,6 +38,12 @@
 
 
     <main>
+        <div class="luxe-admin-banner" aria-label="Guest directory">
+          <span class="luxe-admin-banner-eyebrow">LUXE ESCAPE <span aria-hidden="true">/</span> GUEST RELATIONSHIPS</span>
+          <span class="luxe-admin-banner-title">Guest directory</span>
+          <span class="luxe-admin-banner-art" aria-hidden="true"></span>
+        </div>
+
 
         <div class="container py-5">
 

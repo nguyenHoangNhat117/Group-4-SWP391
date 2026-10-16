@@ -14,13 +14,23 @@
               rel="stylesheet">
         <link href="${pageContext.request.contextPath}/assets/css/admin-list.css"
               rel="stylesheet">
-    </head>
+    
+    <link href="${pageContext.request.contextPath}/assets/css/luxe-admin-suite.css" rel="stylesheet">
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+</head>
 
-    <body>
+    <body class="luxe-admin-suite luxe-admin-types">
         <div class="body-wrapper">
             <%@include file="../include/header.jsp" %>
 
             <main class="admin-list">
+        <div class="luxe-admin-banner" aria-label="Room collections">
+          <span class="luxe-admin-banner-eyebrow">LUXE ESCAPE <span aria-hidden="true">/</span> ROOM CATEGORIES</span>
+          <span class="luxe-admin-banner-title">Room collections</span>
+          <span class="luxe-admin-banner-art" aria-hidden="true"></span>
+        </div>
+
                 <div class="list-heading">
                     <div>
                         <h1>Room Type Management</h1>

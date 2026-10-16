@@ -1,0 +1,73 @@
+/* Luxe Escape – Modern Luxury UI. Presentation-only: no form, route or JSP contracts changed. */
+:root{--luxe-ink:#302b26;--luxe-muted:#74695e;--luxe-accent:#a88d6a;--luxe-accent-dark:#836b50;--luxe-surface:#faf8f5;--luxe-cream:#f0ebe3;--luxe-line:#e8e0d5;--luxe-radius:18px}
+html{scroll-behavior:smooth;scroll-snap-type:none!important}
+body{background:var(--luxe-surface);color:var(--luxe-ink);-webkit-font-smoothing:antialiased}
+body,button,input,select,textarea{font-family:Inter,'Segoe UI',Arial,sans-serif}
+a,button,.btn{transition:background-color .24s ease,color .24s ease,border-color .24s ease,box-shadow .24s ease,transform .24s ease}
+:focus-visible{outline:3px solid #a88d6a!important;outline-offset:3px}
+header{position:relative;z-index:30;background:rgba(250,248,245,.97)}
+header nav{min-height:80px;max-width:1440px;margin-inline:auto;padding:1.15rem clamp(18px,5vw,72px);gap:20px}
+header hr{border-color:var(--luxe-line);opacity:1}
+#nav-heading a,nav span a{font-family:Georgia,'Times New Roman',serif;font-size:clamp(1.18rem,2vw,1.6rem);font-weight:600;letter-spacing:.015em;color:var(--luxe-ink)}
+#navbar{flex-wrap:wrap;gap:clamp(10px,1.6vw,24px)}
+#navbar li a{font-size:.92rem;font-weight:500;color:#645b52;text-decoration:none}
+#navbar li a:hover,.auth-nav a:hover{color:var(--luxe-accent-dark);text-decoration:none;opacity:1}
+.auth-nav #login,.auth-nav #logout{display:inline-flex;align-items:center;justify-content:center;padding:.65rem 1.25rem;border:1px solid var(--luxe-accent);border-radius:40px;color:var(--luxe-accent-dark);font-weight:600;text-decoration:none}
+.auth-nav #login:hover,.auth-nav #logout:hover{background:var(--luxe-accent);color:white}
+.user-avatar{border-color:var(--luxe-accent)!important}
+.dropdown-menu{border:1px solid var(--luxe-line);border-radius:13px;padding:.5rem;box-shadow:0 14px 40px #3b2b1b18}
+.dropdown-item{border-radius:8px;padding:.55rem .75rem}
+.dropdown-item:active,.dropdown-item:hover{background:var(--luxe-cream);color:var(--luxe-ink)}
+.btn-primary,#find-rooms-button{background:var(--luxe-accent)!important;border-color:var(--luxe-accent)!important;color:white!important}
+.btn-primary:hover,#find-rooms-button:hover{background:var(--luxe-accent-dark)!important;border-color:var(--luxe-accent-dark)!important;opacity:1!important;transform:translateY(-1px)}
+.btn,.form-control,.form-select{border-radius:10px}
+.form-control,.form-select{border-color:#ded5ca}
+.form-control:focus,.form-select:focus{border-color:var(--luxe-accent)!important;box-shadow:0 0 0 .2rem #a88d6a22!important}
+footer{height:auto;min-height:85px;background:#f2ede6;color:var(--luxe-muted)}
+footer hr{border-color:var(--luxe-line)}
+footer p{padding:1.35rem 1rem;margin:0;font-size:.85rem}
+.main-wrapper{max-width:1500px;margin:auto;padding-inline:clamp(20px,6vw,100px)}
+section#hero{height:auto;min-height:680px;padding:60px 0 65px;margin:0;display:flex;flex-direction:column;gap:26px}
+.hero-wrapper{width:100%;margin:0;display:flex;flex-direction:column;gap:22px}
+#hero-heading{font-family:Georgia,'Times New Roman',serif;font-size:clamp(3.15rem,7vw,7.3rem);line-height:1.07;letter-spacing:-.045em;font-weight:400;margin:0}
+#hero-heading span,#hero-heading span:nth-child(1){font-size:inherit;color:var(--luxe-ink);transform:none}
+#hero-heading span:nth-child(2){color:var(--luxe-accent)}
+#hero-content{width:100%;display:flex;justify-content:space-between;align-items:center;gap:24px;color:var(--luxe-muted);font-size:clamp(.9rem,1.2vw,1.08rem);font-weight:400}
+#hero-text p{margin:0}
+.cta-button{display:inline-flex;justify-content:center;align-items:center;white-space:nowrap;padding:.95rem 2.2rem;background:var(--luxe-accent);border-radius:100px;color:#fff;font-weight:600;font-size:.91rem;min-height:49px}
+.cta-button:hover{background:var(--luxe-accent-dark);color:white;transform:translateY(-2px)}
+#hero-img{height:clamp(300px,40vw,565px);width:100%;object-fit:cover;box-shadow:none;border:0;border-radius:var(--luxe-radius)}
+section#rooms{display:block;margin:40px 0 100px}
+#rooms-heading,#restaurant-heading{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:-.03em;color:var(--luxe-ink);font-size:clamp(2rem,4vw,3.6rem)}
+#rooms-heading{margin-bottom:30px}
+#room-container{height:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto;gap:24px}
+#room-container .room-card:nth-child(1),#room-container .room-card:nth-child(3){grid-area:auto}
+#room-container .room-card{min-width:0;background:white;border:1px solid var(--luxe-line);border-radius:16px;overflow:hidden;transition:transform .28s ease,box-shadow .28s ease}
+#room-container .room-card:hover{transform:translateY(-5px);box-shadow:0 18px 40px #49382919}
+#room-container .room-card>img{width:100%;height:clamp(200px,21vw,290px);object-fit:cover;border-radius:0;margin:0;transition:transform .4s ease,opacity .3s ease}
+#room-container .room-card:hover>img{transform:scale(1.035);opacity:1}
+#room-container .room-description{position:relative;padding:19px 55px 18px 20px;background:white;min-height:106px}
+#room-container .room-description .room-name{font-family:Georgia,'Times New Roman',serif;font-size:1.25rem;color:var(--luxe-ink);font-weight:600}
+#room-container .room-description p:nth-child(2){color:var(--luxe-muted)}
+#room-container .room-description img.arrow-up-right{position:absolute;width:23px;height:23px;bottom:37px;right:19px;object-fit:contain}
+#rooms-content{grid-column:1/-1;background:var(--luxe-cream);padding:30px;display:flex;flex-direction:row;align-items:center;gap:25px;border-radius:16px;font-size:1.08rem}
+#rooms-content p{max-width:720px;margin:0}
+#rooms-cta{padding:.9rem 2rem;margin-left:auto}
+section#restaurant{margin:50px 0 85px}
+.restaurant-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:25px;grid-template-rows:minmax(350px,auto)}
+.restaurant-wrap{background:var(--luxe-cream);border-radius:16px;padding:clamp(24px,4vw,55px)}
+.restaurant-grid img{border-radius:16px}
+/* Search page: keeps Litepicker, readonly date input and POST action untouched. */
+.body-wrapper>main{padding-inline:16px}
+.body-wrapper>main>form:has(#floatingBookingDate){width:min(100%,570px);margin-top:clamp(55px,10vh,120px);padding:clamp(25px,4vw,55px);background:white;border:1px solid var(--luxe-line);border-radius:20px;box-shadow:0 18px 60px #3a291917!important}
+.body-wrapper>main>form:has(#floatingBookingDate) h2{font-family:Georgia,'Times New Roman',serif;font-size:clamp(2rem,3vw,2.65rem);color:var(--luxe-ink)}
+#find-rooms-button{border-radius:10px;padding:14px 20px;font-weight:600}
+/* Content tables, cards and forms on customer screens */
+.body-wrapper main .card{border-radius:16px;border-color:var(--luxe-line)}
+.body-wrapper main .table{--bs-table-bg:transparent}
+.body-wrapper main .table thead{background:var(--luxe-cream)}
+.body-wrapper main .table>:not(caption)>*>*{padding:.85rem}
+/* Responsive, no changes to navbar links or customer dropdown markup */
+@media(max-width:900px){header nav{grid-template-columns:1fr;justify-items:center;padding:18px 20px;gap:14px}#navbar{justify-content:center;flex-wrap:wrap}.auth-nav{justify-content:center}.auth-nav.position-absolute{position:static!important;margin:0!important}section#hero{min-height:0}#room-container{grid-template-columns:repeat(2,minmax(0,1fr))}#rooms-content{grid-column:1/-1}}
+@media(max-width:620px){.main-wrapper{padding-inline:18px}header nav{font-size:.9rem}#navbar{gap:9px 16px}#hero-heading{font-size:clamp(2.65rem,12vw,4.2rem)}#hero-content{align-items:stretch;flex-direction:column;gap:18px}#hero-cta{align-self:flex-start}#hero-img{height:295px}#room-container{grid-template-columns:minmax(0,1fr);gap:18px}#room-container .room-card>img{height:240px}#rooms-content{flex-direction:column;align-items:stretch}#rooms-cta{margin-left:0}.restaurant-grid{grid-template-columns:1fr;grid-template-rows:auto;gap:18px}.restaurant-grid .img-wrapper{min-height:290px}section#rooms{margin-bottom:60px}.body-wrapper>main>form:has(#floatingBookingDate){padding:24px 18px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

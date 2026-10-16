@@ -12,7 +12,9 @@
               rel="stylesheet">
         <link href="${pageContext.request.contextPath}/assets/css/general.css"
               rel="stylesheet">
-    </head>
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+</head>
 
     <body class="bg-light">
         <div class="body-wrapper">

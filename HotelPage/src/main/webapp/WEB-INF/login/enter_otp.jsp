@@ -13,6 +13,7 @@
         <title>Enter OTP</title>
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/login.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-auth.css" />
     </head>
     <body>
         <header>

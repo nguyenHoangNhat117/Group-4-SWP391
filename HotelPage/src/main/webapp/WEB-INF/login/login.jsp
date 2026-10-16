@@ -17,6 +17,7 @@
               rel="stylesheet">
         <link href="<%= request.getContextPath()%>/assets/css/login.css"
               rel="stylesheet">
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-auth.css" />
         <link href="<%= request.getContextPath()%>/assets/img/favicon.png"
               rel="icon"
               type="image/png">

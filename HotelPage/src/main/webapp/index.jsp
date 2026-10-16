@@ -8,12 +8,16 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Luxe Escape Hotel</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/general.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/landing-page.css" />
-    </head>
+            <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+</head>
     <body class="${cookie.animation.value == 'enable' ? '' : 'disable-animation'}">
         <%@include file="/WEB-INF/include/header.jsp" %>
         <form action="./toggle-animation" method="post" class="text-end mt-2 me-2">
