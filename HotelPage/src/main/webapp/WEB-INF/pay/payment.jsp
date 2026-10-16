@@ -9,6 +9,7 @@
 <html>
 
 <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <meta
         http-equiv="Content-Type"
@@ -24,6 +25,9 @@
         href="<%= request.getContextPath()%>/assets/css/general.css"
         rel="stylesheet">
 
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
 </head>
 
 <body class="bg-light">

@@ -1,10 +1,8 @@
-<%@ taglib
-    uri="http://java.sun.com/jsp/jstl/core"
-    prefix="c" %>
+<%@ taglib prefix="c"
+           uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ page import="util.AuthSupport" %>
 
-<%@page pageEncoding="UTF-8"%>
-
-<header>
+<header class="luxe-shared-header">
 
     <nav>
 
@@ -163,7 +161,7 @@
 
                     <a
                         href="${pageContext.request.contextPath}/login"
-                        id="login">
+                        id="login" class="luxe-auth-button">
                         Login
                     </a>
 
@@ -175,7 +173,7 @@
             <c:when test="${sessionScope.loggedUser.role == 'customer'}">
 
                 <div
-                    class="auth-nav d-flex align-items-center position-absolute top-0 end-0 mt-3 me-5">
+                    class="auth-nav luxe-auth-customer">
 
                     <div class="dropdown">
 
@@ -227,11 +225,10 @@
                             </div>
 
 
-                            <a
-                                class="dropdown-item"
-                                href="${pageContext.request.contextPath}/logout">
-                                Logout
-                            </a>
+                            <form method="post" action="<%= request.getContextPath()%>/logout" class="luxe-logout-form luxe-dropdown-logout">
+                                <input type="hidden" name="csrfToken" value="<%= AuthSupport.token(session)%>">
+                                <button class="dropdown-item" type="submit">Logout</button>
+                            </form>
 
                         </div>
 
@@ -246,30 +243,21 @@
 
                 <div class="auth-nav">
 
-                    <span class="fw-bold">
-
+                    <span class="luxe-user-name">
                         Hi,
-
                         <c:choose>
-
                             <c:when test="${not empty sessionScope.loggedUser.displayName}">
-                                ${sessionScope.loggedUser.displayName}
+                                <c:out value="${sessionScope.loggedUser.displayName}" />
                             </c:when>
-
                             <c:otherwise>
-                                ${sessionScope.loggedUser.username}
+                                <c:out value="${sessionScope.loggedUser.username}" />
                             </c:otherwise>
-
                         </c:choose>
-
                     </span>
-
-
-                    <a
-                        href="${pageContext.request.contextPath}/logout"
-                        id="logout">
-                        Logout
-                    </a>
+                    <form method="post" action="<%= request.getContextPath()%>/logout" class="luxe-logout-form">
+                        <input type="hidden" name="csrfToken" value="<%= AuthSupport.token(session)%>">
+                        <button type="submit" id="logout" class="luxe-auth-button">Logout</button>
+                    </form>
 
                 </div>
 

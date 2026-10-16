@@ -1,0 +1,29 @@
+/* Shared header / footer: visual-only changes plus native POST logout form in header.jsp. */
+.luxe-shared-header nav{display:grid;grid-template-columns:minmax(160px,1fr) auto minmax(180px,1fr);align-items:center;gap:24px;min-height:84px;padding-block:14px}
+.luxe-shared-header #navbar{justify-self:center;align-items:center;gap:clamp(13px,1.4vw,25px)}
+.luxe-shared-header #navbar li a{color:#48372a;font-weight:650}
+.luxe-shared-header #navbar li a:hover{color:#9b6739}
+.luxe-shared-header .auth-nav{position:static!important;justify-self:end;margin:0!important;display:flex;align-items:center;justify-content:flex-end;gap:12px;min-height:46px}
+.luxe-shared-header .luxe-user-name{font-size:.93rem;line-height:1.3;font-weight:700;color:#38291f;display:inline-flex;align-items:center;max-width:250px;min-height:44px}
+.luxe-shared-header .luxe-logout-form{margin:0;display:flex;align-items:center}
+.luxe-shared-header .luxe-auth-button,.luxe-shared-header .auth-nav #login,.luxe-shared-header .auth-nav #logout{appearance:none;display:inline-flex;align-items:center;justify-content:center;min-width:104px;min-height:44px;padding:10px 20px;border:1px solid #5b3b26;border-radius:999px;background:#5b3b26!important;color:#fff!important;font-size:.91rem;font-weight:700;text-align:center;text-decoration:none;line-height:1.2;cursor:pointer;transition:background .2s ease,transform .2s ease,box-shadow .2s ease}
+.luxe-shared-header .luxe-auth-button:hover,.luxe-shared-header .auth-nav #login:hover,.luxe-shared-header .auth-nav #logout:hover{background:#865c39!important;border-color:#865c39;color:#fff!important;transform:translateY(-1px);box-shadow:0 6px 15px #412b1d22}
+.luxe-shared-header .luxe-auth-customer{min-height:44px}
+.luxe-shared-header .luxe-auth-customer .dropdown{display:flex;align-items:center}
+.luxe-shared-header .user-dropdown{display:inline-flex;align-items:center;justify-content:center}
+.luxe-shared-header .luxe-dropdown-logout button{width:100%;border:0;background:transparent;color:#493223;text-align:left;cursor:pointer}
+.luxe-shared-header .luxe-dropdown-logout button:hover{background:#f0e7df}
+.luxe-shared-footer{display:block!important;background:#302720!important;color:#f4eae1!important;height:auto!important;min-height:0!important}
+.luxe-shared-footer .luxe-footer-inner{width:min(1260px,calc(100% - 50px));margin:auto;padding:48px 0 38px;display:grid;grid-template-columns:1.25fr .7fr 1.15fr;gap:50px}
+.luxe-shared-footer .luxe-footer-logo{font-family:Georgia,'Times New Roman',serif;font-size:1.8rem;font-weight:700;color:#f3d4a6}
+.luxe-shared-footer .luxe-footer-brand p{margin:13px 0 0;padding:0;text-align:left;max-width:310px;color:#cdbeb1;font-size:.94rem;line-height:1.8}
+.luxe-shared-footer .luxe-footer-group{display:flex;flex-direction:column;align-items:flex-start;gap:11px}
+.luxe-shared-footer .luxe-footer-group h2{margin:0 0 8px;font-size:1rem;font-weight:700;color:#f3d4a6}
+.luxe-shared-footer .luxe-footer-group a{color:#e2d5ca;text-decoration:none;font-size:.94rem}
+.luxe-shared-footer .luxe-footer-group a:hover{color:#fff;text-decoration:underline}
+.luxe-shared-footer .luxe-footer-info{display:flex;align-items:flex-start;gap:11px;color:#e2d5ca;font-size:.92rem;line-height:1.6}
+.luxe-shared-footer .luxe-footer-info ion-icon{flex:0 0 18px;margin-top:3px;color:#eac08b;font-size:18px}
+.luxe-shared-footer .luxe-footer-bottom{border-top:1px solid #665347;padding:18px 20px;text-align:center;color:#c1afa0;font-size:.82rem}
+@media(max-width:1050px){.luxe-shared-header nav{grid-template-columns:1fr;justify-items:center;gap:14px}.luxe-shared-header .auth-nav{justify-self:center}.luxe-shared-header #navbar{flex-wrap:wrap;justify-content:center}.luxe-shared-footer .luxe-footer-inner{grid-template-columns:1fr 1fr;gap:30px}}
+@media(max-width:650px){.luxe-shared-header nav{padding-inline:16px}.luxe-shared-header .auth-nav{flex-wrap:wrap}.luxe-shared-footer .luxe-footer-inner{grid-template-columns:1fr;padding:34px 0;gap:28px}}
+@media(prefers-reduced-motion:reduce){.luxe-shared-header .luxe-auth-button{transition:none!important}}

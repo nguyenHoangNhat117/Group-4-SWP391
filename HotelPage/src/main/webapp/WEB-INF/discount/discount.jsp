@@ -7,11 +7,21 @@
     <title>Promotion Management</title>
     <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">
+
+    <link href="${pageContext.request.contextPath}/assets/css/luxe-admin-suite.css" rel="stylesheet">
+    <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
 </head>
-<body>
+<body class="luxe-admin-suite luxe-admin-discounts">
 <div class="body-wrapper">
     <%@ include file="/WEB-INF/include/header.jsp" %>
     <main class="container-fluid px-5 py-5 min-vh-100">
+        <div class="luxe-admin-banner" aria-label="Offers & rewards">
+          <span class="luxe-admin-banner-eyebrow">LUXE ESCAPE <span aria-hidden="true">/</span> PROMOTIONS</span>
+          <span class="luxe-admin-banner-title">Offers & rewards</span>
+          <span class="luxe-admin-banner-art" aria-hidden="true"></span>
+        </div>
+
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>Promotion Management</h2>
             <a href="${pageContext.request.contextPath}/discounts?view=create"

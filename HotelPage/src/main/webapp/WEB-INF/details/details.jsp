@@ -3,6 +3,7 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta charset="UTF-8">
         <title>Room Details</title>
 
@@ -34,6 +35,8 @@
                 box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             }
         </style>
+            <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
     </head>
     <body>
         <%@include file="../include/header.jsp" %>
@@ -168,5 +171,6 @@
                 });
             });
         </script>
+            <script src="<%= request.getContextPath()%>/assets/js/luxe-ui.js" defer></script>
     </body>
 </html>

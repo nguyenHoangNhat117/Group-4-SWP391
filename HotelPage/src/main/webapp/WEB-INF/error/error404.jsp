@@ -6,7 +6,9 @@
         <title>Create Room</title>
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">
-    </head>
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+</head>
     <body>
         <div class="body-wrapper">
             <%@include file="/WEB-INF/include/header.jsp" %>

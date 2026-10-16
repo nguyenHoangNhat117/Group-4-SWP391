@@ -22,15 +22,25 @@
         href="<%= request.getContextPath()%>/assets/css/general.css"
         rel="stylesheet">
 
+
+    <link href="${pageContext.request.contextPath}/assets/css/luxe-admin-suite.css" rel="stylesheet">
+    <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
 </head>
 
-<body>
+<body class="luxe-admin-suite luxe-admin-reviews">
 
 <div class="body-wrapper">
 
     <%@include file="/WEB-INF/include/header.jsp" %>
 
     <main>
+        <div class="luxe-admin-banner" aria-label="Guest feedback">
+          <span class="luxe-admin-banner-eyebrow">LUXE ESCAPE <span aria-hidden="true">/</span> REVIEWS & MODERATION</span>
+          <span class="luxe-admin-banner-title">Guest feedback</span>
+          <span class="luxe-admin-banner-art" aria-hidden="true"></span>
+        </div>
+
 
         <div class="container py-4">
 

@@ -1,0 +1,61 @@
+/* Luxe Escape Admin Suite v1 | presentation only. All selectors scoped to page body. */
+body.luxe-admin-suite{
+ --luxe-ink:#201d21;--luxe-sub:#68616a;--luxe-surface:#fff;--luxe-border:#e7e2e4;
+ --luxe-accent:#9b7149;--luxe-accent-strong:#664528;--luxe-haze:#f7eee4;
+ background:#f5f4f6;color:var(--luxe-ink);scroll-snap-type:none!important;
+ font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+body.luxe-admin-rooms{--luxe-accent:#a3753d;--luxe-accent-strong:#5e3d20;--luxe-haze:#f6e9d6}
+body.luxe-admin-types{--luxe-accent:#4c7969;--luxe-accent-strong:#244b40;--luxe-haze:#e2f0e9}
+body.luxe-admin-bookings{--luxe-accent:#466997;--luxe-accent-strong:#233d62;--luxe-haze:#e2eafa}
+body.luxe-admin-customers{--luxe-accent:#8061a1;--luxe-accent-strong:#4d316d;--luxe-haze:#ede4f6}
+body.luxe-admin-discounts{--luxe-accent:#ae6943;--luxe-accent-strong:#733a21;--luxe-haze:#fae8da}
+body.luxe-admin-reviews{--luxe-accent:#368b8c;--luxe-accent-strong:#1c5d64;--luxe-haze:#e0f3ef}
+body.luxe-admin-suite header{background:#fff!important;border-bottom:1px solid #e9e5e0;box-shadow:0 6px 30px rgba(31,26,24,.045);position:relative;z-index:10}
+body.luxe-admin-suite header nav{min-height:76px;padding:16px clamp(20px,4vw,64px);gap:16px;font-size:.94rem}
+body.luxe-admin-suite #nav-heading a{font:700 1.4rem Georgia,serif;color:#2b2827;letter-spacing:-.035em;text-decoration:none}
+body.luxe-admin-suite #navbar{gap:clamp(9px,1.5vw,25px)}
+body.luxe-admin-suite #navbar a{color:#57515a;text-decoration:none;font-size:.89rem;font-weight:600;display:inline-block;padding:10px 1px;border-bottom:2px solid transparent;transition:color .18s,border-color .18s}
+body.luxe-admin-suite #navbar a:hover{color:var(--luxe-accent-strong);border-bottom-color:var(--luxe-accent)}
+body.luxe-admin-suite #navbar a[href*="/room"]{white-space:nowrap}
+body.luxe-admin-rooms #navbar a[href$="/room"],body.luxe-admin-types #navbar a[href$="/room-type"],body.luxe-admin-bookings #navbar a[href$="/booking-management"],body.luxe-admin-customers #navbar a[href$="/customers"],body.luxe-admin-discounts #navbar a[href$="/discounts"],body.luxe-admin-reviews #navbar a[href$="/admin/reviews"]{color:var(--luxe-accent-strong);border-color:var(--luxe-accent)}
+body.luxe-admin-suite main{width:100%;min-width:0;padding-top:clamp(24px,3vw,42px)}
+body.luxe-admin-suite main>.container,body.luxe-admin-suite main>.container-fluid{max-width:1440px;width:100%;padding-top:12px!important;padding-left:clamp(18px,3vw,48px)!important;padding-right:clamp(18px,3vw,48px)!important}
+body.luxe-admin-suite .luxe-admin-banner{max-width:1440px;margin:0 auto 22px;padding:27px clamp(22px,3.5vw,45px);min-height:134px;border-radius:18px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;isolation:isolate;background:linear-gradient(112deg,var(--luxe-accent-strong),var(--luxe-accent));color:white;box-shadow:0 12px 32px color-mix(in srgb,var(--luxe-accent) 22%, transparent)}
+body.luxe-admin-suite .luxe-admin-banner:before{content:'';position:absolute;z-index:-1;width:290px;height:290px;right:-35px;top:-125px;border:1px solid rgba(255,255,255,.27);border-radius:50%;box-shadow:0 0 0 38px rgba(255,255,255,.055),0 0 0 79px rgba(255,255,255,.055)}
+body.luxe-admin-suite .luxe-admin-banner-eyebrow{font-size:10px;font-weight:750;letter-spacing:.18em;opacity:.78;margin-bottom:10px}
+body.luxe-admin-suite .luxe-admin-banner-eyebrow span{margin:0 7px}
+body.luxe-admin-suite .luxe-admin-banner-title{font-family:Georgia,'Times New Roman',serif;font-size:clamp(25px,2.7vw,38px);line-height:1.2;letter-spacing:-.025em;font-weight:600}
+body.luxe-admin-suite main h1,body.luxe-admin-suite main h2{color:#252127;letter-spacing:-.035em;font-weight:750}
+body.luxe-admin-suite main p.text-muted,body.luxe-admin-suite main .text-muted{color:#716b72!important}
+body.luxe-admin-suite .card,body.luxe-admin-suite .table-panel,body.luxe-admin-suite .table-responsive{border-radius:15px;border-color:var(--luxe-border);box-shadow:0 7px 24px rgba(27,26,32,.05)}
+body.luxe-admin-suite .card{border:1px solid var(--luxe-border)}
+body.luxe-admin-suite .table-responsive{background:white;overflow-x:auto}
+body.luxe-admin-suite .table{margin-bottom:0;--bs-table-striped-bg:#faf9fa;--bs-table-hover-bg:var(--luxe-haze)}
+body.luxe-admin-suite .table thead th,body.luxe-admin-suite .table thead.table-dark th,body.luxe-admin-suite .table .table-dark th{background:#282631!important;color:#fff!important;font-size:.73rem;letter-spacing:.045em;font-weight:750;padding:16px 15px;white-space:nowrap;border-color:#393741}
+body.luxe-admin-suite .table tbody td{padding:15px;vertical-align:middle;font-size:.88rem;color:#39343c;border-color:#f0eced}
+body.luxe-admin-suite .table tbody tr{transition:background .18s ease}
+body.luxe-admin-suite .table tbody tr:hover td{background:var(--luxe-haze)!important}
+body.luxe-admin-suite .btn{border-radius:9px;font-weight:650;transition:transform .15s ease,box-shadow .15s ease,background-color .15s ease}
+body.luxe-admin-suite .btn:hover{transform:translateY(-1px)}
+body.luxe-admin-suite .btn-primary,body.luxe-admin-suite .btn-success{background:var(--luxe-accent-strong);border-color:var(--luxe-accent-strong);color:white;box-shadow:0 5px 12px rgba(0,0,0,.09)}
+body.luxe-admin-suite .btn-primary:hover,body.luxe-admin-suite .btn-success:hover{background:var(--luxe-accent);border-color:var(--luxe-accent)}
+body.luxe-admin-suite .btn-outline-primary{color:var(--luxe-accent-strong);border-color:var(--luxe-accent)}
+body.luxe-admin-suite .btn-outline-primary:hover{background:var(--luxe-accent-strong);border-color:var(--luxe-accent-strong);color:#fff}
+body.luxe-admin-suite .btn-outline-danger{border-color:#d99298;color:#ad3546}
+body.luxe-admin-suite .btn-outline-danger:hover{background:#ae3345;color:white}
+body.luxe-admin-suite .form-control,body.luxe-admin-suite .form-select{border-radius:10px;border:1px solid #dcd7de;padding:.65rem .8rem;min-height:41px;background-color:white}
+body.luxe-admin-suite .form-control:focus,body.luxe-admin-suite .form-select:focus{border-color:var(--luxe-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--luxe-accent) 16%, transparent)}
+body.luxe-admin-suite .form-label{font-size:.84rem;color:#49434c;font-weight:650}
+body.luxe-admin-suite .badge{border-radius:999px;padding:7px 11px;letter-spacing:.01em;font-weight:700}
+body.luxe-admin-suite .page-link{color:var(--luxe-accent-strong);border-color:#e5dfe4}
+body.luxe-admin-suite .page-item.active .page-link{background:var(--luxe-accent-strong);border-color:var(--luxe-accent-strong);color:#fff}
+body.luxe-admin-suite .alert{border-radius:12px;border-width:1px}
+body.luxe-admin-suite .room-thumbnail{width:76px;height:59px;object-fit:cover;border-radius:10px}
+body.luxe-admin-suite footer{border-top:1px solid #e8e4e8;background:#fff}
+/* Existing rooms specific CSS is left untouched. The shared skin only overrides paint. */
+body.luxe-admin-rooms .luxe-room-admin .table-panel{box-shadow:0 7px 25px rgba(32,29,34,.08)}
+body.luxe-admin-rooms .luxe-room-admin .table thead th{background:#282631!important;color:white!important}
+@media(max-width:1000px){body.luxe-admin-suite header nav{display:flex;flex-wrap:wrap;justify-content:space-between}body.luxe-admin-suite #navbar{order:3;width:100%;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start}body.luxe-admin-suite main{padding-left:14px;padding-right:14px}}
+@media(max-width:600px){body.luxe-admin-suite .luxe-admin-banner{min-height:114px;padding:22px;margin-bottom:16px}body.luxe-admin-suite .table tbody td{padding:12px}body.luxe-admin-suite .btn{margin-bottom:4px}}
+@media(prefers-reduced-motion:reduce){body.luxe-admin-suite *,body.luxe-admin-suite *:before,body.luxe-admin-suite *:after{transition:none!important;animation:none!important}}
