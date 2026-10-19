@@ -1,4 +1,4 @@
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <!DOCTYPE html>
 <html>
@@ -21,6 +21,11 @@
                 <c:if test="${param.error == 'already-booked'}">
                     <p class="alert alert-danger text-center">
                         This room has already been booked within that date range.
+                    </p>
+                </c:if>
+                <c:if test="${param.error == 'invalid-payment-option'}">
+                    <p class="alert alert-danger text-center">
+                        Please choose a valid initial payment option: 10%, 20%, or 100%.
                     </p>
                 </c:if>
                 <form action="./booking?action=confirm" method="post" class="rounded-4 bg-light p-5" style="min-width: 400px;">
@@ -50,8 +55,24 @@
                         </p>
                     </div>
 
+                    <!-- Initial payment option -->
+                    <div class="mb-3">
+                        <label for="prepayment-percent" class="form-label fw-semibold">Initial Payment</label>
+                        <select id="prepayment-percent" name="prepayment-percent" class="form-select form-select-lg" required>
+                            <option value="10">Pay 10% now</option>
+                            <option value="20">Pay 20% now</option>
+                            <option value="100">Pay 100% now</option>
+                        </select>
+                        <div class="form-text">After a 10% or 20% payment you can pay the remaining balance from Booking History.</div>
+                    </div>
+
+                    <div class="border rounded-3 p-3 mb-4 bg-white">
+                        <div class="d-flex justify-content-between"><span>Pay now:</span><strong class="text-success">$<span id="payNowAmount">0.00</span></strong></div>
+                        <div class="d-flex justify-content-between"><span>Remaining after payment:</span><strong>$<span id="remainingAmount">0.00</span></strong></div>
+                    </div>
+
                     <button type="submit" class="btn btn-lg w-100 text-white" style="background-color: #b29575;">
-                        <i class="bi bi-check-circle"></i> Confirm Booking
+                        <i class="bi bi-check-circle"></i> Confirm Booking &amp; Continue to Payment
                     </button>
                 </form>
             </main>
@@ -85,7 +106,24 @@
                     console.log("Element:", totalPriceElement);
 
                     totalPriceElement.textContent = totalPrice.toFixed(2);
+                    updatePaymentSplit(totalPrice);
                 }
+
+                const percentSelect = document.getElementById("prepayment-percent");
+
+                function updatePaymentSplit(total) {
+                    if (!Number.isFinite(total)) {
+                        total = 0;
+                    }
+                    const payNow = total * Number(percentSelect.value) / 100;
+                    document.getElementById("payNowAmount").textContent = payNow.toFixed(2);
+                    document.getElementById("remainingAmount").textContent = Math.max(0, total - payNow).toFixed(2);
+                }
+
+                percentSelect.addEventListener("change", function () {
+                    const t = parseFloat(totalPriceElement.textContent);
+                    updatePaymentSplit(t);
+                });
 
                 bookingDateInput.addEventListener("change", calculateTotalPrice);
 

@@ -21,6 +21,8 @@ import model.User;
 @WebServlet(urlPatterns = {"/booking"})
 public class BookingServlet extends HttpServlet {
 
+    private static final long serialVersionUID = 1L;
+
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -364,6 +366,40 @@ public class BookingServlet extends HttpServlet {
         }
 
         /*
+         * Customer chooses the initial payment percentage at booking time.
+         * Never trust arbitrary percentages from the browser.
+         */
+        String prepaymentParam = request.getParameter("prepayment-percent");
+        int prepaymentPercent;
+
+        try {
+            prepaymentPercent = Integer.parseInt(
+                    prepaymentParam == null ? "" : prepaymentParam.trim()
+            );
+        } catch (NumberFormatException e) {
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/booking?roomNumber="
+                    + roomNumber
+                    + "&error=invalid-payment-option"
+            );
+            return;
+        }
+
+        if (prepaymentPercent != 10
+                && prepaymentPercent != 20
+                && prepaymentPercent != 100) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/booking?roomNumber="
+                    + roomNumber
+                    + "&error=invalid-payment-option"
+            );
+            return;
+        }
+
+        /*
          * Calculate number of nights.
          */
         long nights
@@ -418,7 +454,7 @@ public class BookingServlet extends HttpServlet {
             return;
         }
 
-        boolean created
+        int bookingId
                 = bookingDAO.createBooking(
                         customer.getCustomerID(),
                         roomNumber,
@@ -430,7 +466,7 @@ public class BookingServlet extends HttpServlet {
                         specialRequest
                 );
 
-        if (!created) {
+        if (bookingId <= 0) {
 
             /*
              * Database trigger may also reject:
@@ -455,13 +491,15 @@ public class BookingServlet extends HttpServlet {
         );
 
         /*
-         * UC09 creates pending Booking.
-         * Customer should continue to booking history/payment,
-         * not Room Management.
+         * Go straight to payment and carry the validated initial
+         * percentage chosen on the booking confirmation page.
          */
         response.sendRedirect(
                 request.getContextPath()
-                + "/history"
+                + "/payment?bookingId="
+                + bookingId
+                + "&percent="
+                + prepaymentPercent
         );
     }
 

@@ -1,5 +1,5 @@
 <%@ taglib prefix="c"
-           uri="http://java.sun.com/jsp/jstl/core" %>
+           uri="jakarta.tags.core" %>
 
 <%@page contentType="text/html"
         pageEncoding="UTF-8"%>
@@ -89,9 +89,9 @@
 
                     This booking cannot be cancelled.
 
-                    Cancellation is allowed only for eligible
-                    pending/confirmed bookings at least
-                    24 hours before check-in.
+                    Cancellation is allowed only for pending/confirmed
+                    bookings at least 24 hours before check-in.
+                    Checked-in bookings cannot be cancelled.
 
                 </div>
 
@@ -165,10 +165,22 @@
                                             </c:choose>
                                         </td>
                                         <td>
+                                            <c:set var="paidAmount" value="${paidAmountMap[booking.id]}" />
+                                            <c:set var="remainingAmount" value="${remainingAmountMap[booking.id]}" />
                                             <c:choose>
-                                                <c:when test="${paidMap[booking.id]}"><span class="badge bg-success">Paid</span></c:when>
-                                                <c:otherwise><span class="badge bg-warning text-dark">Unpaid</span></c:otherwise>
+                                                <c:when test="${empty paidAmount || paidAmount <= 0}">
+                                                    <span class="badge bg-warning text-dark">Unpaid</span>
+                                                </c:when>
+                                                <c:when test="${remainingAmount <= 0}">
+                                                    <span class="badge bg-success">Fully Paid</span>
+                                                    <div class="small text-muted mt-1">Paid $${paidAmount}</div>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <span class="badge bg-info text-dark">Partially Paid</span>
+                                                    <div class="small text-muted mt-1">Paid $${paidAmount}<br>Remaining $${remainingAmount}</div>
+                                                </c:otherwise>
                                             </c:choose>
+
                                         </td>
                                         <td class="text-end text-nowrap">
                                             <button class="btn btn-outline-primary btn-sm"
@@ -231,16 +243,51 @@
 
                                                     <c:if test="${loggedUser.role == 'customer'}">
                                                         <div class="d-flex justify-content-end flex-wrap gap-2 mt-3">
-                                                            <c:if test="${booking.status == 'pending' && !paidMap[booking.id]}">
-                                                                <form action="${pageContext.request.contextPath}/payment" method="get" class="m-0">
-                                                                    <input type="hidden" name="bookingId" value="${booking.id}">
-                                                                    <button class="btn btn-success btn-sm" type="submit">Pay Now</button>
-                                                                </form>
-                                                            </c:if>
-                                                            <c:if test="${booking.status == 'pending' || booking.status == 'confirmed'}">
-                                                                <a href="${pageContext.request.contextPath}/history/cancel-booking?id=${booking.id}"
-                                                                   class="btn btn-danger btn-sm">Cancel Booking</a>
-                                                            </c:if>
+                            <c:if test="${booking.status != 'cancelled'
+                                          && remainingAmountMap[booking.id] > 0}">
+                                <form action="${pageContext.request.contextPath}/payment" method="get" class="m-0">
+                                    <input type="hidden" name="bookingId" value="${booking.id}">
+                                    <button class="btn btn-success btn-sm" type="submit">
+                                        <c:choose>
+                                            <c:when test="${paidAmountMap[booking.id] > 0}">Pay Remaining</c:when>
+                                            <c:otherwise>Pay Now</c:otherwise>
+                                        </c:choose>
+                                    </button>
+                                </form>
+                            </c:if>
+                            <c:if test="${booking.status == 'pending' || booking.status == 'confirmed'
+                                          || booking.status == 'checked_in'}">
+                                <c:choose>
+                                    <c:when test="${cancellableMap[booking.id]}">
+                                        <a href="${pageContext.request.contextPath}/history/cancel-booking?id=${booking.id}"
+                                           class="btn btn-danger btn-sm">Cancel Booking</a>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="d-inline-block"
+                                              title="Cannot cancel: only pending/confirmed bookings at least 24 hours before check-in can be cancelled.">
+                                            <button type="button" class="btn btn-outline-danger btn-sm" disabled>Cancel Booking</button>
+                                        </span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </c:if>
+                            <c:if test="${booking.status == 'completed' && !reviewedMap[booking.id] && not empty booking.details}">
+                                <form action="${pageContext.request.contextPath}/review" method="post"
+                                      class="d-flex flex-wrap gap-1 align-items-center m-0">
+                                    <input type="hidden" name="booking-id" value="${booking.id}">
+                                    <input type="hidden" name="room-number" value="${booking.details[0].roomNumber}">
+                                    <select name="star" class="form-select form-select-sm" style="width:auto" required>
+                                        <option value="">Rating</option>
+                                        <option value="5">5</option>
+                                        <option value="4">4</option>
+                                        <option value="3">3</option>
+                                        <option value="2">2</option>
+                                        <option value="1">1</option>
+                                    </select>
+                                    <input type="text" name="comment" maxlength="1000"
+                                           class="form-control form-control-sm" placeholder="Feedback" style="max-width:220px">
+                                    <button class="btn btn-outline-primary btn-sm" type="submit">Review</button>
+                                </form>
+                            </c:if>
                                                         </div>
                                                     </c:if>
                                                 </div>

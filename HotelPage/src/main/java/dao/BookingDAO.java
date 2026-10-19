@@ -107,7 +107,7 @@ public class BookingDAO extends DBContext {
         } catch (SQLException ex) {
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
         }
 
         return bookings;
@@ -124,7 +124,7 @@ public class BookingDAO extends DBContext {
      * - Transaction
      * =========================================================
      */
-    public boolean createBooking(
+    public int createBooking(
             int customerId,
             int roomNumber,
             LocalDate checkInDate,
@@ -138,11 +138,11 @@ public class BookingDAO extends DBContext {
                 || checkOutDate == null
                 || !checkOutDate.isAfter(checkInDate)) {
 
-            return false;
+            return 0;
         }
 
         if (guestCount <= 0) {
-            return false;
+            return 0;
         }
 
         if (pricePerNight == null
@@ -150,7 +150,7 @@ public class BookingDAO extends DBContext {
                         BigDecimal.ZERO
                 ) < 0) {
 
-            return false;
+            return 0;
         }
 
         if (totalPrice == null
@@ -158,7 +158,7 @@ public class BookingDAO extends DBContext {
                         BigDecimal.ZERO
                 ) < 0) {
 
-            return false;
+            return 0;
         }
 
         String bookingSql
@@ -197,7 +197,7 @@ public class BookingDAO extends DBContext {
                     checkOutDate)) {
 
                 conn.rollback();
-                return false;
+                return 0;
             }
 
             int bookingId;
@@ -220,7 +220,7 @@ public class BookingDAO extends DBContext {
 
                 if (affectedRows == 0) {
                     conn.rollback();
-                    return false;
+                    return 0;
                 }
 
                 try (ResultSet keys
@@ -228,7 +228,7 @@ public class BookingDAO extends DBContext {
 
                     if (!keys.next()) {
                         conn.rollback();
-                        return false;
+                        return 0;
                     }
 
                     bookingId = keys.getInt(1);
@@ -255,7 +255,7 @@ public class BookingDAO extends DBContext {
 
                 if (detailRows == 0) {
                     conn.rollback();
-                    return false;
+                    return 0;
                 }
             }
 
@@ -264,7 +264,7 @@ public class BookingDAO extends DBContext {
              */
             conn.commit();
 
-            return true;
+            return bookingId;
 
         } catch (SQLException ex) {
 
@@ -285,9 +285,9 @@ public class BookingDAO extends DBContext {
 
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
 
-            return false;
+            return 0;
 
         } finally {
 
@@ -304,7 +304,7 @@ public class BookingDAO extends DBContext {
 
                     Logger.getLogger(
                             BookingDAO.class.getName()
-                    ).log(Level.SEVERE, null, ex);
+                    ).log(Level.SEVERE, "Operation failed", ex);
                 }
             }
         }
@@ -333,7 +333,7 @@ public class BookingDAO extends DBContext {
 
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
 
             /*
              * Safer behaviour:
@@ -395,7 +395,7 @@ public class BookingDAO extends DBContext {
 
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
 
             return new ArrayList<>();
         }
@@ -589,7 +589,7 @@ public class BookingDAO extends DBContext {
 
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
         }
 
         return null;
@@ -648,7 +648,7 @@ public class BookingDAO extends DBContext {
 
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
         }
 
         return bookings;
@@ -724,7 +724,7 @@ public class BookingDAO extends DBContext {
 
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
         }
 
         return bookings;
@@ -760,7 +760,7 @@ public class BookingDAO extends DBContext {
 
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
         }
 
         return 0;
@@ -818,8 +818,31 @@ public class BookingDAO extends DBContext {
 
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
 
+            return false;
+        }
+    }
+
+    public boolean canCustomerCancelBooking(int bookingId, int customerId) {
+        String sql =
+                "SELECT 1 FROM Booking b "
+                + "WHERE b.BookingID = ? AND b.CustomerID = ? "
+                + "AND b.Status IN ('pending', 'confirmed') "
+                + "AND EXISTS (SELECT 1 FROM BookingDetail bd "
+                + "WHERE bd.BookingID = b.BookingID "
+                + "GROUP BY bd.BookingID "
+                + "HAVING MIN(bd.CheckInDate) > DATEADD(HOUR, 24, SYSDATETIME()))";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, bookingId);
+            ps.setInt(2, customerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(BookingDAO.class.getName()).log(Level.SEVERE, "Operation failed", ex);
             return false;
         }
     }
@@ -891,7 +914,7 @@ public class BookingDAO extends DBContext {
 
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
 
             return false;
         }
@@ -923,7 +946,7 @@ public class BookingDAO extends DBContext {
 
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
 
             return false;
         }
@@ -961,7 +984,7 @@ public class BookingDAO extends DBContext {
 
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
 
             return 0;
         }
@@ -1012,7 +1035,7 @@ public class BookingDAO extends DBContext {
 
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
         }
 
         return null;
@@ -1050,7 +1073,7 @@ public class BookingDAO extends DBContext {
 
             Logger.getLogger(
                     BookingDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            ).log(Level.SEVERE, "Operation failed", ex);
 
             return false;
         }
@@ -1352,7 +1375,7 @@ public class BookingDAO extends DBContext {
                     BookingDAO.class.getName()
             ).log(
                     Level.SEVERE,
-                    null,
+                    "Operation failed",
                     ex
             );
         }
@@ -1499,7 +1522,7 @@ public class BookingDAO extends DBContext {
                     BookingDAO.class.getName()
             ).log(
                     Level.SEVERE,
-                    null,
+                    "Operation failed",
                     ex
             );
         }

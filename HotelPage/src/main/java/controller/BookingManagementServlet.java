@@ -26,6 +26,8 @@ import model.User;
 public class BookingManagementServlet
         extends HttpServlet {
 
+    private static final long serialVersionUID = 1L;
+
     private static final int PAGE_SIZE = 10;
 
     /*
@@ -311,6 +313,11 @@ public class BookingManagementServlet
                         bookingId
                 );
 
+        List<model.Payment> payments =
+                paymentDAO.getPaymentsByBookingId(
+                        bookingId
+                );
+
         request.setAttribute(
                 "booking",
                 booking
@@ -319,6 +326,11 @@ public class BookingManagementServlet
         request.setAttribute(
                 "paid",
                 paid
+        );
+
+        request.setAttribute(
+                "payments",
+                payments
         );
 
         /*

@@ -1,5 +1,5 @@
 <%@ taglib prefix="c"
-           uri="http://java.sun.com/jsp/jstl/core" %>
+           uri="jakarta.tags.core" %>
 
 <%@page contentType="text/html"
         pageEncoding="UTF-8"%>
@@ -299,6 +299,44 @@
 
             </div>
 
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong>Payment Details</strong></div>
+                <div class="card-body">
+                    <c:choose>
+                        <c:when test="${not empty payments}">
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th><th>Date</th><th>Amount</th><th>Method</th><th>Status</th><th>Transaction</th><th>Discount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <c:forEach var="payment" items="${payments}">
+                                            <tr>
+                                                <td>${payment.id}</td>
+                                                <td>${payment.paymentDate}</td>
+                                                <td>$${payment.amount}</td>
+                                                <td>${payment.paymentMethod}</td>
+                                                <td>${payment.paymentStatus}</td>
+                                                <td><c:out value="${payment.transactionCode}" default="-"/></td>
+                                                <td>
+                                                    <c:choose>
+                                                        <c:when test="${not empty payment.discount}">${payment.discount.code}</c:when>
+                                                        <c:otherwise>-</c:otherwise>
+                                                    </c:choose>
+                                                </td>
+                                            </tr>
+                                        </c:forEach>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </c:when>
+                        <c:otherwise><span class="text-muted">No payment record for this booking.</span></c:otherwise>
+                    </c:choose>
+                </div>
+            </div>
 
             <!-- ========================================= -->
             <!-- CUSTOMER                                  -->

@@ -2,6 +2,7 @@ package controller;
 
 import dao.BookingDAO;
 import dao.PaymentDAO;
+import dao.ReviewDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -10,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +23,8 @@ import model.User;
 
 @WebServlet(name = "HistoryServlet", urlPatterns = {"/history"})
 public class HistoryServlet extends HttpServlet {
+
+    private static final long serialVersionUID = 1L;
 
     private static final int PAGE_SIZE = 5;
 
@@ -189,6 +193,9 @@ public class HistoryServlet extends HttpServlet {
         PaymentDAO paymentDAO =
                 new PaymentDAO();
 
+        ReviewDAO reviewDAO =
+                new ReviewDAO();
+
         /*
          * DO NOT call the old:
          *
@@ -235,21 +242,27 @@ public class HistoryServlet extends HttpServlet {
                         PAGE_SIZE
                 );
 
-        /*
-         * Temporary paid map.
-         *
-         * PaymentDAO will be refactored later.
-         */
-        Map<Integer, Boolean> paidMap =
-                new HashMap<>();
+        Map<Integer, BigDecimal> paidAmountMap = new HashMap<>();
+        Map<Integer, BigDecimal> remainingAmountMap = new HashMap<>();
+        Map<Integer, Boolean> reviewedMap = new HashMap<>();
+        Map<Integer, Boolean> cancellableMap = new HashMap<>();
 
         for (Booking booking : bookings) {
+            BigDecimal paidAmount = paymentDAO.getTotalPaidAmount(booking.getId());
+            BigDecimal remainingAmount = booking.getTotalPrice().subtract(paidAmount);
+            if (remainingAmount.compareTo(BigDecimal.ZERO) < 0) {
+                remainingAmount = BigDecimal.ZERO;
+            }
 
-            paidMap.put(
+            paidAmountMap.put(booking.getId(), paidAmount);
+            remainingAmountMap.put(booking.getId(), remainingAmount);
+            reviewedMap.put(
                     booking.getId(),
-                    paymentDAO.isBookingPaid(
-                            booking.getId()
-                    )
+                    reviewDAO.isBookingReviewed(booking.getId())
+            );
+            cancellableMap.put(
+                    booking.getId(),
+                    bookingDAO.canCustomerCancelBooking(booking.getId(), customerId)
             );
         }
 
@@ -258,9 +271,17 @@ public class HistoryServlet extends HttpServlet {
                 bookings
         );
 
+        request.setAttribute("paidAmountMap", paidAmountMap);
+        request.setAttribute("remainingAmountMap", remainingAmountMap);
+
         request.setAttribute(
-                "paidMap",
-                paidMap
+                "reviewedMap",
+                reviewedMap
+        );
+
+        request.setAttribute(
+                "cancellableMap",
+                cancellableMap
         );
 
         request.setAttribute(

@@ -53,403 +53,231 @@ public class PaymentDAO extends DBContext {
             int bookingId,
             int customerId,
             String paymentMethod,
-            String discountCode) {
+            String discountCode,
+            Integer paymentPercent) {
 
-        if (!isValidPaymentMethod(
-                paymentMethod)) {
-
+        if (!isValidPaymentMethod(paymentMethod)) {
             return INVALID_METHOD;
         }
 
         Connection conn = null;
 
         try {
-
             conn = getConnection();
             conn.setAutoCommit(false);
 
-            /*
-             * =============================================
-             * 1. LOCK BOOKING
-             * =============================================
-             */
             String bookingSql =
-                    "SELECT "
-                    + "BookingID, "
-                    + "CustomerID, "
-                    + "TotalPrice, "
-                    + "Status "
-                    + "FROM Booking "
-                    + "WITH (UPDLOCK, HOLDLOCK) "
-                    + "WHERE BookingID = ? "
-                    + "AND CustomerID = ?";
+                    "SELECT BookingID, CustomerID, TotalPrice, Status "
+                    + "FROM Booking WITH (UPDLOCK, HOLDLOCK) "
+                    + "WHERE BookingID = ? AND CustomerID = ?";
 
-            BigDecimal originalAmount;
+            BigDecimal bookingTotal;
             String bookingStatus;
 
-            try (PreparedStatement ps =
-                    conn.prepareStatement(
-                            bookingSql)) {
+            try (PreparedStatement ps = conn.prepareStatement(bookingSql)) {
+                ps.setInt(1, bookingId);
+                ps.setInt(2, customerId);
 
-                ps.setInt(
-                        1,
-                        bookingId
-                );
-
-                ps.setInt(
-                        2,
-                        customerId
-                );
-
-                try (ResultSet rs =
-                        ps.executeQuery()) {
-
+                try (ResultSet rs = ps.executeQuery()) {
                     if (!rs.next()) {
-
                         conn.rollback();
                         return INVALID_BOOKING;
                     }
-
-                    originalAmount =
-                            rs.getBigDecimal(
-                                    "TotalPrice"
-                            );
-
-                    bookingStatus =
-                            rs.getString(
-                                    "Status"
-                            );
+                    bookingTotal = rs.getBigDecimal("TotalPrice");
+                    bookingStatus = rs.getString("Status");
                 }
             }
 
-            /*
-             * Only pending booking may be paid.
-             */
-            if (!"pending".equalsIgnoreCase(
-                    bookingStatus)) {
-
+            if ("cancelled".equalsIgnoreCase(bookingStatus)) {
                 conn.rollback();
                 return BOOKING_NOT_PENDING;
             }
 
-            /*
-             * =============================================
-             * 2. PREVENT DUPLICATE SUCCESSFUL PAYMENT
-             * =============================================
-             */
             String paidSql =
-                    "SELECT 1 "
-                    + "FROM Payment "
-                    + "WITH (UPDLOCK, HOLDLOCK) "
-                    + "WHERE BookingID = ? "
-                    + "AND PaymentStatus = 'paid'";
+                    "SELECT COALESCE(SUM(Amount), 0) AS TotalPaid "
+                    + "FROM Payment WITH (UPDLOCK, HOLDLOCK) "
+                    + "WHERE BookingID = ? AND PaymentStatus = 'paid'";
 
-            try (PreparedStatement ps =
-                    conn.prepareStatement(
-                            paidSql)) {
-
-                ps.setInt(
-                        1,
-                        bookingId
-                );
-
-                try (ResultSet rs =
-                        ps.executeQuery()) {
-
-                    if (rs.next()) {
-
-                        conn.rollback();
-                        return ALREADY_PAID;
+            BigDecimal totalPaid = BigDecimal.ZERO;
+            try (PreparedStatement ps = conn.prepareStatement(paidSql)) {
+                ps.setInt(1, bookingId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getBigDecimal("TotalPaid") != null) {
+                        totalPaid = rs.getBigDecimal("TotalPaid");
                     }
                 }
             }
 
+            boolean firstPayment = totalPaid.compareTo(BigDecimal.ZERO) == 0;
+
             /*
-             * =============================================
-             * 3. VALIDATE DISCOUNT
-             * =============================================
+             * Promotions are accepted only on the first payment. Applying
+             * a promotion later would make previously calculated balances
+             * ambiguous. When a promotion is used, Booking.TotalPrice is
+             * reduced first; all paid/remaining calculations then use that
+             * single discounted total consistently.
              */
             Integer discountId = null;
-
-            BigDecimal finalAmount =
-                    originalAmount;
-
-            if (discountCode != null
-                    && !discountCode
-                            .trim()
-                            .isEmpty()) {
+            if (discountCode != null && !discountCode.trim().isEmpty()) {
+                if (!firstPayment) {
+                    conn.rollback();
+                    return INVALID_DISCOUNT;
+                }
 
                 String discountSql =
-                        "SELECT "
-                        + "DiscountID, "
-                        + "SaleOff, "
-                        + "MaximumDiscount "
-                        + "FROM Discount "
-                        + "WITH (UPDLOCK, HOLDLOCK) "
-                        + "WHERE Code = ? "
-                        + "AND IsActive = 1 "
-                        + "AND Quantity > 0 "
-                        + "AND (StartDate IS NULL "
-                        + " OR StartDate <= "
-                        + " CAST(GETDATE() AS DATE)) "
-                        + "AND (EndDate IS NULL "
-                        + " OR EndDate >= "
-                        + " CAST(GETDATE() AS DATE)) "
-                        + "AND (MinimumAmount IS NULL "
-                        + " OR ? >= MinimumAmount)";
+                        "SELECT DiscountID, SaleOff, MaximumDiscount "
+                        + "FROM Discount WITH (UPDLOCK, HOLDLOCK) "
+                        + "WHERE Code = ? AND IsActive = 1 AND Quantity > 0 "
+                        + "AND (StartDate IS NULL OR StartDate <= CAST(GETDATE() AS DATE)) "
+                        + "AND (EndDate IS NULL OR EndDate >= CAST(GETDATE() AS DATE)) "
+                        + "AND (MinimumAmount IS NULL OR ? >= MinimumAmount)";
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(
-                                discountSql)) {
+                try (PreparedStatement ps = conn.prepareStatement(discountSql)) {
+                    ps.setString(1, discountCode.trim());
+                    ps.setBigDecimal(2, bookingTotal);
 
-                    ps.setString(
-                            1,
-                            discountCode.trim()
-                    );
-
-                    ps.setBigDecimal(
-                            2,
-                            originalAmount
-                    );
-
-                    try (ResultSet rs =
-                            ps.executeQuery()) {
-
+                    try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) {
-
                             conn.rollback();
                             return INVALID_DISCOUNT;
                         }
 
-                        discountId =
-                                rs.getInt(
-                                        "DiscountID"
-                                );
+                        discountId = rs.getInt("DiscountID");
+                        BigDecimal saleOff = rs.getBigDecimal("SaleOff");
+                        BigDecimal maximumDiscount = rs.getBigDecimal("MaximumDiscount");
 
-                        BigDecimal saleOff =
-                                rs.getBigDecimal(
-                                        "SaleOff"
-                                );
+                        BigDecimal discountAmount = bookingTotal
+                                .multiply(saleOff)
+                                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
 
-                        BigDecimal maximumDiscount =
-                                rs.getBigDecimal(
-                                        "MaximumDiscount"
-                                );
-
-                        BigDecimal discountAmount =
-                                originalAmount
-                                        .multiply(
-                                                saleOff
-                                        )
-                                        .divide(
-                                                new BigDecimal(
-                                                        "100"
-                                                ),
-                                                2,
-                                                RoundingMode.HALF_UP
-                                        );
-
-                        /*
-                         * Maximum discount cap.
-                         */
                         if (maximumDiscount != null
-                                && discountAmount
-                                        .compareTo(
-                                                maximumDiscount
-                                        ) > 0) {
-
-                            discountAmount =
-                                    maximumDiscount;
+                                && discountAmount.compareTo(maximumDiscount) > 0) {
+                            discountAmount = maximumDiscount;
                         }
 
-                        finalAmount =
-                                originalAmount
-                                        .subtract(
-                                                discountAmount
-                                        );
-
-                        if (finalAmount
-                                .compareTo(
-                                        BigDecimal.ZERO
-                                ) < 0) {
-
-                            finalAmount =
-                                    BigDecimal.ZERO;
+                        bookingTotal = bookingTotal.subtract(discountAmount);
+                        if (bookingTotal.compareTo(BigDecimal.ZERO) < 0) {
+                            bookingTotal = BigDecimal.ZERO;
                         }
+                    }
+                }
+
+                String updateTotalSql =
+                        "UPDATE Booking SET TotalPrice = ? WHERE BookingID = ?";
+                try (PreparedStatement ps = conn.prepareStatement(updateTotalSql)) {
+                    ps.setBigDecimal(1, bookingTotal);
+                    ps.setInt(2, bookingId);
+                    if (ps.executeUpdate() != 1) {
+                        conn.rollback();
+                        return PAYMENT_FAILED;
                     }
                 }
             }
 
-            /*
-             * =============================================
-             * 4. CREATE TRANSACTION CODE
-             * =============================================
-             */
+            BigDecimal remainingAmount = bookingTotal.subtract(totalPaid);
+            if (remainingAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                conn.rollback();
+                return ALREADY_PAID;
+            }
+
+            BigDecimal paymentAmount;
+
+            if (firstPayment) {
+                if (paymentPercent == null
+                        || (paymentPercent != 10
+                        && paymentPercent != 20
+                        && paymentPercent != 100)) {
+                    conn.rollback();
+                    return PAYMENT_FAILED;
+                }
+
+                paymentAmount = bookingTotal
+                        .multiply(BigDecimal.valueOf(paymentPercent))
+                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            } else {
+                paymentAmount = remainingAmount;
+            }
+
+            if (paymentAmount.compareTo(remainingAmount) > 0) {
+                paymentAmount = remainingAmount;
+            }
+
             String transactionCode =
-                    "TXN-"
-                    + UUID.randomUUID()
+                    "TXN-" + UUID.randomUUID()
                             .toString()
                             .replace("-", "")
                             .toUpperCase();
 
-            /*
-             * =============================================
-             * 5. INSERT SUCCESSFUL PAYMENT
-             *
-             * Current RDS allows payment gateway simulation.
-             * Therefore confirmation is treated as success.
-             * =============================================
-             */
             String insertPaymentSql =
                     "INSERT INTO Payment "
-                    + "(BookingID, "
-                    + "PaymentDate, "
-                    + "Amount, "
-                    + "PaymentMethod, "
-                    + "PaymentStatus, "
-                    + "TransactionCode, "
-                    + "DiscountID) "
-                    + "VALUES "
-                    + "(?, SYSDATETIME(), ?, ?, "
-                    + "'paid', ?, ?)";
+                    + "(BookingID, PaymentDate, Amount, PaymentMethod, "
+                    + "PaymentStatus, TransactionCode, DiscountID) "
+                    + "VALUES (?, SYSDATETIME(), ?, ?, 'paid', ?, ?)";
 
-            try (PreparedStatement ps =
-                    conn.prepareStatement(
-                            insertPaymentSql)) {
-
-                ps.setInt(
-                        1,
-                        bookingId
-                );
-
-                ps.setBigDecimal(
-                        2,
-                        finalAmount
-                );
-
-                ps.setString(
-                        3,
-                        paymentMethod
-                );
-
-                ps.setString(
-                        4,
-                        transactionCode
-                );
+            try (PreparedStatement ps = conn.prepareStatement(insertPaymentSql)) {
+                ps.setInt(1, bookingId);
+                ps.setBigDecimal(2, paymentAmount);
+                ps.setString(3, paymentMethod);
+                ps.setString(4, transactionCode);
 
                 if (discountId != null) {
-
-                    ps.setInt(
-                            5,
-                            discountId
-                    );
-
+                    ps.setInt(5, discountId);
                 } else {
-
-                    ps.setNull(
-                            5,
-                            java.sql.Types.INTEGER
-                    );
+                    ps.setNull(5, java.sql.Types.INTEGER);
                 }
 
                 if (ps.executeUpdate() != 1) {
-
                     conn.rollback();
                     return PAYMENT_FAILED;
                 }
             }
 
-            /*
-             * =============================================
-             * 6. CONFIRM BOOKING
-             * =============================================
-             */
-            String confirmSql =
-                    "UPDATE Booking "
-                    + "SET Status = 'confirmed' "
-                    + "WHERE BookingID = ? "
-                    + "AND Status = 'pending'";
-
-            try (PreparedStatement ps =
-                    conn.prepareStatement(
-                            confirmSql)) {
-
-                ps.setInt(
-                        1,
-                        bookingId
-                );
-
-                if (ps.executeUpdate() != 1) {
-
-                    conn.rollback();
-                    return PAYMENT_FAILED;
-                }
-            }
-
-            /*
-             * =============================================
-             * 7. DECREASE PROMOTION QUANTITY
-             * only after successful payment.
-             * =============================================
-             */
-            if (discountId != null) {
-
-                String decreaseSql =
-                        "UPDATE Discount "
-                        + "SET Quantity = Quantity - 1 "
-                        + "WHERE DiscountID = ? "
-                        + "AND Quantity > 0";
-
-                try (PreparedStatement ps =
-                        conn.prepareStatement(
-                                decreaseSql)) {
-
-                    ps.setInt(
-                            1,
-                            discountId
-                    );
-
+            if ("pending".equalsIgnoreCase(bookingStatus)) {
+                String confirmSql =
+                        "UPDATE Booking SET Status = 'confirmed' "
+                        + "WHERE BookingID = ? AND Status = 'pending'";
+                try (PreparedStatement ps = conn.prepareStatement(confirmSql)) {
+                    ps.setInt(1, bookingId);
                     if (ps.executeUpdate() != 1) {
+                        conn.rollback();
+                        return PAYMENT_FAILED;
+                    }
+                }
+            }
 
+            if (discountId != null) {
+                String decreaseSql =
+                        "UPDATE Discount SET Quantity = Quantity - 1 "
+                        + "WHERE DiscountID = ? AND Quantity > 0";
+                try (PreparedStatement ps = conn.prepareStatement(decreaseSql)) {
+                    ps.setInt(1, discountId);
+                    if (ps.executeUpdate() != 1) {
                         conn.rollback();
                         return INVALID_DISCOUNT;
                     }
                 }
             }
 
-            /*
-             * =============================================
-             * 8. COMMIT
-             * =============================================
-             */
             conn.commit();
-
             return PAYMENT_SUCCESS;
 
         } catch (SQLException e) {
-
             if (conn != null) {
-
                 try {
                     conn.rollback();
                 } catch (SQLException ex) {
                     ex.printStackTrace();
                 }
             }
-
             e.printStackTrace();
-
             return PAYMENT_FAILED;
 
         } finally {
-
             if (conn != null) {
-
                 try {
                     conn.setAutoCommit(true);
                 } catch (SQLException ignored) {
                 }
-
                 try {
                     conn.close();
                 } catch (SQLException e) {
@@ -467,35 +295,105 @@ public class PaymentDAO extends DBContext {
      * Now only PaymentStatus = paid counts.
      * =========================================================
      */
-    public boolean isBookingPaid(
-            int bookingId) {
+    public BigDecimal getTotalPaidAmount(int bookingId) {
 
         String sql =
-                "SELECT 1 "
+                "SELECT COALESCE(SUM(Amount), 0) AS TotalPaid "
                 + "FROM Payment "
-                + "WHERE BookingID = ? "
-                + "AND PaymentStatus = 'paid'";
+                + "WHERE BookingID = ? AND PaymentStatus = 'paid'";
 
         try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setInt(
-                    1,
-                    bookingId
-            );
+            ps.setInt(1, bookingId);
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
-
-                return rs.next();
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal total = rs.getBigDecimal("TotalPaid");
+                    return total == null ? BigDecimal.ZERO : total;
+                }
             }
 
         } catch (SQLException e) {
-
             e.printStackTrace();
-            return false;
         }
+
+        return BigDecimal.ZERO;
+    }
+
+    public boolean isBookingPaid(int bookingId) {
+
+        String sql =
+                "SELECT b.TotalPrice, "
+                + "COALESCE(SUM(CASE WHEN p.PaymentStatus = 'paid' "
+                + "THEN p.Amount ELSE 0 END), 0) AS TotalPaid "
+                + "FROM Booking b "
+                + "LEFT JOIN Payment p ON p.BookingID = b.BookingID "
+                + "WHERE b.BookingID = ? "
+                + "GROUP BY b.TotalPrice";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, bookingId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal totalPrice = rs.getBigDecimal("TotalPrice");
+                    BigDecimal totalPaid = rs.getBigDecimal("TotalPaid");
+                    return totalPrice != null
+                            && totalPaid != null
+                            && totalPaid.compareTo(totalPrice) >= 0;
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    /*
+     * =========================================================
+     * PAYMENT DETAILS FOR ONE BOOKING (STAFF / ADMIN)
+     * =========================================================
+     */
+    public List<Payment> getPaymentsByBookingId(int bookingId) {
+
+        List<Payment> list = new ArrayList<>();
+
+        String sql =
+                "SELECT "
+                + "p.PaymentID, p.PaymentDate, p.Amount, p.PaymentMethod, "
+                + "p.PaymentStatus, p.TransactionCode, p.DiscountID, "
+                + "b.BookingID, b.BookingDate, b.Status AS BookingStatus, "
+                + "b.TotalPrice, b.SpecialRequest, b.CancellationDate, b.CancellationReason, "
+                + "c.CustomerID, c.FirstName, c.LastName, "
+                + "d.Code AS DiscountCode, d.Quantity AS DiscountQuantity, d.SaleOff, "
+                + "d.StartDate, d.EndDate, d.MinimumAmount, d.MaximumDiscount, d.IsActive "
+                + "FROM Payment p "
+                + "JOIN Booking b ON b.BookingID = p.BookingID "
+                + "JOIN Customer c ON c.CustomerID = b.CustomerID "
+                + "LEFT JOIN Discount d ON d.DiscountID = p.DiscountID "
+                + "WHERE p.BookingID = ? "
+                + "ORDER BY p.PaymentDate DESC, p.PaymentID DESC";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, bookingId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapPayment(rs));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
     }
 
     /*
