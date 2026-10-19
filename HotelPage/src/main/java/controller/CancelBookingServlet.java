@@ -21,6 +21,8 @@ import model.User;
 public class CancelBookingServlet
         extends HttpServlet {
 
+    private static final long serialVersionUID = 1L;
+
     /*
      * =========================================================
      * GET
@@ -127,10 +129,9 @@ public class CancelBookingServlet
          * Only pending / confirmed booking
          * may enter cancellation flow.
          */
-        if (!"pending".equalsIgnoreCase(
-                    booking.getStatus())
-                && !"confirmed".equalsIgnoreCase(
-                    booking.getStatus())) {
+        if (!bookingDAO.canCustomerCancelBooking(
+                bookingId,
+                customer.getCustomerID())) {
 
             redirectHistory(
                     request,
@@ -252,12 +253,12 @@ public class CancelBookingServlet
              * Keep DB input reasonable.
              */
             if (reason != null
-                    && reason.length() > 500) {
+                    && reason.length() > 255) {
 
                 reason =
                         reason.substring(
                                 0,
-                                500
+                                255
                         );
             }
         }

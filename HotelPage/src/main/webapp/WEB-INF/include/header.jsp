@@ -1,5 +1,5 @@
 <%@ taglib prefix="c"
-           uri="http://java.sun.com/jsp/jstl/core" %>
+           uri="jakarta.tags.core" %>
 <%@ page import="util.AuthSupport" %>
 
 <header class="luxe-shared-header">

@@ -1,6 +1,7 @@
 package model;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
 public class Payment {
@@ -62,11 +63,24 @@ public class Payment {
     }
 
     public BigDecimal getAmount() {
+
+        if (amount == null) {
+            return BigDecimal.ZERO;
+        }
+
         return amount;
     }
 
     public void setAmount(BigDecimal amount) {
-        this.amount = amount;
+
+        if (amount == null) {
+            this.amount = BigDecimal.ZERO;
+        } else {
+            this.amount = amount.setScale(
+                    2,
+                    RoundingMode.HALF_UP
+            );
+        }
     }
 
     public String getPaymentMethod() {
@@ -99,5 +113,57 @@ public class Payment {
 
     public void setDiscount(Discount discount) {
         this.discount = discount;
+    }
+
+    /*
+     * =========================================================
+     * HELPER METHODS
+     * =========================================================
+     */
+
+    /**
+     * Kiểm tra payment này đã thanh toán thành công hay chưa.
+     */
+    public boolean isPaid() {
+
+        return "paid".equalsIgnoreCase(
+                paymentStatus
+        );
+    }
+
+    /**
+     * Xác định payment này là thanh toán toàn bộ
+     * hay chỉ là thanh toán một phần.
+     *
+     * Lưu ý:
+     * Đây chỉ xét riêng record Payment hiện tại.
+     */
+    public boolean isFullPayment() {
+
+        if (booking == null
+                || booking.getTotalPrice() == null
+                || amount == null) {
+
+            return false;
+        }
+
+        return amount.compareTo(
+                booking.getTotalPrice()
+        ) >= 0;
+    }
+
+    /**
+     * Dùng cho JSP:
+     *
+     * Full Payment
+     * Partial Payment
+     */
+    public String getPaymentType() {
+
+        if (isFullPayment()) {
+            return "Full Payment";
+        }
+
+        return "Partial Payment";
     }
 }

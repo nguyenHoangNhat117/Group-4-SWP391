@@ -1,5 +1,5 @@
 <%@ taglib prefix="c"
-           uri="http://java.sun.com/jsp/jstl/core" %>
+           uri="jakarta.tags.core" %>
 
 <%@page contentType="text/html"
         pageEncoding="UTF-8"%>
@@ -111,6 +111,15 @@
             </c:if>
 
 
+            <c:if test="${param.error == 'invalid-payment-percent'}">
+
+                <div class="alert alert-danger text-center">
+                    Please select 10%, 20%, or 100% for the first payment.
+                </div>
+
+            </c:if>
+
+
             <!-- ========================================= -->
             <!-- BOOKING SUMMARY                           -->
             <!-- ========================================= -->
@@ -133,7 +142,7 @@
 
                 <p class="mb-0">
 
-                    <strong>Original Total:</strong>
+                    <strong>Booking Total:</strong>
 
                     <span
                         class="text-primary
@@ -144,6 +153,9 @@
                     </span>
 
                 </p>
+
+                <p class="mb-1 mt-2"><strong>Already paid:</strong> $${paidAmount}</p>
+                <p class="mb-0"><strong>Remaining:</strong> <span class="text-danger fw-bold">$${remainingAmount}</span></p>
 
             </div>
 
@@ -251,6 +263,24 @@
                     value="${booking.id}">
 
 
+                <c:if test="${firstPayment}">
+                    <div class="mb-4">
+                        <label for="payment-percent" class="form-label fw-semibold">Initial payment percentage</label>
+                        <select id="payment-percent" name="payment-percent" class="form-select form-select-lg" required>
+                            <option value="10" ${selectedPercent == 10 ? 'selected' : ''}>10%</option>
+                            <option value="20" ${selectedPercent == 20 ? 'selected' : ''}>20%</option>
+                            <option value="100" ${selectedPercent == 100 ? 'selected' : ''}>100%</option>
+                        </select>
+                        <div class="form-text">This is the first payment for the booking.</div>
+                    </div>
+                </c:if>
+
+                <c:if test="${!firstPayment}">
+                    <div class="alert alert-info">
+                        This payment will settle the full remaining balance of <strong>$${remainingAmount}</strong>.
+                    </div>
+                </c:if>
+
                 <!-- Payment Method -->
 
                 <div class="mb-4">
@@ -302,6 +332,8 @@
 
                 </div>
 
+
+                <c:if test="${firstPayment}">
 
                 <!-- Discount -->
 
@@ -392,14 +424,15 @@
 
                 </c:if>
 
+                </c:if>
+
 
                 <div
                     class="alert
                            alert-info">
 
-                    The final payable amount is
-                    calculated on the server after
-                    validating the promotion code.
+                    The payable amount is calculated on the server.
+                    A promotion code can only be used on the first payment.
 
                 </div>
 
@@ -412,7 +445,7 @@
                            text-white"
                     style="background-color: #b29575;">
 
-                    Confirm Payment
+                    <c:choose><c:when test="${firstPayment}">Confirm Initial Payment</c:when><c:otherwise>Pay Remaining Balance</c:otherwise></c:choose>
 
                 </button>
 

@@ -507,6 +507,54 @@ public class CustomerDAO extends DBContext {
 
     /*
      * =========================================================
+     * 7. UPDATE ALLOWED CUSTOMER INFORMATION (STAFF / ADMIN)
+     *
+     * Does not change username, password, role, avatar or UserID.
+     * Email uniqueness is enforced by HotelDB.
+     * =========================================================
+     */
+    public boolean updateCustomerInformation(
+            int customerId,
+            String firstName,
+            String lastName,
+            String email,
+            String phone,
+            String country,
+            String city,
+            String street) {
+
+        if (customerId <= 0 || email == null || email.trim().isEmpty()) {
+            return false;
+        }
+
+        String sql =
+                "UPDATE Customer SET "
+                + "FirstName = ?, LastName = ?, Email = ?, Phone = ?, "
+                + "Country = ?, City = ?, Street = ? "
+                + "WHERE CustomerID = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, emptyToNull(firstName));
+            ps.setString(2, emptyToNull(lastName));
+            ps.setString(3, email.trim());
+            ps.setString(4, emptyToNull(phone));
+            ps.setString(5, emptyToNull(country));
+            ps.setString(6, emptyToNull(city));
+            ps.setString(7, emptyToNull(street));
+            ps.setInt(8, customerId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /*
+     * =========================================================
      * 7. UPDATE CUSTOMER PROFILE
      *
      * Existing ProfileServlet compatibility.

@@ -27,6 +27,8 @@ import model.User;
 public class CustomerServlet
         extends HttpServlet {
 
+    private static final long serialVersionUID = 1L;
+
     private static final int PAGE_SIZE = 10;
 
     /*
@@ -293,8 +295,8 @@ public class CustomerServlet
                         "action"
                 );
 
-        if (!"update-status".equals(
-                action)) {
+        if (!"update-status".equals(action)
+                && !"update-info".equals(action)) {
 
             response.sendError(
                     HttpServletResponse.SC_BAD_REQUEST
@@ -316,9 +318,8 @@ public class CustomerServlet
                 );
 
         if (customerId == null
-                || !isValidAccountStatus(
-                        accountStatus
-                )) {
+                || ("update-status".equals(action)
+                    && !isValidAccountStatus(accountStatus))) {
 
             response.sendRedirect(
                     request.getContextPath()
@@ -348,6 +349,51 @@ public class CustomerServlet
                     + "?message=customer-not-found"
             );
 
+            return;
+        }
+
+        if ("update-info".equals(action)) {
+
+            String firstName = trimToNull(request.getParameter("first-name"));
+            String lastName = trimToNull(request.getParameter("last-name"));
+            String email = trimToNull(request.getParameter("email"));
+            String phone = trimToNull(request.getParameter("phone"));
+            String country = trimToNull(request.getParameter("country"));
+            String city = trimToNull(request.getParameter("city"));
+            String street = trimToNull(request.getParameter("street"));
+
+            if (email == null
+                    || email.length() > 100
+                    || !email.contains("@")
+                    || tooLong(firstName, 50)
+                    || tooLong(lastName, 50)
+                    || tooLong(phone, 20)
+                    || tooLong(country, 50)
+                    || tooLong(city, 50)
+                    || tooLong(street, 100)) {
+
+                response.sendRedirect(
+                        request.getContextPath()
+                        + "/customers?view=detail&id="
+                        + customerId
+                        + "&message=invalid-data"
+                );
+                return;
+            }
+
+            boolean infoUpdated = customerDAO.updateCustomerInformation(
+                    customerId, firstName, lastName, email, phone,
+                    country, city, street
+            );
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/customers?view=detail&id="
+                    + customerId
+                    + (infoUpdated
+                        ? "&message=info-updated"
+                        : "&message=info-update-failed")
+            );
             return;
         }
 
@@ -485,6 +531,18 @@ public class CustomerServlet
         return "active".equals(status)
                 || "locked".equals(status)
                 || "inactive".equals(status);
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private boolean tooLong(String value, int maxLength) {
+        return value != null && value.length() > maxLength;
     }
 
     @Override

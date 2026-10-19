@@ -1,5 +1,5 @@
 <%@ taglib prefix="c"
-           uri="http://java.sun.com/jsp/jstl/core" %>
+           uri="jakarta.tags.core" %>
 
 <%@page contentType="text/html"
         pageEncoding="UTF-8"%>
@@ -63,6 +63,24 @@
 
         </c:if>
 
+
+        <c:if test="${param.message == 'info-updated'}">
+            <div class="alert alert-success text-center">
+                Customer information updated successfully.
+            </div>
+        </c:if>
+
+        <c:if test="${param.message == 'info-update-failed'}">
+            <div class="alert alert-danger text-center">
+                Customer information could not be updated. The email may already be in use.
+            </div>
+        </c:if>
+
+        <c:if test="${param.message == 'invalid-data'}">
+            <div class="alert alert-danger text-center">
+                Invalid customer information.
+            </div>
+        </c:if>
 
         <div
             class="card
@@ -306,6 +324,49 @@
 
                 <hr class="my-4">
 
+
+                <h4 class="mb-3">Customer Information Management</h4>
+
+                <form action="${pageContext.request.contextPath}/customers" method="post" class="row g-3 mb-4">
+                    <input type="hidden" name="action" value="update-info">
+                    <input type="hidden" name="customer-id" value="${customerDetail.customerID}">
+
+                    <div class="col-md-6">
+                        <label class="form-label">First Name</label>
+                        <input class="form-control" name="first-name" maxlength="50" value="<c:out value='${customerDetail.firstName}'/>">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Last Name</label>
+                        <input class="form-control" name="last-name" maxlength="50" value="<c:out value='${customerDetail.lastName}'/>">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" maxlength="100" required value="<c:out value='${customerDetail.email}'/>">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Phone</label>
+                        <input class="form-control" name="phone" maxlength="20" value="<c:out value='${customerDetail.phone}'/>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Country</label>
+                        <input class="form-control" name="country" maxlength="50" value="<c:out value='${customerDetail.country}'/>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">City</label>
+                        <input class="form-control" name="city" maxlength="50" value="<c:out value='${customerDetail.city}'/>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Street</label>
+                        <input class="form-control" name="street" maxlength="100" value="<c:out value='${customerDetail.street}'/>">
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary" onclick="return confirm('Update this customer information?');">
+                            Update Information
+                        </button>
+                    </div>
+                </form>
+
+                <hr class="my-4">
 
                 <!-- ================================= -->
                 <!-- ACCOUNT INFORMATION               -->

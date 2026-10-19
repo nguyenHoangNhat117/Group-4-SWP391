@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 
 import model.Booking;
 import model.Customer;
@@ -24,6 +25,8 @@ import model.User;
 )
 public class PaymentServlet
         extends HttpServlet {
+
+    private static final long serialVersionUID = 1L;
 
     /*
      * =========================================================
@@ -132,10 +135,9 @@ public class PaymentServlet
         }
 
         /*
-         * Only pending Booking can be paid.
+         * Any non-cancelled booking with a remaining balance can be paid.
          */
-        if (!"pending".equalsIgnoreCase(
-                booking.getStatus())) {
+        if ("cancelled".equalsIgnoreCase(booking.getStatus())) {
 
             response.sendRedirect(
                     request.getContextPath()
@@ -163,6 +165,23 @@ public class PaymentServlet
 
             return;
         }
+
+        BigDecimal paidAmount = paymentDAO.getTotalPaidAmount(bookingId);
+        BigDecimal remainingAmount = booking.getTotalPrice().subtract(paidAmount);
+        if (remainingAmount.compareTo(BigDecimal.ZERO) < 0) {
+            remainingAmount = BigDecimal.ZERO;
+        }
+
+        boolean firstPayment = paidAmount.compareTo(BigDecimal.ZERO) == 0;
+        Integer selectedPercent = parsePaymentPercent(request.getParameter("percent"));
+        if (!firstPayment) {
+            selectedPercent = null;
+        }
+
+        request.setAttribute("paidAmount", paidAmount);
+        request.setAttribute("remainingAmount", remainingAmount);
+        request.setAttribute("firstPayment", firstPayment);
+        request.setAttribute("selectedPercent", selectedPercent);
 
         DiscountDAO discountDAO =
                 new DiscountDAO();
@@ -275,15 +294,33 @@ public class PaymentServlet
             }
         }
 
+        Integer paymentPercent = parsePaymentPercent(
+                request.getParameter("payment-percent")
+        );
+
         PaymentDAO paymentDAO =
                 new PaymentDAO();
+
+        BigDecimal alreadyPaid = paymentDAO.getTotalPaidAmount(bookingId);
+        boolean firstPayment = alreadyPaid.compareTo(BigDecimal.ZERO) == 0;
+
+        if (firstPayment && paymentPercent == null) {
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/payment?bookingId="
+                    + bookingId
+                    + "&error=invalid-payment-percent"
+            );
+            return;
+        }
 
         String result =
                 paymentDAO.processPayment(
                         bookingId,
                         customer.getCustomerID(),
                         paymentMethod,
-                        discountCode
+                        discountCode,
+                        paymentPercent
                 );
 
         /*
@@ -410,6 +447,22 @@ public class PaymentServlet
 
         } catch (NumberFormatException e) {
 
+            return null;
+        }
+    }
+
+    private Integer parsePaymentPercent(String raw) {
+
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+
+        try {
+            int value = Integer.parseInt(raw.trim());
+            return (value == 10 || value == 20 || value == 100)
+                    ? value
+                    : null;
+        } catch (NumberFormatException e) {
             return null;
         }
     }
