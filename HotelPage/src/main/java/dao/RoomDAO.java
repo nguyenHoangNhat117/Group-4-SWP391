@@ -16,7 +16,7 @@ import model.RoomType;
 
 public class RoomDAO extends DBContext {
 
-    private static final int PAGE_SIZE = 5;
+    private static final int PAGE_SIZE = 6;
 
     /*
      * =========================================================
