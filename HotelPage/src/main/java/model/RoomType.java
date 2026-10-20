@@ -5,6 +5,8 @@
 package model;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -22,7 +24,7 @@ public class RoomType {
     private int beds;               // Number of beds in the room
     private int capacity;           // Maximum guest capacity
     private String picture;         // URL or path to room type image (optional)
-
+    private List<Amenity> amenities = new ArrayList<>();
     /**
      * Default constructor creates an empty RoomType object.
      */
@@ -191,5 +193,13 @@ public class RoomType {
      */
     public void setPicture(String picture) {
         this.picture = picture;
+    }
+    
+    public List<Amenity> getAmenities() {
+        return amenities;
+    }
+
+    public void setAmenities(List<Amenity> amenities) {
+        this.amenities = amenities;
     }
 }

@@ -9,8 +9,7 @@ import java.util.logging.Logger;
 import model.RoomType;
 
 /**
- * DAO (Data Access Object) class to handle operations related to RoomType
- * entity in the database. Author: Đặng Hoàng Vũ
+ * DAO (Data Access Object) class to handle operations related to RoomType entity in the database. Author: Đặng Hoàng Vũ
  */
 public class RoomTypeDAO extends DBContext {
 
@@ -45,8 +44,7 @@ public class RoomTypeDAO extends DBContext {
     }
 
     /**
-     * Calculates the total number of pages for paginated display, assuming 5
-     * items per page.
+     * Calculates the total number of pages for paginated display, assuming 5 items per page.
      *
      * @return number of total pages
      */
@@ -97,27 +95,36 @@ public class RoomTypeDAO extends DBContext {
     }
 
     /**
-     * Inserts a new RoomType record into the database.
+     * Inserts a new RoomType record into the database and returns the generated ID.
      *
      * @param roomType RoomType object containing data to be inserted
-     * @return number of affected rows (should be 1 if successful)
+     * @return The ID of the newly created room type, or 0 if failed.
      */
     public int createRoomType(RoomType roomType) {
         String query = "INSERT INTO RoomType (Name, Description, PricePerNight, Beds, Capacity, Picture) VALUES (?, ?, ?, ?, ?, ?)";
         try {
-            Object[] params = {
-                roomType.getName(),
-                roomType.getDescription(),
-                roomType.getPricePerNight(),
-                roomType.getBeds(),
-                roomType.getCapacity(),
-                roomType.getPicture()
-            };
-            return this.executeQuery(query, params);
+            // Chú ý: Dùng Statement.RETURN_GENERATED_KEYS để lấy ID
+            PreparedStatement pstatement = this.getConnection().prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            pstatement.setString(1, roomType.getName());
+            pstatement.setString(2, roomType.getDescription());
+            pstatement.setBigDecimal(3, roomType.getPricePerNight());
+            pstatement.setInt(4, roomType.getBeds());
+            pstatement.setInt(5, roomType.getCapacity());
+            pstatement.setString(6, roomType.getPicture());
+
+            int affectedRows = pstatement.executeUpdate();
+
+            if (affectedRows > 0) {
+                try (ResultSet rs = pstatement.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        return rs.getInt(1); // Trả về ID vừa tạo
+                    }
+                }
+            }
         } catch (SQLException ex) {
             Logger.getLogger(RoomTypeDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return 0;
+        return 0; // Trả về 0 nếu thất bại
     }
 
     /**
