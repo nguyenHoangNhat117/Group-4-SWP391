@@ -1,7 +1,7 @@
 <%-- 
     Document   : create
-    Created on : Jun 23, 2025, 4:28:05 PM
-    Author     : Đặng Hoàng Vũ
+    Created on : Oct 19, 2026, 4:28:05 AM
+    Author     : Lương Thành Đạt
 --%>
 
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
@@ -15,7 +15,7 @@
         <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
-</head>
+    </head>
     <body class="bg-light">
         <div class="body-wrapper">
             <%@ include file="/WEB-INF/include/header.jsp" %>
@@ -79,6 +79,24 @@
                         <input type="number" id="capacity" name="capacity" class="form-control form-control-lg" min="1" required>
                     </div>
 
+                    <!-- Amenities Checkboxes -->
+                    <div class="mb-4">
+                        <label class="form-label fs-5 fw-semibold">Room Amenities</label>
+                        <div class="row">
+                            <c:forEach items="${allAmenities}" var="a">
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <!-- Gọi trực tiếp hàm getAmenityID() -->
+                                        <input class="form-check-input" type="checkbox" name="amenities" value="${a.getAmenityID()}" id="amenity_${a.getAmenityID()}">
+                                        <label class="form-check-label" for="amenity_${a.getAmenityID()}">
+                                            ${a.name}
+                                        </label>
+                                    </div>
+                                </div>
+                            </c:forEach>
+                        </div>
+                    </div>
+
                     <!-- Room Picture -->
                     <div class="mb-4">
                         <label for="picture" class="form-label fs-5 fw-semibold">Room Picture</label>
@@ -98,8 +116,4 @@
 
         <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
     </body>
-
 </html>
-
-
-

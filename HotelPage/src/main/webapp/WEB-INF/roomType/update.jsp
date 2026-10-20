@@ -1,7 +1,7 @@
 <%-- 
     Document   : update
-    Created on : Jun 23, 2025, 4:28:22 PM
-    Author     : Đặng Hoàng Vũ
+    Created on : Oct 19, 2026, 5:55:22 AM
+    Author     : Lương Thành Đạt
 --%>
 
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
@@ -11,12 +11,12 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>Create Room</title>
+        <title>Update Room Type</title>
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
-</head>
+    </head>
     <body class="bg-light">
         <div class="body-wrapper">
             <%@include file="/WEB-INF/include/header.jsp" %>
@@ -90,6 +90,32 @@
                                value="${roomType.capacity}" min="1" required />
                     </div>
 
+                    <!-- Amenities Checkboxes -->
+                    <div class="mb-4">
+                        <label class="form-label fs-5 fw-semibold">Room Amenities</label>
+                        <div class="row">
+                            <c:forEach items="${allAmenities}" var="a">
+                                <!-- Logic kiểm tra xem tiện ích này loại phòng đã có chưa -->
+                                <c:set var="isChecked" value="false" />
+                                <c:forEach items="${roomAmenities}" var="ra">
+                                    <c:if test="${ra.getAmenityID() == a.getAmenityID()}">
+                                        <c:set var="isChecked" value="true" />
+                                    </c:if>
+                                </c:forEach>
+                                
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <!-- Gọi trực tiếp hàm getAmenityID() -->
+                                        <input class="form-check-input" type="checkbox" name="amenities" value="${a.getAmenityID()}" id="amenity_${a.getAmenityID()}" ${isChecked ? 'checked' : ''}>
+                                        <label class="form-check-label" for="amenity_${a.getAmenityID()}">
+                                            ${a.name}
+                                        </label>
+                                    </div>
+                                </div>
+                            </c:forEach>
+                        </div>
+                    </div>
+
                     <!-- Room Picture -->
                     <div class="mb-4">
                         <label for="picture" class="form-label fs-5 fw-semibold">Room Picture</label>
@@ -118,8 +144,8 @@
                 } else {
                     roomPicture.style.display = "block"; // Show it back
                     roomPicture.src = "<%= request.getContextPath()%>/assets/img/${roomType.picture}";
-                            }
-                        };
+                }
+            };
         </script>
     </body>
 </html>
