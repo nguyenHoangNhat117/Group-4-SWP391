@@ -21,7 +21,7 @@ import model.User;
 @WebServlet(name = "RoomServlet", urlPatterns = {"/room"})
 public class RoomServlet extends HttpServlet {
 
-    private static final int PAGE_SIZE = 5;
+    private static final int PAGE_SIZE = 6;
     private static final DateTimeFormatter DATE_FORMAT =
             DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
 
