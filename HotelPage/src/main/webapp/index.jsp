@@ -14,11 +14,13 @@
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/general.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/landing-page.css" />
-            <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
-</head>
-    <body class="${cookie.animation.value == 'enable' ? '' : 'disable-animation'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/assets/css/luxe-home-motion.css">
+    </head>
+    <body class="luxe-home ${cookie.animation.value == 'disable' ? 'disable-animation' : ''}">
         <%@include file="/WEB-INF/include/header.jsp" %>
         <form action="./toggle-animation" method="post" class="text-end mt-2 me-2">
             <input type="hidden" name="toggleAnimation" value="${cookie.animation.value == "enable" || cookie.animation.value == null ? "disable" : "enable"}">
@@ -157,7 +159,9 @@
 
         <%@include file="/WEB-INF/include/footer.jsp" %>
         <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
-        <script type="module" src="<%= request.getContextPath()%>/script/index.js"></script>
+        <script type="module"
+                src="${pageContext.request.contextPath}/script/index.js">
+        </script>
     </body>
 </html>
 

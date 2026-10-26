@@ -1,0 +1,91 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/*
+    Created on : Oct 26, 2026, 11:39:57 PM
+    Author     : Nguyen Hoang Nhat
+*/
+
+/* Home-only motion and stable sticky header. */
+
+html.luxe-home-page {
+    scroll-snap-type: none !important;
+}
+
+/* Keep header geometry identical before and after scrolling. */
+body.luxe-home header.luxe-shared-header,
+body.luxe-home header.luxe-shared-header.is-scrolled {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    background: #fbf8f3 !important;
+    border-bottom: 1px solid #e8dfd3;
+    box-shadow: 0 4px 16px rgba(60, 42, 24, .06);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    transition: none;
+}
+
+body.luxe-home header.luxe-shared-header nav,
+body.luxe-home header.luxe-shared-header.is-scrolled nav {
+    min-height: 78px !important;
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+    transition: none !important;
+}
+
+/* Avoid stacking a page entrance animation with element reveals. */
+body.luxe-home main {
+    animation: none !important;
+}
+
+/* Content stays visible unless JavaScript enables reveal effects. */
+body.luxe-home .home-reveal {
+    transition:
+        opacity .85s ease,
+        transform .85s cubic-bezier(.22, .7, .25, 1);
+}
+
+/* Slide text in from the left. */
+body.luxe-home.home-motion-ready .home-reveal--text:not(.is-visible),
+body.luxe-home.home-motion-ready #hero-heading span.home-reveal--text:not(.is-visible) {
+    opacity: 0;
+    transform: translateX(-48px);
+}
+
+/* Reveal images and room cards with a gentle upward movement. */
+body.luxe-home.home-motion-ready .home-reveal--card:not(.is-visible) {
+    opacity: 0;
+    transform: translateY(28px);
+}
+
+body.luxe-home.home-motion-ready .home-reveal.is-visible,
+body.luxe-home.home-motion-ready #hero-heading span.home-reveal.is-visible {
+    opacity: 1;
+    transform: none;
+}
+
+/* Respect the existing animation switch. */
+body.luxe-home.disable-animation .home-reveal,
+body.luxe-home.disable-animation #hero-heading span.home-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+}
+
+@media (max-width: 600px) {
+    body.luxe-home.home-motion-ready .home-reveal--text:not(.is-visible),
+    body.luxe-home.home-motion-ready #hero-heading span.home-reveal--text:not(.is-visible) {
+        transform: translateX(-24px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.luxe-home .home-reveal,
+    body.luxe-home #hero-heading span.home-reveal {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+    }
+}

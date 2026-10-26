@@ -920,3 +920,95 @@ html.hotel-reports-page {
         font-size: 13px;
     }
 }
+
+/* =========================================================
+   Simplified report date filter.
+   Form names, actions and submitted values remain unchanged.
+   ========================================================= */
+
+.hotel-reports .report-date-filter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+    align-items: end;
+    gap: 18px;
+    padding: 25px;
+    margin: 0 0 24px;
+    border: 1px solid #d7bd9b;
+    border-radius: 15px;
+    background: #fffdf9;
+    box-shadow: 0 5px 18px rgba(61, 41, 24, .045);
+}
+
+.hotel-reports .report-date-filter > div {
+    min-width: 0;
+}
+
+.hotel-reports .report-date-filter label {
+    display: block;
+    margin-bottom: 10px;
+    color: #4d321d;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.hotel-reports .report-date-filter input {
+    display: block;
+    width: 100%;
+    min-height: 52px;
+    padding: 12px 15px;
+    border: 1px solid #c4a67e;
+    border-radius: 10px;
+    background: #fff;
+    color: #412c1c;
+    font-family: var(--lx-sans, Inter, sans-serif);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.hotel-reports .report-date-filter input:focus {
+    outline: 3px solid #b29a7b30;
+    border-color: #88613b;
+}
+
+.hotel-reports .report-date-filter .report-button {
+    min-height: 52px;
+    padding: 13px 22px;
+    border-color: #b49672;
+    background: #f5eadb;
+    color: #593b20;
+    font-size: 15px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.hotel-reports .report-date-filter .report-button:hover {
+    background: #e8d5b9;
+    border-color: #977049;
+    color: #412a17;
+}
+
+.hotel-reports .report-date-filter .report-button.primary {
+    border-color: #4b3422;
+    background: #4b3422;
+    color: #fff;
+}
+
+.hotel-reports .report-date-filter .report-button.primary:hover {
+    border-color: #6b492d;
+    background: #6b492d;
+    color: #fff;
+}
+
+@media (max-width: 850px) {
+    .hotel-reports .report-date-filter {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .hotel-reports .report-date-filter {
+        grid-template-columns: 1fr;
+        padding: 20px;
+    }
+}
