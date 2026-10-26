@@ -1,635 +1,287 @@
-<%@ taglib prefix="c"
-           uri="jakarta.tags.core" %>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
-<%@page contentType="text/html"
-        pageEncoding="UTF-8"%>
+<fmt:setLocale value="vi_VN" />
+
+<c:set var="ctx" value="${pageContext.request.contextPath}" />
 
 <!DOCTYPE html>
-
-<html>
+<html lang="en" class="hotel-reports-page">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        http-equiv="Content-Type"
-        content="text/html; charset=UTF-8">
+    <title>Payment Report | Luxe Escape</title>
 
-    <title>Payment Reports</title>
-
-    <link
-        href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
-        rel="stylesheet">
-
-    <link
-        href="<%= request.getContextPath()%>/assets/css/general.css"
-        rel="stylesheet">
-
-    <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+    <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/general.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/luxe-modern.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/luxe-shared-shell.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/luxe-ui.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/hotel-reports.css">
 </head>
 
-<body>
+<body class="hotel-reports-body ${cookie.animation.value == 'disable' ? 'disable-animation' : ''}">
 
-<div class="body-wrapper">
+<%@ include file="/WEB-INF/include/header.jsp" %>
 
-    <%@include file="/WEB-INF/include/header.jsp" %>
+<main class="hotel-reports">
 
+    <%-- Shared heading, navigation and date filter. --%>
+    <%@ include file="report-list-toolbar.jsp" %>
 
-    <main>
+    <%-- Hide the results panel when loading or validation fails. --%>
+    <c:if test="${empty reportError}">
 
-        <div class="container py-5">
+        <section class="report-panel">
 
+            <div class="report-panel-heading">
+                <h2>Transaction records</h2>
 
-            <!-- ========================================= -->
-            <!-- REPORT NAVIGATION                         -->
-            <!-- ========================================= -->
-
-            <div
-                class="d-flex
-                       justify-content-end
-                       mb-4">
-
-
-                <a
-                    class="btn
-                           btn-primary
-                           me-3"
-                    href="${pageContext.request.contextPath}/reports?view=month">
-
-                    Revenue by Month
-
-                </a>
-
-
-                <a
-                    class="btn
-                           btn-primary"
-                    href="${pageContext.request.contextPath}/reports?view=year">
-
-                    Revenue by Year
-
-                </a>
-
+                <span class="report-meta">
+                    ${totalRecords} matching transactions
+                    · ${fn:length(payments)} on this page
+                </span>
             </div>
-
-
-            <h2 class="mb-4 text-center">
-
-                All Payment Records
-
-            </h2>
-
 
             <c:choose>
 
-
                 <c:when test="${not empty payments}">
 
-                    <div class="table-responsive">
+                    <div class="report-table-scroll">
 
+                        <table class="report-table">
 
-                        <table
-                            class="table
-                                   table-bordered
-                                   table-hover
-                                   align-middle">
+                            <thead>
+                            <tr>
+                                <th scope="col">Payment</th>
+                                <th scope="col">Customer</th>
+                                <th scope="col">Booking</th>
+                                <th scope="col">Room / Stay</th>
 
+                                <th scope="col" class="numeric">
+                                    Booking total
+                                </th>
 
-                            <thead class="table-dark">
+                                <th scope="col" class="numeric">
+                                    Transaction amount
+                                </th>
 
-
-                                <tr>
-
-                                    <th>
-                                        Payment ID
-                                    </th>
-
-                                    <th>
-                                        Customer
-                                    </th>
-
-                                    <th>
-                                        Booking
-                                    </th>
-
-                                    <th>
-                                        Room / Stay
-                                    </th>
-
-                                    <th>
-                                        Original Total
-                                    </th>
-
-                                    <th>
-                                        Paid Amount
-                                    </th>
-
-                                    <th>
-                                        Method
-                                    </th>
-
-                                    <th>
-                                        Payment Status
-                                    </th>
-
-                                    <th>
-                                        Discount
-                                    </th>
-
-                                    <th>
-                                        Transaction
-                                    </th>
-
-                                    <th>
-                                        Payment Date
-                                    </th>
-
-                                </tr>
-
-
+                                <th scope="col">Method</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Promotion</th>
+                                <th scope="col">Transaction code</th>
+                                <th scope="col">Payment date</th>
+                            </tr>
                             </thead>
-
 
                             <tbody>
 
+                            <c:forEach var="payment" items="${payments}">
 
-                                <c:forEach
-                                    var="payment"
-                                    items="${payments}">
+                                <tr>
 
+                                    <td>
+                                        <strong>#${payment.id}</strong>
+                                    </td>
 
-                                    <tr>
+                                    <td>
+                                        <c:choose>
 
+                                            <c:when test="${not empty payment.booking.customer.firstName
+                                                            or not empty payment.booking.customer.lastName}">
+                                                <c:out value="${payment.booking.customer.firstName}" />
+                                                <c:out value="${payment.booking.customer.lastName}" />
+                                            </c:when>
 
-                                        <!-- Payment ID -->
-                                        <td>
+                                            <c:otherwise>
+                                                Customer #${payment.booking.customer.customerID}
+                                            </c:otherwise>
 
-                                            ${payment.id}
+                                        </c:choose>
+                                    </td>
 
-                                        </td>
+                                    <td class="report-nowrap">
 
+                                        <strong>#${payment.booking.id}</strong>
 
-                                        <!-- Customer -->
-                                        <td>
+                                        <span class="report-muted">
+                                            <c:out value="${fn:replace(payment.booking.status, '_', ' ')}" />
+                                        </span>
 
-                                            ID:
-                                            ${payment.booking.customer.customerID}
+                                    </td>
 
-                                            <br>
+                                    <td>
+                                        <c:choose>
 
-                                            <c:if test="${not empty payment.booking.customer.firstName
-                                                          || not empty payment.booking.customer.lastName}">
+                                            <c:when test="${not empty payment.booking.details}">
 
-                                                <small>
+                                                <c:forEach var="detail"
+                                                           items="${payment.booking.details}">
 
-                                                    ${payment.booking.customer.firstName}
-                                                    ${payment.booking.customer.lastName}
+                                                    <div class="report-room">
 
-                                                </small>
+                                                        <strong>
+                                                            <a href="${ctx}/details?roomNumber=${detail.roomNumber}">
+                                                                Room #${detail.roomNumber}
+                                                            </a>
+                                                        </strong>
 
-                                            </c:if>
+                                                        <span class="report-muted">
+                                                            ${detail.checkInDate}
+                                                            → ${detail.checkOutDate}
+                                                        </span>
 
-                                        </td>
+                                                        <span class="report-muted">
+                                                            ${detail.guestCount} guests
+                                                        </span>
 
+                                                    </div>
 
-                                        <!-- Booking -->
-                                        <td>
+                                                </c:forEach>
 
-                                            #${payment.booking.id}
+                                            </c:when>
 
-                                            <br>
+                                            <c:otherwise>
+                                                <span class="report-muted">
+                                                    No room information
+                                                </span>
+                                            </c:otherwise>
 
-                                            <small class="text-muted">
+                                        </c:choose>
+                                    </td>
 
-                                                ${payment.booking.status}
+                                    <td class="numeric">
+                                        <fmt:formatNumber
+                                                value="${payment.booking.totalPrice}"
+                                                pattern="#,##0.##" />
+                                        ₫
+                                    </td>
 
-                                            </small>
+                                    <td class="numeric">
+                                        <strong>
+                                            <fmt:formatNumber
+                                                    value="${payment.amount}"
+                                                    pattern="#,##0.##" />
+                                            ₫
+                                        </strong>
+                                    </td>
 
-                                        </td>
+                                    <td class="report-nowrap">
+                                        <c:choose>
 
+                                            <c:when test="${payment.paymentMethod == 'cash'}">
+                                                Cash
+                                            </c:when>
 
-                                        <!-- Room / Stay -->
-                                        <td>
+                                            <c:when test="${payment.paymentMethod == 'bank_transfer'}">
+                                                Bank transfer
+                                            </c:when>
 
+                                            <c:when test="${payment.paymentMethod == 'credit_card'}">
+                                                Credit card
+                                            </c:when>
 
-                                            <c:forEach
-                                                var="detail"
-                                                items="${payment.booking.details}">
+                                            <c:when test="${payment.paymentMethod == 'e_wallet'}">
+                                                E-wallet
+                                            </c:when>
 
+                                            <c:otherwise>
+                                                <c:out value="${payment.paymentMethod}" />
+                                            </c:otherwise>
 
-                                                <div class="mb-2">
+                                        </c:choose>
+                                    </td>
 
+                                    <td>
+                                        <span class="report-status <c:out value='${payment.paymentStatus}' />">
+                                            <c:out value="${payment.paymentStatus}" />
+                                        </span>
+                                    </td>
 
-                                                    <strong>
+                                    <td>
+                                        <c:choose>
 
-                                                        Room
-                                                        #${detail.roomNumber}
+                                            <c:when test="${not empty payment.discount}">
 
-                                                    </strong>
+                                                <strong>
+                                                    <c:out value="${payment.discount.code}" />
+                                                </strong>
 
+                                                <span class="report-muted">
+                                                    <fmt:formatNumber
+                                                            value="${payment.discount.saleOff}"
+                                                            pattern="0.##" />%
+                                                </span>
 
-                                                    <br>
+                                            </c:when>
 
+                                            <c:otherwise>
+                                                None
+                                            </c:otherwise>
 
-                                                    <small>
+                                        </c:choose>
+                                    </td>
 
-                                                        ${detail.checkInDate}
+                                    <td>
+                                        <span class="report-transaction">
+                                            <c:out
+                                                    value="${payment.transactionCode}"
+                                                    default="—" />
+                                        </span>
+                                    </td>
 
-                                                        →
+                                    <td class="report-nowrap">
+                                        <c:choose>
 
-                                                        ${detail.checkOutDate}
+                                            <c:when test="${not empty payment.paymentDate}">
+                                                <c:out value="${fn:replace(payment.paymentDate, 'T', ' ')}" />
+                                            </c:when>
 
-                                                    </small>
+                                            <c:otherwise>
+                                                <span class="report-muted">
+                                                    Not recorded
+                                                </span>
+                                            </c:otherwise>
 
+                                        </c:choose>
+                                    </td>
 
-                                                    <br>
+                                </tr>
 
-
-                                                    <small>
-
-                                                        Guests:
-                                                        ${detail.guestCount}
-
-                                                    </small>
-
-
-                                                </div>
-
-
-                                            </c:forEach>
-
-
-                                        </td>
-
-
-                                        <!-- Booking Original Price -->
-                                        <td>
-
-                                            $${payment.booking.totalPrice}
-
-                                        </td>
-
-
-                                        <!-- Actual Paid Amount -->
-                                        <td>
-
-                                            <strong
-                                                class="text-success">
-
-                                                $${payment.amount}
-
-                                            </strong>
-
-                                        </td>
-
-
-                                        <!-- Payment Method -->
-                                        <td>
-
-
-                                            <c:choose>
-
-
-                                                <c:when test="${payment.paymentMethod == 'cash'}">
-
-                                                    Cash
-
-                                                </c:when>
-
-
-                                                <c:when test="${payment.paymentMethod == 'bank_transfer'}">
-
-                                                    Bank Transfer
-
-                                                </c:when>
-
-
-                                                <c:when test="${payment.paymentMethod == 'credit_card'}">
-
-                                                    Credit Card
-
-                                                </c:when>
-
-
-                                                <c:when test="${payment.paymentMethod == 'e_wallet'}">
-
-                                                    E-Wallet
-
-                                                </c:when>
-
-
-                                                <c:otherwise>
-
-                                                    ${payment.paymentMethod}
-
-                                                </c:otherwise>
-
-
-                                            </c:choose>
-
-
-                                        </td>
-
-
-                                        <!-- Payment Status -->
-                                        <td>
-
-
-                                            <c:choose>
-
-
-                                                <c:when test="${payment.paymentStatus == 'paid'}">
-
-                                                    <span
-                                                        class="badge
-                                                               bg-success">
-
-                                                        Paid
-
-                                                    </span>
-
-                                                </c:when>
-
-
-                                                <c:when test="${payment.paymentStatus == 'pending'}">
-
-                                                    <span
-                                                        class="badge
-                                                               bg-warning
-                                                               text-dark">
-
-                                                        Pending
-
-                                                    </span>
-
-                                                </c:when>
-
-
-                                                <c:when test="${payment.paymentStatus == 'failed'}">
-
-                                                    <span
-                                                        class="badge
-                                                               bg-danger">
-
-                                                        Failed
-
-                                                    </span>
-
-                                                </c:when>
-
-
-                                                <c:when test="${payment.paymentStatus == 'refunded'}">
-
-                                                    <span
-                                                        class="badge
-                                                               bg-secondary">
-
-                                                        Refunded
-
-                                                    </span>
-
-                                                </c:when>
-
-
-                                                <c:otherwise>
-
-                                                    ${payment.paymentStatus}
-
-                                                </c:otherwise>
-
-
-                                            </c:choose>
-
-
-                                        </td>
-
-
-                                        <!-- Discount -->
-                                        <td>
-
-
-                                            <c:choose>
-
-
-                                                <c:when test="${payment.discount != null}">
-
-
-                                                    <strong>
-
-                                                        ${payment.discount.code}
-
-                                                    </strong>
-
-
-                                                    <br>
-
-
-                                                    ${payment.discount.saleOff}%
-
-
-                                                </c:when>
-
-
-                                                <c:otherwise>
-
-                                                    None
-
-                                                </c:otherwise>
-
-
-                                            </c:choose>
-
-
-                                        </td>
-
-
-                                        <!-- Transaction -->
-                                        <td>
-
-
-                                            <c:choose>
-
-
-                                                <c:when test="${not empty payment.transactionCode}">
-
-                                                    ${payment.transactionCode}
-
-                                                </c:when>
-
-
-                                                <c:otherwise>
-
-                                                    -
-
-                                                </c:otherwise>
-
-
-                                            </c:choose>
-
-
-                                        </td>
-
-
-                                        <!-- Payment Date -->
-                                        <td>
-
-                                            ${payment.paymentDate}
-
-                                        </td>
-
-
-                                    </tr>
-
-
-                                </c:forEach>
-
+                            </c:forEach>
 
                             </tbody>
 
-
                         </table>
 
-
                     </div>
-
-
-                    <!-- ===================================== -->
-                    <!-- PAGINATION                            -->
-                    <!-- ===================================== -->
-
-                    <c:if test="${requestScope.totalPages > 1}">
-
-
-                        <nav
-                            aria-label="Payment report pagination"
-                            class="d-flex
-                                   w-100
-                                   justify-content-center
-                                   mt-4">
-
-
-                            <ul class="pagination">
-
-
-                                <!-- Previous -->
-                                <li
-                                    class="page-item
-                                           ${currentPage == 1
-                                             ? 'disabled'
-                                             : ''}">
-
-
-                                    <a
-                                        class="page-link"
-                                        href="${pageContext.request.contextPath}/reports?view=payments&page-index=${currentPage - 1}">
-
-                                        Previous
-
-                                    </a>
-
-
-                                </li>
-
-
-                                <!-- Page numbers -->
-                                <c:forEach
-                                    var="i"
-                                    begin="1"
-                                    end="${totalPages}">
-
-
-                                    <li
-                                        class="page-item
-                                               ${i == currentPage
-                                                 ? 'active'
-                                                 : ''}">
-
-
-                                        <a
-                                            class="page-link"
-                                            href="${pageContext.request.contextPath}/reports?view=payments&page-index=${i}">
-
-                                            ${i}
-
-                                        </a>
-
-
-                                    </li>
-
-
-                                </c:forEach>
-
-
-                                <!-- Next -->
-                                <li
-                                    class="page-item
-                                           ${currentPage == totalPages
-                                             ? 'disabled'
-                                             : ''}">
-
-
-                                    <a
-                                        class="page-link"
-                                        href="${pageContext.request.contextPath}/reports?view=payments&page-index=${currentPage + 1}">
-
-                                        Next
-
-                                    </a>
-
-
-                                </li>
-
-
-                            </ul>
-
-
-                        </nav>
-
-
-                    </c:if>
-
 
                 </c:when>
 
-
                 <c:otherwise>
-
-
-                    <div
-                        class="alert
-                               alert-warning
-                               text-center">
-
-
-                        No payment records found.
-
-
+                    <div class="report-empty">
+                        No payment transactions match the selected period.
                     </div>
-
-
                 </c:otherwise>
-
 
             </c:choose>
 
+        </section>
 
-        </div>
+    </c:if>
 
+    <%-- The shared pagination retains the selected reporting period. --%>
+    <%@ include file="report-list-pagination.jsp" %>
 
-    </main>
+</main>
 
+<%@ include file="/WEB-INF/include/footer.jsp" %>
 
-    <%@include file="/WEB-INF/include/footer.jsp" %>
-
-
-</div>
-
-
-<script
-    src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js">
-</script>
-
+<script src="${ctx}/assets/js/bootstrap.bundle.min.js"></script>
 
 </body>
-
 </html>

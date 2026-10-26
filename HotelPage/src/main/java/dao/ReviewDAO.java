@@ -43,14 +43,13 @@ public class ReviewDAO extends DBContext {
             return false;
         }
 
-        String sql =
-                "INSERT INTO Review "
+        String sql
+                = "INSERT INTO Review "
                 + "(BookingID, Comment, Star, ReviewStatus) "
                 + "VALUES (?, ?, ?, 'pending')";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
@@ -84,22 +83,21 @@ public class ReviewDAO extends DBContext {
     public boolean isBookingReviewed(
             int bookingId) {
 
-        String sql =
-                "SELECT 1 "
+        String sql
+                = "SELECT 1 "
                 + "FROM Review "
                 + "WHERE BookingID = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
                     bookingId
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 return rs.next();
             }
@@ -123,11 +121,11 @@ public class ReviewDAO extends DBContext {
     public List<Review> getReviewsByRoomNumber(
             int roomNumber) {
 
-        List<Review> list =
-                new ArrayList<>();
+        List<Review> list
+                = new ArrayList<>();
 
-        String sql =
-                "SELECT DISTINCT "
+        String sql
+                = "SELECT DISTINCT "
                 + "r.ReviewID, "
                 + "r.Comment, "
                 + "r.Star, "
@@ -168,17 +166,16 @@ public class ReviewDAO extends DBContext {
                 + "ORDER BY r.ReviewDate DESC, "
                 + "r.ReviewID DESC";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
                     roomNumber
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 while (rs.next()) {
 
@@ -209,8 +206,8 @@ public class ReviewDAO extends DBContext {
     public BigDecimal getAverageStarByRoomNumber(
             int roomNumber) {
 
-        String sql =
-                "SELECT AVG(r.Star) AS AvgStar "
+        String sql
+                = "SELECT AVG(r.Star) AS AvgStar "
                 + "FROM Review r "
                 + "JOIN Booking b "
                 + "ON b.BookingID = r.BookingID "
@@ -219,22 +216,21 @@ public class ReviewDAO extends DBContext {
                 + "WHERE bd.RoomNumber = ? "
                 + "AND r.ReviewStatus = 'approved'";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
                     roomNumber
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 if (rs.next()) {
 
-                    BigDecimal avg =
-                            rs.getBigDecimal(
+                    BigDecimal avg
+                            = rs.getBigDecimal(
                                     "AvgStar"
                             );
 
@@ -257,23 +253,18 @@ public class ReviewDAO extends DBContext {
                 .setScale(1);
     }
 
-    /*
-     * =========================================================
-     * 5. GET ALL REVIEWS FOR ADMIN
+    /**
+     * Loads all reviews.
      *
-     * Admin sees:
-     * pending
-     * approved
-     * rejected
-     * =========================================================
+     * Returns an empty list only when the query succeeds without results.
+     * Database failures are propagated to the calling servlet.
      */
     public List<Review> getAllReviews() {
 
-        List<Review> list =
-                new ArrayList<>();
+        List<Review> reviews = new ArrayList<>();
 
-        String sql =
-                "SELECT "
+        String sql
+                = "SELECT "
                 + "r.ReviewID, "
                 + "r.Comment, "
                 + "r.Star, "
@@ -301,43 +292,34 @@ public class ReviewDAO extends DBContext {
                 + "u.Role, "
                 + "u.DisplayName "
                 + "FROM Review r "
-                + "JOIN Booking b "
-                + "ON b.BookingID = r.BookingID "
-                + "JOIN Customer c "
-                + "ON c.CustomerID = b.CustomerID "
-                + "JOIN [User] u "
-                + "ON u.UserID = c.UserID "
+                + "JOIN Booking b ON b.BookingID = r.BookingID "
+                + "JOIN Customer c ON c.CustomerID = b.CustomerID "
+                + "JOIN [User] u ON u.UserID = c.UserID "
                 + "ORDER BY "
                 + "CASE r.ReviewStatus "
-                + "WHEN 'pending' THEN 1 "
-                + "WHEN 'approved' THEN 2 "
-                + "WHEN 'rejected' THEN 3 "
-                + "ELSE 4 END, "
+                + "    WHEN 'pending' THEN 1 "
+                + "    WHEN 'approved' THEN 2 "
+                + "    WHEN 'rejected' THEN 3 "
+                + "    ELSE 4 "
+                + "END, "
                 + "r.ReviewDate DESC, "
                 + "r.ReviewID DESC";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql);
-             ResultSet rs =
-                     ps.executeQuery()) {
+        try (Connection connection = getConnection(); PreparedStatement statement
+                = connection.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
 
             while (rs.next()) {
-
-                list.add(
-                        mapReview(
-                                conn,
-                                rs
-                        )
-                );
+                reviews.add(mapReview(connection, rs));
             }
 
-        } catch (SQLException e) {
+            return reviews;
 
-            e.printStackTrace();
+        } catch (SQLException ex) {
+            throw new IllegalStateException(
+                    "Unable to load review records.",
+                    ex
+            );
         }
-
-        return list;
     }
 
     /*
@@ -383,14 +365,13 @@ public class ReviewDAO extends DBContext {
             return false;
         }
 
-        String sql =
-                "UPDATE Review "
+        String sql
+                = "UPDATE Review "
                 + "SET ReviewStatus = ? "
                 + "WHERE ReviewID = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setString(
                     1,
@@ -427,8 +408,8 @@ public class ReviewDAO extends DBContext {
             int customerId,
             int roomNumber) {
 
-        String sql =
-                "SELECT 1 "
+        String sql
+                = "SELECT 1 "
                 + "FROM Booking b "
                 + "JOIN BookingDetail bd "
                 + "ON bd.BookingID = b.BookingID "
@@ -442,9 +423,8 @@ public class ReviewDAO extends DBContext {
                 + "    WHERE r.BookingID = b.BookingID "
                 + ")";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
@@ -461,8 +441,8 @@ public class ReviewDAO extends DBContext {
                     roomNumber
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 return rs.next();
             }
@@ -484,8 +464,8 @@ public class ReviewDAO extends DBContext {
             ResultSet rs)
             throws SQLException {
 
-        User user =
-                new User(
+        User user
+                = new User(
                         rs.getInt(
                                 "UserID"
                         ),
@@ -506,8 +486,8 @@ public class ReviewDAO extends DBContext {
                 )
         );
 
-        Customer customer =
-                new Customer(
+        Customer customer
+                = new Customer(
                         rs.getInt(
                                 "CustomerID"
                         ),
@@ -538,8 +518,8 @@ public class ReviewDAO extends DBContext {
                         user
                 );
 
-        Booking booking =
-                new Booking();
+        Booking booking
+                = new Booking();
 
         booking.setId(
                 rs.getInt(
@@ -602,8 +582,8 @@ public class ReviewDAO extends DBContext {
                 )
         );
 
-        Review review =
-                new Review();
+        Review review
+                = new Review();
 
         review.setReviewID(
                 rs.getInt(
@@ -654,13 +634,13 @@ public class ReviewDAO extends DBContext {
             getBookingDetails(
                     Connection conn,
                     int bookingId)
-                    throws SQLException {
+            throws SQLException {
 
-        List<model.BookingDetail> list =
-                new ArrayList<>();
+        List<model.BookingDetail> list
+                = new ArrayList<>();
 
-        String sql =
-                "SELECT "
+        String sql
+                = "SELECT "
                 + "BookingDetailID, "
                 + "BookingID, "
                 + "RoomNumber, "
@@ -673,21 +653,21 @@ public class ReviewDAO extends DBContext {
                 + "WHERE BookingID = ? "
                 + "ORDER BY BookingDetailID";
 
-        try (PreparedStatement ps =
-                conn.prepareStatement(sql)) {
+        try (PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
                     bookingId
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 while (rs.next()) {
 
-                    model.BookingDetail detail =
-                            new model.BookingDetail();
+                    model.BookingDetail detail
+                            = new model.BookingDetail();
 
                     detail.setId(
                             rs.getInt(

@@ -1,27 +1,22 @@
 package controller;
 
 import dao.ReviewDAO;
+import model.User;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-import java.util.List;
-
-import model.Review;
-import model.User;
 
 @WebServlet(
         name = "AdminReviewServlet",
         urlPatterns = {"/admin/reviews"}
 )
-public class AdminReviewServlet
-        extends HttpServlet {
+public class AdminReviewServlet extends HttpServlet {
 
     @Override
     protected void doGet(
@@ -29,59 +24,57 @@ public class AdminReviewServlet
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        HttpSession session =
-                request.getSession(false);
+        response.setContentType("text/html;charset=UTF-8");
+        response.setHeader("Cache-Control", "no-store");
 
-        /*
-         * AuthenticationFilter already protects /admin/*,
-         * but servlet checks again for safety.
-         */
-        if (session == null
-                || session.getAttribute("loggedUser") == null) {
+        // AuthenticationFilter also protects this route.
+        HttpSession session = request.getSession(false);
 
+        User user = session == null
+                ? null
+                : (User) session.getAttribute("loggedUser");
+
+        if (user == null) {
             response.sendRedirect(
-                    request.getContextPath()
-                    + "/login"
+                    request.getContextPath() + "/login"
             );
-
             return;
         }
 
-        User user =
-                (User) session.getAttribute(
-                        "loggedUser"
-                );
-
-        /*
-         * Review Management is Admin-only.
-         */
-        if (!"admin".equalsIgnoreCase(
-                user.getRole())) {
-
+        if (!"admin".equalsIgnoreCase(user.getRole())) {
             response.sendError(
                     HttpServletResponse.SC_FORBIDDEN
             );
-
             return;
         }
 
-        ReviewDAO reviewDAO =
-                new ReviewDAO();
+        try {
+            request.setAttribute(
+                    "reviews",
+                    new ReviewDAO().getAllReviews()
+            );
 
-        List<Review> reviews =
-                reviewDAO.getAllReviews();
+        } catch (IllegalStateException ex) {
 
-        request.setAttribute(
-                "reviews",
-                reviews
-        );
+            getServletContext().log(
+                    "Unable to load Admin review management.",
+                    ex
+            );
+
+            response.setStatus(
+                    HttpServletResponse.SC_SERVICE_UNAVAILABLE
+            );
+
+            request.setAttribute(
+                    "reviewLoadError",
+                    "Review data is temporarily unavailable. "
+                    + "Please try again later."
+            );
+        }
 
         request.getRequestDispatcher(
                 "/WEB-INF/reports/reviews.jsp"
-        ).forward(
-                request,
-                response
-        );
+        ).forward(request, response);
     }
 
     @Override
@@ -90,11 +83,7 @@ public class AdminReviewServlet
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        /*
-         * Moderation is handled by:
-         *
-         * /admin/reviews/moderate
-         */
+        // Moderation remains handled by /admin/reviews/moderate.
         response.sendError(
                 HttpServletResponse.SC_METHOD_NOT_ALLOWED
         );
@@ -102,7 +91,6 @@ public class AdminReviewServlet
 
     @Override
     public String getServletInfo() {
-
-        return "Admin Review Management.";
+        return "Admin review management.";
     }
 }

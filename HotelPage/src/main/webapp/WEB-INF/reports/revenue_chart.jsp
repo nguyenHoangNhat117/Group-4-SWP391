@@ -1,151 +1,251 @@
-<%-- 
-    Document   : revenue_chart
-    Created on : Jul 11, 2025, 1:34:58 PM
-    Author     : Trần Nguyễn
---%>
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+
+<fmt:setLocale value="vi_VN" />
+
+<c:set var="ctx" value="${pageContext.request.contextPath}" />
+
+<%-- Calculate display totals from the aggregated report rows. --%>
+<c:set var="reportTotalRevenue" value="${0}" />
+<c:set var="reportMaximumRevenue" value="${0}" />
+
+<c:forEach var="item" items="${reportData}">
+    <c:set var="reportTotalRevenue"
+           value="${reportTotalRevenue + item.totalRevenue}" />
+
+    <c:if test="${item.totalRevenue > reportMaximumRevenue}">
+        <c:set var="reportMaximumRevenue"
+               value="${item.totalRevenue}" />
+    </c:if>
+</c:forEach>
+
+<%-- HTML meter requires a maximum greater than its minimum. --%>
+<c:set var="reportMeterMaximum"
+       value="${reportMaximumRevenue > 0 ? reportMaximumRevenue : 1}" />
 
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Revenue Report</title>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.0"></script>
+<html lang="en" class="hotel-reports-page">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <link href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css" rel="stylesheet">
-        <link href="${pageContext.request.contextPath}/assets/css/general.css" rel="stylesheet">
-        <link href="${pageContext.request.contextPath}/assets/css/revenue_chart.css" rel="stylesheet">
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+    <title>Revenue Report | Luxe Escape</title>
+
+    <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/general.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/luxe-modern.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/luxe-shared-shell.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/luxe-ui.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/hotel-reports.css">
 </head>
 
-    <body>
-        <%@include file="/WEB-INF/include/header.jsp" %>
+<body class="hotel-reports-body ${cookie.animation.value == 'disable' ? 'disable-animation' : ''}">
 
-        <div class="btn-switch text-center mb-3">
-            <a class="btn btn-secondary"
-               href="${pageContext.request.contextPath}/reports?view=payments&page-index=1">
-                Back
-            </a>
-            
+<%@ include file="/WEB-INF/include/header.jsp" %>
+
+<main class="hotel-reports">
+
+    <div class="report-heading">
+        <div>
+            <p class="report-eyebrow">Luxe Escape / Financial reports</p>
+            <h1>Revenue report</h1>
+
+            <p class="report-description">
+                Successful payment amounts grouped by calendar month or year.
+            </p>
+        </div>
+
+        <a class="report-button" href="${ctx}/dashboard">
+            Back to dashboard ↗
+        </a>
+    </div>
+
+    <div class="report-tabs" aria-label="Report navigation">
+        <a href="${ctx}/reports?view=bookings&amp;page-index=1">
+            Bookings
+        </a>
+
+        <a href="${ctx}/reports?view=payments&amp;page-index=1">
+            Payments
+        </a>
+
+        <a href="${ctx}/reports?view=reviews">Reviews</a>
+
+        <a href="${ctx}/reports?view=month"
+           aria-current="page">Revenue</a>
+    </div>
+
+    <div class="report-toolbar">
+
+        <a class="report-button ${view == 'month' ? 'primary' : ''}"
+           href="${ctx}/reports?view=month&amp;year=${selectedYear}">
+            Monthly revenue
+        </a>
+
+        <a class="report-button ${view == 'year' ? 'primary' : ''}"
+           href="${ctx}/reports?view=year">
+            Yearly revenue
+        </a>
+
+        <c:if test="${view == 'month'}">
+            <form action="${ctx}/reports" method="get">
+                <input type="hidden" name="view" value="month">
+
+                <label for="reportYear">Report year</label>
+
+                <select id="reportYear" name="year">
+                    <%-- Preserve the selected year even when it has no paid records. --%>
+                    <option value="${selectedYear}" selected>
+                        ${selectedYear}
+                    </option>
+
+                    <c:forEach var="year" items="${availableYears}">
+                        <c:if test="${year != selectedYear}">
+                            <option value="${year}">${year}</option>
+                        </c:if>
+                    </c:forEach>
+                </select>
+
+                <button type="submit" class="report-button">
+                    Apply
+                </button>
+            </form>
+        </c:if>
+    </div>
+
+    <div class="report-total">
+        <span>
             <c:choose>
-                <c:when test="${view == 'year'}">
-                    <a class="btn btn-custom"
-                       href="${pageContext.request.contextPath}/reports?view=month&year=${selectedYear}">
-                        📅 Revenue by Month (${selectedYear})
-                    </a>
-                </c:when>
-
                 <c:when test="${view == 'month'}">
-                    <a class="btn btn-custom me-2"
-                       href="${pageContext.request.contextPath}/reports?view=year">
-                        📊 Revenue by Year
-                    </a>
-
-                    <c:if test="${not empty availableYears}">
-                        <form method="get" action="${pageContext.request.contextPath}/reports" class="d-inline-block ms-2">
-                            <input type="hidden" name="view" value="month" />
-                            <select name="year" onchange="this.form.submit()" class="form-select d-inline-block w-auto">
-                                <c:forEach var="y" items="${availableYears}">
-                                    <option value="${y}" <c:if test="${y == selectedYear}">selected</c:if>>${y}</option>
-                                </c:forEach>
-                            </select>
-                        </form>
-                    </c:if>
+                    Total paid revenue · ${selectedYear}
                 </c:when>
+
+                <c:otherwise>
+                    Total paid revenue · All reported years
+                </c:otherwise>
             </c:choose>
-        </div>
+        </span>
 
-        <div class="chart-container">
-            <h3 class="text-center mb-4 text-black">
-                Revenue by
+        <strong>
+            <fmt:formatNumber
+                    value="${reportTotalRevenue}"
+                    pattern="#,##0.##" />
+            ₫
+        </strong>
+
+        <small>
+            Based on Payment.Amount with PaymentStatus = paid.
+        </small>
+    </div>
+
+    <c:if test="${reportTotalRevenue == 0}">
+        <div class="report-note">
+            No paid revenue was recorded for this selection.
+        </div>
+    </c:if>
+
+    <section class="report-panel">
+
+        <div class="report-panel-heading">
+            <h2>
                 <c:choose>
-                    <c:when test="${view == 'month'}">Month <small class="text-muted">(Year: ${selectedYear})</small></c:when>
-                    <c:otherwise>Year</c:otherwise>
+                    <c:when test="${view == 'month'}">
+                        Monthly breakdown · ${selectedYear}
+                    </c:when>
+
+                    <c:otherwise>
+                        Yearly breakdown
+                    </c:otherwise>
                 </c:choose>
-            </h3>
-            <canvas id="revenueChart"></canvas>
+            </h2>
+
+            <span class="report-meta">Currency: VND</span>
         </div>
 
+        <c:choose>
+            <c:when test="${not empty reportData}">
+                <div class="report-table-scroll">
+                    <table class="report-table">
+                        <thead>
+                        <tr>
+                            <th scope="col">
+                                <c:choose>
+                                    <c:when test="${view == 'month'}">
+                                        Month
+                                    </c:when>
 
+                                    <c:otherwise>Year</c:otherwise>
+                                </c:choose>
+                            </th>
 
-        <script>
-            const labels = [
-            <c:forEach var="item" items="${reportData}" varStatus="loop">
-            "${item.timeUnit}"<c:if test="${!loop.last}">,</c:if>
-            </c:forEach>
-            ];
+                            <th scope="col" class="numeric">
+                                Paid revenue
+                            </th>
 
-            const data = [
-            <c:forEach var="item" items="${reportData}" varStatus="loop">
-                ${item.totalRevenue}<c:if test="${!loop.last}">,</c:if>
-            </c:forEach>
-            ];
+                            <th scope="col">
+                                Relative amount
+                            </th>
+                        </tr>
+                        </thead>
 
-            const ctx = document.getElementById('revenueChart').getContext('2d');
+                        <tbody>
+                        <c:forEach var="item" items="${reportData}">
+                            <tr>
+                                <td class="report-nowrap">
+                                    <strong>
+                                        <c:if test="${view == 'month'}">
+                                            Month
+                                        </c:if>
 
-            const revenueChart = new Chart(ctx, {
-                type: "bar",
-                data: {
-                    labels: labels,
-                    datasets: [{
-                            label: 'Revenue ($)',
-                            data: data,
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            borderWidth: 2,
-                            fill: ${view == "month" ? "true" : "false"},
-                            tension: 0.4,
-                            pointRadius: 4,
-                            pointHoverRadius: 6
-                        }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
-                    plugins: {
-                        tooltip: {enabled: true},
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        },
-                        zoom: {
-                            zoom: {
-                                wheel: {enabled: true},
-                                pinch: {enabled: true},
-                                mode: 'x'
-                            },
-                            pan: {
-                                enabled: true,
-                                mode: 'x'
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Amount ($)'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: '${view == "month" ? "Month" : "Year"}'
-                            }
-                        }
-                    }
-                }
-            });
-        </script>
+                                        <c:out value="${item.timeUnit}" />
+                                    </strong>
+                                </td>
 
-        <%@include file="/WEB-INF/include/footer.jsp" %>
-        <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js"></script>
-    </body>
+                                <td class="numeric">
+                                    <fmt:formatNumber
+                                            value="${item.totalRevenue}"
+                                            pattern="#,##0.##" />
+                                    ₫
+                                </td>
+
+                                <td class="report-chart-cell">
+                                    <meter class="report-meter"
+                                           min="0"
+                                           max="${reportMeterMaximum}"
+                                           value="${item.totalRevenue}"
+                                           aria-label="Paid revenue for period ${item.timeUnit}">
+                                        <c:out value="${item.totalRevenue}" />
+                                    </meter>
+                                </td>
+                            </tr>
+                        </c:forEach>
+                        </tbody>
+                    </table>
+                </div>
+            </c:when>
+
+            <c:otherwise>
+                <div class="report-empty">
+                    No revenue records found.
+                </div>
+            </c:otherwise>
+        </c:choose>
+
+    </section>
+
+    <div class="report-note">
+        Bar lengths compare revenue with the highest amount in this report.
+        Revenue follows payment dates and includes successful deposits and
+        balance payments. Pending, failed and refunded transactions are excluded.
+        This is paid revenue, not a separate net-refund cash-flow report.
+    </div>
+
+</main>
+
+<%@ include file="/WEB-INF/include/footer.jsp" %>
+
+<script src="${ctx}/assets/js/bootstrap.bundle.min.js"></script>
+
+</body>
 </html>
