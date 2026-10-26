@@ -30,6 +30,7 @@ import java.util.Objects;
             "/room-type",
             "/discounts",
             "/reports",
+            "/dashboard",
             "/admin/*",
             "/toggle-animation"
         }
@@ -141,11 +142,15 @@ public class AuthenticationFilter implements Filter {
             return;
         }
 
-        if ("/reports".equals(servletPath)) {
+        // Reporting pages are restricted to Hotel Managers.
+        if ("/reports".equals(servletPath)
+                || "/dashboard".equals(servletPath)) {
+
             if (!isRole(role, "manager")) {
                 deny(res);
                 return;
             }
+
             chain.doFilter(request, response);
             return;
         }

@@ -1,243 +1,451 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
 package controller;
 
-import dao.BookingDAO;
-import dao.PaymentDAO;
 import dao.ReportDAO;
+import dao.ReportRecordsDAO;
 import dao.ReviewDAO;
-import java.io.IOException;
-import java.io.PrintWriter;
+import model.User;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.time.LocalDate;
-import java.util.List;
-import model.Booking;
-import model.Payment;
-import model.RevenueReport;
-import model.Review;
+import jakarta.servlet.http.HttpSession;
 
-/**
- *
- * @author Đặng Hoàng Vũ
- */
-@WebServlet(name = "ReportsServlet", urlPatterns = {"/reports"})
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+
+@WebServlet(
+        name = "ReportsServlet",
+        urlPatterns = {"/reports"}
+)
 public class ReportsServlet extends HttpServlet {
 
-    /**
-     * Processes both GET and POST requests.
-     * This is a placeholder method and is not used in real logic.
-     *
-     * @param request the HttpServletRequest object
-     * @param response the HttpServletResponse object
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try ( PrintWriter out = response.getWriter()) {
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet ReportsServlet</title>");
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet ReportsServlet at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
-        }
-    }
+    private static final int PAGE_SIZE = 5;
 
-    /**
-     * Handles the HTTP GET method.
-     * Dynamically loads and forwards different types of reports based on the "view" parameter.
-     *
-     * @param request the HttpServletRequest containing parameters like view, page-index, year
-     * @param response the HttpServletResponse used to redirect or forward
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
-        
-        if (request.getParameter("view") == null) {
-            response.sendRedirect("./reports?view=bookings");
+
+        response.setContentType("text/html;charset=UTF-8");
+        response.setHeader("Cache-Control", "no-store");
+
+        // AuthenticationFilter also revalidates account status and role.
+        HttpSession session = request.getSession(false);
+
+        User user = session == null
+                ? null
+                : (User) session.getAttribute("loggedUser");
+
+        if (user == null) {
+            response.sendRedirect(
+                    request.getContextPath() + "/login"
+            );
+            return;
+        }
+
+        if (!"manager".equalsIgnoreCase(user.getRole())) {
+            response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN
+            );
             return;
         }
 
         String view = request.getParameter("view");
 
+        if (view == null || view.trim().isEmpty()) {
+            view = "bookings";
+        }
+
         switch (view) {
-            case "bookings": {
-                // Load all bookings, delete unpaid overdue ones
-                BookingDAO bDAO = new BookingDAO();
-                bDAO.expirePendingBookings();
-                List<Booking> allBookings = bDAO.getAll();
+            case "bookings":
+            case "payments":
+                showRecords(request, response, view);
+                return;
 
-                int pageSize = 5;
-                int pageIndex = 1;
-                String pageParam = request.getParameter("page-index");
-
-                if (pageParam != null) {
-                    try {
-                        pageIndex = Integer.parseInt(pageParam);
-                    } catch (NumberFormatException ignored) {}
-                }
-
-                int totalBookings = allBookings.size();
-                int totalPages = (int) Math.ceil((double) totalBookings / pageSize);
-                if (totalPages == 0) totalPages = 1;
-
-                if (pageParam == null || pageIndex < 1) {
-                    response.sendRedirect("./reports?view=bookings&page-index=1");
-                    return;
-                } else if (pageIndex > totalPages) {
-                    response.sendRedirect("./reports?view=bookings&page-index=" + totalPages);
-                    return;
-                }
-
-                int fromIndex = (pageIndex - 1) * pageSize;
-                int toIndex = Math.min(fromIndex + pageSize, totalBookings);
-                List<Booking> pageBookings = allBookings.subList(fromIndex, toIndex);
-
-                request.setAttribute("bookings", pageBookings);
-                request.setAttribute("totalPages", totalPages);
-                request.setAttribute("currentPage", pageIndex);
-                request.getRequestDispatcher("/WEB-INF/reports/books.jsp").forward(request, response);
-                break;
-            }
-            case "payments": {
-                // Load all payments and paginate
-                PaymentDAO paymentDAO = new PaymentDAO();
-                List<Payment> allPayments = paymentDAO.getAllPayments();
-
-                int pageSize = 10;
-                int pageIndex = 1;
-                String pageParam = request.getParameter("page-index");
-
-                if (pageParam != null) {
-                    try {
-                        pageIndex = Integer.parseInt(pageParam);
-                    } catch (NumberFormatException ignored) {}
-                } else {
-                    response.sendRedirect("./reports?view=payments&page-index=1");
-                    return;
-                }
-
-                int totalPayments = allPayments.size();
-                int totalPages = (int) Math.ceil((double) totalPayments / pageSize);
-                if (totalPages == 0) totalPages = 1;
-
-                if (pageIndex < 1) {
-                    response.sendRedirect("./reports?view=payments&page-index=1");
-                    return;
-                } else if (pageIndex > totalPages) {
-                    response.sendRedirect("./reports?view=payments&page-index=" + totalPages);
-                    return;
-                }
-
-                int fromIndex = (pageIndex - 1) * pageSize;
-                int toIndex = Math.min(fromIndex + pageSize, totalPayments);
-                List<Payment> pagePayments = allPayments.subList(fromIndex, toIndex);
-
-                request.setAttribute("payments", pagePayments);
-                request.setAttribute("currentPage", pageIndex);
-                request.setAttribute("totalPages", totalPages);
-                request.getRequestDispatcher("/WEB-INF/reports/payments.jsp").forward(request, response);
-                break;
-            }
             case "reviews": {
-                // Load all reviews
-                ReviewDAO dao = new ReviewDAO();
-                List<Review> reviews = dao.getAllReviews();
 
-                request.setAttribute("reviews", reviews);
-                request.getRequestDispatcher("/WEB-INF/reports/reviews.jsp").forward(request, response);
-                break;
-            }
-            case "month": {
-                // Load monthly revenue report for a given year
-                int currentYear = LocalDate.now().getYear();
-                request.setAttribute("currentYear", currentYear);
+                try {
+                    // Publish records only after the complete query succeeds.
+                    request.setAttribute(
+                            "reviews",
+                            new ReviewDAO().getAllReviews()
+                    );
 
-                String yearParam = request.getParameter("year");
-                int year = currentYear;
+                } catch (IllegalStateException ex) {
 
-                if (yearParam != null) {
-                    try {
-                        year = Integer.parseInt(yearParam);
-                    } catch (NumberFormatException ignored) {}
+                    // Keep technical details in server logs.
+                    getServletContext().log(
+                            "Unable to load the Manager review report.",
+                            ex
+                    );
+
+                    response.setStatus(
+                            HttpServletResponse.SC_SERVICE_UNAVAILABLE
+                    );
+
+                    request.setAttribute(
+                            "reviewLoadError",
+                            "Review data is temporarily unavailable. "
+                            + "Please try again later."
+                    );
                 }
 
-                ReportDAO rdao = new ReportDAO();
-                List<Integer> availableYears = rdao.getAvailableYears();
-                List<RevenueReport> data = rdao.getRevenueByMonth(year);
+                request.getRequestDispatcher(
+                        "/WEB-INF/reports/reviews.jsp"
+                ).forward(request, response);
 
-                request.setAttribute("reportData", data);
-                request.setAttribute("view", "month");
-                request.setAttribute("selectedYear", year);
-                request.setAttribute("availableYears", availableYears);
-
-                request.getRequestDispatcher("/WEB-INF/reports/revenue_chart.jsp").forward(request, response);
-                break;
+                return;
             }
-            case "year": {
-                // Load yearly revenue report
-                int currentYear = LocalDate.now().getYear();
-                request.setAttribute("currentYear", currentYear);
 
-                ReportDAO rdao = new ReportDAO();
-                List<RevenueReport> data = rdao.getRevenueByYear();
-                List<Integer> availableYears = rdao.getAvailableYears();
+            case "month":
+            case "year":
+                showRevenue(request, response, view);
+                return;
 
-                int selectedYear = availableYears.isEmpty() ? 2025 : availableYears.get(availableYears.size() - 1);
-
-                request.setAttribute("reportData", data);
-                request.setAttribute("view", "year");
-                request.setAttribute("availableYears", availableYears);
-                request.setAttribute("selectedYear", selectedYear);
-
-                request.getRequestDispatcher("/WEB-INF/reports/revenue_chart.jsp").forward(request, response);
-                break;
-            }
-            default: {
-                // Invalid view fallback
-                request.getRequestDispatcher("/WEB-INF/error/error404.jsp").forward(request, response);
-                break;
-            }
+            default:
+                response.sendError(
+                        HttpServletResponse.SC_NOT_FOUND
+                );
         }
     }
 
-    /**
-     * Handles the HTTP POST method.
-     * Currently delegates to processRequest (not used).
-     *
-     * @param request the HttpServletRequest object
-     * @param response the HttpServletResponse object
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    private void showRecords(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            String view)
             throws ServletException, IOException {
-        processRequest(request, response);
+
+        request.setAttribute("reportView", view);
+        request.setAttribute("filterActive", false);
+
+        configureLinks(request, view, null, null, 1, 1);
+
+        try {
+            String fromParameter
+                    = trim(request.getParameter("fromDate"));
+
+            String toParameter
+                    = trim(request.getParameter("toDate"));
+
+            LocalDate fromDate = null;
+            LocalDate toDate = null;
+
+            if (!fromParameter.isEmpty()
+                    || !toParameter.isEmpty()) {
+
+                if (fromParameter.isEmpty()
+                        || toParameter.isEmpty()) {
+
+                    throw new IllegalArgumentException(
+                            "Please select both start date and end date."
+                    );
+                }
+
+                fromDate = LocalDate.parse(fromParameter);
+                toDate = LocalDate.parse(toParameter);
+
+                request.setAttribute("fromDate", fromDate);
+                request.setAttribute("toDate", toDate);
+
+                if (fromDate.isAfter(toDate)) {
+                    throw new IllegalArgumentException(
+                            "Start date must not be after end date."
+                    );
+                }
+
+                if (fromDate.getYear() < 1
+                        || toDate.getYear() > 9998) {
+
+                    throw new IllegalArgumentException(
+                            "Report years must be between 1 and 9998."
+                    );
+                }
+            }
+
+            ReportRecordsDAO dao = new ReportRecordsDAO();
+
+            boolean bookingsView = "bookings".equals(view);
+
+            long totalRecords = bookingsView
+                    ? dao.countBookingRecords(fromDate, toDate)
+                    : dao.countPaymentRecords(fromDate, toDate);
+
+            long totalPages = totalRecords == 0
+                    ? 1
+                    : 1 + (totalRecords - 1) / PAGE_SIZE;
+
+            // Clamp invalid or excessive page numbers to a valid page.
+            long page = Math.min(
+                    parsePage(request.getParameter("page-index")),
+                    totalPages
+            );
+
+            if (bookingsView) {
+                request.setAttribute(
+                        "bookings",
+                        dao.getBookingRecords(
+                                fromDate,
+                                toDate,
+                                page,
+                                PAGE_SIZE
+                        )
+                );
+            } else {
+                request.setAttribute(
+                        "payments",
+                        dao.getPaymentRecords(
+                                fromDate,
+                                toDate,
+                                page,
+                                PAGE_SIZE
+                        )
+                );
+            }
+
+            request.setAttribute(
+                    "filterActive",
+                    fromDate != null
+            );
+            request.setAttribute("totalRecords", totalRecords);
+            request.setAttribute("totalPages", totalPages);
+            request.setAttribute("currentPage", page);
+
+            configureLinks(
+                    request,
+                    view,
+                    fromDate,
+                    toDate,
+                    page,
+                    totalPages
+            );
+
+        } catch (DateTimeParseException ex) {
+
+            response.setStatus(
+                    HttpServletResponse.SC_BAD_REQUEST
+            );
+
+            request.setAttribute(
+                    "reportError",
+                    "Invalid date. Please use a valid date in YYYY-MM-DD format."
+            );
+
+        } catch (IllegalArgumentException ex) {
+
+            response.setStatus(
+                    HttpServletResponse.SC_BAD_REQUEST
+            );
+
+            request.setAttribute(
+                    "reportError",
+                    ex.getMessage()
+            );
+
+        } catch (IllegalStateException ex) {
+
+            getServletContext().log(
+                    "Unable to load report records.",
+                    ex
+            );
+
+            response.setStatus(
+                    HttpServletResponse.SC_SERVICE_UNAVAILABLE
+            );
+
+            request.setAttribute(
+                    "reportError",
+                    "Report data is temporarily unavailable. Please try again."
+            );
+        }
+
+        String jsp = "bookings".equals(view)
+                ? "/WEB-INF/reports/books.jsp"
+                : "/WEB-INF/reports/payments.jsp";
+
+        request.getRequestDispatcher(jsp)
+                .forward(request, response);
     }
 
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String describing the servlet
-     */
-    @Override
-    public String getServletInfo() {
-        return "Handles viewing reports of bookings, payments, reviews, and revenue (monthly/yearly)";
-    }// </editor-fold>
+    private void showRevenue(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            String view)
+            throws ServletException, IOException {
 
+        int currentYear = LocalDate.now(
+                ZoneId.of("Asia/Ho_Chi_Minh")
+        ).getYear();
+
+        try {
+            ReportDAO dao = new ReportDAO();
+            List<Integer> years = dao.getAvailableYears();
+
+            int selectedYear = currentYear;
+
+            if ("month".equals(view)) {
+                String parameter
+                        = trim(request.getParameter("year"));
+
+                if (!parameter.isEmpty()) {
+                    selectedYear = Integer.parseInt(parameter);
+                }
+
+                if (selectedYear < 1 || selectedYear > 9998) {
+                    throw new IllegalArgumentException(
+                            "Report years must be between 1 and 9998."
+                    );
+                }
+
+                request.setAttribute(
+                        "reportData",
+                        dao.getRevenueByMonth(selectedYear)
+                );
+
+            } else {
+                if (!years.isEmpty()) {
+                    selectedYear = years.get(years.size() - 1);
+                }
+
+                request.setAttribute(
+                        "reportData",
+                        dao.getRevenueByYear()
+                );
+            }
+
+            request.setAttribute("view", view);
+            request.setAttribute("currentYear", currentYear);
+            request.setAttribute("selectedYear", selectedYear);
+            request.setAttribute("availableYears", years);
+
+            request.getRequestDispatcher(
+                    "/WEB-INF/reports/revenue_chart.jsp"
+            ).forward(request, response);
+
+        } catch (IllegalArgumentException ex) {
+
+            response.sendError(
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    "Invalid report year."
+            );
+
+        } catch (IllegalStateException ex) {
+
+            getServletContext().log(
+                    "Unable to load revenue report.",
+                    ex
+            );
+
+            response.sendError(
+                    HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                    "Revenue data is temporarily unavailable."
+            );
+        }
+    }
+
+    private void configureLinks(
+            HttpServletRequest request,
+            String view,
+            LocalDate fromDate,
+            LocalDate toDate,
+            long page,
+            long totalPages) {
+
+        request.setAttribute(
+                "bookingsUrl",
+                reportUrl(
+                        request, "bookings", 1,
+                        fromDate, toDate
+                )
+        );
+
+        request.setAttribute(
+                "paymentsUrl",
+                reportUrl(
+                        request, "payments", 1,
+                        fromDate, toDate
+                )
+        );
+
+        request.setAttribute(
+                "resetUrl",
+                reportUrl(request, view, 1, null, null)
+        );
+
+        request.setAttribute(
+                "firstPageUrl",
+                reportUrl(request, view, 1, fromDate, toDate)
+        );
+
+        request.setAttribute(
+                "previousPageUrl",
+                reportUrl(
+                        request, view, Math.max(1, page - 1),
+                        fromDate, toDate
+                )
+        );
+
+        request.setAttribute(
+                "nextPageUrl",
+                reportUrl(
+                        request, view, Math.min(totalPages, page + 1),
+                        fromDate, toDate
+                )
+        );
+
+        request.setAttribute(
+                "lastPageUrl",
+                reportUrl(
+                        request, view, totalPages,
+                        fromDate, toDate
+                )
+        );
+
+        String dashboardUrl
+                = request.getContextPath() + "/dashboard";
+
+        if (fromDate != null && toDate != null) {
+            dashboardUrl += "?fromDate=" + fromDate
+                    + "&toDate=" + toDate;
+        }
+
+        request.setAttribute("dashboardUrl", dashboardUrl);
+    }
+
+    private String reportUrl(
+            HttpServletRequest request,
+            String view,
+            long page,
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        String url = request.getContextPath()
+                + "/reports?view=" + view
+                + "&page-index=" + page;
+
+        if (fromDate != null && toDate != null) {
+            url += "&fromDate=" + fromDate
+                    + "&toDate=" + toDate;
+        }
+
+        return url;
+    }
+
+    private long parsePage(String value) {
+
+        try {
+            return Math.max(1, Long.parseLong(trim(value)));
+        } catch (NumberFormatException ex) {
+            return 1;
+        }
+    }
+
+    private String trim(String value) {
+        return value == null ? "" : value.trim();
+    }
 }

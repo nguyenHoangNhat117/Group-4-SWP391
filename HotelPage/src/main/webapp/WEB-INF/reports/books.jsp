@@ -1,433 +1,226 @@
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+
+<fmt:setLocale value="vi_VN" />
+<c:set var="ctx" value="${pageContext.request.contextPath}" />
 
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<html lang="en" class="hotel-reports-page">
 
-        <title>Booking Reports</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <link
-            href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css"
-            rel="stylesheet">
+    <title>Booking Report | Luxe Escape</title>
 
-        <link
-            href="${pageContext.request.contextPath}/assets/css/general.css"
-            rel="stylesheet">
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+    <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/general.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/luxe-modern.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/luxe-shared-shell.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/luxe-ui.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/hotel-reports.css">
 </head>
 
-    <body>
+<body class="hotel-reports-body ${cookie.animation.value == 'disable' ? 'disable-animation' : ''}">
 
-        <div class="body-wrapper">
+<%@ include file="/WEB-INF/include/header.jsp" %>
 
-            <%@include file="/WEB-INF/include/header.jsp" %>
+<main class="hotel-reports">
 
-            <main>
+    <%-- Shared heading, navigation and date filter. --%>
+    <%@ include file="report-list-toolbar.jsp" %>
 
-                <div class="container py-4">
+    <%-- Do not display an empty results table when loading fails. --%>
+    <c:if test="${empty reportError}">
 
-                    <h2 class="fw-bold text-center mb-4">
-                        Booking Report
-                    </h2>
+        <section class="report-panel">
 
+            <div class="report-panel-heading">
+                <h2>Reservation records</h2>
 
-                    <c:choose>
+                <span class="report-meta">
+                    ${totalRecords} matching bookings
+                    · ${fn:length(bookings)} on this page
+                </span>
+            </div>
 
-                        <c:when test="${not empty requestScope.bookings}">
+            <c:choose>
 
-                            <div class="d-flex flex-column gap-3">
+                <c:when test="${not empty bookings}">
 
-                                <c:forEach
-                                    var="booking"
-                                    items="${requestScope.bookings}">
+                    <div class="report-table-scroll">
 
-                                    <div
-                                        class="d-flex
-                                               flex-column
-                                               flex-md-row
-                                               shadow-sm
-                                               rounded-4
-                                               p-3
-                                               align-items-md-center
-                                               justify-content-between
-                                               bg-white">
+                        <table class="report-table">
 
-                                        <div class="mb-3 mb-md-0">
+                            <thead>
+                            <tr>
+                                <th scope="col">Booking</th>
+                                <th scope="col">Customer</th>
+                                <th scope="col">Created at</th>
+                                <th scope="col">Room / Stay</th>
+                                <th scope="col">Status</th>
+                                <th scope="col" class="numeric">
+                                    Booking total
+                                </th>
+                            </tr>
+                            </thead>
 
-                                            <h5 class="fw-semibold text-dark mb-2">
+                            <tbody>
 
-                                                Booking #${booking.id}
+                            <c:forEach var="booking" items="${bookings}">
 
-                                            </h5>
+                                <tr>
 
+                                    <td>
+                                        <strong>#${booking.id}</strong>
 
-                                            <p class="mb-1">
+                                        <c:if test="${not empty booking.specialRequest}">
+                                            <span class="report-muted">
+                                                <c:out value="${booking.specialRequest}" />
+                                            </span>
+                                        </c:if>
+                                    </td>
 
-                                                <strong>
-                                                    Customer ID:
-                                                </strong>
+                                    <td>
+                                        <c:choose>
 
-                                                ${booking.customer.customerID}
+                                            <c:when test="${not empty booking.customer.firstName
+                                                            or not empty booking.customer.lastName}">
+                                                <c:out value="${booking.customer.firstName}" />
+                                                <c:out value="${booking.customer.lastName}" />
+                                            </c:when>
 
-                                            </p>
+                                            <c:otherwise>
+                                                Customer #${booking.customer.customerID}
+                                            </c:otherwise>
 
+                                        </c:choose>
 
-                                            <p class="mb-1">
+                                        <span class="report-muted">
+                                            <c:out value="${booking.customer.email}" />
+                                        </span>
+                                    </td>
 
-                                                <strong>
-                                                    Customer:
-                                                </strong>
+                                    <td class="report-nowrap">
+                                        <c:out value="${fn:replace(booking.bookingDate, 'T', ' ')}" />
+                                    </td>
 
-                                                <c:choose>
+                                    <td>
+                                        <c:choose>
 
-                                                    <c:when test="${not empty booking.customer.firstName
-                                                                    || not empty booking.customer.lastName}">
+                                            <c:when test="${not empty booking.details}">
 
-                                                        ${booking.customer.firstName}
-                                                        ${booking.customer.lastName}
+                                                <c:forEach var="detail"
+                                                           items="${booking.details}">
 
-                                                    </c:when>
-
-                                                    <c:otherwise>
-                                                        -
-                                                    </c:otherwise>
-
-                                                </c:choose>
-
-                                            </p>
-
-
-                                            <p class="mb-1">
-
-                                                <strong>
-                                                    Booking Date:
-                                                </strong>
-
-                                                ${booking.bookingDate}
-
-                                            </p>
-
-
-                                            <p class="mb-1">
-
-                                                <strong>
-                                                    Status:
-                                                </strong>
-
-                                                <c:choose>
-
-                                                    <c:when test="${booking.status == 'pending'}">
-
-                                                        <span class="badge bg-warning text-dark">
-                                                            Pending
-                                                        </span>
-
-                                                    </c:when>
-
-                                                    <c:when test="${booking.status == 'confirmed'}">
-
-                                                        <span class="badge bg-primary">
-                                                            Confirmed
-                                                        </span>
-
-                                                    </c:when>
-
-                                                    <c:when test="${booking.status == 'checked_in'}">
-
-                                                        <span class="badge bg-info text-dark">
-                                                            Checked In
-                                                        </span>
-
-                                                    </c:when>
-
-                                                    <c:when test="${booking.status == 'checked_out'}">
-
-                                                        <span class="badge bg-secondary">
-                                                            Checked Out
-                                                        </span>
-
-                                                    </c:when>
-
-                                                    <c:when test="${booking.status == 'completed'}">
-
-                                                        <span class="badge bg-success">
-                                                            Completed
-                                                        </span>
-
-                                                    </c:when>
-
-                                                    <c:when test="${booking.status == 'cancelled'}">
-
-                                                        <span class="badge bg-danger">
-                                                            Cancelled
-                                                        </span>
-
-                                                    </c:when>
-
-                                                    <c:otherwise>
-
-                                                        <span class="badge bg-dark">
-                                                            ${booking.status}
-                                                        </span>
-
-                                                    </c:otherwise>
-
-                                                </c:choose>
-
-                                            </p>
-
-
-                                            <c:choose>
-
-                                                <c:when test="${not empty booking.details}">
-
-                                                    <div class="mt-3">
+                                                    <div class="report-room">
 
                                                         <strong>
-                                                            Room Details:
+                                                            <a href="${ctx}/details?roomNumber=${detail.roomNumber}">
+                                                                Room #${detail.roomNumber}
+                                                            </a>
                                                         </strong>
 
-                                                        <c:forEach
-                                                            var="detail"
-                                                            items="${booking.details}">
+                                                        <span class="report-muted">
+                                                            ${detail.checkInDate}
+                                                            → ${detail.checkOutDate}
+                                                        </span>
 
-                                                            <div
-                                                                class="border
-                                                                       rounded-3
-                                                                       p-2
-                                                                       mt-2">
+                                                        <span class="report-muted">
+                                                            ${detail.guestCount} guests
+                                                            ·
+                                                            <fmt:formatNumber
+                                                                    value="${detail.pricePerNight}"
+                                                                    pattern="#,##0.##" />
+                                                            ₫ / night
+                                                        </span>
 
-                                                                <p class="mb-1">
-
-                                                                    <strong>
-                                                                        Room:
-                                                                    </strong>
-
-                                                                    <a
-                                                                        href="${pageContext.request.contextPath}/details?roomNumber=${detail.roomNumber}"
-                                                                        class="text-black fw-bold">
-
-                                                                        #${detail.roomNumber}
-
-                                                                    </a>
-
-                                                                </p>
-
-
-                                                                <p class="mb-1">
-
-                                                                    <strong>
-                                                                        Check-in:
-                                                                    </strong>
-
-                                                                    ${detail.checkInDate}
-
-                                                                </p>
-
-
-                                                                <p class="mb-1">
-
-                                                                    <strong>
-                                                                        Check-out:
-                                                                    </strong>
-
-                                                                    ${detail.checkOutDate}
-
-                                                                </p>
-
-
-                                                                <p class="mb-1">
-
-                                                                    <strong>
-                                                                        Guests:
-                                                                    </strong>
-
-                                                                    ${detail.guestCount}
-
-                                                                </p>
-
-
-                                                                <p class="mb-1">
-
-                                                                    <strong>
-                                                                        Price / Night:
-                                                                    </strong>
-
-                                                                    $${detail.pricePerNight}
-
-                                                                </p>
-
-
-                                                                <c:if test="${not empty detail.specialRequest}">
-
-                                                                    <p class="mb-1">
-
-                                                                        <strong>
-                                                                            Special Request:
-                                                                        </strong>
-
-                                                                        <c:out value="${detail.specialRequest}"/>
-
-                                                                    </p>
-
-                                                                </c:if>
-
-                                                            </div>
-
-                                                        </c:forEach>
+                                                        <c:if test="${not empty detail.specialRequest}">
+                                                            <span class="report-muted">
+                                                                <c:out value="${detail.specialRequest}" />
+                                                            </span>
+                                                        </c:if>
 
                                                     </div>
 
-                                                </c:when>
+                                                </c:forEach>
 
+                                            </c:when>
 
-                                                <c:otherwise>
+                                            <c:otherwise>
+                                                <span class="report-muted">
+                                                    No room information
+                                                </span>
+                                            </c:otherwise>
 
-                                                    <p class="text-muted mt-2 mb-0">
+                                        </c:choose>
+                                    </td>
 
-                                                        No room information available.
+                                    <td>
+                                        <span class="report-status <c:out value='${booking.status}' />">
+                                            <c:out value="${fn:replace(booking.status, '_', ' ')}" />
+                                        </span>
 
-                                                    </p>
+                                        <c:if test="${booking.status == 'cancelled'}">
 
-                                                </c:otherwise>
+                                            <c:if test="${not empty booking.cancellationDate}">
+                                                <span class="report-muted">
+                                                    <c:out value="${fn:replace(booking.cancellationDate, 'T', ' ')}" />
+                                                </span>
+                                            </c:if>
 
-                                            </c:choose>
+                                            <c:if test="${not empty booking.cancellationReason}">
+                                                <span class="report-muted">
+                                                    <c:out value="${booking.cancellationReason}" />
+                                                </span>
+                                            </c:if>
 
-                                        </div>
+                                        </c:if>
+                                    </td>
 
+                                    <td class="numeric">
+                                        <strong>
+                                            <fmt:formatNumber
+                                                    value="${booking.totalPrice}"
+                                                    pattern="#,##0.##" />
+                                            ₫
+                                        </strong>
+                                    </td>
 
-                                        <div class="text-md-end mt-3 mt-md-0">
+                                </tr>
 
-                                            <p class="text-muted mb-1">
+                            </c:forEach>
 
-                                                Total Price
+                            </tbody>
 
-                                            </p>
+                        </table>
 
-                                            <p
-                                                class="fw-bold
-                                                       fs-5
-                                                       text-success
-                                                       mb-2">
+                    </div>
 
-                                                $${booking.totalPrice}
+                </c:when>
 
-                                            </p>
+                <c:otherwise>
+                    <div class="report-empty">
+                        No bookings match the selected period.
+                    </div>
+                </c:otherwise>
 
-                                        </div>
+            </c:choose>
 
-                                    </div>
+        </section>
 
-                                </c:forEach>
+    </c:if>
 
-                            </div>
+    <%-- Shared pagination preserves the selected dates. --%>
+    <%@ include file="report-list-pagination.jsp" %>
 
-                        </c:when>
+</main>
 
+<%@ include file="/WEB-INF/include/footer.jsp" %>
 
-                        <c:otherwise>
+<script src="${ctx}/assets/js/bootstrap.bundle.min.js"></script>
 
-                            <div class="alert alert-info text-center mt-5">
-
-                                There are no bookings yet...
-
-                            </div>
-
-                        </c:otherwise>
-
-                    </c:choose>
-
-
-                    <c:if test="${requestScope.totalPages > 1}">
-
-                        <nav
-                            aria-label="Page navigation"
-                            class="d-flex
-                                   w-100
-                                   justify-content-center
-                                   mt-4">
-
-                            <ul class="pagination">
-
-
-                                <li
-                                    class="page-item
-                                           ${currentPage == 1
-                                           ? 'disabled'
-                                           : ''}">
-
-                                    <a
-                                        class="page-link"
-                                        href="${pageContext.request.contextPath}/reports?view=bookings&page-index=${currentPage - 1}">
-
-                                        Previous
-
-                                    </a>
-
-                                </li>
-
-
-                                <c:forEach
-                                    var="i"
-                                    begin="1"
-                                    end="${totalPages}">
-
-                                    <li
-                                        class="page-item
-                                               ${i == currentPage
-                                               ? 'active'
-                                               : ''}">
-
-                                        <a
-                                            class="page-link"
-                                            href="${pageContext.request.contextPath}/reports?view=bookings&page-index=${i}">
-
-                                            ${i}
-
-                                        </a>
-
-                                    </li>
-
-                                </c:forEach>
-
-
-                                <li
-                                    class="page-item
-                                           ${currentPage == totalPages
-                                           ? 'disabled'
-                                           : ''}">
-
-                                    <a
-                                        class="page-link"
-                                        href="${pageContext.request.contextPath}/reports?view=bookings&page-index=${currentPage + 1}">
-
-                                        Next
-
-                                    </a>
-
-                                </li>
-
-                            </ul>
-
-                        </nav>
-
-                    </c:if>
-
-                </div>
-
-            </main>
-
-            <%@include file="/WEB-INF/include/footer.jsp" %>
-
-        </div>
-
-
-        <script
-            src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js">
-        </script>
-
-    </body>
+</body>
 </html>

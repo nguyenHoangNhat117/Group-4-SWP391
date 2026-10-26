@@ -96,7 +96,7 @@ public class LoginServlet extends HttpServlet {
         } else if ("admin".equalsIgnoreCase(user.getRole())) {
             target = "/room";
         } else if ("manager".equalsIgnoreCase(user.getRole())) {
-            target = "/reports";
+            target = "/dashboard";
         }
         session.removeAttribute("pendingBookingUrl");
         res.sendRedirect(req.getContextPath() + target);
