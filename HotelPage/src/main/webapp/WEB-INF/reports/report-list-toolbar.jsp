@@ -5,6 +5,7 @@
 --%>
 <%@ page pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
 <%-- Shared heading, navigation and date filter for report pages. --%>
 
@@ -18,6 +19,7 @@
                     Booking report
                 </c:when>
 
+                <c:when test="${reportView == 'reviews'}">Review report</c:when>
                 <c:otherwise>
                     Payment report
                 </c:otherwise>
@@ -30,6 +32,7 @@
                     Filter reservations by their booking creation date.
                 </c:when>
 
+                <c:when test="${reportView == 'reviews'}">Filter feedback by review date.</c:when>
                 <c:otherwise>
                     Filter transactions by their payment date.
                 </c:otherwise>
@@ -55,11 +58,11 @@
         Payments
     </a>
 
-    <a href="${pageContext.request.contextPath}/reports?view=reviews">
+    <a href="<c:out value='${reviewsUrl}' />" aria-current="${reportView == 'reviews' ? 'page' : 'false'}">
         Reviews
     </a>
 
-    <a href="${pageContext.request.contextPath}/reports?view=month">
+    <a href="<c:out value='${revenueUrl}' />">
         Revenue
     </a>
 
@@ -97,6 +100,43 @@
                min="0001-01-01"
                max="9998-12-31"
                value="${toDate}">
+    </div>
+
+    <div>
+        <label for="reportStatus">Status</label>
+        <select id="reportStatus" name="status">
+            <option value="">All statuses</option>
+            <c:forEach var="option" items="${filter.statuses}">
+                <option value="${option}" ${filter.status == option ? 'selected' : ''}>
+                    <c:out value="${fn:replace(option, '_', ' ')}" />
+                </option>
+            </c:forEach>
+        </select>
+    </div>
+    <c:if test="${reportView == 'payments'}">
+        <div>
+            <label for="reportMethod">Method</label>
+            <select id="reportMethod" name="method">
+                <option value="">All methods</option>
+                <c:forEach var="option" items="${filter.methods}">
+                    <option value="${option}" ${filter.method == option ? 'selected' : ''}>
+                        <c:out value="${fn:replace(option, '_', ' ')}" />
+                    </option>
+                </c:forEach>
+            </select>
+        </div>
+    </c:if>
+    <div>
+        <label for="reportBookingId">Booking ID</label>
+        <input id="reportBookingId" type="number" min="1" max="2147483647" name="bookingId" value="${filter.bookingId}" placeholder="All bookings">
+    </div>
+    <div>
+        <label for="reportPageSize">Rows</label>
+        <select id="reportPageSize" name="pageSize">
+            <c:forEach var="size" items="${[10,25,50]}">
+                <option value="${size}" ${filter.pageSize == size ? 'selected' : ''}>${size}</option>
+            </c:forEach>
+        </select>
     </div>
 
     <button type="submit"

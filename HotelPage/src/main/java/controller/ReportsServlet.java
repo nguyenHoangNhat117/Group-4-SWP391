@@ -2,274 +2,151 @@ package controller;
 
 import dao.ReportDAO;
 import dao.ReportRecordsDAO;
-import dao.ReviewDAO;
+import model.ReportFilter;
 import model.User;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
-@WebServlet(
-        name = "ReportsServlet",
-        urlPatterns = {"/reports"}
-)
+@WebServlet(name = "ReportsServlet", urlPatterns = {"/reports"})
 public class ReportsServlet extends HttpServlet {
 
-    private static final int PAGE_SIZE = 5;
+    private static final long serialVersionUID = 1L;
 
     @Override
-    protected void doGet(
-            HttpServletRequest request,
-            HttpServletResponse response)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
         response.setContentType("text/html;charset=UTF-8");
         response.setHeader("Cache-Control", "no-store");
-
-        // AuthenticationFilter also revalidates account status and role.
         HttpSession session = request.getSession(false);
-
-        User user = session == null
-                ? null
-                : (User) session.getAttribute("loggedUser");
-
+        User user = session == null ? null : (User) session.getAttribute("loggedUser");
         if (user == null) {
-            response.sendRedirect(
-                    request.getContextPath() + "/login"
-            );
+            response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
-
         if (!"manager".equalsIgnoreCase(user.getRole())) {
-            response.sendError(
-                    HttpServletResponse.SC_FORBIDDEN
-            );
+            response.sendError(403);
             return;
         }
-
-        String view = request.getParameter("view");
-
-        if (view == null || view.trim().isEmpty()) {
+        String view = trim(request.getParameter("view"));
+        if (view.isEmpty()) {
             view = "bookings";
         }
-
         switch (view) {
             case "bookings":
             case "payments":
+            case "reviews":
                 showRecords(request, response, view);
                 return;
-
-            case "reviews": {
-
-                try {
-                    // Publish records only after the complete query succeeds.
-                    request.setAttribute(
-                            "reviews",
-                            new ReviewDAO().getAllReviews()
-                    );
-
-                } catch (IllegalStateException ex) {
-
-                    // Keep technical details in server logs.
-                    getServletContext().log(
-                            "Unable to load the Manager review report.",
-                            ex
-                    );
-
-                    response.setStatus(
-                            HttpServletResponse.SC_SERVICE_UNAVAILABLE
-                    );
-
-                    request.setAttribute(
-                            "reviewLoadError",
-                            "Review data is temporarily unavailable. "
-                            + "Please try again later."
-                    );
-                }
-
-                request.getRequestDispatcher(
-                        "/WEB-INF/reports/reviews.jsp"
-                ).forward(request, response);
-
-                return;
-            }
-
+            case "period":
             case "month":
             case "year":
                 showRevenue(request, response, view);
                 return;
-
             default:
-                response.sendError(
-                        HttpServletResponse.SC_NOT_FOUND
-                );
+                response.sendError(404);
         }
     }
 
-    private void showRecords(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            String view)
+    private void showRecords(HttpServletRequest request, HttpServletResponse response, String view)
             throws ServletException, IOException {
-
         request.setAttribute("reportView", view);
-        request.setAttribute("filterActive", false);
-
-        configureLinks(request, view, null, null, 1, 1);
-
+        ReportFilter filter = new ReportFilter(view, null, null, "", "", null, 10);
+        setFilter(request, filter, 1, 1);
         try {
-            String fromParameter
-                    = trim(request.getParameter("fromDate"));
-
-            String toParameter
-                    = trim(request.getParameter("toDate"));
-
-            LocalDate fromDate = null;
-            LocalDate toDate = null;
-
-            if (!fromParameter.isEmpty()
-                    || !toParameter.isEmpty()) {
-
-                if (fromParameter.isEmpty()
-                        || toParameter.isEmpty()) {
-
-                    throw new IllegalArgumentException(
-                            "Please select both start date and end date."
-                    );
-                }
-
-                fromDate = LocalDate.parse(fromParameter);
-                toDate = LocalDate.parse(toParameter);
-
-                request.setAttribute("fromDate", fromDate);
-                request.setAttribute("toDate", toDate);
-
-                if (fromDate.isAfter(toDate)) {
-                    throw new IllegalArgumentException(
-                            "Start date must not be after end date."
-                    );
-                }
-
-                if (fromDate.getYear() < 1
-                        || toDate.getYear() > 9998) {
-
-                    throw new IllegalArgumentException(
-                            "Report years must be between 1 and 9998."
-                    );
-                }
-            }
-
+            String fromText = trim(request.getParameter("fromDate")), toText = trim(request.getParameter("toDate"));
+            LocalDate from = fromText.isEmpty() ? null : LocalDate.parse(fromText);
+            LocalDate to = toText.isEmpty() ? null : LocalDate.parse(toText);
+            String id = trim(request.getParameter("bookingId"));
+            String size = trim(request.getParameter("pageSize"));
+            filter = new ReportFilter(view, from, to, trim(request.getParameter("status")),
+                    trim(request.getParameter("method")), id.isEmpty() ? null : Integer.valueOf(id),
+                    size.isEmpty() ? 10 : Integer.parseInt(size));
+            setFilter(request, filter, 1, 1);
             ReportRecordsDAO dao = new ReportRecordsDAO();
-
-            boolean bookingsView = "bookings".equals(view);
-
-            long totalRecords = bookingsView
-                    ? dao.countBookingRecords(fromDate, toDate)
-                    : dao.countPaymentRecords(fromDate, toDate);
-
-            long totalPages = totalRecords == 0
-                    ? 1
-                    : 1 + (totalRecords - 1) / PAGE_SIZE;
-
-            // Clamp invalid or excessive page numbers to a valid page.
-            long page = Math.min(
-                    parsePage(request.getParameter("page-index")),
-                    totalPages
-            );
-
-            if (bookingsView) {
-                request.setAttribute(
-                        "bookings",
-                        dao.getBookingRecords(
-                                fromDate,
-                                toDate,
-                                page,
-                                PAGE_SIZE
-                        )
-                );
+            long total = dao.countRecords(filter);
+            long pages = total == 0 ? 1 : 1 + (total - 1) / filter.getPageSize();
+            long page = Math.min(parsePage(request.getParameter("page-index")), pages);
+            if ("bookings".equals(view)) {
+                request.setAttribute("bookings", dao.getBookingRecords(filter, page));
+            } else if ("payments".equals(view)) {
+                request.setAttribute("payments", dao.getPaymentRecords(filter, page));
             } else {
-                request.setAttribute(
-                        "payments",
-                        dao.getPaymentRecords(
-                                fromDate,
-                                toDate,
-                                page,
-                                PAGE_SIZE
-                        )
-                );
+                request.setAttribute("reviews", dao.getReviewRecords(filter, page));
             }
-
-            request.setAttribute(
-                    "filterActive",
-                    fromDate != null
-            );
-            request.setAttribute("totalRecords", totalRecords);
-            request.setAttribute("totalPages", totalPages);
-            request.setAttribute("currentPage", page);
-
-            configureLinks(
-                    request,
-                    view,
-                    fromDate,
-                    toDate,
-                    page,
-                    totalPages
-            );
-
+            request.setAttribute("totalRecords", total);
+            setFilter(request, filter, page, pages);
         } catch (DateTimeParseException ex) {
-
-            response.setStatus(
-                    HttpServletResponse.SC_BAD_REQUEST
-            );
-
-            request.setAttribute(
-                    "reportError",
-                    "Invalid date. Please use a valid date in YYYY-MM-DD format."
-            );
-
+            reportError(request, response, 400, "Please enter valid dates.");
+        } catch (NumberFormatException ex) {
+            reportError(request, response, 400, "Booking ID and page size must be valid numbers.");
         } catch (IllegalArgumentException ex) {
-
-            response.setStatus(
-                    HttpServletResponse.SC_BAD_REQUEST
-            );
-
-            request.setAttribute(
-                    "reportError",
-                    ex.getMessage()
-            );
-
+            reportError(request, response, 400, ex.getMessage());
         } catch (IllegalStateException ex) {
-
-            getServletContext().log(
-                    "Unable to load report records.",
-                    ex
-            );
-
-            response.setStatus(
-                    HttpServletResponse.SC_SERVICE_UNAVAILABLE
-            );
-
-            request.setAttribute(
-                    "reportError",
-                    "Report data is temporarily unavailable. Please try again."
-            );
+            getServletContext().log("Unable to load manager report.", ex);
+            reportError(request, response, 503, "Report data is temporarily unavailable. Please try again.");
         }
+        String jsp = "bookings".equals(view) ? "books" : view;
+        request.getRequestDispatcher("/WEB-INF/reports/" + jsp + ".jsp").forward(request, response);
+    }
 
-        String jsp = "bookings".equals(view)
-                ? "/WEB-INF/reports/books.jsp"
-                : "/WEB-INF/reports/payments.jsp";
+    private void reportError(HttpServletRequest request, HttpServletResponse response, int status, String message) {
+        response.setStatus(status);
+        request.setAttribute("reportError", message);
+        request.setAttribute("reviewLoadError", message);
+    }
 
-        request.getRequestDispatcher(jsp)
-                .forward(request, response);
+    private void setFilter(HttpServletRequest request, ReportFilter f, long page, long pages) {
+        request.setAttribute("filter", f);
+        request.setAttribute("fromDate", f.getFromDate());
+        request.setAttribute("toDate", f.getToDate());
+        request.setAttribute("filterActive", f.getFromDate() != null);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("totalPages", pages);
+        String base = request.getContextPath() + "/reports";
+        request.setAttribute("bookingsUrl", base + "?view=bookings" + dates(f));
+        request.setAttribute("paymentsUrl", base + "?view=payments" + dates(f));
+        request.setAttribute("reviewsUrl", base + "?view=reviews" + dates(f));
+        request.setAttribute("revenueUrl", f.getFromDate() == null ? base + "?view=month"
+                : base + "?view=period" + dates(f));
+        request.setAttribute("dashboardUrl", request.getContextPath() + "/dashboard"
+                + (f.getFromDate() == null ? "" : "?fromDate=" + f.getFromDate() + "&toDate=" + f.getToDate()));
+        request.setAttribute("resetUrl", base + "?view=" + f.getView());
+        request.setAttribute("firstPageUrl", url(base, f, 1));
+        request.setAttribute("previousPageUrl", url(base, f, Math.max(1, page - 1)));
+        request.setAttribute("nextPageUrl", url(base, f, Math.min(pages, page + 1)));
+        request.setAttribute("lastPageUrl", url(base, f, pages));
+    }
+
+    private String dates(ReportFilter f) {
+        return f.getFromDate() == null ? "" : "&fromDate=" + f.getFromDate() + "&toDate=" + f.getToDate();
+    }
+
+    private String url(String base, ReportFilter f, long page) {
+        // All values are typed or allowlisted by ReportFilter.
+        return base + "?view=" + f.getView() + dates(f) + "&status=" + f.getStatus() + "&method=" + f.getMethod()
+                + (f.getBookingId() == null ? "" : "&bookingId=" + f.getBookingId())
+                + "&pageSize=" + f.getPageSize() + "&page-index=" + page;
+    }
+
+    private long parsePage(String value) {
+        try {
+            return Math.max(1, Long.parseLong(trim(value)));
+        } catch (NumberFormatException ex) {
+            return 1;
+        }
+    }
+
+    private String trim(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private void showRevenue(
@@ -278,6 +155,27 @@ public class ReportsServlet extends HttpServlet {
             String view)
             throws ServletException, IOException {
 
+        if ("period".equals(view)) {
+            try {
+                LocalDate from = LocalDate.parse(trim(request.getParameter("fromDate")));
+                LocalDate to = LocalDate.parse(trim(request.getParameter("toDate")));
+                util.ReportPeriod.validate(from, to);
+                request.setAttribute("reportData", new ReportDAO().getRevenueForPeriod(from, to));
+                request.setAttribute("view", view);
+                request.setAttribute("fromDate", from);
+                request.setAttribute("toDate", to);
+                request.setAttribute("selectedYear", from.getYear());
+                request.setAttribute("dashboardUrl", request.getContextPath() + "/dashboard?fromDate=" + from + "&toDate=" + to);
+                request.getRequestDispatcher("/WEB-INF/reports/revenue_chart.jsp").forward(request, response);
+            } catch (DateTimeParseException | IllegalArgumentException ex) {
+                response.sendError(400, "Invalid reporting period. Select both dates, at most 3,661 days apart.");
+            } catch (IllegalStateException ex) {
+                getServletContext().log("Unable to load period revenue.", ex);
+                response.sendError(503, "Revenue data is temporarily unavailable.");
+            }
+            return;
+        }
+        request.setAttribute("dashboardUrl", request.getContextPath() + "/dashboard");
         int currentYear = LocalDate.now(
                 ZoneId.of("Asia/Ho_Chi_Minh")
         ).getYear();
@@ -348,104 +246,4 @@ public class ReportsServlet extends HttpServlet {
         }
     }
 
-    private void configureLinks(
-            HttpServletRequest request,
-            String view,
-            LocalDate fromDate,
-            LocalDate toDate,
-            long page,
-            long totalPages) {
-
-        request.setAttribute(
-                "bookingsUrl",
-                reportUrl(
-                        request, "bookings", 1,
-                        fromDate, toDate
-                )
-        );
-
-        request.setAttribute(
-                "paymentsUrl",
-                reportUrl(
-                        request, "payments", 1,
-                        fromDate, toDate
-                )
-        );
-
-        request.setAttribute(
-                "resetUrl",
-                reportUrl(request, view, 1, null, null)
-        );
-
-        request.setAttribute(
-                "firstPageUrl",
-                reportUrl(request, view, 1, fromDate, toDate)
-        );
-
-        request.setAttribute(
-                "previousPageUrl",
-                reportUrl(
-                        request, view, Math.max(1, page - 1),
-                        fromDate, toDate
-                )
-        );
-
-        request.setAttribute(
-                "nextPageUrl",
-                reportUrl(
-                        request, view, Math.min(totalPages, page + 1),
-                        fromDate, toDate
-                )
-        );
-
-        request.setAttribute(
-                "lastPageUrl",
-                reportUrl(
-                        request, view, totalPages,
-                        fromDate, toDate
-                )
-        );
-
-        String dashboardUrl
-                = request.getContextPath() + "/dashboard";
-
-        if (fromDate != null && toDate != null) {
-            dashboardUrl += "?fromDate=" + fromDate
-                    + "&toDate=" + toDate;
-        }
-
-        request.setAttribute("dashboardUrl", dashboardUrl);
-    }
-
-    private String reportUrl(
-            HttpServletRequest request,
-            String view,
-            long page,
-            LocalDate fromDate,
-            LocalDate toDate) {
-
-        String url = request.getContextPath()
-                + "/reports?view=" + view
-                + "&page-index=" + page;
-
-        if (fromDate != null && toDate != null) {
-            url += "&fromDate=" + fromDate
-                    + "&toDate=" + toDate;
-        }
-
-        return url;
-    }
-
-    private long parsePage(String value) {
-
-        try {
-            return Math.max(1, Long.parseLong(trim(value)));
-        } catch (NumberFormatException ex) {
-            return 1;
-        }
-    }
-
-    private String trim(String value) {
-        return value == null ? "" : value.trim();
-    }
 }
