@@ -7,13 +7,14 @@ import model.Customer;
 import model.Discount;
 import model.Payment;
 import model.User;
+import model.Review;
+import model.ReportFilter;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -37,25 +38,19 @@ public class ReportRecordsDAO extends DBContext {
             "JOIN Customer c ON c.CustomerID = b.CustomerID "
             + "LEFT JOIN [User] u ON u.UserID = c.UserID ";
 
-    public long countBookingRecords(
-            LocalDate fromDate,
-            LocalDate toDate) {
-
-        return countRecords(false, fromDate, toDate);
-    }
-
-    public long countPaymentRecords(
-            LocalDate fromDate,
-            LocalDate toDate) {
-
-        return countRecords(true, fromDate, toDate);
+    public long countRecords(ReportFilter filter) {
+        String from = "payments".equals(filter.getView()) ? "FROM Payment p "
+                : "reviews".equals(filter.getView()) ? "FROM Review rv " : "FROM Booking b ";
+        String sql="SELECT COUNT_BIG(*) " + from + condition(filter);
+        try (Connection connection=getConnection(); PreparedStatement ps=connection.prepareStatement(sql)) {
+            bindFilter(ps, filter);
+            try (ResultSet rs=ps.executeQuery()) { rs.next(); return rs.getLong(1); }
+        } catch (SQLException ex) { throw new IllegalStateException("Unable to count report records.", ex); }
     }
 
     public List<Booking> getBookingRecords(
-            LocalDate fromDate,
-            LocalDate toDate,
-            long page,
-            int pageSize) {
+            ReportFilter filter, long page) {
+        int pageSize=filter.getPageSize();
 
         validatePage(page, pageSize);
 
@@ -63,7 +58,7 @@ public class ReportRecordsDAO extends DBContext {
                 "SELECT " + BOOKING_COLUMNS
                 + "FROM Booking b "
                 + CUSTOMER_JOINS
-                + dateCondition(false, fromDate, toDate)
+                + condition(filter)
                 + "ORDER BY b.BookingDate DESC, b.BookingID DESC "
                 + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
@@ -73,11 +68,7 @@ public class ReportRecordsDAO extends DBContext {
              PreparedStatement statement =
                      connection.prepareStatement(sql)) {
 
-            int index = bindDates(
-                    statement,
-                    fromDate,
-                    toDate
-            );
+            int index = bindFilter(statement, filter);
 
             statement.setLong(
                     index++,
@@ -106,10 +97,8 @@ public class ReportRecordsDAO extends DBContext {
     }
 
     public List<Payment> getPaymentRecords(
-            LocalDate fromDate,
-            LocalDate toDate,
-            long page,
-            int pageSize) {
+            ReportFilter filter, long page) {
+        int pageSize=filter.getPageSize();
 
         validatePage(page, pageSize);
 
@@ -123,7 +112,7 @@ public class ReportRecordsDAO extends DBContext {
                 + "JOIN Booking b ON b.BookingID = p.BookingID "
                 + CUSTOMER_JOINS
                 + "LEFT JOIN Discount d ON d.DiscountID = p.DiscountID "
-                + dateCondition(true, fromDate, toDate)
+                + condition(filter)
                 + "ORDER BY p.PaymentDate DESC, p.PaymentID DESC "
                 + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
@@ -134,11 +123,7 @@ public class ReportRecordsDAO extends DBContext {
              PreparedStatement statement =
                      connection.prepareStatement(sql)) {
 
-            int index = bindDates(
-                    statement,
-                    fromDate,
-                    toDate
-            );
+            int index = bindFilter(statement, filter);
 
             statement.setLong(
                     index++,
@@ -220,93 +205,55 @@ public class ReportRecordsDAO extends DBContext {
         }
     }
 
-    private long countRecords(
-            boolean paymentReport,
-            LocalDate fromDate,
-            LocalDate toDate) {
-
-        String from = paymentReport
-                ? "FROM Payment p "
-                : "FROM Booking b ";
-
-        String sql =
-                "SELECT COUNT_BIG(*) AS TotalRecords "
-                + from
-                + dateCondition(
-                        paymentReport,
-                        fromDate,
-                        toDate
-                );
-
-        try (Connection connection = getConnection();
-             PreparedStatement statement =
-                     connection.prepareStatement(sql)) {
-
-            bindDates(statement, fromDate, toDate);
-
-            try (ResultSet rs = statement.executeQuery()) {
-                rs.next();
-                return rs.getLong("TotalRecords");
+    public List<Review> getReviewRecords(ReportFilter filter, long page) {
+        validatePage(page, filter.getPageSize());
+        String sql="SELECT " + BOOKING_COLUMNS
+                + ", rv.ReviewID, rv.Comment, rv.Star, rv.ReviewDate, rv.ReviewStatus "
+                + "FROM Review rv JOIN Booking b ON b.BookingID=rv.BookingID "
+                + CUSTOMER_JOINS + condition(filter)
+                + "ORDER BY rv.ReviewDate DESC, rv.ReviewID DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        List<Review> rows=new ArrayList<>();
+        List<Booking> bookings=new ArrayList<>();
+        try (Connection connection=getConnection(); PreparedStatement ps=connection.prepareStatement(sql)) {
+            int index=bindFilter(ps,filter);
+            ps.setLong(index++, Math.multiplyExact(page-1, (long)filter.getPageSize()));
+            ps.setInt(index, filter.getPageSize());
+            try (ResultSet rs=ps.executeQuery()) {
+                while (rs.next()) {
+                    Booking booking=mapBooking(rs); bookings.add(booking);
+                    Timestamp date=rs.getTimestamp("ReviewDate");
+                    rows.add(new Review(rs.getInt("ReviewID"), booking, rs.getString("Comment"),
+                            rs.getBigDecimal("Star"), date==null ? null : date.toLocalDateTime(),
+                            rs.getString("ReviewStatus")));
+                }
             }
-
-        } catch (SQLException ex) {
-            throw new IllegalStateException(
-                    "Unable to count report records.",
-                    ex
-            );
-        }
+            loadRoomDetails(connection, bookings);
+            return rows;
+        } catch(SQLException ex) { throw new IllegalStateException("Unable to load review report.", ex); }
     }
 
-    /**
-     * Column names are selected internally, never from request input.
-     */
-    private String dateCondition(
-            boolean paymentReport,
-            LocalDate fromDate,
-            LocalDate toDate) {
-
-        validatePeriod(fromDate, toDate);
-
-        if (fromDate == null) {
-            return "";
-        }
-
-        String column = paymentReport
-                ? "p.PaymentDate"
-                : "b.BookingDate";
-
-        return "WHERE " + column + " >= ? "
-                + "AND " + column + " < ? ";
+    private String condition(ReportFilter f) {
+        String alias="payments".equals(f.getView()) ? "p" : "reviews".equals(f.getView()) ? "rv" : "b";
+        String date="payments".equals(f.getView()) ? "PaymentDate" : "reviews".equals(f.getView()) ? "ReviewDate" : "BookingDate";
+        String status="payments".equals(f.getView()) ? "PaymentStatus" : "reviews".equals(f.getView()) ? "ReviewStatus" : "Status";
+        String sql="WHERE 1=1 ";
+        if (f.getFromDate()!=null) sql += "AND " + alias + "." + date + " >= ? AND " + alias + "." + date + " < ? ";
+        if (!f.getStatus().isEmpty()) sql += "AND " + alias + "." + status + " = ? ";
+        if (!f.getMethod().isEmpty()) sql += "AND p.PaymentMethod = ? ";
+        if (f.getBookingId()!=null) sql += "AND " + alias + ".BookingID = ? ";
+        return sql;
     }
 
-    /**
-     * Uses an exclusive upper bound to include the entire end date.
-     */
-    private int bindDates(
-            PreparedStatement statement,
-            LocalDate fromDate,
-            LocalDate toDate)
-            throws SQLException {
-
-        validatePeriod(fromDate, toDate);
-
-        if (fromDate == null) {
-            return 1;
+    private int bindFilter(PreparedStatement ps, ReportFilter f) throws SQLException {
+        int i=1;
+        if (f.getFromDate()!=null) {
+            ps.setTimestamp(i++,Timestamp.valueOf(f.getFromDate().atStartOfDay()));
+            ps.setTimestamp(i++,Timestamp.valueOf(f.getToDate().plusDays(1).atStartOfDay()));
         }
-
-        statement.setTimestamp(
-                1,
-                Timestamp.valueOf(fromDate.atStartOfDay())
-        );
-
-        statement.setTimestamp(
-                2,
-                Timestamp.valueOf(
-                        toDate.plusDays(1).atStartOfDay()
-                )
-        );
-
-        return 3;
+        if (!f.getStatus().isEmpty()) ps.setString(i++,f.getStatus());
+        if (!f.getMethod().isEmpty()) ps.setString(i++,f.getMethod());
+        if (f.getBookingId()!=null) ps.setInt(i++,f.getBookingId());
+        return i;
     }
 
     private Booking mapBooking(ResultSet rs)
@@ -439,35 +386,6 @@ public class ReportRecordsDAO extends DBContext {
                             .add(detail);
                 }
             }
-        }
-    }
-
-    private void validatePeriod(
-            LocalDate fromDate,
-            LocalDate toDate) {
-
-        if (fromDate == null && toDate == null) {
-            return;
-        }
-
-        if (fromDate == null || toDate == null) {
-            throw new IllegalArgumentException(
-                    "Please select both start date and end date."
-            );
-        }
-
-        if (fromDate.isAfter(toDate)) {
-            throw new IllegalArgumentException(
-                    "Start date must not be after end date."
-            );
-        }
-
-        if (fromDate.getYear() < 1
-                || toDate.getYear() > 9998) {
-
-            throw new IllegalArgumentException(
-                    "Report years must be between 1 and 9998."
-            );
         }
     }
 

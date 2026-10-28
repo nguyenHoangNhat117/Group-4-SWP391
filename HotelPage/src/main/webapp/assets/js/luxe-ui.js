@@ -74,9 +74,9 @@
     });
 })();
 /* =========================================================
-   Simplified Dashboard and Reports presentation.
-   Does not modify data, URLs, form values or business logic.
-   ========================================================= */
+ Simplified Dashboard and Reports presentation.
+ Does not modify data, URLs, form values or business logic.
+ ========================================================= */
 
 (function () {
     "use strict";
@@ -101,9 +101,9 @@
             root.querySelectorAll("a, button").forEach(function (element) {
 
                 const walker = document.createTreeWalker(
-                    element,
-                    NodeFilter.SHOW_TEXT
-                );
+                        element,
+                        NodeFilter.SHOW_TEXT
+                        );
 
                 const textNodes = [];
                 let current;
@@ -114,19 +114,19 @@
 
                 textNodes.forEach(function (textNode) {
                     textNode.nodeValue = textNode.nodeValue.replace(
-                        /[↗↖↘↙↑↓←→➜➝➞➟➠➤]/gu,
-                        ""
-                    );
+                            /[↗↖↘↙↑↓←→➜➝➞➟➠➤]/gu,
+                            ""
+                            );
                 });
 
                 element.querySelectorAll("span[aria-hidden='true']")
-                    .forEach(function (span) {
+                        .forEach(function (span) {
 
-                        if (!span.textContent.trim()
-                                && span.children.length === 0) {
-                            span.remove();
-                        }
-                    });
+                            if (!span.textContent.trim()
+                                    && span.children.length === 0) {
+                                span.remove();
+                            }
+                        });
             });
         });
 
@@ -134,31 +134,37 @@
             return;
         }
 
+        // Period-aware dashboard owns its labels in JSP. Do not restore legacy year captions.
+        if (dashboard.dataset.reportScope === "period") {
+            return;
+        }
+
+
         /*
          * Retain essential reporting scope in short headings
          * instead of multiple subtitle lines.
          */
         const fromInput = dashboard.querySelector(
-            "input[name='fromDate']"
-        );
+                "input[name='fromDate']"
+                );
 
         const selectedYear = fromInput
-            ? fromInput.value.slice(0, 4)
-            : "";
+                ? fromInput.value.slice(0, 4)
+                : "";
 
         const revenueHeading = dashboard.querySelector(
-            ".hd-revenue-panel h2"
-        );
+                ".hd-revenue-panel h2"
+                );
 
         if (revenueHeading) {
             revenueHeading.textContent = selectedYear
-                ? "Revenue overview · " + selectedYear + " (VND)"
-                : "Revenue overview (VND)";
+                    ? "Revenue overview · " + selectedYear + " (VND)"
+                    : "Revenue overview (VND)";
         }
 
         const customerLabel = dashboard.querySelector(
-            ".hd-kpi-sage .hd-kpi-top > span:first-child"
-        );
+                ".hd-kpi-sage .hd-kpi-top > span:first-child"
+                );
 
         if (customerLabel) {
             customerLabel.textContent = "Total customers";
@@ -176,8 +182,8 @@
         }
 
         const reviewPanel = dashboard.querySelector(
-            ".hd-bottom-grid .hd-panel:nth-child(3)"
-        );
+                ".hd-bottom-grid .hd-panel:nth-child(3)"
+                );
 
         if (reviewPanel) {
             const heading = reviewPanel.querySelector("h2");
@@ -192,20 +198,20 @@
          * Its original destination remains unchanged.
          */
         const reviewLink = dashboard.querySelector(
-            ".hd-review-total > a"
-        );
+                ".hd-review-total > a"
+                );
 
         if (reviewLink) {
             reviewLink.textContent = "View reviews";
             reviewLink.setAttribute(
-                "aria-label",
-                "View review records"
-            );
+                    "aria-label",
+                    "View review records"
+                    );
         }
 
         const monthlyValues = dashboard.querySelector(
-            ".hd-data-details summary"
-        );
+                ".hd-data-details summary"
+                );
 
         if (monthlyValues) {
             monthlyValues.textContent = "Monthly values";
@@ -219,18 +225,18 @@
 
         if (occupancyCard) {
             occupancyCard.setAttribute(
-                "title",
-                "Estimated from stored stay dates, assuming the currently "
-                + "available room inventory throughout the selected period."
-            );
+                    "title",
+                    "Estimated from stored stay dates, assuming the currently "
+                    + "available room inventory throughout the selected period."
+                    );
         }
     }
 
     if (document.readyState === "loading") {
         document.addEventListener(
-            "DOMContentLoaded",
-            simplifyHotelPresentation,
-            {once: true}
+                "DOMContentLoaded",
+                simplifyHotelPresentation,
+                {once: true}
         );
     } else {
         simplifyHotelPresentation();

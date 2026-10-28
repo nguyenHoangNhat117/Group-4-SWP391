@@ -2,18 +2,18 @@ package dao;
 
 import db.DBContext;
 import model.ReportStatistic;
+import model.OccupancyEstimate;
+import util.ReportPeriod;
 import model.RevenueReport;
 import model.ReviewStatistics;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -356,89 +356,74 @@ public class ReportDAO extends DBContext {
     // 10. ESTIMATED ROOM OCCUPANCY RATE
     // =========================================================
 
-    /**
-     * Estimates occupancy as a percentage using stored stay dates.
-     *
-     * Only rooms currently marked as available are included in both
-     * occupied room nights and total room capacity.
-     *
-     * This assumes that these rooms were operational throughout the period.
-     * Historical maintenance records are not available in the current schema.
-     *
-     * Only checked-in, checked-out, and completed bookings are included.
-     * Checkout dates are excluded from occupied nights.
-     *
-     * Returns zero when no currently available rooms exist.
-     * In that case, the dashboard should display "Not applicable".
+    /** Returns elapsed scheduled room-night utilization on total current inventory.
+     * Current operational status is intentionally NOT used as historical evidence.
      */
-    public double getOccupancyRate(
-            LocalDate fromDate,
-            LocalDate toDate) {
-
-        Date[] dates = getPeriodBounds(fromDate, toDate);
-
-        String sql =
-                "WITH Capacity AS ( "
-                + "    SELECT COUNT_BIG(*) AS RoomCount "
-                + "    FROM Room "
-                + "    WHERE Status = 'available' "
-                + "), Occupied AS ( "
-                + "    SELECT COALESCE(SUM( "
-                + "        CAST(DATEDIFF(DAY, "
-                + "            CASE WHEN bd.CheckInDate < ? "
-                + "                 THEN ? "
-                + "                 ELSE bd.CheckInDate END, "
-                + "            CASE WHEN bd.CheckOutDate > ? "
-                + "                 THEN ? "
-                + "                 ELSE bd.CheckOutDate END "
-                + "        ) AS BIGINT) "
-                + "    ), 0) AS RoomNights "
-                + "    FROM BookingDetail bd "
-                + "    JOIN Booking b ON b.BookingID = bd.BookingID "
-                + "    JOIN Room r ON r.RoomNumber = bd.RoomNumber "
-                + "    WHERE r.Status = 'available' "
-                + "    AND b.Status IN ( "
-                + "        'checked_in', 'checked_out', 'completed' "
-                + "    ) "
-                + "    AND bd.CheckInDate < ? "
-                + "    AND bd.CheckOutDate > ? "
-                + ") "
-                + "SELECT c.RoomCount, o.RoomNights "
-                + "FROM Capacity c CROSS JOIN Occupied o";
-
-        List<long[]> result = query(
-                sql,
-                rs -> new long[]{
-                    rs.getLong("RoomCount"),
-                    rs.getLong("RoomNights")
-                },
-                dates[0],
-                dates[0],
-                dates[1],
-                dates[1],
-                dates[1],
-                dates[0]
-        );
-
-        long roomCount = result.get(0)[0];
-        long occupiedRoomNights = result.get(0)[1];
-
-        if (roomCount == 0) {
-            return 0.0;
+    public OccupancyEstimate getOccupancyEstimate(LocalDate from, LocalDate to, LocalDate today) {
+        ReportPeriod.validate(from, to);
+        List<OccupancyEstimate.Stay> stays = new ArrayList<>();
+        long rooms;
+        LocalDate until = to.plusDays(1).isBefore(today) ? to.plusDays(1) : today;
+        // Read inventory and stays in one serializable transaction for a consistent capacity.
+        try (Connection connection = getConnection()) {
+            connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+            connection.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = connection.prepareStatement("SELECT COUNT_BIG(*) FROM Room");
+                     ResultSet rs = ps.executeQuery()) {
+                    rs.next(); rooms=rs.getLong(1);
+                }
+                if (from.isBefore(until)) {
+                    String sql = "SELECT bd.RoomNumber, bd.CheckInDate, bd.CheckOutDate "
+                            + "FROM BookingDetail bd JOIN Booking b ON b.BookingID=bd.BookingID "
+                            + "JOIN Room r ON r.RoomNumber=bd.RoomNumber "
+                            + "WHERE b.Status IN ('checked_in','checked_out','completed') "
+                            + "AND bd.CheckInDate < ? AND bd.CheckOutDate > ?";
+                    try (PreparedStatement ps=connection.prepareStatement(sql)) {
+                        ps.setDate(1, Date.valueOf(until)); ps.setDate(2, Date.valueOf(from));
+                        try (ResultSet rs=ps.executeQuery()) {
+                            while(rs.next()) stays.add(new OccupancyEstimate.Stay(rs.getInt(1),
+                                    rs.getDate(2).toLocalDate(), rs.getDate(3).toLocalDate()));
+                        }
+                    }
+                }
+                connection.commit();
+            } catch (SQLException | RuntimeException ex) {
+                connection.rollback(); throw ex;
+            }
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Unable to load occupancy estimate.", ex);
         }
+        return OccupancyEstimate.calculate(rooms, stays, from, to, today);
+    }
 
-        long days = ChronoUnit.DAYS.between(
-                fromDate,
-                toDate.plusDays(1)
-        );
+    /** Compatibility method. UI must use isApplicable() rather than interpreting N/A as zero. */
+    public double getOccupancyRate(LocalDate from, LocalDate to) {
+        return getOccupancyEstimate(from, to, ReportPeriod.today()).getRate().doubleValue();
+    }
 
-        BigDecimal capacity = BigDecimal.valueOf(roomCount)
-                .multiply(BigDecimal.valueOf(days));
-
-        return BigDecimal.valueOf(occupiedRoomNights)
-                .multiply(BigDecimal.valueOf(100))
-                .divide(capacity, 2, RoundingMode.HALF_UP)
-                .doubleValue();
+    /** Payment-date series; partial buckets include only the requested date range. */
+    public List<RevenueReport> getRevenueForPeriod(LocalDate from, LocalDate to) {
+        ReportPeriod.validate(from, to);
+        String group=ReportPeriod.grouping(from, to);
+        String expression = "day".equals(group) ? "CAST(PaymentDate AS date)"
+                : "month".equals(group) ? "DATEFROMPARTS(YEAR(PaymentDate), MONTH(PaymentDate), 1)"
+                : "DATEFROMPARTS(YEAR(PaymentDate), 1, 1)";
+        String sql="SELECT " + expression + " AS Bucket, SUM(Amount) AS Revenue FROM Payment "
+                + "WHERE PaymentStatus='paid' AND PaymentDate >= ? AND PaymentDate < ? "
+                + "GROUP BY " + expression + " ORDER BY Bucket";
+        List<RevenueReport> rows=query(sql,
+                rs -> new RevenueReport(ReportPeriod.label(rs.getDate("Bucket").toLocalDate(), group),
+                        rs.getBigDecimal("Revenue")), Date.valueOf(from), Date.valueOf(to.plusDays(1)));
+        Map<String, BigDecimal> amounts=new LinkedHashMap<>();
+        for (RevenueReport row:rows) amounts.put(row.getTimeUnit(), row.getTotalRevenue());
+        List<RevenueReport> result=new ArrayList<>();
+        for (LocalDate bucket=ReportPeriod.bucket(from, group); !bucket.isAfter(to);
+                bucket=ReportPeriod.next(bucket, group)) {
+            String label=ReportPeriod.label(bucket, group);
+            result.add(new RevenueReport(label, amounts.getOrDefault(label, BigDecimal.ZERO)));
+        }
+        return result;
     }
 
     // =========================================================

@@ -1344,3 +1344,36 @@ body.hotel-reports-body .lx-top {
         flex-wrap: wrap;
     }
 }
+/* Essential scope labels only; preserve the existing bold dashboard design. */
+.hd .hd-scope {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 11px;
+    border-radius: 10px;
+    background: #f0e4d2;
+    color: #513b25;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+.hd .hd-definitions {
+    margin: 26px 0;
+    padding: 18px 22px;
+    background: #fffaf3;
+    border: 1px solid #d8c5ac;
+    border-radius: 16px;
+    color: #493729;
+    font-size: 16px;
+}
+.hd .hd-definitions summary {
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 17px;
+}
+.hd .hd-definitions li {
+    margin: 12px 0;
+    line-height: 1.65;
+}
+.hd .hd-chart-scroll {
+    overflow-x: auto;
+}

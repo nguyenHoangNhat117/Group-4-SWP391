@@ -24,634 +24,651 @@
 <!DOCTYPE html>
 <html lang="en" class="hotel-dashboard-page">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Hotel Analytics | Luxe Escape</title>
+        <title>Hotel Analytics | Luxe Escape</title>
 
-    <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
-    <link rel="stylesheet" href="${ctx}/assets/css/general.css">
-    <link rel="stylesheet" href="${ctx}/assets/css/luxe-modern.css">
-    <link rel="stylesheet" href="${ctx}/assets/css/luxe-shared-shell.css">
-    <link rel="stylesheet" href="${ctx}/assets/css/luxe-ui.css">
-    <link rel="stylesheet" href="${ctx}/assets/css/hotel-dashboard.css?v=2">
+        <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
+        <link rel="stylesheet" href="${ctx}/assets/css/general.css">
+        <link rel="stylesheet" href="${ctx}/assets/css/luxe-modern.css">
+        <link rel="stylesheet" href="${ctx}/assets/css/luxe-shared-shell.css">
+        <link rel="stylesheet" href="${ctx}/assets/css/luxe-ui.css">
+        <link rel="stylesheet" href="${ctx}/assets/css/hotel-dashboard.css?v=3">
 
-    <script src="${ctx}/assets/js/hotel-dashboard.js?v=2" defer></script>
-</head>
+        <script src="${ctx}/assets/js/hotel-dashboard.js?v=3" defer></script>
+    </head>
 
-<body class="hotel-dashboard-body ${cookie.animation.value == 'disable' ? 'disable-animation' : ''}">
+    <body class="hotel-dashboard-body ${cookie.animation.value == 'disable' ? 'disable-animation' : ''}">
 
-<%@ include file="/WEB-INF/include/header.jsp" %>
+        <%@ include file="/WEB-INF/include/header.jsp" %>
 
-<main class="hd" id="hotel-dashboard">
+        <main class="hd" id="hotel-dashboard" data-report-scope="period">
 
-    <div class="hd-wrap">
+            <div class="hd-wrap">
 
-        <div class="hd-hero">
-            <div>
-                <p class="hd-eyebrow">
-                    Luxe Escape · Management overview
-                </p>
+                <div class="hd-hero">
+                    <div>
+                        <p class="hd-eyebrow">
+                            Luxe Escape · Management overview
+                        </p>
 
-                <h1>Hotel <span>Analytics</span></h1>
+                        <h1>Hotel <span>Analytics</span></h1>
 
-                <p class="hd-subtitle">
-                    A considered view of your hotel’s performance.
-                </p>
-            </div>
-
-            <c:if test="${empty dashboardError}">
-                <a class="hd-button hd-button-light"
-                   href="<c:out value='${dashboardBookingsUrl}' />">
-                    Explore records
-                    <span aria-hidden="true">↗</span>
-                </a>
-            </c:if>
-        </div>
-
-        <form class="hd-filter"
-              action="${ctx}/dashboard"
-              method="get">
-
-            <div class="hd-filter-intro">
-                <span class="hd-overline">Reporting period</span>
-                <strong>Choose your dates</strong>
-            </div>
-
-            <div class="hd-field">
-                <label for="fromDate">From</label>
-
-                <input type="date"
-                       id="fromDate"
-                       name="fromDate"
-                       min="0001-01-01"
-                       max="9998-12-31"
-                       value="${fromDate}"
-                       required>
-            </div>
-
-            <div class="hd-field">
-                <label for="toDate">To</label>
-
-                <input type="date"
-                       id="toDate"
-                       name="toDate"
-                       min="0001-01-01"
-                       max="9998-12-31"
-                       value="${toDate}"
-                       required>
-            </div>
-
-            <button type="submit" class="hd-button">
-                Apply period
-                <span aria-hidden="true">→</span>
-            </button>
-
-            <a class="hd-reset" href="${ctx}/dashboard">
-                Reset
-            </a>
-
-        </form>
-
-        <div class="hd-period">
-            <span class="hd-period-dot" aria-hidden="true"></span>
-
-            Selected period
-
-            <strong>${fromDate} — ${toDate}</strong>
-
-            <span>Both dates included</span>
-        </div>
-
-        <c:choose>
-
-            <c:when test="${not empty dashboardError}">
-                <div class="hd-error" role="alert">
-                    <c:out value="${dashboardError}" />
-                </div>
-            </c:when>
-
-            <c:otherwise>
-
-                <%-- Chart inputs contain typed values from DashboardServlet. --%>
-                <div id="hd-data" hidden>
-
-                    <div id="hd-month-data">
-                        <c:forEach var="item" items="${monthlyRevenue}">
-                            <span data-label="${item.timeUnit}"
-                                  data-value="${item.totalRevenue}">
-                            </span>
-                        </c:forEach>
+                        <p class="hd-subtitle">
+                            A considered view of your hotel’s performance.
+                        </p>
                     </div>
 
-                    <div id="hd-booking-data">
-                        <c:forEach var="item" items="${bookingStatistics}">
-                            <span data-label="<c:out value='${item.status}' />"
-                                  data-value="${item.totalCount}">
-                            </span>
-                        </c:forEach>
-                    </div>
-
-                    <div id="hd-payment-data">
-                        <c:forEach var="item" items="${paymentStatistics}">
-                            <span data-label="<c:out value='${item.status}' />"
-                                  data-value="${item.totalAmount}"
-                                  data-count="${item.totalCount}">
-                            </span>
-                        </c:forEach>
-                    </div>
-
-                    <div id="hd-room-data">
-                        <c:forEach var="item" items="${roomStatistics}">
-                            <span data-label="<c:out value='${item.status}' />"
-                                  data-value="${item.totalCount}">
-                            </span>
-                        </c:forEach>
-                    </div>
-
+                    <c:if test="${empty dashboardError}">
+                        <a class="hd-button hd-button-light"
+                           href="<c:out value='${dashboardBookingsUrl}' />">
+                            Explore records
+                            <span aria-hidden="true">↗</span>
+                        </a>
+                    </c:if>
                 </div>
 
-                <div class="hd-kpis">
+                <form class="hd-filter"
+                      action="${ctx}/dashboard"
+                      method="get">
 
-                    <section class="hd-kpi hd-kpi-dark">
+                    <div class="hd-filter-intro">
+                        <span class="hd-overline">Reporting period</span>
+                        <strong>Choose your dates</strong>
+                    </div>
 
-                        <div class="hd-kpi-top">
-                            <span>Paid revenue</span>
-                            <span class="hd-symbol">₫</span>
+                    <div class="hd-field">
+                        <label for="fromDate">From</label>
+
+                        <input type="date"
+                               id="fromDate"
+                               name="fromDate"
+                               min="0001-01-01"
+                               max="${today}"
+                               value="${fromDate}"
+                               required>
+                    </div>
+
+                    <div class="hd-field">
+                        <label for="toDate">To</label>
+
+                        <input type="date"
+                               id="toDate"
+                               name="toDate"
+                               min="0001-01-01"
+                               max="${today}"
+                               value="${toDate}"
+                               required>
+                    </div>
+
+                    <button type="submit" class="hd-button">
+                        Apply period
+                        <span aria-hidden="true">→</span>
+                    </button>
+
+                    <a class="hd-reset" href="${ctx}/dashboard">
+                        Reset
+                    </a>
+
+                </form>
+
+                <div class="hd-period">
+                    <span class="hd-period-dot" aria-hidden="true"></span>
+
+                    Selected period
+
+                    <strong>${fromDate} — ${toDate}</strong>
+
+                    <span>Both dates included</span>
+                </div>
+
+                <c:choose>
+
+                    <c:when test="${not empty dashboardError}">
+                        <div class="hd-error" role="alert">
+                            <c:out value="${dashboardError}" />
+                        </div>
+                    </c:when>
+
+                    <c:otherwise>
+
+                        <%-- Chart inputs contain typed values from DashboardServlet. --%>
+                        <div id="hd-data" hidden>
+
+                            <div id="hd-month-data" data-grouping="${chartGrouping}">
+                                <c:forEach var="item" items="${monthlyRevenue}">
+                                    <span data-label="${item.timeUnit}"
+                                          data-value="${item.totalRevenue}">
+                                    </span>
+                                </c:forEach>
+                            </div>
+
+                            <div id="hd-booking-data">
+                                <c:forEach var="item" items="${bookingStatistics}">
+                                    <span data-label="<c:out value='${item.status}' />"
+                                          data-value="${item.totalCount}">
+                                    </span>
+                                </c:forEach>
+                            </div>
+
+                            <div id="hd-payment-data">
+                                <c:forEach var="item" items="${paymentStatistics}">
+                                    <span data-label="<c:out value='${item.status}' />"
+                                          data-value="${item.totalAmount}"
+                                          data-count="${item.totalCount}">
+                                    </span>
+                                </c:forEach>
+                            </div>
+
+                            <div id="hd-room-data">
+                                <c:forEach var="item" items="${roomStatistics}">
+                                    <span data-label="<c:out value='${item.status}' />"
+                                          data-value="${item.totalCount}">
+                                    </span>
+                                </c:forEach>
+                            </div>
+
                         </div>
 
-                        <strong class="hd-kpi-value"
-                                data-counter="${totalRevenue}"
-                                data-format="money">
-                            <fmt:formatNumber
-                                    value="${totalRevenue}"
-                                    pattern="#,##0.##" />
-                            ₫
-                        </strong>
+                        <div class="hd-kpis">
 
-                        <p>Successful payments · Selected period</p>
+                            <section class="hd-kpi hd-kpi-dark">
 
-                        <div class="hd-kpi-decoration"
-                             aria-hidden="true"></div>
-                    </section>
+                                <div class="hd-kpi-top">
+                                    <span>Collected · VND</span>
+                                    <span class="hd-symbol">₫</span>
+                                </div>
 
-                    <section class="hd-kpi hd-kpi-gold">
-
-                        <div class="hd-kpi-top">
-                            <span>Bookings created</span>
-                            <span class="hd-symbol">B</span>
-                        </div>
-
-                        <strong class="hd-kpi-value"
-                                data-counter="${totalBookings}">
-                            <fmt:formatNumber
-                                    value="${totalBookings}"
-                                    pattern="#,##0" />
-                        </strong>
-
-                        <p>All statuses · Selected period</p>
-
-                        <div class="hd-kpi-decoration"
-                             aria-hidden="true"></div>
-                    </section>
-
-                    <section class="hd-kpi hd-kpi-sage">
-
-                        <div class="hd-kpi-top">
-                            <span>Registered customers</span>
-                            <span class="hd-symbol">C</span>
-                        </div>
-
-                        <strong class="hd-kpi-value"
-                                data-counter="${customerCount}">
-                            <fmt:formatNumber
-                                    value="${customerCount}"
-                                    pattern="#,##0" />
-                        </strong>
-
-                        <p>Current total · All periods</p>
-
-                        <div class="hd-kpi-decoration"
-                             aria-hidden="true"></div>
-                    </section>
-
-                    <section class="hd-kpi hd-kpi-clay">
-
-                        <div class="hd-kpi-top">
-                            <span>Estimated occupancy</span>
-                            <span class="hd-symbol">%</span>
-                        </div>
-
-                        <div class="hd-occupancy-layout">
-
-                            <div>
-                                <strong class="hd-kpi-value">
-                                    <c:choose>
-                                        <c:when test="${availableRooms > 0}">
-                                            <span data-counter="${occupancyRate}"
-                                                  data-format="percent">
-                                                <fmt:formatNumber
-                                                        value="${occupancyRate}"
-                                                        pattern="0.##" />%
-                                            </span>
-                                        </c:when>
-
-                                        <c:otherwise>
-                                            N/A
-                                        </c:otherwise>
-                                    </c:choose>
+                                <strong class="hd-kpi-value"
+                                        data-counter="${totalRevenue}"
+                                        data-format="money-number">
+                                    <fmt:formatNumber
+                                        value="${totalRevenue}"
+                                        pattern="#,##0.##" />
                                 </strong>
 
-                                <p>Stay dates · Selected period</p>
-                            </div>
+                                <p>Successful payments · Selected period</p>
 
-                            <svg class="hd-occupancy"
-                                 viewBox="0 0 100 100"
-                                 role="img"
-                                 aria-label="Estimated occupancy">
+                                <div class="hd-kpi-decoration"
+                                     aria-hidden="true"></div>
+                            </section>
 
-                                <circle cx="50"
-                                        cy="50"
-                                        r="39"
-                                        class="hd-ring-track" />
+                            <section class="hd-kpi hd-kpi-gold">
 
-                                <circle id="hd-occupancy-ring"
-                                        cx="50"
-                                        cy="50"
-                                        r="39"
-                                        class="hd-ring-value"
-                                        stroke-dasharray="0 245.044"
-                                        data-value="${occupancyRate}"
-                                        data-available="${availableRooms}" />
-                            </svg>
+                                <div class="hd-kpi-top">
+                                    <span>Bookings created</span>
+                                    <span class="hd-symbol">B</span>
+                                </div>
 
-                        </div>
-                    </section>
-
-                </div>
-
-                <div class="hd-primary-grid">
-
-                    <section class="hd-panel hd-revenue-panel">
-
-                        <div class="hd-panel-heading">
-                            <div>
-                                <p class="hd-overline">
-                                    Financial performance
-                                </p>
-
-                                <h2>Revenue overview</h2>
-
-                                <p class="hd-description">
-                                    Monthly paid amounts
-                                    · Full calendar year ${chartYear}
-                                </p>
-                            </div>
-
-                            <span class="hd-tag">VND</span>
-                        </div>
-
-                        <div class="hd-chart-toolbar">
-
-                            <span class="hd-key">
-                                <i class="hd-key-gold"></i>
-                                Successful payments
-                            </span>
-
-                            <div class="hd-toggle"
-                                 role="group"
-                                 aria-label="Revenue chart display">
-
-                                <button type="button"
-                                        data-revenue-mode="bar"
-                                        aria-pressed="true">
-                                    Columns
-                                </button>
-
-                                <button type="button"
-                                        data-revenue-mode="area"
-                                        aria-pressed="false">
-                                    Area
-                                </button>
-                            </div>
-
-                        </div>
-
-                        <svg id="hd-revenue-chart"
-                             class="hd-chart hd-revenue-chart"
-                             viewBox="0 0 800 310"
-                             role="img"
-                             aria-label="Monthly paid revenue">
-                        </svg>
-
-                        <p class="hd-note">
-                            Full year containing the start date;
-                            the selected date range applies to the summary cards.
-                            Point to or focus a chart mark for its exact amount.
-                        </p>
-
-                        <details class="hd-data-details">
-                            <summary>View monthly values</summary>
-
-                            <div class="hd-table-scroll">
-                                <table class="hd-table">
-
-                                    <thead>
-                                    <tr>
-                                        <th scope="col">Month</th>
-                                        <th scope="col">Paid revenue (VND)</th>
-                                    </tr>
-                                    </thead>
-
-                                    <tbody>
-                                    <c:forEach var="item"
-                                               items="${monthlyRevenue}">
-                                        <tr>
-                                            <td>${item.timeUnit}</td>
-
-                                            <td>
-                                                <fmt:formatNumber
-                                                        value="${item.totalRevenue}"
-                                                        pattern="#,##0.##" />
-                                                ₫
-                                            </td>
-                                        </tr>
-                                    </c:forEach>
-                                    </tbody>
-
-                                </table>
-                            </div>
-                        </details>
-
-                    </section>
-
-                    <section class="hd-panel">
-
-                        <div class="hd-panel-heading">
-                            <div>
-                                <p class="hd-overline">Reservations</p>
-                                <h2>Booking distribution</h2>
-
-                                <p class="hd-description">
-                                    Bookings created in the selected period
-                                </p>
-                            </div>
-
-                            <span class="hd-tag">By status</span>
-                        </div>
-
-                        <div class="hd-donut-wrap">
-
-                            <svg id="hd-booking-chart"
-                                 viewBox="0 0 230 230"
-                                 class="hd-donut"
-                                 role="img"
-                                 aria-label="Booking counts by current status">
-                            </svg>
-
-                            <div class="hd-donut-center">
-                                <strong data-counter="${totalBookings}">
-                                    ${totalBookings}
+                                <strong class="hd-kpi-value"
+                                        data-counter="${totalBookings}">
+                                    <fmt:formatNumber
+                                        value="${totalBookings}"
+                                        pattern="#,##0" />
                                 </strong>
 
-                                <span>Total bookings</span>
-                            </div>
-                        </div>
+                                <p>All statuses · Selected period</p>
 
-                        <div id="hd-booking-legend"
-                             class="hd-legend"></div>
+                                <div class="hd-kpi-decoration"
+                                     aria-hidden="true"></div>
+                            </section>
 
-                    </section>
+                            <section class="hd-kpi hd-kpi-sage">
 
-                </div>
+                                <div class="hd-kpi-top">
+                                    <span>Customers · All time</span>
+                                    <span class="hd-symbol">C</span>
+                                </div>
 
-                <div class="hd-bottom-grid">
+                                <strong class="hd-kpi-value"
+                                        data-counter="${customerCount}">
+                                    <fmt:formatNumber
+                                        value="${customerCount}"
+                                        pattern="#,##0" />
+                                </strong>
 
-                    <section class="hd-panel hd-bottom-panel">
+                                <p>Current total · All periods</p>
 
-                        <div class="hd-panel-heading">
-                            <div>
-                                <p class="hd-overline">Payment activity</p>
-                                <h2>Transaction overview</h2>
-                            </div>
+                                <div class="hd-kpi-decoration"
+                                     aria-hidden="true"></div>
+                            </section>
 
-                            <span class="hd-panel-index">01</span>
-                        </div>
+                            <section class="hd-kpi hd-kpi-clay" title="Elapsed scheduled nights on total room inventory; maintenance history is not available.">
 
-                        <p class="hd-description">
-                            Dated transactions within the selected period.
-                        </p>
+                                <div class="hd-kpi-top">
+                                    <span>Estimated occupancy</span>
+                                    <span class="hd-symbol">%</span>
+                                </div>
 
-                        <div class="hd-toggle hd-payment-toggle"
-                             role="group"
-                             aria-label="Payment chart metric">
+                                <div class="hd-occupancy-layout">
 
-                            <button type="button"
-                                    data-payment-mode="amount"
-                                    aria-pressed="true">
-                                Amount · VND
-                            </button>
+                                    <div>
+                                        <strong class="hd-kpi-value">
+                                            <c:choose>
+                                                <c:when test="${availableRooms > 0}">
+                                                    <span data-counter="${occupancyRate}"
+                                                          data-format="percent">
+                                                        <fmt:formatNumber
+                                                            value="${occupancyRate}"
+                                                            pattern="0.##" />%
+                                                    </span>
+                                                </c:when>
 
-                            <button type="button"
-                                    data-payment-mode="count"
-                                    aria-pressed="false">
-                                Transactions
-                            </button>
-                        </div>
-
-                        <svg id="hd-payment-chart"
-                             class="hd-chart hd-payment-chart"
-                             viewBox="0 0 440 280"
-                             role="img"
-                             aria-label="Payment amounts by status">
-                        </svg>
-
-                        <div id="hd-payment-summary"
-                             class="hd-mini-grid"></div>
-
-                        <p class="hd-note hd-bottom-note">
-                            Only paid amounts contribute to revenue.
-                            Transactions without a payment date are excluded.
-                        </p>
-
-                    </section>
-
-                    <section class="hd-panel hd-bottom-panel">
-
-                        <div class="hd-panel-heading">
-                            <div>
-                                <p class="hd-overline">Room inventory</p>
-                                <h2>Operational balance</h2>
-                            </div>
-
-                            <span class="hd-panel-index">02</span>
-                        </div>
-
-                        <p class="hd-description">
-                            Current room conditions · All rooms
-                        </p>
-
-                        <div class="hd-donut-wrap hd-room-donut">
-
-                            <svg id="hd-room-chart"
-                                 viewBox="0 0 230 230"
-                                 class="hd-donut"
-                                 role="img"
-                                 aria-label="Current room status distribution">
-                            </svg>
-
-                            <div class="hd-donut-center">
-                                <strong id="hd-room-total">—</strong>
-                                <span>Physical rooms</span>
-                            </div>
-
-                        </div>
-
-                        <div id="hd-room-legend"
-                             class="hd-legend"></div>
-
-                        <p class="hd-note hd-bottom-note">
-                            Available means operational, not vacant.
-                            Occupancy assumes the currently available room
-                            inventory throughout the selected period.
-                        </p>
-
-                    </section>
-
-                    <section class="hd-panel hd-bottom-panel">
-
-                        <div class="hd-panel-heading">
-                            <div>
-                                <p class="hd-overline">Guest experience</p>
-                                <h2>Guest satisfaction</h2>
-                            </div>
-
-                            <span class="hd-panel-index">03</span>
-                        </div>
-
-                        <p class="hd-description">
-                            Approved reviews · All periods
-                        </p>
-
-                        <c:choose>
-
-                            <c:when test="${reviewStatistics.hasReviews}">
-
-                                <div class="hd-rating-gauge"
-                                     id="hd-rating"
-                                     data-value="${reviewStatistics.averageRating}">
-
-                                    <svg id="hd-rating-chart"
-                                         viewBox="0 0 300 190"
-                                         class="hd-chart"
-                                         role="img"
-                                         aria-label="Average approved rating out of five">
-                                    </svg>
-
-                                    <div class="hd-rating-value">
-
-                                        <strong data-counter="${reviewStatistics.averageRating}"
-                                                data-format="decimal">
-                                            <fmt:formatNumber
-                                                    value="${reviewStatistics.averageRating}"
-                                                    pattern="0.##" />
+                                                <c:otherwise>
+                                                    N/A
+                                                </c:otherwise>
+                                            </c:choose>
                                         </strong>
 
-                                        <span>out of 5</span>
+                                        <c:if test="${occupancy.applicable}">
+                                            <span class="hd-scope">To ${occupancy.throughDate}</span>
+                                        </c:if>
+                                    </div>
 
+                                    <svg class="hd-occupancy"
+                                         viewBox="0 0 100 100"
+                                         role="img"
+                                         aria-label="Estimated occupancy">
+
+                                    <circle cx="50"
+                                            cy="50"
+                                            r="39"
+                                            class="hd-ring-track" />
+
+                                    <circle id="hd-occupancy-ring"
+                                            cx="50"
+                                            cy="50"
+                                            r="39"
+                                            class="hd-ring-value"
+                                            stroke-dasharray="0 245.044"
+                                            data-value="${occupancyRate}"
+                                            data-available="${availableRooms}" />
+                                    </svg>
+
+                                </div>
+                            </section>
+
+                        </div>
+
+                        <div class="hd-primary-grid">
+
+                            <section class="hd-panel hd-revenue-panel">
+
+                                <div class="hd-panel-heading">
+                                    <div>
+                                        <p class="hd-overline">
+                                            Financial performance
+                                        </p>
+
+                                        <h2>Revenue overview</h2>
+
+                                        <p class="hd-description">
+                                            Payments in the selected period
+                                        </p>
+                                    </div>
+
+                                    <span class="hd-scope">Selected period · VND</span>
+                                </div>
+
+                                <div class="hd-chart-toolbar">
+
+                                    <span class="hd-key">
+                                        <i class="hd-key-gold"></i>
+                                        Successful payments
+                                    </span>
+
+                                    <div class="hd-toggle"
+                                         role="group"
+                                         aria-label="Revenue chart display">
+
+                                        <button type="button"
+                                                data-revenue-mode="bar"
+                                                aria-pressed="true">
+                                            Columns
+                                        </button>
+
+                                        <button type="button"
+                                                data-revenue-mode="area"
+                                                aria-pressed="false">
+                                            Area
+                                        </button>
                                     </div>
 
                                 </div>
 
-                                <div class="hd-stars" aria-hidden="true">
-                                    <span>★★★★★</span>
-
-                                    <span id="hd-rating-stars">
-                                        ★★★★★
-                                    </span>
+                                <div class="hd-chart-scroll">
+                                    <svg id="hd-revenue-chart"
+                                         class="hd-chart hd-revenue-chart"
+                                         viewBox="0 0 800 310"
+                                         role="img"
+                                         aria-label="Collected payments in the selected period">
+                                    </svg>
                                 </div>
 
-                            </c:when>
+                                <p class="hd-note">
+                                    The chart and collected-payment total use the same reporting period.
+                                </p>
 
-                            <c:otherwise>
-                                <div class="hd-no-rating">
-                                    <strong>N/A</strong>
-                                    <span>No approved reviews yet</span>
+                                <details class="hd-data-details">
+                                    <summary>View exact amounts</summary>
+
+                                    <div class="hd-table-scroll">
+                                        <table class="hd-table">
+
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col">Period</th>
+                                                    <th scope="col">Payments collected (VND)</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <c:forEach var="item"
+                                                           items="${monthlyRevenue}">
+                                                    <tr>
+                                                        <td>${item.timeUnit}</td>
+
+                                                        <td>
+                                                            <fmt:formatNumber
+                                                                value="${item.totalRevenue}"
+                                                                pattern="#,##0.##" />
+                                                            ₫
+                                                        </td>
+                                                    </tr>
+                                                </c:forEach>
+                                            </tbody>
+
+                                        </table>
+                                    </div>
+                                </details>
+
+                            </section>
+
+                            <section class="hd-panel">
+
+                                <div class="hd-panel-heading">
+                                    <div>
+                                        <p class="hd-overline">Reservations</p>
+                                        <h2>Booking status</h2>
+
+                                        <p class="hd-description">
+                                            Current statuses of bookings created in the selected period
+                                        </p>
+                                    </div>
+
+                                    <span class="hd-scope">Created in period</span>
                                 </div>
-                            </c:otherwise>
 
-                        </c:choose>
+                                <div class="hd-donut-wrap">
 
-                        <div class="hd-review-total">
+                                    <svg id="hd-booking-chart"
+                                         viewBox="0 0 230 230"
+                                         class="hd-donut"
+                                         role="img"
+                                         aria-label="Booking counts by current status">
+                                    </svg>
 
-                            <strong data-counter="${reviewStatistics.totalReviews}">
-                                ${reviewStatistics.totalReviews}
-                            </strong>
+                                    <div class="hd-donut-center">
+                                        <strong data-counter="${totalBookings}">
+                                            ${totalBookings}
+                                        </strong>
 
-                            <span>approved reviews</span>
+                                        <span>Total bookings</span>
+                                    </div>
+                                </div>
 
-                            <a href="${ctx}/reports?view=reviews"
-                               aria-label="View review records">
-                                ↗
-                            </a>
+                                <div id="hd-booking-legend"
+                                     class="hd-legend"></div>
+
+                            </section>
 
                         </div>
 
-                        <p class="hd-note hd-bottom-note">
-                            Average rating uses approved reviews only.
-                            Pending and rejected reviews are excluded.
-                        </p>
+                        <div class="hd-bottom-grid">
 
-                    </section>
+                            <section class="hd-panel hd-bottom-panel">
 
-                </div>
+                                <div class="hd-panel-heading">
+                                    <div>
+                                        <p class="hd-overline">Payment activity</p>
+                                        <h2>Transaction overview</h2>
+                                    </div>
 
-                <section class="hd-panel hd-records">
+                                    <span class="hd-panel-index">01</span>
+                                </div>
 
-                    <div>
-                        <p class="hd-overline">A closer look</p>
-                        <h2>Explore hotel records</h2>
+                                <p class="hd-description">
+                                    Dated transactions within the selected period.
+                                </p>
 
-                        <p class="hd-description">
-                            Booking and payment records follow
-                            the selected reporting period.
-                        </p>
-                    </div>
+                                <div class="hd-toggle hd-payment-toggle"
+                                     role="group"
+                                     aria-label="Payment chart metric">
 
-                    <div class="hd-record-links">
+                                    <button type="button"
+                                            data-payment-mode="amount"
+                                            aria-pressed="true">
+                                        Amount · VND
+                                    </button>
 
-                        <a class="hd-button hd-button-light"
-                           href="<c:out value='${dashboardBookingsUrl}' />">
-                            Bookings ↗
-                        </a>
+                                    <button type="button"
+                                            data-payment-mode="count"
+                                            aria-pressed="false">
+                                        Transactions
+                                    </button>
+                                </div>
 
-                        <a class="hd-button hd-button-light"
-                           href="<c:out value='${dashboardPaymentsUrl}' />">
-                            Payments ↗
-                        </a>
+                                <svg id="hd-payment-chart"
+                                     class="hd-chart hd-payment-chart"
+                                     viewBox="0 0 440 280"
+                                     role="img"
+                                     aria-label="Payment amounts by status">
+                                </svg>
 
-                        <%-- Revenue reports retain their calendar-year scope. --%>
-                        <a class="hd-button"
-                           href="${ctx}/reports?view=month&amp;year=${chartYear}">
-                            Revenue ↗
-                        </a>
+                                <div id="hd-payment-summary"
+                                     class="hd-mini-grid"></div>
 
-                    </div>
+                                <p class="hd-note hd-bottom-note">
+                                    Only paid amounts contribute to revenue.
+                                    Transactions without a payment date are excluded.
+                                </p>
 
-                </section>
+                            </section>
 
-            </c:otherwise>
+                            <section class="hd-panel hd-bottom-panel">
 
-        </c:choose>
+                                <div class="hd-panel-heading">
+                                    <div>
+                                        <p class="hd-overline">Room inventory</p>
+                                        <h2>Rooms · Current</h2>
+                                    </div>
 
-    </div>
+                                    <span class="hd-panel-index">02</span>
+                                </div>
 
-</main>
+                                <p class="hd-description">
+                                    Current room conditions · All rooms
+                                </p>
 
-<%@ include file="/WEB-INF/include/footer.jsp" %>
+                                <div class="hd-donut-wrap hd-room-donut">
 
-<script src="${ctx}/assets/js/bootstrap.bundle.min.js"></script>
+                                    <svg id="hd-room-chart"
+                                         viewBox="0 0 230 230"
+                                         class="hd-donut"
+                                         role="img"
+                                         aria-label="Current room status distribution">
+                                    </svg>
 
-</body>
+                                    <div class="hd-donut-center">
+                                        <strong id="hd-room-total">—</strong>
+                                        <span>Physical rooms</span>
+                                    </div>
+
+                                </div>
+
+                                <div id="hd-room-legend"
+                                     class="hd-legend"></div>
+
+                                <p class="hd-note hd-bottom-note">
+                                    Operational means in service, not necessarily vacant.
+                                </p>
+
+                            </section>
+
+                            <section class="hd-panel hd-bottom-panel">
+
+                                <div class="hd-panel-heading">
+                                    <div>
+                                        <p class="hd-overline">Guest experience</p>
+                                        <h2>Ratings · All time</h2>
+                                    </div>
+
+                                    <span class="hd-panel-index">03</span>
+                                </div>
+
+                                <p class="hd-description">
+                                    Approved reviews · All periods
+                                </p>
+
+                                <c:choose>
+
+                                    <c:when test="${reviewStatistics.hasReviews}">
+
+                                        <div class="hd-rating-gauge"
+                                             id="hd-rating"
+                                             data-value="${reviewStatistics.averageRating}">
+
+                                            <svg id="hd-rating-chart"
+                                                 viewBox="0 0 300 190"
+                                                 class="hd-chart"
+                                                 role="img"
+                                                 aria-label="Average approved rating out of five">
+                                            </svg>
+
+                                            <div class="hd-rating-value">
+
+                                                <strong data-counter="${reviewStatistics.averageRating}"
+                                                        data-format="decimal">
+                                                    <fmt:formatNumber
+                                                        value="${reviewStatistics.averageRating}"
+                                                        pattern="0.##" />
+                                                </strong>
+
+                                                <span>out of 5</span>
+
+                                            </div>
+
+                                        </div>
+
+                                        <div class="hd-stars" aria-hidden="true">
+                                            <span>★★★★★</span>
+
+                                            <span id="hd-rating-stars">
+                                                ★★★★★
+                                            </span>
+                                        </div>
+
+                                    </c:when>
+
+                                    <c:otherwise>
+                                        <div class="hd-no-rating">
+                                            <strong>N/A</strong>
+                                            <span>No approved reviews yet</span>
+                                        </div>
+                                    </c:otherwise>
+
+                                </c:choose>
+
+                                <div class="hd-review-total">
+
+                                    <strong data-counter="${reviewStatistics.totalReviews}">
+                                        ${reviewStatistics.totalReviews}
+                                    </strong>
+
+                                    <span>approved reviews</span>
+
+                                    <a href="${ctx}/reports?view=reviews&amp;status=approved"
+                                       aria-label="View approved review records">
+                                        View reviews
+                                    </a>
+
+                                </div>
+
+                                <p class="hd-note hd-bottom-note">
+                                    Average rating uses approved reviews only.
+                                    Pending and rejected reviews are excluded.
+                                </p>
+
+                            </section>
+
+                        </div>
+
+                        <details class="hd-definitions">
+                            <summary>How these figures are calculated</summary>
+                            <ul>
+                                <li><strong>Payments collected:</strong> currently paid transactions by payment date,
+                                    including deposits. This is not a net-refund cash-flow statement.</li>
+                                <li><strong>Bookings:</strong> current statuses of reservations created in the selected period.</li>
+                                <li><strong>Estimated occupancy:</strong> elapsed scheduled room nights / total inventory room nights.
+                                    Today's unfinished night is excluded. Maintenance history, inventory changes and actual
+                                    arrival/departure times are not recorded; this is an estimate, not historical sellable occupancy.
+                                    <c:if test="${occupancy.applicable}">
+                                        ${occupancy.roomNights} room nights / ${occupancy.capacityNights} inventory nights.
+                                    </c:if>
+                                    <c:if test="${not occupancy.applicable}">N/A means no elapsed nights or no rooms.</c:if></li>
+                                    <li><strong>Customers and ratings:</strong> all-time totals; ratings use approved reviews only.</li>
+                                    <li><strong>Rooms:</strong> current operational condition, not vacancy.
+                                        Transactions without a payment date are excluded from period reports.</li>
+                                </ul>
+                            </details>
+
+                            <section class="hd-panel hd-records">
+
+                                <div>
+                                    <p class="hd-overline">A closer look</p>
+                                    <h2>Explore hotel records</h2>
+
+                                    <p class="hd-description">
+                                        Booking and payment records follow
+                                        the selected reporting period.
+                                    </p>
+                                </div>
+
+                                <div class="hd-record-links">
+
+                                    <a class="hd-button hd-button-light"
+                                       href="<c:out value='${dashboardBookingsUrl}' />">
+                                    Bookings ↗
+                                </a>
+
+                                <a class="hd-button hd-button-light"
+                                   href="<c:out value='${dashboardPaymentsUrl}' />">
+                                    Payments ↗
+                                </a>
+
+                                <%-- Revenue details retain the selected reporting period. --%>
+                                <a class="hd-button"
+                                   href="${ctx}/reports?view=period&amp;fromDate=${fromDate}&amp;toDate=${toDate}">
+                                    Revenue ↗
+                                </a>
+
+                            </div>
+
+                        </section>
+
+                    </c:otherwise>
+
+                </c:choose>
+
+            </div>
+
+        </main>
+
+        <%@ include file="/WEB-INF/include/footer.jsp" %>
+
+        <script src="${ctx}/assets/js/bootstrap.bundle.min.js"></script>
+
+    </body>
 </html>

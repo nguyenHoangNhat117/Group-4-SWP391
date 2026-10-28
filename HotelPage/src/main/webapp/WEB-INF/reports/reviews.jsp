@@ -45,6 +45,8 @@
 
         <main class="hotel-reports">
 
+            <c:choose>
+                <c:when test="${reportIsAdmin}">
             <div class="report-heading">
                 <div>
                     <p class="report-eyebrow">
@@ -106,6 +108,12 @@
 
                 </div>
             </c:if>
+
+                </c:when>
+                <c:otherwise>
+                    <%@ include file="report-list-toolbar.jsp" %>
+                </c:otherwise>
+            </c:choose>
 
             <c:choose>
 
@@ -170,11 +178,7 @@
                         </c:choose>
                     </c:if>
 
-                    <div class="report-note">
-                        This list includes reviews from all periods and
-                        moderation statuses. The dashboard average rating
-                        includes approved reviews only.
-                    </div>
+
 
                     <section class="report-panel">
 
@@ -182,7 +186,10 @@
                             <h2>Guest feedback records</h2>
 
                             <span class="report-meta">
-                                ${fn:length(reviews)} reviews
+                                <c:choose>
+                                    <c:when test="${reportIsAdmin}">${fn:length(reviews)} reviews</c:when>
+                                    <c:otherwise>${totalRecords} matching reviews · ${fn:length(reviews)} on this page</c:otherwise>
+                                </c:choose>
                             </span>
                         </div>
 
@@ -393,6 +400,9 @@
 
             </c:choose>
 
+            <c:if test="${not reportIsAdmin}">
+                <%@ include file="report-list-pagination.jsp" %>
+            </c:if>
         </main>
 
         <%@ include file="/WEB-INF/include/footer.jsp" %>

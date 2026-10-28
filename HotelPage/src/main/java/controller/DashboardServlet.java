@@ -5,6 +5,8 @@ import model.ReportStatistic;
 import model.RevenueReport;
 import model.ReviewStatistics;
 import model.User;
+import model.OccupancyEstimate;
+import util.ReportPeriod;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -25,6 +27,7 @@ import java.util.List;
         urlPatterns = {"/dashboard"}
 )
 public class DashboardServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
 
     @Override
     protected void doGet(
@@ -64,6 +67,7 @@ public class DashboardServlet extends HttpServlet {
         LocalDate fromDate = today.withDayOfMonth(1);
         LocalDate toDate = today;
 
+        request.setAttribute("today", today);
         request.setAttribute("fromDate", fromDate);
         request.setAttribute("toDate", toDate);
 
@@ -114,13 +118,13 @@ public class DashboardServlet extends HttpServlet {
                 );
             }
 
+            ReportPeriod.validate(fromDate, toDate);
+            if (toDate.isAfter(today)) {
+                throw new IllegalArgumentException("Select an end date no later than today.");
+            }
             ReportDAO reportDAO = new ReportDAO();
 
-            BigDecimal totalRevenue =
-                    reportDAO.getTotalRevenue(
-                            fromDate,
-                            toDate
-                    );
+            BigDecimal totalRevenue;
 
             List<ReportStatistic> bookingStatistics =
                     reportDAO.getBookingStatistics(
@@ -143,48 +147,16 @@ public class DashboardServlet extends HttpServlet {
             ReviewStatistics reviewStatistics =
                     reportDAO.getReviewStatistics();
 
-            double occupancyRate =
-                    reportDAO.getOccupancyRate(
-                            fromDate,
-                            toDate
-                    );
-
+            OccupancyEstimate occupancy = reportDAO.getOccupancyEstimate(fromDate, toDate, today);
             long totalBookings = 0;
-
-            for (ReportStatistic item : bookingStatistics) {
-                totalBookings += item.getTotalCount();
-            }
-
-            long availableRooms = 0;
-
-            for (ReportStatistic item : roomStatistics) {
-                if ("available".equals(item.getStatus())) {
-                    availableRooms = item.getTotalCount();
-                    break;
-                }
-            }
-
-            /*
-             * The monthly chart covers the full calendar year
-             * containing the selected start date.
-             */
+            for (ReportStatistic item : bookingStatistics) totalBookings += item.getTotalCount();
             int chartYear = fromDate.getYear();
-
-            List<RevenueReport> monthlyRevenue =
-                    reportDAO.getRevenueByMonth(chartYear);
-
-            BigDecimal chartMaximum = BigDecimal.ZERO;
-
-            for (RevenueReport item : monthlyRevenue) {
-                chartMaximum = chartMaximum.max(
-                        item.getTotalRevenue()
-                );
-            }
-
-            // A positive maximum is required by the HTML meter element.
-            if (chartMaximum.signum() == 0) {
-                chartMaximum = BigDecimal.ONE;
-            }
+            List<RevenueReport> monthlyRevenue = reportDAO.getRevenueForPeriod(fromDate, toDate);
+            // Derive the card from the same series to guarantee card/chart reconciliation.
+            totalRevenue = BigDecimal.ZERO;
+            for (RevenueReport item : monthlyRevenue) totalRevenue=totalRevenue.add(item.getTotalRevenue());
+            request.setAttribute("occupancy", occupancy);
+            request.setAttribute("chartGrouping", ReportPeriod.grouping(fromDate, toDate));
 
             // Publish statistics only after all queries succeed.
             request.setAttribute(
@@ -224,12 +196,12 @@ public class DashboardServlet extends HttpServlet {
 
             request.setAttribute(
                     "occupancyRate",
-                    occupancyRate
+                    occupancy.getRate()
             );
 
             request.setAttribute(
                     "availableRooms",
-                    availableRooms
+                    occupancy.isApplicable() ? occupancy.getRoomCount() : 0
             );
 
             request.setAttribute(
@@ -242,10 +214,7 @@ public class DashboardServlet extends HttpServlet {
                     chartYear
             );
 
-            request.setAttribute(
-                    "chartMaximum",
-                    chartMaximum
-            );
+
 
         } catch (DateTimeParseException ex) {
 
