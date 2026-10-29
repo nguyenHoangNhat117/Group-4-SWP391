@@ -775,72 +775,112 @@ public class BookingDAO extends DBContext {
      * RDS requires retaining booking history.
      * =========================================================
      */
-    public boolean cancelBooking(
-            int bookingId,
-            int customerId,
-            String reason) {
+    public boolean cancelBooking(int bookingId, int customerId, String reason) {
+        return cancelBookingInternal(bookingId, customerId, reason);
+    }
 
-        /*
-         * BR-39:
-         * cancellation must occur at least
-         * 24 hours before check-in.
-         *
-         * Because Booking can theoretically contain
-         * several rooms, MIN(CheckInDate) is used.
-         */
-        String sql
-                = "UPDATE Booking "
-                + "SET Status = 'cancelled', "
-                + "CancellationDate = SYSDATETIME(), "
-                + "CancellationReason = ? "
-                + "WHERE BookingID = ? "
-                + "AND CustomerID = ? "
-                + "AND Status IN ('pending', 'confirmed') "
-                + "AND EXISTS ( "
-                + "    SELECT 1 "
-                + "    FROM BookingDetail bd "
-                + "    WHERE bd.BookingID = Booking.BookingID "
-                + "    GROUP BY bd.BookingID "
-                + "    HAVING MIN(bd.CheckInDate) "
-                + "       > DATEADD(HOUR, 24, SYSDATETIME()) "
-                + ")";
-
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
-            ps.setString(1, reason);
-            ps.setInt(2, bookingId);
-            ps.setInt(3, customerId);
-
-            return ps.executeUpdate() > 0;
-
+    // A cancelled booking stays in history. A refund is recorded only for
+    // payments already received and only if check-in is more than 24h away.
+    // The booking and payment changes commit or roll back together.
+    private boolean cancelBookingInternal(int bookingId, Integer customerId, String reason) {
+        String lockSql = "SELECT Status FROM Booking WITH (UPDLOCK, HOLDLOCK) "
+                + "WHERE BookingID = ?" + (customerId == null ? "" : " AND CustomerID = ?");
+        String checkSql = "SELECT MIN(CheckInDate) AS FirstCheckIn FROM BookingDetail WHERE BookingID = ?";
+        String updateSql = "UPDATE Booking SET Status = 'cancelled', "
+                + "CancellationDate = SYSDATETIME(), CancellationReason = ? "
+                + "WHERE BookingID = ? AND Status IN ('pending', 'confirmed')";
+        String refundSql = "UPDATE Payment SET PaymentStatus = 'refunded' "
+                + "WHERE BookingID = ? AND PaymentStatus = 'paid'";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false);
+            try (PreparedStatement ps = conn.prepareStatement(lockSql)) {
+                ps.setInt(1, bookingId);
+                if (customerId != null) ps.setInt(2, customerId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) { conn.rollback(); return false; }
+                    String status = rs.getString(1);
+                    if (!"pending".equalsIgnoreCase(status)
+                            && !"confirmed".equalsIgnoreCase(status)) {
+                        conn.rollback(); return false;
+                    }
+                }
+            }
+            java.sql.Date firstCheckIn;
+            try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
+                ps.setInt(1, bookingId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next() || (firstCheckIn = rs.getDate(1)) == null) {
+                        conn.rollback(); return false;
+                    }
+                }
+            }
+            // CheckInDate is a DATE in HotelDB; midnight is the only check-in
+            // time available. Use database time to match SQL Server rules.
+            boolean refundEligible;
+            String eligibilitySql = "SELECT CASE WHEN CAST(? AS DATETIME2) > "
+                    + "DATEADD(HOUR, 24, SYSDATETIME()) THEN 1 ELSE 0 END";
+            try (PreparedStatement ps = conn.prepareStatement(eligibilitySql)) {
+                ps.setDate(1, firstCheckIn);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    refundEligible = rs.getInt(1) == 1;
+                }
+            }
+            // No cancellation is allowed after the check-in date begins.
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT CASE WHEN CAST(? AS DATETIME2) > SYSDATETIME() THEN 1 ELSE 0 END")) {
+                ps.setDate(1, firstCheckIn);
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    if (rs.getInt(1) != 1) { conn.rollback(); return false; }
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                ps.setString(1, reason);
+                ps.setInt(2, bookingId);
+                if (ps.executeUpdate() != 1) { conn.rollback(); return false; }
+            }
+            if (refundEligible) {
+                // Accounting-only refund status; no external payment gateway exists.
+                try (PreparedStatement ps = conn.prepareStatement(refundSql)) {
+                    ps.setInt(1, bookingId);
+                    ps.executeUpdate();
+                }
+            }
+            conn.commit();
+            return true;
         } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    BookingDAO.class.getName()
-            ).log(Level.SEVERE, "Operation failed", ex);
-
+            if (conn != null) try { conn.rollback(); } catch (SQLException ignored) { }
+            Logger.getLogger(BookingDAO.class.getName()).log(Level.SEVERE, "Cancellation failed", ex);
             return false;
+        } finally {
+            if (conn != null) try { conn.close(); } catch (SQLException ignored) { }
         }
     }
 
     public boolean canCustomerCancelBooking(int bookingId, int customerId) {
-        String sql =
-                "SELECT 1 FROM Booking b "
-                + "WHERE b.BookingID = ? AND b.CustomerID = ? "
+        String sql = "SELECT 1 FROM Booking b WHERE b.BookingID = ? AND b.CustomerID = ? "
                 + "AND b.Status IN ('pending', 'confirmed') "
-                + "AND EXISTS (SELECT 1 FROM BookingDetail bd "
-                + "WHERE bd.BookingID = b.BookingID "
-                + "GROUP BY bd.BookingID "
-                + "HAVING MIN(bd.CheckInDate) > DATEADD(HOUR, 24, SYSDATETIME()))";
-
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                + "AND EXISTS (SELECT 1 FROM BookingDetail bd WHERE bd.BookingID = b.BookingID "
+                + "GROUP BY bd.BookingID HAVING CAST(MIN(bd.CheckInDate) AS DATETIME2) > SYSDATETIME())";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, bookingId);
             ps.setInt(2, customerId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        } catch (SQLException ex) {
+            Logger.getLogger(BookingDAO.class.getName()).log(Level.SEVERE, "Operation failed", ex);
+            return false;
+        }
+    }
+
+    public boolean isRefundEligible(int bookingId) {
+        String sql = "SELECT 1 FROM BookingDetail WHERE BookingID = ? "
+                + "GROUP BY BookingID HAVING CAST(MIN(CheckInDate) AS DATETIME2) > DATEADD(HOUR, 24, SYSDATETIME())";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, bookingId);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
         } catch (SQLException ex) {
             Logger.getLogger(BookingDAO.class.getName()).log(Level.SEVERE, "Operation failed", ex);
             return false;
@@ -879,6 +919,10 @@ public class BookingDAO extends DBContext {
                 newStatus)) {
 
             return false;
+        }
+
+        if ("cancelled".equals(newStatus)) {
+            return cancelBookingInternal(bookingId, null, "Cancelled by Staff/Admin");
         }
 
         String sql

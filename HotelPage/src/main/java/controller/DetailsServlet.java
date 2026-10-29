@@ -15,10 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import model.Room;
 
-/**
- *
- * @author Đặng Hoàng Vũ
- */
+
 @WebServlet(name = "DetailsServlet", urlPatterns = {"/details"})
 public class DetailsServlet extends HttpServlet {
 
@@ -85,10 +82,11 @@ public class DetailsServlet extends HttpServlet {
         ReviewDAO reviewDAO = new ReviewDAO();
 
         // Get the list of reviews for the given room number
-        request.setAttribute("reviews", reviewDAO.getReviewsByRoomNumber(roomNumber));
+        java.util.List<model.Review> reviews = reviewDAO.getReviewsByRoomNumber(roomNumber);
+        request.setAttribute("reviews", reviews);
 
         // Check if the room has any reviews
-        if (reviewDAO.getReviewsByRoomNumber(roomNumber).size() > 0) {
+        if (!reviews.isEmpty()) {
             // If reviews exist, calculate and set the average star rating
             request.setAttribute("averageStar", reviewDAO.getAverageStarByRoomNumber(roomNumber));
         } else {

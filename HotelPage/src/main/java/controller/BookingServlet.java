@@ -386,7 +386,8 @@ public class BookingServlet extends HttpServlet {
             return;
         }
 
-        if (prepaymentPercent != 10
+        if (prepaymentPercent != 0
+                && prepaymentPercent != 10
                 && prepaymentPercent != 20
                 && prepaymentPercent != 100) {
 
@@ -490,10 +491,31 @@ public class BookingServlet extends HttpServlet {
                 "availableRooms"
         );
 
-        /*
-         * Go straight to payment and carry the validated initial
-         * percentage chosen on the booking confirmation page.
-         */
+        // Keep the customer's selection for the first payment of this booking.
+        // The payment page and servlet do not trust a modifiable URL percentage.
+        java.util.Map<Integer, Integer> initialChoices =
+                (java.util.Map<Integer, Integer>) session.getAttribute("bookingInitialChoices");
+        if (initialChoices == null) {
+            initialChoices = new java.util.HashMap<>();
+            session.setAttribute("bookingInitialChoices", initialChoices);
+        }
+        initialChoices.put(bookingId, prepaymentPercent);
+
+        // No-deposit bookings are confirmed without collecting payment.
+        // This prevents the existing 30-minute pending-booking expiration from
+        // cancelling a reservation that the customer intentionally booked at 0%.
+        // The outstanding balance is still available in Booking History.
+        if (prepaymentPercent == 0) {
+            if (!bookingDAO.confirmBooking(bookingId)) {
+                response.sendRedirect(request.getContextPath()
+                        + "/history?view=bookings&message=booking-created");
+                return;
+            }
+            response.sendRedirect(request.getContextPath()
+                    + "/history?view=bookings&message=booking-created");
+            return;
+        }
+
         response.sendRedirect(
                 request.getContextPath()
                 + "/payment?bookingId="

@@ -1,3 +1,4 @@
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="c"
            uri="jakarta.tags.core" %>
 
@@ -72,6 +73,10 @@
             <!-- MESSAGES                                          -->
             <!-- ================================================= -->
 
+            <c:if test="${param.message == 'review-unavailable'}">
+                <div class="alert alert-warning text-center">This booking is not eligible for another review.</div>
+            </c:if>
+
             <c:if test="${param.message == 'cancel-success'}">
 
                 <div class="alert alert-success text-center">
@@ -87,7 +92,7 @@
 
                 <div class="alert alert-danger text-center">
 
-                    This booking cannot be cancelled.
+                    Only Pending/Confirmed bookings before check-in can be cancelled.
 
                     Cancellation is allowed only for pending/confirmed
                     bookings at least 24 hours before check-in.
@@ -141,13 +146,13 @@
                                 <c:forEach var="booking" items="${requestScope.bookings}">
                                     <tr>
                                         <td class="fw-semibold">#${booking.id}</td>
-                                        <td>${booking.bookingDate}</td>
+                                        <td>${fn:substring(booking.bookingDate, 8, 10)}/${fn:substring(booking.bookingDate, 5, 7)}/${fn:substring(booking.bookingDate, 0, 4)}</td>
                                         <td>
                                             <c:choose>
                                                 <c:when test="${not empty booking.details}">
-                                                    ${booking.details[0].checkInDate}
+                                                    ${fn:substring(booking.details[0].checkInDate, 8, 10)}/${fn:substring(booking.details[0].checkInDate, 5, 7)}/${fn:substring(booking.details[0].checkInDate, 0, 4)}
                                                     <span class="text-muted">to</span>
-                                                    ${booking.details[0].checkOutDate}
+                                                    ${fn:substring(booking.details[0].checkOutDate, 8, 10)}/${fn:substring(booking.details[0].checkOutDate, 5, 7)}/${fn:substring(booking.details[0].checkOutDate, 0, 4)}
                                                 </c:when>
                                                 <c:otherwise><span class="text-muted">Not available</span></c:otherwise>
                                             </c:choose>
@@ -200,12 +205,12 @@
                                                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
                                                         <div>
                                                             <h5 class="mb-2">Booking #${booking.id} Details</h5>
-                                                            <p class="mb-1"><strong>Booking Date:</strong> ${booking.bookingDate}</p>
+                                                            <p class="mb-1"><strong>Booking Date:</strong> ${fn:substring(booking.bookingDate, 8, 10)}/${fn:substring(booking.bookingDate, 5, 7)}/${fn:substring(booking.bookingDate, 0, 4)}</p>
                                                             <c:if test="${not empty booking.specialRequest}">
                                                                 <p class="mb-1"><strong>Special Request:</strong> ${booking.specialRequest}</p>
                                                             </c:if>
                                                             <c:if test="${booking.status == 'cancelled'}">
-                                                                <p class="mb-1"><strong>Cancellation Date:</strong> ${booking.cancellationDate}</p>
+                                                                <p class="mb-1"><strong>Cancellation Date:</strong> ${fn:substring(booking.cancellationDate, 8, 10)}/${fn:substring(booking.cancellationDate, 5, 7)}/${fn:substring(booking.cancellationDate, 0, 4)}</p>
                                                                 <c:if test="${not empty booking.cancellationReason}">
                                                                     <p class="mb-1"><strong>Cancellation Reason:</strong> ${booking.cancellationReason}</p>
                                                                 </c:if>
@@ -226,8 +231,8 @@
                                                                         <p class="mb-1"><strong>Room:</strong>
                                                                             <a href="${pageContext.request.contextPath}/details?roomNumber=${detail.roomNumber}">#${detail.roomNumber}</a>
                                                                         </p>
-                                                                        <p class="mb-1"><strong>Check-in:</strong> ${detail.checkInDate}</p>
-                                                                        <p class="mb-1"><strong>Check-out:</strong> ${detail.checkOutDate}</p>
+                                                                        <p class="mb-1"><strong>Check-in:</strong> ${fn:substring(detail.checkInDate, 8, 10)}/${fn:substring(detail.checkInDate, 5, 7)}/${fn:substring(detail.checkInDate, 0, 4)}</p>
+                                                                        <p class="mb-1"><strong>Check-out:</strong> ${fn:substring(detail.checkOutDate, 8, 10)}/${fn:substring(detail.checkOutDate, 5, 7)}/${fn:substring(detail.checkOutDate, 0, 4)}</p>
                                                                     </div>
                                                                     <div class="col-12 col-md-6">
                                                                         <p class="mb-1"><strong>Guest Count:</strong> ${detail.guestCount}</p>
@@ -264,29 +269,15 @@
                                     </c:when>
                                     <c:otherwise>
                                         <span class="d-inline-block"
-                                              title="Cannot cancel: only pending/confirmed bookings at least 24 hours before check-in can be cancelled.">
+                                              title="Only Pending/Confirmed bookings before check-in can be cancelled. Refunds require more than 24 hours notice.">
                                             <button type="button" class="btn btn-outline-danger btn-sm" disabled>Cancel Booking</button>
                                         </span>
                                     </c:otherwise>
                                 </c:choose>
                             </c:if>
-                            <c:if test="${booking.status == 'completed' && !reviewedMap[booking.id] && not empty booking.details}">
-                                <form action="${pageContext.request.contextPath}/review" method="post"
-                                      class="d-flex flex-wrap gap-1 align-items-center m-0">
-                                    <input type="hidden" name="booking-id" value="${booking.id}">
-                                    <input type="hidden" name="room-number" value="${booking.details[0].roomNumber}">
-                                    <select name="star" class="form-select form-select-sm" style="width:auto" required>
-                                        <option value="">Rating</option>
-                                        <option value="5">5</option>
-                                        <option value="4">4</option>
-                                        <option value="3">3</option>
-                                        <option value="2">2</option>
-                                        <option value="1">1</option>
-                                    </select>
-                                    <input type="text" name="comment" maxlength="1000"
-                                           class="form-control form-control-sm" placeholder="Feedback" style="max-width:220px">
-                                    <button class="btn btn-outline-primary btn-sm" type="submit">Review</button>
-                                </form>
+                            <c:if test="${booking.status == 'completed' && not empty booking.details}">
+                                <a href="${pageContext.request.contextPath}/review?booking-id=${booking.id}&amp;room-number=${booking.details[0].roomNumber}"
+                                   class="btn btn-outline-primary btn-sm">Review</a>
                             </c:if>
                                                         </div>
                                                     </c:if>

@@ -1,3 +1,4 @@
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="c"
            uri="jakarta.tags.core" %>
 
@@ -214,7 +215,7 @@
                                 Check-in:
                             </strong>
 
-                            ${detail.checkInDate}
+                            ${fn:substring(detail.checkInDate, 8, 10)}/${fn:substring(detail.checkInDate, 5, 7)}/${fn:substring(detail.checkInDate, 0, 4)}
 
                         </div>
 
@@ -225,7 +226,7 @@
                                 Check-out:
                             </strong>
 
-                            ${detail.checkOutDate}
+                            ${fn:substring(detail.checkOutDate, 8, 10)}/${fn:substring(detail.checkOutDate, 5, 7)}/${fn:substring(detail.checkOutDate, 0, 4)}
 
                         </div>
 
@@ -266,12 +267,15 @@
                 <c:if test="${firstPayment}">
                     <div class="mb-4">
                         <label for="payment-percent" class="form-label fw-semibold">Initial payment percentage</label>
-                        <select id="payment-percent" name="payment-percent" class="form-select form-select-lg" required>
+                        <select id="payment-percent" name="payment-percent" class="form-select form-select-lg" required ${selectedPercent != null ? 'disabled' : ''}>
                             <option value="10" ${selectedPercent == 10 ? 'selected' : ''}>10%</option>
                             <option value="20" ${selectedPercent == 20 ? 'selected' : ''}>20%</option>
                             <option value="100" ${selectedPercent == 100 ? 'selected' : ''}>100%</option>
                         </select>
-                        <div class="form-text">This is the first payment for the booking.</div>
+                        <c:if test="${selectedPercent != null}">
+                            <input type="hidden" name="payment-percent" value="${selectedPercent}">
+                        </c:if>
+                        <div class="form-text">${selectedPercent != null ? 'Payment percentage was selected during booking.' : 'This is the first payment for the booking.'}</div>
                     </div>
                 </c:if>
 
