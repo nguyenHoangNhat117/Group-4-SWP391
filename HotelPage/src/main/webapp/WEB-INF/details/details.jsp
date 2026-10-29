@@ -59,9 +59,47 @@
                 </div>  
             </div>
 
-            <div class="mx-auto mt-5" style="width: 70%; height: 500px;">
-                <img src="<%= request.getContextPath()%>/assets/img/${room.roomType.picture}" class="w-100 h-100"/>
-            </div>  
+            <!-- Room photo and approved reviews are visible together. -->
+            <div class="row g-4 mt-2 align-items-start">
+                <div class="col-lg-7">
+                    <img src="${pageContext.request.contextPath}/assets/img/${room.roomType.picture}"
+                         class="img-fluid w-100 rounded-3 shadow-sm"
+                         style="max-height: 500px; object-fit: cover;" alt="Room ${room.roomNumber}"/>
+                </div>
+                <div class="col-lg-5">
+                    <div class="bg-white border rounded-3 p-3 shadow-sm">
+                        <h3 class="fs-5 fw-bold mb-3">Customer Reviews
+                            <c:if test="${not empty reviews}">
+                                <span class="text-muted fw-normal fs-6">(${reviews.size()})</span>
+                            </c:if>
+                        </h3>
+                        <c:choose>
+                            <c:when test="${empty reviews}">
+                                <p class="text-muted mb-0">No approved reviews yet for this room.</p>
+                            </c:when>
+                            <c:otherwise>
+                                <div class="mb-3 text-warning fw-semibold">
+                                    <i class="bi bi-star-fill"></i> ${averageStar} / 5
+                                </div>
+                                <div style="max-height: 390px; overflow-y: auto;" aria-label="Room customer reviews">
+                                    <c:forEach var="review" items="${reviews}">
+                                        <div class="review-box mb-2">
+                                            <div class="d-flex align-items-center gap-2 mb-2">
+                                                <img width="40" height="40" class="rounded-circle object-fit-cover"
+                                                     src="${pageContext.request.contextPath}/assets/img/${empty review.booking.customer.avatar ? 'avatar.jpg' : review.booking.customer.avatar}"
+                                                     alt="Customer avatar"/>
+                                                <strong><c:out value="${review.booking.customer.user.username}"/></strong>
+                                                <span class="ms-auto text-warning"><c:out value="${review.star}"/> ★</span>
+                                            </div>
+                                            <p class="mb-0 text-secondary" style="overflow-wrap: anywhere;"><c:out value="${review.comment}"/></p>
+                                        </div>
+                                    </c:forEach>
+                                </div>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
+                </div>
+            </div>
 
             <div class="container mb-4">
                 <div class="bg-light p-4 rounded text-center fw-bold">
@@ -83,57 +121,6 @@
                     <div class="col-md-3 col-6"><div class="bg-light p-2 rounded text-center"><i class="bi bi-house-heart me-2"></i>Housekeeping service twice daily</div></div>
                 </div>
             </div>
-
-            <div class="mt-5">
-                <div class="section-title">Customer Reviews</div>
-
-                <c:if test="${empty reviews}">
-                    <p class="text-muted">No reviews yet for this room.</p>
-                </c:if>
-
-                <c:forEach var="review" items="${reviews}">
-                    <div class="review-box d-flex align-items-center bg-light-subtle">
-                        <img width="45" height="45" class="rounded-circle border border-3 me-2 object-fit-cover"  src="<%= request.getContextPath()%>/assets/img/${review.booking.customer.avatar != null ? review.booking.customer.avatar : "avatar.jpg"}" alt="avatar">  
-                        <div>
-                            <strong>${review.booking.customer.user.username}</strong> 
-                            <span class="text-warning">${review.star} ★</span><br>
-                            <small class="text-muted">${review.comment}</small>
-                        </div>
-                    </div>
-                </c:forEach>
-
-                <c:if test="${loggedUser.role == 'customer'}">
-                    <div class="section-title" id="review-title">Leave a Review</div>
-                    <c:choose>
-                        <c:when test="${param.error == 'not-book-yet'}">
-                            <div class="alert alert-danger text-center">
-                                You haven't booked or check out this room yet.
-                            </div>
-                        </c:when>
-                        <c:when test="${param.error == 'already-review'}">
-                            <div class="alert alert-danger text-center">
-                                You have already reviewed for your last stay.
-                            </div>
-                        </c:when>
-                    </c:choose>
-                    <form action="review" method="post" class="mb-5">
-                        <input type="hidden" name="room-number" value="${room.roomNumber}" />
-
-                        <div class="mb-3">
-                            <label class="form-label">Your Rating:</label>
-                            <div id="rateYo"></div>
-                            <input type="hidden" name="star" id="ratingValue">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="comment" class="form-label">Your Comment</label>
-                            <textarea name="comment" rows="3" class="form-control" required></textarea>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary">Submit Review</button>
-                    </form>
-                </c:if>
-            </div>
         </div>
 
         <c:if test="${loggedUser.role == 'customer'}">
@@ -144,33 +131,7 @@
         </c:if>
 
         <!-- JS Scripts -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/rateYo/2.3.4/jquery.rateyo.min.js"></script>
         <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
-        <script>
-            $(function () {
-                const defaultRating = 3.5;
-                let roundedRating = Math.round(defaultRating * 2) / 2;
-
-                // Initialize RateYo
-                $("#rateYo").rateYo({
-                    rating: roundedRating,
-                    fullStar: false,
-                    starWidth: "30px",
-                    precision: 1, // allow half stars
-                    step: 0.5
-                });
-
-                // Set default hidden input value
-                $("#ratingValue").val(roundedRating);
-
-                // Update hidden input on change
-                $("#rateYo").on("rateyo.change", function (e, data) {
-                    let newRating = Math.round(data.rating * 2) / 2;
-                    $("#ratingValue").val(newRating);
-                });
-            });
-        </script>
             <script src="<%= request.getContextPath()%>/assets/js/luxe-ui.js" defer></script>
     </body>
 </html>

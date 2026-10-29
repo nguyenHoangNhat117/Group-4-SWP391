@@ -173,7 +173,14 @@ public class PaymentServlet
         }
 
         boolean firstPayment = paidAmount.compareTo(BigDecimal.ZERO) == 0;
-        Integer selectedPercent = parsePaymentPercent(request.getParameter("percent"));
+        Integer selectedPercent = getInitialChoice(session, bookingId);
+        if (selectedPercent == null) {
+            // Existing bookings made before this feature remain payable.
+            selectedPercent = parsePaymentPercent(request.getParameter("percent"));
+        }
+        if (selectedPercent != null && selectedPercent == 0) {
+            selectedPercent = 100; // Pay the full outstanding balance later.
+        }
         if (!firstPayment) {
             selectedPercent = null;
         }
@@ -303,6 +310,17 @@ public class PaymentServlet
 
         BigDecimal alreadyPaid = paymentDAO.getTotalPaidAmount(bookingId);
         boolean firstPayment = alreadyPaid.compareTo(BigDecimal.ZERO) == 0;
+
+        Integer initialChoice = getInitialChoice(session, bookingId);
+        if (firstPayment && initialChoice != null) {
+            if (initialChoice == 0) {
+                // A no-deposit booking has no initial payment requirement;
+                // later payment from history can pay the full amount.
+                paymentPercent = 100;
+            } else {
+                paymentPercent = initialChoice;
+            }
+        }
 
         if (firstPayment && paymentPercent == null) {
             response.sendRedirect(
@@ -449,6 +467,15 @@ public class PaymentServlet
 
             return null;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Integer getInitialChoice(HttpSession session, Integer bookingId) {
+        if (session == null || bookingId == null) return null;
+        Object choices = session.getAttribute("bookingInitialChoices");
+        if (!(choices instanceof java.util.Map)) return null;
+        Object choice = ((java.util.Map<?, ?>) choices).get(bookingId);
+        return choice instanceof Integer ? (Integer) choice : null;
     }
 
     private Integer parsePaymentPercent(String raw) {

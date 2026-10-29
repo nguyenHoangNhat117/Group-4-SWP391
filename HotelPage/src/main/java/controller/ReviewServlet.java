@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 
 import model.Customer;
+import model.Review;
 import model.User;
 
 @WebServlet(
@@ -292,9 +293,36 @@ public class ReviewServlet
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        response.sendError(
-                HttpServletResponse.SC_METHOD_NOT_ALLOWED
-        );
+        HttpSession session = request.getSession(false);
+        if (session == null || !(session.getAttribute("loggedUser") instanceof User)
+                || !(session.getAttribute("customer") instanceof Customer)) {
+            response.sendRedirect(request.getContextPath() + "/login");
+            return;
+        }
+        User user = (User) session.getAttribute("loggedUser");
+        Customer customer = (Customer) session.getAttribute("customer");
+        if (!"customer".equalsIgnoreCase(user.getRole())) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+        Integer bookingId = parsePositiveInt(request.getParameter("booking-id"));
+        Integer roomNumber = parsePositiveInt(request.getParameter("room-number"));
+        if (bookingId == null || roomNumber == null) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        ReviewDAO reviewDAO = new ReviewDAO();
+        Review existingReview = reviewDAO.getCustomerReviewForBooking(
+                bookingId, customer.getCustomerID(), roomNumber);
+        if (existingReview != null) {
+            request.setAttribute("existingReview", existingReview);
+        } else if (!reviewDAO.canCustomerReview(bookingId, customer.getCustomerID(), roomNumber)) {
+            response.sendRedirect(request.getContextPath() + "/history?message=review-unavailable");
+            return;
+        }
+        request.setAttribute("bookingId", bookingId);
+        request.setAttribute("roomNumber", roomNumber);
+        request.getRequestDispatcher("/WEB-INF/review/write-review.jsp").forward(request, response);
     }
 
     private Integer parsePositiveInt(

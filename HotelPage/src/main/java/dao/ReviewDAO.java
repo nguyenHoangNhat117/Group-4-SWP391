@@ -109,6 +109,35 @@ public class ReviewDAO extends DBContext {
         }
     }
 
+    /** Fetch a customer's existing review for the specific booking and room, including pending/rejected. */
+    public Review getCustomerReviewForBooking(int bookingId, int customerId, int roomNumber) {
+        String sql = "SELECT TOP 1 r.ReviewID, r.Comment, r.Star, r.ReviewDate, r.ReviewStatus "
+                + "FROM Review r JOIN Booking b ON b.BookingID = r.BookingID "
+                + "JOIN BookingDetail bd ON bd.BookingID = b.BookingID "
+                + "WHERE b.BookingID = ? AND b.CustomerID = ? AND bd.RoomNumber = ? "
+                + "ORDER BY r.ReviewID DESC";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, bookingId);
+            ps.setInt(2, customerId);
+            ps.setInt(3, roomNumber);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Review review = new Review();
+                    review.setReviewID(rs.getInt("ReviewID"));
+                    review.setComment(rs.getString("Comment"));
+                    review.setStar(rs.getBigDecimal("Star"));
+                    java.sql.Timestamp date = rs.getTimestamp("ReviewDate");
+                    if (date != null) review.setReviewDate(date.toLocalDateTime());
+                    review.setReviewStatus(rs.getString("ReviewStatus"));
+                    return review;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     /*
      * =========================================================
      * 3. PUBLIC APPROVED REVIEWS FOR ROOM

@@ -1,3 +1,4 @@
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="c"
            uri="jakarta.tags.core" %>
 
@@ -74,6 +75,19 @@
                 </div>
 
 
+                <div class="alert ${requestScope.refundEligible ? 'alert-success' : 'alert-info'}">
+                    <c:choose>
+                        <c:when test="${requestScope.refundEligible}">
+                            Cancellation is more than 24 hours before check-in.
+                            Any paid deposit is eligible for a refund (recorded in payment history).
+                        </c:when>
+                        <c:otherwise>
+                            Cancellation is within 24 hours of check-in.
+                            You may cancel, but any paid deposit is non-refundable.
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+
                 <div class="mb-4">
 
                     <p class="fs-5 mb-2">
@@ -141,7 +155,7 @@
                                     Check-in:
                                 </strong>
 
-                                ${detail.checkInDate}
+                                ${fn:substring(detail.checkInDate, 8, 10)}/${fn:substring(detail.checkInDate, 5, 7)}/${fn:substring(detail.checkInDate, 0, 4)}
 
                             </p>
 
@@ -152,7 +166,7 @@
                                     Check-out:
                                 </strong>
 
-                                ${detail.checkOutDate}
+                                ${fn:substring(detail.checkOutDate, 8, 10)}/${fn:substring(detail.checkOutDate, 5, 7)}/${fn:substring(detail.checkOutDate, 0, 4)}
 
                             </p>
 
