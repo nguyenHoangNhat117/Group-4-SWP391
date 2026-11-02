@@ -5,71 +5,137 @@
     Author     : Nguyễn Hoàng Nhật
 --%>
 
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@page import="util.AuthSupport"%>
+<%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%-- Updated by Nguyen Hoang Nhat --%>
+<%
+    String contextPath = request.getContextPath();
+
+    String error = (String) request.getAttribute("error");
+    String message = (String) request.getAttribute("message");
+
+    boolean otpAvailable = Boolean.TRUE.equals(
+            request.getAttribute("otpAvailable")
+    );
+
+    Object remaining = request.getAttribute("remainingAttempts");
+    String recoveryEmail = (String) session.getAttribute("email");
+%>
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <meta charset="UTF-8" />
-        <title>Enter OTP</title>
-        <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/login.css" />
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-auth.css" />
+        <meta charset="UTF-8">
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1.0">
+
+        <title>Verify OTP | Luxe Escape</title>
+
+        <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
+              rel="stylesheet">
+        <link href="<%= contextPath%>/assets/css/login.css"
+              rel="stylesheet">
+        <link href="<%= contextPath%>/assets/css/luxe-auth.css"
+              rel="stylesheet">
+        <link href="<%= contextPath%>/assets/img/favicon.png"
+              rel="icon" type="image/png">
     </head>
-    <body>
+
+    <body class="page-login">
         <header>
-            <span><a href="<%= request.getContextPath()%>/">Luxe Escape</a></span>
-            <nav class="navigation">
-                <a href="<%= request.getContextPath()%>/#rooms">Rooms</a>
-                <a href="<%= request.getContextPath()%>/#restaurant-leap">Restaurant</a>
-                <a href="<%= request.getContextPath()%>/booking">Booking</a>
-            </nav>
+            <span>
+                <a href="<%= contextPath%>/">Luxe Escape</a>
+            </span>
         </header>
 
-        <main class="form-signin wrapper">
+        <main class="form-signin wrapper show">
             <div class="form-box">
-                <form action="<%= request.getContextPath()%>/verify-otp" method="post">
-                    <input type="hidden" name="csrfToken" value="<%= AuthSupport.token(session)%>"/>
-                    <h1 class="text-center">Enter OTP</h1>
-                    <%
-                        String error = (String) request.getAttribute("error");
-                        String message = (String) request.getAttribute("message");
-                    %>
-                    <% if (error != null) {%>
-                    <div class="alert alert-danger text-center form-error"><%= AuthSupport.html(error)%></div>
-                    <% } %>
-                    <% if (message != null) {%>
-                    <div class="alert alert-success text-center form-error"><%= AuthSupport.html(message)%></div>
-                    <% }%>
+                <h1 class="text-center">Verify OTP</h1>
+
+                <% if (error != null) {%>
+                <div class="alert alert-danger mt-3" role="alert">
+                    <%= AuthSupport.html(error)%>
+                </div>
+                <% } %>
+
+                <% if (message != null) {%>
+                <div class="alert alert-success mt-3" role="status">
+                    <%= AuthSupport.html(message)%>
+                </div>
+                <% } %>
+
+                <% if (otpAvailable) {%>
+                <p class="mt-3" style="color: white;">
+                    Enter the 6-digit code from your email.
+                    Remaining attempts:
+                    <strong><%= AuthSupport.html(remaining)%></strong>.
+                </p>
+
+                <form method="post"
+                      action="<%= contextPath%>/verify-otp">
+
+                    <input type="hidden"
+                           name="csrfToken"
+                           value="<%= AuthSupport.token(session)%>">
+
                     <div class="input-box">
-                        <input type="text" name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required placeholder=" " />
-                        <label>OTP</label>
-                        <span class="icon">
-                            <ion-icon name="key-outline"></ion-icon>
-                        </span>
+                        <input type="text"
+                               id="otp"
+                               name="otp"
+                               inputmode="numeric"
+                               pattern="[0-9]{6}"
+                               minlength="6"
+                               maxlength="6"
+                               autocomplete="one-time-code"
+                               placeholder=" "
+                               required>
+                        <label for="otp">OTP</label>
                     </div>
-                    <button class="btn" type="submit">Verify</button>
+
+                    <button class="btn" type="submit">
+                        Verify
+                    </button>
                 </form>
-                <p class="text-center mt-3"><a href="<%= request.getContextPath()%>/forgot-password">Request a new OTP</a></p>
+
+                <% } else { %>
+                <p class="mt-3" style="color: white;">
+                    This code is no longer available.
+                    Request a new code to continue.
+                </p>
+                <% }%>
+
+                <%-- Resend uses POST and the email stored in this session. --%>
+                <form method="post"
+                      class="mt-3"
+                      action="<%= contextPath%>/forgot-password">
+
+                    <input type="hidden"
+                           name="csrfToken"
+                           value="<%= AuthSupport.token(session)%>">
+
+                    <input type="hidden"
+                           name="email"
+                           value="<%= AuthSupport.html(recoveryEmail)%>">
+
+                    <button class="btn" type="submit">
+                        Resend OTP
+                    </button>
+                </form>
+
+                <div class="login-register mt-3">
+                    <a href="<%= contextPath%>/forgot-password">
+                        Use another email
+                    </a>
+                    <br>
+                    <a href="<%= contextPath%>/login">
+                        Back to login
+                    </a>
+                </div>
             </div>
         </main>
 
         <footer>
-    &copy; 2026 FPT University SE2001 Group 4. All rights reserved
-</footer>
-        <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
-        <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
-        <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
-        <script>
-            window.addEventListener("DOMContentLoaded", () => {
-                document.querySelector(".wrapper").classList.add("show");
-            });
-        </script>
-        <script>
-            const link = document.createElement('link');
-            link.rel = 'icon';
-            link.type = 'image/png';
-            link.href = '<%= request.getContextPath()%>/assets/img/favicon.png?v=' + new Date().getTime();
-            document.head.appendChild(link);
-        </script>
+            &copy; 2026 FPT University SE2001 Group 4.
+            All rights reserved.
+        </footer>
     </body>
 </html>

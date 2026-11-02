@@ -1,5 +1,9 @@
 package filter;
 
+import dao.UserDAO;
+import model.User;
+import util.AuthSupport;
+
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -9,11 +13,11 @@ import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+
 import java.io.IOException;
-import model.User;
-import dao.UserDAO;
 import java.util.Objects;
 
+// Updated by Nguyen Hoang Nhat
 @WebFilter(
         filterName = "AuthenticationFilter",
         urlPatterns = {
@@ -32,76 +36,126 @@ import java.util.Objects;
             "/reports",
             "/dashboard",
             "/admin/*",
-            "/toggle-animation"
+            "/toggle-animation",
+            "/change-password"
         }
 )
 public class AuthenticationFilter implements Filter {
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
+    public void doFilter(
+            ServletRequest request,
+            ServletResponse response,
+            FilterChain chain
+    ) throws IOException, ServletException {
 
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
 
         String servletPath = req.getServletPath();
         String pathInfo = req.getPathInfo();
-        String fullPath = servletPath + (pathInfo == null ? "" : pathInfo);
 
-        /*
-         * PUBLIC ROUTES THAT SHARE PROTECTED SERVLETS
-         *
-         * UC07: Guest/Customer may open Search Rooms.
-         * /booking without roomNumber is only the public search form.
-         *
-         * /room is public only for browsing available results and submitting
-         * action=search. Room create/update/delete still require Admin.
-         */
+        String fullPath = servletPath
+                + (pathInfo == null ? "" : pathInfo);
+
+        // Preserve public browsing and room search.
         if (isPublicBookingSearch(req, servletPath)
                 || isPublicRoomRequest(req, servletPath)) {
+
             chain.doFilter(request, response);
             return;
         }
 
+        AuthSupport.noStore(res);
+
         HttpSession session = req.getSession(false);
-        User user = session == null ? null : (User) session.getAttribute("loggedUser");
+        User user;
+
+        try {
+            Object value = session == null
+                    ? null
+                    : session.getAttribute("loggedUser");
+
+            user = value instanceof User ? (User) value : null;
+
+        } catch (IllegalStateException e) {
+            res.sendRedirect(req.getContextPath() + "/login");
+            return;
+        }
 
         if (user == null) {
-            if ("/booking".equals(servletPath) && "GET".equalsIgnoreCase(req.getMethod())) {
-                String room = req.getParameter("roomNumber");
-                if (room != null && room.matches("[0-9]+")) {
-                    req.getSession().setAttribute("pendingBookingUrl", "/booking?roomNumber=" + room);
-                }
-            }
+            preservePendingBooking(req, servletPath);
+
             res.sendRedirect(req.getContextPath() + "/login");
             return;
         }
 
         User current;
+
         try {
             current = new UserDAO().getUserById(user.getId());
-        } catch (IllegalStateException e) {
-            res.sendError(503, "Authentication is temporarily unavailable.");
-            return;
-        }
-        if (current == null || !"active".equalsIgnoreCase(current.getAccountStatus())
-                || !Objects.equals(current.getPassword(), user.getPassword())) {
-            session.invalidate();
-            res.sendRedirect(req.getContextPath() + "/login?error=account-status");
-            return;
-        }
-        // Refresh role/status so an old session cannot retain revoked privileges.
-        user = current;
-        session.setAttribute("loggedUser", current);
-        res.setHeader("Cache-Control", "no-store");
 
-        String role = user.getRole();
+        } catch (IllegalStateException e) {
+            res.sendError(
+                    HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                    "Authentication is temporarily unavailable."
+            );
+            return;
+        }
+
+        // Old sessions lose access after password or account-status changes.
+        if (current == null
+                || !"active".equalsIgnoreCase(
+                        current.getAccountStatus()
+                )
+                || !Objects.equals(
+                        current.getPassword(),
+                        user.getPassword()
+                )) {
+
+            invalidateSession(session);
+
+            res.sendRedirect(
+                    req.getContextPath()
+                    + "/login?error=account-status"
+            );
+            return;
+        }
+
+        try {
+            // Refresh the role before checking permissions.
+            session.setAttribute("loggedUser", current);
+
+        } catch (IllegalStateException e) {
+            res.sendRedirect(req.getContextPath() + "/login");
+            return;
+        }
+
+        String role = current.getRole();
+
+        // Change Password is available to all four supported roles.
+        if ("/change-password".equals(servletPath)) {
+            if (!isAnyRole(
+                    role,
+                    "customer",
+                    "staff",
+                    "admin",
+                    "manager"
+            )) {
+                deny(res);
+                return;
+            }
+
+            chain.doFilter(request, response);
+            return;
+        }
 
         if (isCustomerPath(fullPath)) {
             if (!isRole(role, "customer")) {
                 deny(res);
                 return;
             }
+
             chain.doFilter(request, response);
             return;
         }
@@ -111,6 +165,7 @@ public class AuthenticationFilter implements Filter {
                 deny(res);
                 return;
             }
+
             chain.doFilter(request, response);
             return;
         }
@@ -120,29 +175,23 @@ public class AuthenticationFilter implements Filter {
                 deny(res);
                 return;
             }
+
             chain.doFilter(request, response);
             return;
         }
 
-        if ("/customers".equals(servletPath)) {
+        if ("/customers".equals(servletPath)
+                || "/booking-management".equals(servletPath)) {
+
             if (!isAnyRole(role, "staff", "admin")) {
                 deny(res);
                 return;
             }
+
             chain.doFilter(request, response);
             return;
         }
 
-        if ("/booking-management".equals(servletPath)) {
-            if (!isAnyRole(role, "staff", "admin")) {
-                deny(res);
-                return;
-            }
-            chain.doFilter(request, response);
-            return;
-        }
-
-        // Reporting pages are restricted to Hotel Managers.
         if ("/reports".equals(servletPath)
                 || "/dashboard".equals(servletPath)) {
 
@@ -158,10 +207,12 @@ public class AuthenticationFilter implements Filter {
         if ("/room-type".equals(servletPath)
                 || "/discounts".equals(servletPath)
                 || fullPath.startsWith("/admin/")) {
+
             if (!isRole(role, "admin")) {
                 deny(res);
                 return;
             }
+
             chain.doFilter(request, response);
             return;
         }
@@ -170,7 +221,9 @@ public class AuthenticationFilter implements Filter {
             String action = req.getParameter("action");
             String view = req.getParameter("view");
 
-            if (isRoomManagementAction(action) || isRoomManagementView(view)) {
+            if (isRoomManagementAction(action)
+                    || isRoomManagementView(view)) {
+
                 if (!isRole(role, "admin")) {
                     deny(res);
                     return;
@@ -184,18 +237,43 @@ public class AuthenticationFilter implements Filter {
         chain.doFilter(request, response);
     }
 
-    private boolean isPublicBookingSearch(HttpServletRequest req, String servletPath) {
-        if (!"/booking".equals(servletPath)) {
+    private void preservePendingBooking(
+            HttpServletRequest req,
+            String servletPath
+    ) {
+        if (!"/booking".equals(servletPath)
+                || !"GET".equalsIgnoreCase(req.getMethod())) {
+            return;
+        }
+
+        String room = req.getParameter("roomNumber");
+
+        if (room != null && room.matches("[0-9]+")) {
+            req.getSession().setAttribute(
+                    "pendingBookingUrl",
+                    "/booking?roomNumber=" + room
+            );
+        }
+    }
+
+    private boolean isPublicBookingSearch(
+            HttpServletRequest req,
+            String servletPath
+    ) {
+        if (!"/booking".equals(servletPath)
+                || !"GET".equalsIgnoreCase(req.getMethod())) {
             return false;
         }
-        if (!"GET".equalsIgnoreCase(req.getMethod())) {
-            return false;
-        }
+
         String roomNumber = req.getParameter("roomNumber");
+
         return roomNumber == null || roomNumber.trim().isEmpty();
     }
 
-    private boolean isPublicRoomRequest(HttpServletRequest req, String servletPath) {
+    private boolean isPublicRoomRequest(
+            HttpServletRequest req,
+            String servletPath
+    ) {
         if (!"/room".equals(servletPath)) {
             return false;
         }
@@ -220,43 +298,49 @@ public class AuthenticationFilter implements Filter {
     }
 
     private boolean isRoomManagementAction(String action) {
-        if (action == null) {
-            return false;
-        }
         return "create".equalsIgnoreCase(action)
                 || "update".equalsIgnoreCase(action)
                 || "delete".equalsIgnoreCase(action);
     }
 
     private boolean isRoomManagementView(String view) {
-        if (view == null) {
-            return false;
-        }
         return "create".equalsIgnoreCase(view)
                 || "update".equalsIgnoreCase(view)
                 || "delete".equalsIgnoreCase(view);
     }
 
     private boolean isRole(String currentRole, String expectedRole) {
-        return currentRole != null
-                && expectedRole != null
-                && expectedRole.equalsIgnoreCase(currentRole);
+        return expectedRole.equalsIgnoreCase(currentRole);
     }
 
-    private boolean isAnyRole(String currentRole, String... allowedRoles) {
-        if (currentRole == null || allowedRoles == null) {
-            return false;
-        }
+    private boolean isAnyRole(
+            String currentRole,
+            String... allowedRoles
+    ) {
         for (String allowedRole : allowedRoles) {
-            if (allowedRole != null && allowedRole.equalsIgnoreCase(currentRole)) {
+            if (allowedRole.equalsIgnoreCase(currentRole)) {
                 return true;
             }
         }
+
         return false;
     }
 
-    private void deny(HttpServletResponse response) throws IOException {
-        response.sendError(
+    private void invalidateSession(HttpSession session) {
+        if (session == null) {
+            return;
+        }
+
+        try {
+            session.invalidate();
+
+        } catch (IllegalStateException ignored) {
+            // Another request already ended the session.
+        }
+    }
+
+    private void deny(HttpServletResponse res) throws IOException {
+        res.sendError(
                 HttpServletResponse.SC_FORBIDDEN,
                 "You do not have permission to access this resource."
         );
