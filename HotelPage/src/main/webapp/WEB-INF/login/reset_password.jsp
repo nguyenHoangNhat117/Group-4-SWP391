@@ -5,78 +5,103 @@
     Author     : Nguyễn Hoàng Nhật
 --%>
 
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@page import="util.AuthSupport"%>
+<%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%-- Updated by Nguyen Hoang Nhat --%>
+<%
+    String contextPath = request.getContextPath();
+    String error = (String) request.getAttribute("error");
+%>
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <meta charset="UTF-8" />
-        <title>Reset Password</title>
-        <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/login.css" />
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-auth.css" />
+        <meta charset="UTF-8">
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1.0">
+
+        <title>Reset Password | Luxe Escape</title>
+
+        <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
+              rel="stylesheet">
+        <link href="<%= contextPath%>/assets/css/login.css"
+              rel="stylesheet">
+        <link href="<%= contextPath%>/assets/css/luxe-auth.css"
+              rel="stylesheet">
+        <link href="<%= contextPath%>/assets/img/favicon.png"
+              rel="icon" type="image/png">
+
+        <%@include file="/WEB-INF/include/auth-password-toggle.jsp"%>
     </head>
-    <body>
+
+    <body class="page-login">
         <header>
-            <span><a href="<%= request.getContextPath()%>/">Luxe Escape</a></span>
-            <nav class="navigation">
-                <a href="<%= request.getContextPath()%>/#rooms">Rooms</a>
-                <a href="<%= request.getContextPath()%>/#restaurant-leap">Restaurant</a>
-                <a href="<%= request.getContextPath()%>/booking">Booking</a>
-            </nav>
+            <span>
+                <a href="<%= contextPath%>/">Luxe Escape</a>
+            </span>
         </header>
 
-        <div class="d-flex flex-column justify-content-center align-items-center">
-            <%
-                String error = (String) request.getAttribute("error");
-                String message = (String) request.getAttribute("message");
-            %>
-            <% if (error != null) {%>
-            <div class="alert alert-danger text-center form-error"><%= AuthSupport.html(error)%></div>
-            <% } %>
-            <% if (message != null) {%>
-            <div class="alert alert-success text-center form-error"><%= AuthSupport.html(message)%></div>
-            <% }%>
-            <main class="form-signin wrapper">
-                <div class="form-box">
-                    <form action="<%= request.getContextPath()%>/reset-password" method="post">
-                    <input type="hidden" name="csrfToken" value="<%= AuthSupport.token(session)%>"/>
-                        <h1 class="text-center">Reset Password</h1>
-                        <div class="input-box">
-                            <input type="password" name="password" required placeholder=" " minlength="7" maxlength="128"/>
-                            <label>New Password</label>
-                            <span class="icon">
-                                <ion-icon name="lock-closed-outline"></ion-icon>
-                            </span>
-                        </div>
-                        <div class="input-box">
-                            <input type="password" name="confirmPassword" required placeholder=" " minlength="7" maxlength="128" autocomplete="new-password"/>
-                            <label>Confirm Password</label>
-                            <span class="icon"><ion-icon name="lock-closed-outline"></ion-icon></span>
-                        </div>
-                        <button class="btn" type="submit">Reset</button>
-                    </form>
-                </div>
-            </main>
+        <main class="form-signin wrapper show">
+            <div class="form-box">
+                <form method="post"
+                      accept-charset="UTF-8"
+                      action="<%= contextPath%>/reset-password">
 
-        </div>
+                    <input type="hidden"
+                           name="csrfToken"
+                           value="<%= AuthSupport.token(session)%>">
+
+                    <h1 class="text-center">Reset Password</h1>
+
+                    <% if (error != null) {%>
+                    <div class="alert alert-danger mt-3 auth-message"
+                         role="alert">
+                        <%= AuthSupport.html(error)%>
+                    </div>
+                    <% }%>
+
+                    <%-- Visibility buttons are added by the shared JSP. --%>
+                    <div class="input-box">
+                        <input type="password"
+                               id="password"
+                               name="password"
+                               minlength="8"
+                               maxlength="128"
+                               autocomplete="new-password"
+                               placeholder=" "
+                               required>
+                        <label for="password">New password</label>
+                    </div>
+
+                    <div class="input-box">
+                        <input type="password"
+                               id="confirmPassword"
+                               name="confirmPassword"
+                               minlength="8"
+                               maxlength="128"
+                               autocomplete="new-password"
+                               placeholder=" "
+                               required>
+                        <label for="confirmPassword">
+                            Confirm password
+                        </label>
+                    </div>
+
+                    <button class="btn" type="submit">
+                        Reset password
+                    </button>
+
+                    <div class="login-register mt-3">
+                        <a href="<%= contextPath%>/login">
+                            Back to login
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </main>
 
         <footer>
-            &copy; 2026 FPT University SE2001 Group 4. All rights reserved
+            &copy; 2026 FPT University SE2001 Group 4.
+            All rights reserved.
         </footer>
-        <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
-        <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
-        <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
-        <script>
-            window.addEventListener("DOMContentLoaded", () => {
-                document.querySelector(".wrapper").classList.add("show");
-            });
-        </script>
-        <script>
-            const link = document.createElement('link');
-            link.rel = 'icon';
-            link.type = 'image/png';
-            link.href = '<%= request.getContextPath()%>/assets/img/favicon.png?v=' + new Date().getTime();
-            document.head.appendChild(link);
-        </script>
     </body>
 </html>

@@ -5,70 +5,90 @@
     Author     : Nguyễn Hoàng Nhật
 --%>
 
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@page import="util.AuthSupport"%>
+<%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%-- Updated by Nguyen Hoang Nhat --%>
+<%
+    String contextPath = request.getContextPath();
+    String error = (String) request.getAttribute("error");
+    String enteredEmail = (String) request.getAttribute("enteredEmail");
+%>
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <meta charset="UTF-8" />
-        <title>Forgot Password</title>
-        <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/login.css" />
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-auth.css" />
+        <meta charset="UTF-8">
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1.0">
+
+        <title>Forgot Password | Luxe Escape</title>
+
+        <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
+              rel="stylesheet">
+        <link href="<%= contextPath%>/assets/css/login.css"
+              rel="stylesheet">
+        <link href="<%= contextPath%>/assets/css/luxe-auth.css"
+              rel="stylesheet">
+        <link href="<%= contextPath%>/assets/img/favicon.png"
+              rel="icon" type="image/png">
+
+        <%@include file="/WEB-INF/include/auth-password-toggle.jsp"%>
     </head>
-    <body>
+
+    <body class="page-login">
         <header>
-            <span><a href="<%= request.getContextPath()%>/">Luxe Escape</a></span>
-            <nav class="navigation">
-                <a href="<%= request.getContextPath()%>/#rooms">Rooms</a>
-                <a href="<%= request.getContextPath()%>/#restaurant-leap">Restaurant</a>
-                <a href="<%= request.getContextPath()%>/booking">Booking</a>
-            </nav>
+            <span>
+                <a href="<%= contextPath%>/">Luxe Escape</a>
+            </span>
         </header>
 
-        <main class="form-signin wrapper">
+        <main class="form-signin wrapper show">
             <div class="form-box">
-                <form action="<%= request.getContextPath()%>/forgot-password" method="post">
-                    <input type="hidden" name="csrfToken" value="<%= AuthSupport.token(session)%>"/>
+                <form method="post"
+                      accept-charset="UTF-8"
+                      action="<%= contextPath%>/forgot-password">
+
+                    <%-- Preserve CSRF protection for OTP requests. --%>
+                    <input type="hidden"
+                           name="csrfToken"
+                           value="<%= AuthSupport.token(session)%>">
+
                     <h1 class="text-center">Forgot Password</h1>
-                    <%
-                        String error = (String) request.getAttribute("error");
-                        String message = (String) request.getAttribute("message");
-                    %>
+
                     <% if (error != null) {%>
-                    <div class="alert alert-danger text-center form-error"><%= AuthSupport.html(error)%></div>
-                    <% } %>
-                    <% if (message != null) {%>
-                    <div class="alert alert-success text-center form-error"><%= AuthSupport.html(message)%></div>
-                    <% }%>
-                    <div class="input-box">
-                        <input type="email" name="email" required autocomplete="off" placeholder=" "  />
-                        <label>Email</label>
-                        <span class="icon">
-                            <ion-icon name="mail-outline"></ion-icon>
-                        </span>
+                    <div class="alert alert-danger mt-3 auth-message"
+                         role="alert">
+                        <%= AuthSupport.html(error)%>
                     </div>
-                    <button class="btn" type="submit">Send OTP</button>
+                    <% }%>
+
+                    <div class="input-box">
+                        <input type="email"
+                               id="email"
+                               name="email"
+                               maxlength="100"
+                               autocomplete="email"
+                               value="<%= AuthSupport.html(enteredEmail)%>"
+                               placeholder=" "
+                               required>
+                        <label for="email">Email</label>
+                    </div>
+
+                    <button class="btn" type="submit">
+                        Send OTP
+                    </button>
+
+                    <div class="login-register mt-3">
+                        <a href="<%= contextPath%>/login">
+                            Back to login
+                        </a>
+                    </div>
                 </form>
             </div>
         </main>
 
         <footer>
-    &copy; 2026 FPT University SE2001 Group 4. All rights reserved
-</footer>
-        <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
-        <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
-        <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
-        <script>
-            window.addEventListener("DOMContentLoaded", () => {
-                document.querySelector(".wrapper").classList.add("show");
-            });
-        </script>
-        <script>
-            const link = document.createElement('link');
-            link.rel = 'icon';
-            link.type = 'image/png';
-            link.href = '<%= request.getContextPath()%>/assets/img/favicon.png?v=' + new Date().getTime();
-            document.head.appendChild(link);
-        </script>
+            &copy; 2026 FPT University SE2001 Group 4.
+            All rights reserved.
+        </footer>
     </body>
 </html>
