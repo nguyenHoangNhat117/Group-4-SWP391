@@ -48,11 +48,19 @@
 
                 <%-- Staff navigation. --%>
                 <c:when test="${sessionScope.loggedUser.role == 'staff'}">
+
+                    <li>
+                        <a href="${pageContext.request.contextPath}/booking">
+                            Search Rooms
+                        </a>
+                    </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/booking-management">
                             Bookings
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/customers">
                             Customers

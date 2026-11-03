@@ -22,11 +22,13 @@ import model.User;
 public class RoomServlet extends HttpServlet {
 
     private static final int PAGE_SIZE = 6;
-    private static final DateTimeFormatter DATE_FORMAT =
-            DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
+    private static final DateTimeFormatter DATE_FORMAT
+            = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
 
     private boolean isAdmin(HttpSession session) {
-        if (session == null) return false;
+        if (session == null) {
+            return false;
+        }
         Object value = session.getAttribute("loggedUser");
         return value instanceof User
                 && "admin".equalsIgnoreCase(((User) value).getRole());
@@ -56,7 +58,7 @@ public class RoomServlet extends HttpServlet {
     }
 
     private void redirect(HttpServletRequest request,
-                          HttpServletResponse response, String relativeUrl)
+            HttpServletResponse response, String relativeUrl)
             throws IOException {
         response.sendRedirect(request.getContextPath() + relativeUrl);
     }
@@ -65,9 +67,9 @@ public class RoomServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
-        User user = session == null ? null :
-                (session.getAttribute("loggedUser") instanceof User
-                        ? (User) session.getAttribute("loggedUser") : null);
+        User user = session == null ? null
+                : (session.getAttribute("loggedUser") instanceof User
+                ? (User) session.getAttribute("loggedUser") : null);
 
         String view = request.getParameter("view");
         if (view == null || view.isBlank()) {
@@ -121,39 +123,122 @@ public class RoomServlet extends HttpServlet {
         }
     }
 
+    private java.math.BigDecimal parseNonNegativeDecimal(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            java.math.BigDecimal value = new java.math.BigDecimal(raw.trim());
+            return value.compareTo(java.math.BigDecimal.ZERO) >= 0 ? value : java.math.BigDecimal.valueOf(-1);
+        } catch (NumberFormatException ex) {
+            return java.math.BigDecimal.valueOf(-1);
+        }
+    }
+
     private void showList(HttpServletRequest request, HttpServletResponse response,
-                          HttpSession session, User user)
+            HttpSession session, User user)
             throws ServletException, IOException {
         RoomDAO roomDAO = new RoomDAO();
         boolean admin = user != null && "admin".equalsIgnoreCase(user.getRole());
-        LocalDate checkIn = session == null ? null :
-                (LocalDate) session.getAttribute("checkInDate");
-        LocalDate checkOut = session == null ? null :
-                (LocalDate) session.getAttribute("checkOutDate");
 
-        if (!admin && (checkIn == null || checkOut == null)) {
-            redirect(request, response, "/booking");
+        if (admin) {
+            int totalRooms = roomDAO.getAll().size();
+            int totalPages = (totalRooms + PAGE_SIZE - 1) / PAGE_SIZE;
+            int page = 1;
+            Integer parsedPage = positiveInt(request.getParameter("page-index"));
+            if (parsedPage != null) {
+                page = parsedPage;
+            }
+            if (totalPages > 0 && page > totalPages) {
+                page = totalPages;
+            }
+
+            List<Room> rooms = totalRooms == 0
+                    ? java.util.Collections.emptyList()
+                    : roomDAO.getPage(page);
+
+            request.setAttribute("rooms", rooms);
+            request.setAttribute("totalPages", totalPages);
+            request.setAttribute("pageIndex", page);
+
+            if (request.getParameter("page-index") == null && totalPages > 0) {
+                redirect(request, response, "/room?page-index=1");
+                return;
+            }
+            request.getRequestDispatcher("/WEB-INF/room/room.jsp")
+                    .forward(request, response);
             return;
         }
 
-        int totalRooms = admin
-                ? roomDAO.getAll().size()
-                : roomDAO.countAvailableRooms(checkIn, checkOut);
+        // UC06 Assumption: Clean up expired pending reservations before checking availability
+        new dao.BookingDAO().expirePendingBookings();
+
+        LocalDate checkIn = session == null ? null : (LocalDate) session.getAttribute("checkInDate");
+        LocalDate checkOut = session == null ? null : (LocalDate) session.getAttribute("checkOutDate");
+
+        // BR-14 revalidation on session dates
+        if (checkIn == null || checkOut == null
+                || checkIn.isBefore(LocalDate.now())
+                || !checkOut.isAfter(checkIn)) {
+            redirect(request, response, "/booking?error=invalid-dates");
+            return;
+        }
+
+        Integer guestCount = session.getAttribute("guestCount") instanceof Integer
+                ? (Integer) session.getAttribute("guestCount") : 1;
+        if (guestCount <= 0) {
+            guestCount = 1;
+        }
+
+        Integer selectedRoomTypeId = session.getAttribute("searchRoomTypeId") instanceof Integer
+                ? (Integer) session.getAttribute("searchRoomTypeId") : null;
+        java.math.BigDecimal minPrice = session.getAttribute("searchMinPrice") instanceof java.math.BigDecimal
+                ? (java.math.BigDecimal) session.getAttribute("searchMinPrice") : null;
+        java.math.BigDecimal maxPrice = session.getAttribute("searchMaxPrice") instanceof java.math.BigDecimal
+                ? (java.math.BigDecimal) session.getAttribute("searchMaxPrice") : null;
+        String sortBy = session.getAttribute("searchSortBy") instanceof String
+                ? (String) session.getAttribute("searchSortBy") : "room_asc";
+
+        int totalRooms = roomDAO.countAvailableRooms(
+                checkIn, checkOut, guestCount, selectedRoomTypeId, minPrice, maxPrice
+        );
         int totalPages = (totalRooms + PAGE_SIZE - 1) / PAGE_SIZE;
         int page = 1;
         Integer parsedPage = positiveInt(request.getParameter("page-index"));
-        if (parsedPage != null) page = parsedPage;
-        if (totalPages > 0 && page > totalPages) page = totalPages;
+        if (parsedPage != null) {
+            page = parsedPage;
+        }
+        if (totalPages > 0 && page > totalPages) {
+            page = totalPages;
+        }
 
         List<Room> rooms = totalRooms == 0
                 ? java.util.Collections.emptyList()
-                : (admin ? roomDAO.getPage(page)
-                         : roomDAO.getAvailableRoomPage(page, checkIn, checkOut));
+                : roomDAO.getAvailableRoomPage(
+                        page, checkIn, checkOut, guestCount,
+                        selectedRoomTypeId, minPrice, maxPrice, sortBy
+                );
+
+        // BR-48 & UC06 Step 6: Load public approved rating summary for each room
+        dao.ReviewDAO reviewDAO = new dao.ReviewDAO();
+        java.util.Map<Integer, java.math.BigDecimal> avgStarMap = new java.util.HashMap<>();
+        java.util.Map<Integer, Integer> reviewCountMap = new java.util.HashMap<>();
+        for (Room room : rooms) {
+            int rNum = room.getRoomNumber();
+            int count = reviewDAO.getReviewsByRoomNumber(rNum).size();
+            reviewCountMap.put(rNum, count);
+            avgStarMap.put(rNum, count > 0
+                    ? reviewDAO.getAverageStarByRoomNumber(rNum)
+                    : java.math.BigDecimal.ZERO);
+        }
+
+        showRoomTypes(request);
         request.setAttribute("rooms", rooms);
+        request.setAttribute("avgStarMap", avgStarMap);
+        request.setAttribute("reviewCountMap", reviewCountMap);
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("pageIndex", page);
 
-        // Existing pagination JSP expects a page-index request parameter.
         if (request.getParameter("page-index") == null && totalPages > 0) {
             redirect(request, response, "/room?page-index=1");
             return;
@@ -249,31 +334,108 @@ public class RoomServlet extends HttpServlet {
     }
 
     private void handleSearch(HttpServletRequest request, HttpServletResponse response,
-                              HttpSession session) throws IOException {
+            HttpSession session) throws IOException {
+        String sourcePage = request.getParameter("source");
+        String errorTarget = "room".equalsIgnoreCase(sourcePage) ? "/room?page-index=1&" : "/booking?";
+
+        // 1. Validate Check-in & Check-out dates (BR-14 & Exception 4a)
         String rawDates = request.getParameter("booking-dates");
         if (rawDates == null || rawDates.isBlank()) {
-            redirect(request, response, "/booking?error=missing-dates");
+            redirect(request, response, errorTarget + "error=missing-dates");
             return;
         }
         String[] dates = rawDates.trim().split("\\s+-\\s+");
         if (dates.length != 2) {
-            redirect(request, response, "/booking?error=invalid-dates");
+            redirect(request, response, errorTarget + "error=invalid-dates");
             return;
         }
+
+        LocalDate checkIn;
+        LocalDate checkOut;
         try {
-            LocalDate checkIn = LocalDate.parse(dates[0].trim(), DATE_FORMAT);
-            LocalDate checkOut = LocalDate.parse(dates[1].trim(), DATE_FORMAT);
+            checkIn = LocalDate.parse(dates[0].trim(), DATE_FORMAT);
+            checkOut = LocalDate.parse(dates[1].trim(), DATE_FORMAT);
             if (checkIn.isBefore(LocalDate.now()) || !checkOut.isAfter(checkIn)) {
-                redirect(request, response, "/booking?error=invalid-dates");
+                redirect(request, response, errorTarget + "error=invalid-dates");
                 return;
             }
-            session.setAttribute("dates", rawDates.trim());
-            session.setAttribute("checkInDate", checkIn);
-            session.setAttribute("checkOutDate", checkOut);
-            session.removeAttribute("availableRooms"); // prevent stale results
-            redirect(request, response, "/room?page-index=1");
         } catch (DateTimeParseException ex) {
-            redirect(request, response, "/booking?error=invalid-dates");
+            redirect(request, response, errorTarget + "error=invalid-dates");
+            return;
         }
+
+        // 2. Validate Guest Count (BR-15 & Exception 4b)
+        int guestCount = 0;
+        String guestCountParam = request.getParameter("guest-count");
+        if (guestCountParam != null && !guestCountParam.isBlank()) {
+            try {
+                guestCount = Integer.parseInt(guestCountParam.trim());
+            } catch (NumberFormatException ex) {
+                redirect(request, response, errorTarget + "error=invalid-filter");
+                return;
+            }
+        } else {
+            // Support adults + children fields from search.jsp if submitted separately
+            String adultsParam = request.getParameter("adults");
+            String childrenParam = request.getParameter("children");
+            try {
+                int adults = (adultsParam == null || adultsParam.isBlank()) ? 1 : Integer.parseInt(adultsParam.trim());
+                int children = (childrenParam == null || childrenParam.isBlank()) ? 0 : Integer.parseInt(childrenParam.trim());
+                if (adults <= 0 || children < 0) {
+                    redirect(request, response, errorTarget + "error=invalid-filter");
+                    return;
+                }
+                guestCount = adults + children;
+            } catch (NumberFormatException ex) {
+                redirect(request, response, errorTarget + "error=invalid-filter");
+                return;
+            }
+        }
+
+        if (guestCount <= 0) {
+            redirect(request, response, errorTarget + "error=invalid-filter");
+            return;
+        }
+
+        // 3. Validate Optional RoomType & Price Range Filters (BR-16, BR-32 & Exception 4b)
+        String roomTypeParam = request.getParameter("room-type-id");
+        Integer roomTypeId = null;
+        if (roomTypeParam != null && !roomTypeParam.isBlank()) {
+            roomTypeId = positiveInt(roomTypeParam.trim());
+            if (roomTypeId == null) {
+                redirect(request, response, errorTarget + "error=invalid-filter");
+                return;
+            }
+        }
+
+        java.math.BigDecimal minPrice = parseNonNegativeDecimal(request.getParameter("min-price"));
+        java.math.BigDecimal maxPrice = parseNonNegativeDecimal(request.getParameter("max-price"));
+
+        if ((minPrice != null && minPrice.compareTo(java.math.BigDecimal.ZERO) < 0)
+                || (maxPrice != null && maxPrice.compareTo(java.math.BigDecimal.ZERO) < 0)
+                || (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0)) {
+            redirect(request, response, errorTarget + "error=invalid-filter");
+            return;
+        }
+
+        String sortBy = request.getParameter("sort-by");
+        if (sortBy == null || (!"price_asc".equals(sortBy)
+                && !"price_desc".equals(sortBy)
+                && !"capacity_desc".equals(sortBy))) {
+            sortBy = "room_asc";
+        }
+
+        // 4. Retain search criteria in session (UC06 Postconditions)
+        session.setAttribute("dates", rawDates.trim());
+        session.setAttribute("checkInDate", checkIn);
+        session.setAttribute("checkOutDate", checkOut);
+        session.setAttribute("guestCount", guestCount);
+        session.setAttribute("searchRoomTypeId", roomTypeId);
+        session.setAttribute("searchMinPrice", minPrice);
+        session.setAttribute("searchMaxPrice", maxPrice);
+        session.setAttribute("searchSortBy", sortBy);
+        session.removeAttribute("availableRooms"); // prevent stale results
+
+        redirect(request, response, "/room?page-index=1");
     }
 }
