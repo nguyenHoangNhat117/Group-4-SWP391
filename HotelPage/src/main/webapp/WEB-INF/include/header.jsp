@@ -1,3 +1,4 @@
+<%@ page pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ page import="util.AuthSupport" %>
 <%-- Updated by Nguyen Hoang Nhat --%>
@@ -44,7 +45,8 @@
                             Reviews
                         </a>
                     </li>
-                </c:when>
+                    <li><a href="${pageContext.request.contextPath}/admin/users">User Accounts</a></li>
+                    </c:when>
 
                 <%-- Staff navigation. --%>
                 <c:when test="${sessionScope.loggedUser.role == 'staff'}">
@@ -139,107 +141,44 @@
                 </div>
             </c:when>
 
-            <%-- Customer account dropdown. --%>
-            <c:when test="${sessionScope.loggedUser.role == 'customer'}">
-                <div class="auth-nav luxe-auth-customer">
-                    <div class="dropdown">
-                        <a class="user-dropdown"
-                           href="#"
-                           role="button"
-                           id="customerDropdown"
-                           data-bs-toggle="dropdown"
-                           aria-haspopup="true"
-                           aria-expanded="false">
-
-                            <img width="40"
-                                 height="40"
-                                 class="rounded-circle border border-3 user-avatar object-fit-cover"
-                                 src="${pageContext.request.contextPath}/assets/img/${not empty sessionScope.customer.avatar ? sessionScope.customer.avatar : 'avatar.jpg'}"
-                                 alt="Customer avatar">
-                        </a>
-
-                        <div class="dropdown-menu"
-                             aria-labelledby="customerDropdown">
-
-                            <a class="dropdown-item"
-                               href="${pageContext.request.contextPath}/profile?id=${sessionScope.loggedUser.id}">
-                                Profile
-                            </a>
-
-                            <a class="dropdown-item"
-                               href="${pageContext.request.contextPath}/change-password">
-                                Change Password
-                            </a>
-
-                            <a class="dropdown-item"
-                               href="${pageContext.request.contextPath}/history?view=bookings">
-                                Booking History
-                            </a>
-
-                            <a class="dropdown-item"
-                               href="${pageContext.request.contextPath}/history?view=payments">
-                                Payment History
-                            </a>
-
-                            <div class="dropdown-divider"></div>
-
-                            <%-- Logout remains a POST request with CSRF protection. --%>
-                            <form method="post"
-                                  action="${pageContext.request.contextPath}/logout"
-                                  class="luxe-logout-form luxe-dropdown-logout">
-
-                                <input type="hidden"
-                                       name="csrfToken"
-                                       value="<%= AuthSupport.token(session)%>">
-
-                                <button class="dropdown-item"
-                                        type="submit">
-                                    Logout
-                                </button>
+            <c:otherwise>
+                <div class="auth-nav luxe-auth-account">
+                    <details class="luxe-account-menu" data-account-menu>
+                        <summary class="luxe-account-toggle" aria-label="Account menu">
+                            <c:url var="accountAvatar" value="/assets/img/avatar.jpg" />
+                            <c:if test="${sessionScope.loggedUser.role == 'customer' and not empty sessionScope.customer.avatar}">
+                                <c:url var="accountAvatar" value="/assets/img/${sessionScope.customer.avatar}" />
+                            </c:if>
+                            <img width="44" height="44" class="user-avatar"
+                                 src="<c:out value='${accountAvatar}'/>" alt="">
+                        </summary>
+                        <div class="luxe-account-panel">
+                            <div class="luxe-account-identity">
+                                <strong><c:out value="${not empty sessionScope.loggedUser.displayName ? sessionScope.loggedUser.displayName : sessionScope.loggedUser.username}" /></strong>
+                                <span><c:choose>
+                                        <c:when test="${sessionScope.loggedUser.role == 'manager'}">Hotel Manager</c:when>
+                                        <c:when test="${sessionScope.loggedUser.role == 'admin'}">Administrator</c:when>
+                                        <c:when test="${sessionScope.loggedUser.role == 'staff'}">Staff</c:when>
+                                        <c:when test="${sessionScope.loggedUser.role == 'customer'}">Customer</c:when>
+                                        <c:otherwise>Account</c:otherwise>
+                                    </c:choose></span>
+                            </div>
+                            <c:if test="${sessionScope.loggedUser.role == 'customer'}">
+                                <a class="luxe-account-item" href="${pageContext.request.contextPath}/profile?id=${sessionScope.loggedUser.id}">Profile</a>
+                            </c:if>
+                            <c:if test="${sessionScope.loggedUser.role == 'customer' or sessionScope.loggedUser.role == 'staff' or sessionScope.loggedUser.role == 'manager' or sessionScope.loggedUser.role == 'admin'}">
+                                <a class="luxe-account-item" href="${pageContext.request.contextPath}/change-password">Change Password</a>
+                            </c:if>
+                            <c:if test="${sessionScope.loggedUser.role == 'customer'}">
+                                <a class="luxe-account-item" href="${pageContext.request.contextPath}/history?view=bookings">Booking History</a>
+                                <a class="luxe-account-item" href="${pageContext.request.contextPath}/history?view=payments">Payment History</a>
+                            </c:if>
+                            <form method="post" action="${pageContext.request.contextPath}/logout" class="luxe-account-logout">
+                                <input type="hidden" name="csrfToken" value="<%= AuthSupport.html(AuthSupport.token(session))%>">
+                                <button class="luxe-account-item" type="submit">Logout</button>
                             </form>
                         </div>
-                    </div>
-                </div>
-            </c:when>
-
-            <%-- Other authenticated roles. --%>
-            <c:otherwise>
-                <div class="auth-nav">
-                    <span class="luxe-user-name">
-                        Hi,
-                        <c:choose>
-                            <c:when test="${not empty sessionScope.loggedUser.displayName}">
-                                <c:out value="${sessionScope.loggedUser.displayName}" />
-                            </c:when>
-                            <c:otherwise>
-                                <c:out value="${sessionScope.loggedUser.username}" />
-                            </c:otherwise>
-                        </c:choose>
-                    </span>
-
-                    <c:if test="${sessionScope.loggedUser.role == 'staff'
-                                  or sessionScope.loggedUser.role == 'admin'
-                                  or sessionScope.loggedUser.role == 'manager'}">
-                          <a href="${pageContext.request.contextPath}/change-password"
-                             class="luxe-auth-button">
-                              Change Password
-                          </a>
-                    </c:if>
-
-                    <form method="post"
-                          action="${pageContext.request.contextPath}/logout"
-                          class="luxe-logout-form">
-
-                        <input type="hidden"
-                               name="csrfToken"
-                               value="<%= AuthSupport.token(session)%>">
-
-                        <button type="submit"
-                                id="logout"
-                                class="luxe-auth-button">
-                            Logout
-                        </button>
-                    </form>
+                    </details>
                 </div>
             </c:otherwise>
         </c:choose>
@@ -268,5 +207,22 @@
 
             document.head.appendChild(favicon);
         }
+    })();
+</script>
+<script>
+    (() => {
+        const menu = document.querySelector('[data-account-menu]');
+        if (!menu)
+            return;
+        document.addEventListener('click', event => {
+            if (!menu.contains(event.target))
+                menu.open = false;
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && menu.open) {
+                menu.open = false;
+                menu.querySelector('summary').focus();
+            }
+        });
     })();
 </script>

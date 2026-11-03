@@ -23,6 +23,42 @@ public final class EmailUtility {
             String otp
     ) throws MessagingException {
 
+        send(to, "Luxe Escape - Password reset OTP",
+                "Your password reset OTP is: " + otp
+                + "\n\nThis code expires in 5 minutes."
+                + "\nYou have a maximum of 3 verification attempts."
+                + "\nDo not share this code."
+                + "\n\nIgnore this email if you did not request a password reset.");
+    }
+
+    /**
+     * UC18: called only after the account transaction commits.
+     */
+    public static void sendAccountCreatedEmail(String to, String username, String password, String role)
+            throws MessagingException {
+        String base = setting("APP_BASE_URL");
+        try {
+            java.net.URI uri = java.net.URI.create(base);
+            if (!("https".equals(uri.getScheme()) || "http".equals(uri.getScheme()))
+                    || uri.getHost() == null || uri.getQuery() != null || uri.getFragment() != null
+                    || uri.getUserInfo() != null) {
+                throw new IllegalArgumentException();
+            }
+        } catch (IllegalArgumentException e) {
+            throw new MessagingException("Invalid APP_BASE_URL");
+        }
+        while (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        send(to, "Luxe Escape - Your new account",
+                "Your Luxe Escape account has been created."
+                + "\nUsername: " + username + "\nInitial password: " + password
+                + "\nRole: " + role + "\nLogin: " + base + "/login"
+                + "\n\nPlease change your initial password after signing in using Change Password."
+                + "\nDo not forward this email or share your password.");
+    }
+
+    private static void send(String to, String subject, String body) throws MessagingException {
         String from = setting("SMTP_USER");
 
         // Preserve support for Gmail app passwords entered with spaces.
@@ -63,22 +99,8 @@ public final class EmailUtility {
                 new InternetAddress(to, true)
         );
 
-        message.setSubject(
-                "Luxe Escape - Password reset OTP",
-                "UTF-8"
-        );
-
-        message.setText(
-                "Your password reset OTP is: " + otp
-                + "\n\nThis code expires in 5 minutes."
-                + "\nYou have a maximum of 3 verification attempts."
-                + "\nDo not share this code."
-                + "\n\nIgnore this email if you did not request "
-                + "a password reset.",
-                "UTF-8"
-        );
-
-        // Propagate delivery failures to the servlet.
+        message.setSubject(subject, "UTF-8");
+        message.setText(body, "UTF-8");
         Transport.send(message);
     }
 

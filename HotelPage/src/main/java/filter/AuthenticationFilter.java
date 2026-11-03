@@ -108,6 +108,7 @@ public class AuthenticationFilter implements Filter {
                 || !"active".equalsIgnoreCase(
                         current.getAccountStatus()
                 )
+                || !Objects.equals(current.getRole(), user.getRole())
                 || !Objects.equals(
                         current.getPassword(),
                         user.getPassword()
