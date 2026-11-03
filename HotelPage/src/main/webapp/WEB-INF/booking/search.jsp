@@ -12,12 +12,12 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>Discover Rooms - Luxe Hotel</title>
-        
+
         <!-- CSS Dependencies -->
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" />
-        
+
         <!-- Custom Styles -->
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/general.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
@@ -30,8 +30,8 @@
                 position: relative;
                 height: 60vh;
                 min-height: 400px;
-                background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), 
-                            url('<%= request.getContextPath()%>/assets/img/hero-bg.jpg') center/cover no-repeat; /* Bạn có thể tạo ảnh hero-bg.jpg để vào thư mục img */
+                background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)),
+                    url('<%= request.getContextPath()%>/assets/img/hero-bg.jpg') center/cover no-repeat; /* Bạn có thể tạo ảnh hero-bg.jpg để vào thư mục img */
                 background-color: #2c3e50; /* Fallback color */
                 display: flex;
                 align-items: center;
@@ -157,11 +157,11 @@
             }
         </style>
     </head>
-    
+
     <body>
         <div class="body-wrapper">    
             <%@include file="../include/header.jsp" %>
-            
+
             <main>
                 <!-- Hero Section (Bức ảnh lớn và Câu chào) -->
                 <section class="hero-section">
@@ -171,64 +171,104 @@
                     </div>
                 </section>
 
-                <!-- Thanh Tìm kiếm ngang (Horizontal Search Bar) -->
+                <!-- Thanh Tìm kiếm ngang (Horizontal Search Bar - UC06) -->
                 <section class="search-container container">
                     <div class="search-bar">
-                        <c:if test="${param.error == 'missing-dates'}">
+                        <c:if test="${param.error == 'missing-dates' || param.error == 'invalid-dates'}">
                             <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                You must choose a date range to find rooms.
+                                Check-out date must be later than Check-in date, and Check-in date cannot be in the past.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        </c:if>
+
+                        <c:if test="${param.error == 'invalid-filter'}">
+                            <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                Please enter valid numeric filter values (Guest count must be greater than 0, and Minimum price cannot exceed Maximum price).
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
                         </c:if>
 
                         <form method="post" action="<%= request.getContextPath()%>/room?action=search">
+                            <input type="hidden" name="source" value="search">
                             <div class="row g-3 align-items-end">
-                                
+
                                 <!-- Cột 1: Ngày Check-in & Check-out -->
-                                <div class="col-lg-6 col-md-12">
+                                <div class="col-lg-4 col-md-6">
                                     <div class="search-field">
-                                        <label for="floatingBookingDate">Check-in & Check-out <span class="text-danger">*</span></label>
+                                        <label for="floatingBookingDate">Check-in &amp; Check-out <span class="text-danger">*</span></label>
                                         <i class="bi bi-calendar3"></i>
-                                        <input type="text" class="form-control" id="floatingBookingDate" 
-                                               placeholder="Select your dates" name="booking-dates" readonly required>
+                                        <input type="text"
+                                               class="form-control ${param.error == 'missing-dates' || param.error == 'invalid-dates' ? 'is-invalid border-danger' : ''}"
+                                               id="floatingBookingDate"
+                                               placeholder="Select your dates"
+                                               name="booking-dates"
+                                               value="${sessionScope.dates}"
+                                               readonly required>
                                     </div>
                                 </div>
 
-                                <!-- Cột 2: Số lượng khách (Mô phỏng UI) -->
-                                <div class="col-lg-2 col-md-4 col-sm-6">
+                                <!-- Cột 2: Số lượng khách (Capacity - BR-15) -->
+                                <div class="col-lg-2 col-md-3 col-sm-6">
                                     <div class="search-field">
-                                        <label for="adults">Adults</label>
-                                        <i class="bi bi-person-fill"></i>
-                                        <select class="form-control" id="adults" name="adults">
-                                            <option value="1">1 Adult</option>
-                                            <option value="2" selected>2 Adults</option>
-                                            <option value="3">3 Adults</option>
-                                            <option value="4">4 Adults</option>
+                                        <label for="guest-count">Guests <span class="text-danger">*</span></label>
+                                        <i class="bi bi-people-fill"></i>
+                                        <input type="number"
+                                               class="form-control ${param.error == 'invalid-filter' ? 'is-invalid border-danger' : ''}"
+                                               id="guest-count"
+                                               name="guest-count"
+                                               min="1" max="20"
+                                               value="${not empty sessionScope.guestCount ? sessionScope.guestCount : 2}"
+                                               required>
+                                    </div>
+                                </div>
+
+                                <!-- Cột 3: Loại phòng (Optional RoomType - BR-16) -->
+                                <div class="col-lg-2 col-md-3 col-sm-6">
+                                    <div class="search-field">
+                                        <label for="room-type-id">Room Type</label>
+                                        <i class="bi bi-door-open-fill"></i>
+                                        <select class="form-control" id="room-type-id" name="room-type-id">
+                                            <option value="">All Types</option>
+                                            <c:forEach var="rt" items="${requestScope.roomTypes}">
+                                                <option value="${rt.id}" ${sessionScope.searchRoomTypeId == rt.id ? 'selected' : ''}>
+                                                    ${rt.name}
+                                                </option>
+                                            </c:forEach>
                                         </select>
                                     </div>
                                 </div>
 
-                                <!-- Cột 3: Trẻ em (Mô phỏng UI) -->
-                                <div class="col-lg-2 col-md-4 col-sm-6">
-                                    <div class="search-field">
-                                        <label for="children">Children</label>
-                                        <i class="bi bi-person-badge"></i>
-                                        <select class="form-control" id="children" name="children">
-                                            <option value="0" selected>0 Children</option>
-                                            <option value="1">1 Child</option>
-                                            <option value="2">2 Children</option>
-                                        </select>
+                                <!-- Cột 4: Khoảng giá (Optional Price Range - BR-16) -->
+                                <div class="col-lg-2 col-md-6 col-sm-12">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label for="min-price" class="small fw-semibold text-secondary text-uppercase">Min ($)</label>
+                                            <input type="number" step="0.01" min="0"
+                                                   class="form-control px-2 py-2 ${param.error == 'invalid-filter' ? 'is-invalid border-danger' : ''}"
+                                                   id="min-price" name="min-price"
+                                                   placeholder="0"
+                                                   value="${sessionScope.searchMinPrice}">
+                                        </div>
+                                        <div class="col-6">
+                                            <label for="max-price" class="small fw-semibold text-secondary text-uppercase">Max ($)</label>
+                                            <input type="number" step="0.01" min="0"
+                                                   class="form-control px-2 py-2 ${param.error == 'invalid-filter' ? 'is-invalid border-danger' : ''}"
+                                                   id="max-price" name="max-price"
+                                                   placeholder="Any"
+                                                   value="${sessionScope.searchMaxPrice}">
+                                        </div>
                                     </div>
                                 </div>
 
-                                <!-- Cột 4: Nút Search -->
-                                <div class="col-lg-2 col-md-4 col-sm-12">
+                                <!-- Cột 5: Nút Search -->
+                                <div class="col-lg-2 col-md-6 col-sm-12">
                                     <button class="btn btn-search" type="submit" id="find-rooms-button">
-                                        <i class="bi bi-search"></i> Check Availability
+                                        <i class="bi bi-search"></i> Search
                                     </button>
                                 </div>
-                                
+
                             </div>
                         </form>
                     </div>
@@ -262,18 +302,18 @@
                         </div>
                     </div>
                 </section>
-                
+
             </main>
-            
+
             <%@include file="../include/footer.jsp" %>
         </div>
 
         <!-- Scripts -->
         <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
         <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
-        
+
         <script>
-            document.addEventListener("DOMContentLoaded", function() {
+            document.addEventListener("DOMContentLoaded", function () {
                 const picker = new Litepicker({
                     element: document.getElementById('floatingBookingDate'),
                     singleMode: false, // for date range

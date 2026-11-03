@@ -50,11 +50,19 @@
 
                 <%-- Staff navigation. --%>
                 <c:when test="${sessionScope.loggedUser.role == 'staff'}">
+
+                    <li>
+                        <a href="${pageContext.request.contextPath}/booking">
+                            Search Rooms
+                        </a>
+                    </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/booking-management">
                             Bookings
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/customers">
                             Customers
@@ -172,10 +180,12 @@
                             <c:if test="${sessionScope.loggedUser.role == 'customer'}">
                                 <a class="luxe-account-item" href="${pageContext.request.contextPath}/history?view=bookings">Booking History</a>
                                 <a class="luxe-account-item" href="${pageContext.request.contextPath}/history?view=payments">Payment History</a>
+                                <a class="luxe-account-item" href="${pageContext.request.contextPath}/wallet">My Wallet</a>
                             </c:if>
                             <form method="post" action="${pageContext.request.contextPath}/logout" class="luxe-account-logout">
                                 <input type="hidden" name="csrfToken" value="<%= AuthSupport.html(AuthSupport.token(session))%>">
                                 <button class="luxe-account-item" type="submit">Logout</button>
+
                             </form>
                         </div>
                     </details>

@@ -109,7 +109,10 @@ public class ReviewDAO extends DBContext {
         }
     }
 
-    /** Fetch a customer's existing review for the specific booking and room, including pending/rejected. */
+    /**
+     * Fetch a customer's existing review for the specific booking and room,
+     * including pending/rejected.
+     */
     public Review getCustomerReviewForBooking(int bookingId, int customerId, int roomNumber) {
         String sql = "SELECT TOP 1 r.ReviewID, r.Comment, r.Star, r.ReviewDate, r.ReviewStatus "
                 + "FROM Review r JOIN Booking b ON b.BookingID = r.BookingID "
@@ -127,7 +130,9 @@ public class ReviewDAO extends DBContext {
                     review.setComment(rs.getString("Comment"));
                     review.setStar(rs.getBigDecimal("Star"));
                     java.sql.Timestamp date = rs.getTimestamp("ReviewDate");
-                    if (date != null) review.setReviewDate(date.toLocalDateTime());
+                    if (date != null) {
+                        review.setReviewDate(date.toLocalDateTime());
+                    }
                     review.setReviewStatus(rs.getString("ReviewStatus"));
                     return review;
                 }
@@ -323,7 +328,7 @@ public class ReviewDAO extends DBContext {
                 + "FROM Review r "
                 + "JOIN Booking b ON b.BookingID = r.BookingID "
                 + "JOIN Customer c ON c.CustomerID = b.CustomerID "
-                + "JOIN [User] u ON u.UserID = c.UserID "
+                + "LEFT JOIN [User] u ON u.UserID = c.UserID "
                 + "ORDER BY "
                 + "CASE r.ReviewStatus "
                 + "    WHEN 'pending' THEN 1 "
@@ -349,6 +354,35 @@ public class ReviewDAO extends DBContext {
                     ex
             );
         }
+    }
+
+    public int[] getApprovedRatingCounts() {
+        int[] counts = new int[6];
+
+        String sql = "SELECT CAST(Star AS INT) AS Rating, "
+           + "COUNT(*) AS Total "
+           + "FROM Review "
+           + "WHERE LOWER(LTRIM(RTRIM(ReviewStatus))) = 'approved' "
+           + "GROUP BY CAST(Star AS INT)";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                int rating = rs.getInt("Rating");
+                int total = rs.getInt("Total");
+
+                if (rating >= 1 && rating <= 5) {
+                    counts[rating] = total;
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "Unable to load approved rating statistics.", e
+            );
+        }
+
+        return counts;
     }
 
     /*
