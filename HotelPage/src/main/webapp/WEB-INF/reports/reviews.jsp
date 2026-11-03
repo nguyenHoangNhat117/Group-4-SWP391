@@ -45,6 +45,42 @@
 
         <main class="hotel-reports">
 
+            <%-- Review summary for the currently loaded result set. Manager filters/pages apply. --%>
+            <c:set var="approvedCount" value="0" />
+            <c:set var="pendingCount" value="0" />
+            <c:set var="rejectedCount" value="0" />
+            <c:set var="starTotal" value="0" />
+            <c:set var="fiveStars" value="0" /><c:set var="fourStars" value="0" /><c:set var="threeStars" value="0" /><c:set var="twoStars" value="0" /><c:set var="oneStar" value="0" />
+            <c:forEach var="review" items="${reviews}">
+                <c:choose>
+                    <c:when test="${review.reviewStatus == 'approved'}">
+                        <c:set var="approvedCount" value="${approvedCount + 1}" />
+                        <c:set var="starTotal" value="${starTotal + review.star}" />
+                        <c:choose><c:when test="${review.star == 5}"><c:set var="fiveStars" value="${fiveStars + 1}"/></c:when><c:when test="${review.star == 4}"><c:set var="fourStars" value="${fourStars + 1}"/></c:when><c:when test="${review.star == 3}"><c:set var="threeStars" value="${threeStars + 1}"/></c:when><c:when test="${review.star == 2}"><c:set var="twoStars" value="${twoStars + 1}"/></c:when><c:when test="${review.star == 1}"><c:set var="oneStar" value="${oneStar + 1}"/></c:when></c:choose>
+                    </c:when>
+                    <c:when test="${review.reviewStatus == 'pending'}"><c:set var="pendingCount" value="${pendingCount + 1}" /></c:when>
+                    <c:when test="${review.reviewStatus == 'rejected'}"><c:set var="rejectedCount" value="${rejectedCount + 1}" /></c:when>
+                </c:choose>
+            </c:forEach>
+            <section class="container my-4" aria-label="Review summary">
+                <h2>Review summary</h2>
+                <div class="row g-3">
+                    <div class="col-md-3"><div class="card p-3"><strong>Total reviews</strong><h3>${fn:length(reviews)}</h3></div></div>
+                    <div class="col-md-3"><div class="card p-3"><strong>Approved</strong><h3>${approvedCount}</h3></div></div>
+                    <div class="col-md-3"><div class="card p-3"><strong>Pending / Rejected</strong><h3>${pendingCount} / ${rejectedCount}</h3></div></div>
+                    <div class="col-md-3"><div class="card p-3"><strong>Average approved rating</strong><h3><c:choose><c:when test="${approvedCount > 0}"><fmt:formatNumber value="${starTotal / approvedCount}" maxFractionDigits="1" minFractionDigits="1"/> / 5</c:when><c:otherwise>N/A</c:otherwise></c:choose></h3></div></div>
+                </div>
+                <div class="mt-3">
+    <strong>Approved ratings:</strong>
+
+    5★ ${approvedRatingCounts[5]} ·
+    4★ ${approvedRatingCounts[4]} ·
+    3★ ${approvedRatingCounts[3]} ·
+    2★ ${approvedRatingCounts[2]} ·
+    1★ ${approvedRatingCounts[1]}
+</div>
+                <c:if test="${not reportIsAdmin}"><small>Summary reflects the reviews loaded on this page, not all filtered records.</small></c:if>
+            </section>
             <c:choose>
                 <c:when test="${reportIsAdmin}">
             <div class="report-heading">
@@ -253,8 +289,8 @@
                                                                         </strong>
 
                                                                         <span class="report-muted">
-                                                                            ${detail.checkInDate}
-                                                                            → ${detail.checkOutDate}
+                                                                            ${fn:substring(detail.checkInDate, 8, 10)}/${fn:substring(detail.checkInDate, 5, 7)}/${fn:substring(detail.checkInDate, 0, 4)}
+                                                                            → ${fn:substring(detail.checkOutDate, 8, 10)}/${fn:substring(detail.checkOutDate, 5, 7)}/${fn:substring(detail.checkOutDate, 0, 4)}
                                                                         </span>
 
                                                                     </div>
@@ -310,7 +346,7 @@
                                                     </td>
 
                                                     <td class="report-nowrap">
-                                                        <c:out value="${fn:replace(r.reviewDate, 'T', ' ')}" />
+                                                        <c:out value="${fn:substring(r.reviewDate, 8, 10)}/${fn:substring(r.reviewDate, 5, 7)}/${fn:substring(r.reviewDate, 0, 4)}" />
                                                     </td>
 
                                                     <td>

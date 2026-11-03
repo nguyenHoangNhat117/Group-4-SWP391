@@ -93,9 +93,6 @@
                 <div class="alert alert-danger text-center">
 
                     Only Pending/Confirmed bookings before check-in can be cancelled.
-
-                    Cancellation is allowed only for pending/confirmed
-                    bookings at least 24 hours before check-in.
                     Checked-in bookings cannot be cancelled.
 
                 </div>
@@ -173,6 +170,14 @@
                                             <c:set var="paidAmount" value="${paidAmountMap[booking.id]}" />
                                             <c:set var="remainingAmount" value="${remainingAmountMap[booking.id]}" />
                                             <c:choose>
+                                                <c:when test="${booking.status == 'cancelled' && refundedMap[booking.id]}">
+                                                    <span class="badge bg-success">Refunded to Wallet</span>
+                                                    <div class="small text-muted mt-1">Payment refunded; excluded from paid revenue.</div>
+                                                </c:when>
+                                                <c:when test="${booking.status == 'cancelled'}">
+                                                    <span class="badge bg-secondary">Cancelled &ndash; Not Refunded</span>
+                                                    <div class="small text-muted mt-1">No refund recorded for this booking.</div>
+                                                </c:when>
                                                 <c:when test="${empty paidAmount || paidAmount <= 0}">
                                                     <span class="badge bg-warning text-dark">Unpaid</span>
                                                 </c:when>
@@ -269,7 +274,7 @@
                                     </c:when>
                                     <c:otherwise>
                                         <span class="d-inline-block"
-                                              title="Only Pending/Confirmed bookings before check-in can be cancelled. Refunds require more than 24 hours notice.">
+                                              title="Only Pending/Confirmed bookings before check-in can be cancelled.">
                                             <button type="button" class="btn btn-outline-danger btn-sm" disabled>Cancel Booking</button>
                                         </span>
                                     </c:otherwise>

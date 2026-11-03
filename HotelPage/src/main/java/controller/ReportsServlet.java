@@ -2,6 +2,7 @@ package controller;
 
 import dao.ReportDAO;
 import dao.ReportRecordsDAO;
+import dao.ReviewDAO;
 import model.ReportFilter;
 import model.User;
 import jakarta.servlet.ServletException;
@@ -81,6 +82,8 @@ public class ReportsServlet extends HttpServlet {
                 request.setAttribute("payments", dao.getPaymentRecords(filter, page));
             } else {
                 request.setAttribute("reviews", dao.getReviewRecords(filter, page));
+
+                request.setAttribute("approvedRatingCounts",new ReviewDAO().getApprovedRatingCounts());
             }
             request.setAttribute("totalRecords", total);
             setFilter(request, filter, page, pages);

@@ -34,8 +34,8 @@ public class HistoryServlet extends HttpServlet {
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        HttpSession session =
-                request.getSession(false);
+        HttpSession session
+                = request.getSession(false);
 
         /*
          * =====================================================
@@ -52,13 +52,13 @@ public class HistoryServlet extends HttpServlet {
             return;
         }
 
-        User user =
-                (User) session.getAttribute(
+        User user
+                = (User) session.getAttribute(
                         "loggedUser"
                 );
 
-        Customer sessionCustomer =
-                (Customer) session.getAttribute(
+        Customer sessionCustomer
+                = (Customer) session.getAttribute(
                         "customer"
                 );
 
@@ -73,8 +73,8 @@ public class HistoryServlet extends HttpServlet {
          *   may inspect a customer's history.
          * =====================================================
          */
-        Integer customerId =
-                resolveCustomerId(
+        Integer customerId
+                = resolveCustomerId(
                         request,
                         user,
                         sessionCustomer
@@ -105,8 +105,8 @@ public class HistoryServlet extends HttpServlet {
                 return;
             }
 
-            customerId =
-                    sessionCustomer.getCustomerID();
+            customerId
+                    = sessionCustomer.getCustomerID();
         }
 
         /*
@@ -128,8 +128,8 @@ public class HistoryServlet extends HttpServlet {
          * 3. DEFAULT VIEW
          * =====================================================
          */
-        String view =
-                request.getParameter("view");
+        String view
+                = request.getParameter("view");
 
         if (view == null
                 || view.trim().isEmpty()) {
@@ -187,14 +187,14 @@ public class HistoryServlet extends HttpServlet {
             int customerId)
             throws ServletException, IOException {
 
-        BookingDAO bookingDAO =
-                new BookingDAO();
+        BookingDAO bookingDAO
+                = new BookingDAO();
 
-        PaymentDAO paymentDAO =
-                new PaymentDAO();
+        PaymentDAO paymentDAO
+                = new PaymentDAO();
 
-        ReviewDAO reviewDAO =
-                new ReviewDAO();
+        ReviewDAO reviewDAO
+                = new ReviewDAO();
 
         /*
          * DO NOT call the old:
@@ -208,18 +208,18 @@ public class HistoryServlet extends HttpServlet {
          */
         bookingDAO.expirePendingBookings();
 
-        int currentPage =
-                parsePage(
+        int currentPage
+                = parsePage(
                         request.getParameter("page")
                 );
 
-        int totalBookings =
-                bookingDAO.countBookingsByCustomerID(
+        int totalBookings
+                = bookingDAO.countBookingsByCustomerID(
                         customerId
                 );
 
-        int totalPages =
-                totalBookings == 0
+        int totalPages
+                = totalBookings == 0
                         ? 0
                         : (int) Math.ceil(
                                 totalBookings
@@ -235,8 +235,8 @@ public class HistoryServlet extends HttpServlet {
             currentPage = totalPages;
         }
 
-        List<Booking> bookings =
-                bookingDAO.getBookingsByCustomerID(
+        List<Booking> bookings
+                = bookingDAO.getBookingsByCustomerID(
                         customerId,
                         currentPage,
                         PAGE_SIZE
@@ -245,6 +245,8 @@ public class HistoryServlet extends HttpServlet {
         Map<Integer, BigDecimal> paidAmountMap = new HashMap<>();
         Map<Integer, BigDecimal> remainingAmountMap = new HashMap<>();
         Map<Integer, Boolean> reviewedMap = new HashMap<>();
+        Map<Integer, Boolean> refundedMap = new HashMap<>();
+
         Map<Integer, Boolean> cancellableMap = new HashMap<>();
 
         for (Booking booking : bookings) {
@@ -255,6 +257,7 @@ public class HistoryServlet extends HttpServlet {
             }
 
             paidAmountMap.put(booking.getId(), paidAmount);
+            refundedMap.put(booking.getId(), bookingDAO.hasRefundedPayment(booking.getId(), customerId));
             remainingAmountMap.put(booking.getId(), remainingAmount);
             reviewedMap.put(
                     booking.getId(),
@@ -272,6 +275,7 @@ public class HistoryServlet extends HttpServlet {
         );
 
         request.setAttribute("paidAmountMap", paidAmountMap);
+        request.setAttribute("refundedMap", refundedMap);
         request.setAttribute("remainingAmountMap", remainingAmountMap);
 
         request.setAttribute(
@@ -313,21 +317,21 @@ public class HistoryServlet extends HttpServlet {
             int customerId)
             throws ServletException, IOException {
 
-        PaymentDAO paymentDAO =
-                new PaymentDAO();
+        PaymentDAO paymentDAO
+                = new PaymentDAO();
 
-        int currentPage =
-                parsePage(
+        int currentPage
+                = parsePage(
                         request.getParameter("page")
                 );
 
-        int totalPayments =
-                paymentDAO.countPaymentsByCustomerId(
+        int totalPayments
+                = paymentDAO.countPaymentsByCustomerId(
                         customerId
                 );
 
-        int totalPages =
-                totalPayments == 0
+        int totalPages
+                = totalPayments == 0
                         ? 0
                         : (int) Math.ceil(
                                 totalPayments
@@ -340,8 +344,8 @@ public class HistoryServlet extends HttpServlet {
             currentPage = totalPages;
         }
 
-        List<Payment> payments =
-                paymentDAO.getPaymentsByCustomerId(
+        List<Payment> payments
+                = paymentDAO.getPaymentsByCustomerId(
                         customerId,
                         currentPage,
                         PAGE_SIZE
@@ -395,8 +399,8 @@ public class HistoryServlet extends HttpServlet {
          * Staff/Admin must provide customer ID
          * when inspecting another customer.
          */
-        String idParam =
-                request.getParameter("id");
+        String idParam
+                = request.getParameter("id");
 
         if (idParam == null
                 || idParam.trim().isEmpty()) {
@@ -406,8 +410,8 @@ public class HistoryServlet extends HttpServlet {
 
         try {
 
-            int id =
-                    Integer.parseInt(
+            int id
+                    = Integer.parseInt(
                             idParam.trim()
                     );
 
@@ -437,8 +441,8 @@ public class HistoryServlet extends HttpServlet {
 
         try {
 
-            int page =
-                    Integer.parseInt(
+            int page
+                    = Integer.parseInt(
                             pageParam.trim()
                     );
 

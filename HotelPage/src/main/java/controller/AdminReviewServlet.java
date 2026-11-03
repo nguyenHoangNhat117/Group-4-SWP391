@@ -49,9 +49,16 @@ public class AdminReviewServlet extends HttpServlet {
         }
 
         try {
+            ReviewDAO reviewDAO = new ReviewDAO();
+
             request.setAttribute(
                     "reviews",
-                    new ReviewDAO().getAllReviews()
+                    reviewDAO.getAllReviews()
+            );
+
+            request.setAttribute(
+                    "approvedRatingCounts",
+                    reviewDAO.getApprovedRatingCounts()
             );
 
         } catch (IllegalStateException ex) {
