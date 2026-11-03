@@ -188,7 +188,10 @@
                                href="${pageContext.request.contextPath}/history?view=payments">
                                 Payment History
                             </a>
-
+                            <a class="dropdown-item"
+                               href="${pageContext.request.contextPath}/wallet">
+                                My Wallet
+                            </a>
                             <div class="dropdown-divider"></div>
 
                             <%-- Logout remains a POST request with CSRF protection. --%>

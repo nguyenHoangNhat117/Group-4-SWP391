@@ -63,16 +63,7 @@
                 </h2>
 
 
-                <div
-                    class="alert alert-warning">
-
-                    Cancelling a booking does not delete
-                    its history.
-
-                    The booking will be marked as
-                    <strong>cancelled</strong>.
-
-                </div>
+               
 
 
                 <div class="alert ${requestScope.refundEligible ? 'alert-success' : 'alert-info'}">
