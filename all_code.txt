@@ -4,27 +4,22 @@ FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\controller\AdminReviewSer
 package controller;
 
 import dao.ReviewDAO;
+import model.User;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-import java.util.List;
-
-import model.Review;
-import model.User;
 
 @WebServlet(
         name = "AdminReviewServlet",
         urlPatterns = {"/admin/reviews"}
 )
-public class AdminReviewServlet
-        extends HttpServlet {
+public class AdminReviewServlet extends HttpServlet {
 
     @Override
     protected void doGet(
@@ -32,59 +27,57 @@ public class AdminReviewServlet
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        HttpSession session =
-                request.getSession(false);
+        response.setContentType("text/html;charset=UTF-8");
+        response.setHeader("Cache-Control", "no-store");
 
-        /*
-         * AuthenticationFilter already protects /admin/*,
-         * but servlet checks again for safety.
-         */
-        if (session == null
-                || session.getAttribute("loggedUser") == null) {
+        // AuthenticationFilter also protects this route.
+        HttpSession session = request.getSession(false);
 
+        User user = session == null
+                ? null
+                : (User) session.getAttribute("loggedUser");
+
+        if (user == null) {
             response.sendRedirect(
-                    request.getContextPath()
-                    + "/login"
+                    request.getContextPath() + "/login"
             );
-
             return;
         }
 
-        User user =
-                (User) session.getAttribute(
-                        "loggedUser"
-                );
-
-        /*
-         * Review Management is Admin-only.
-         */
-        if (!"admin".equalsIgnoreCase(
-                user.getRole())) {
-
+        if (!"admin".equalsIgnoreCase(user.getRole())) {
             response.sendError(
                     HttpServletResponse.SC_FORBIDDEN
             );
-
             return;
         }
 
-        ReviewDAO reviewDAO =
-                new ReviewDAO();
+        try {
+            request.setAttribute(
+                    "reviews",
+                    new ReviewDAO().getAllReviews()
+            );
 
-        List<Review> reviews =
-                reviewDAO.getAllReviews();
+        } catch (IllegalStateException ex) {
 
-        request.setAttribute(
-                "reviews",
-                reviews
-        );
+            getServletContext().log(
+                    "Unable to load Admin review management.",
+                    ex
+            );
+
+            response.setStatus(
+                    HttpServletResponse.SC_SERVICE_UNAVAILABLE
+            );
+
+            request.setAttribute(
+                    "reviewLoadError",
+                    "Review data is temporarily unavailable. "
+                    + "Please try again later."
+            );
+        }
 
         request.getRequestDispatcher(
                 "/WEB-INF/reports/reviews.jsp"
-        ).forward(
-                request,
-                response
-        );
+        ).forward(request, response);
     }
 
     @Override
@@ -93,11 +86,7 @@ public class AdminReviewServlet
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        /*
-         * Moderation is handled by:
-         *
-         * /admin/reviews/moderate
-         */
+        // Moderation remains handled by /admin/reviews/moderate.
         response.sendError(
                 HttpServletResponse.SC_METHOD_NOT_ALLOWED
         );
@@ -105,10 +94,10 @@ public class AdminReviewServlet
 
     @Override
     public String getServletInfo() {
-
-        return "Admin Review Management.";
+        return "Admin review management.";
     }
 }
+
 
 
 ==================================================
@@ -1527,6 +1516,7 @@ public class BookingServlet extends HttpServlet {
 }
 
 
+
 ==================================================
 FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\controller\CancelBookingServlet.java
 ==================================================
@@ -2455,6 +2445,305 @@ public class CustomerServlet
     public String getServletInfo() {
 
         return "Staff/Admin Customer Management.";
+    }
+}
+
+
+==================================================
+FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\controller\DashboardServlet.java
+==================================================
+package controller;
+
+import dao.ReportDAO;
+import model.ReportStatistic;
+import model.RevenueReport;
+import model.ReviewStatistics;
+import model.User;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+
+@WebServlet(
+        name = "DashboardServlet",
+        urlPatterns = {"/dashboard"}
+)
+public class DashboardServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        response.setContentType("text/html;charset=UTF-8");
+        response.setHeader("Cache-Control", "no-store");
+
+        // The authentication filter also validates the current account.
+        HttpSession session = request.getSession(false);
+
+        User user = session == null
+                ? null
+                : (User) session.getAttribute("loggedUser");
+
+        if (user == null) {
+            response.sendRedirect(
+                    request.getContextPath() + "/login"
+            );
+            return;
+        }
+
+        if (!"manager".equalsIgnoreCase(user.getRole())) {
+            response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN
+            );
+            return;
+        }
+
+        LocalDate today = LocalDate.now(
+                ZoneId.of("Asia/Ho_Chi_Minh")
+        );
+
+        // Use the current month as the default reporting period.
+        LocalDate fromDate = today.withDayOfMonth(1);
+        LocalDate toDate = today;
+
+        request.setAttribute("fromDate", fromDate);
+        request.setAttribute("toDate", toDate);
+
+        try {
+            String fromParameter =
+                    request.getParameter("fromDate");
+
+            String toParameter =
+                    request.getParameter("toDate");
+
+            boolean hasFrom = fromParameter != null
+                    && !fromParameter.trim().isEmpty();
+
+            boolean hasTo = toParameter != null
+                    && !toParameter.trim().isEmpty();
+
+            if (hasFrom != hasTo) {
+                throw new IllegalArgumentException(
+                        "Please select both start date and end date."
+                );
+            }
+
+            if (hasFrom) {
+                fromDate = LocalDate.parse(
+                        fromParameter.trim()
+                );
+
+                toDate = LocalDate.parse(
+                        toParameter.trim()
+                );
+            }
+
+            // Store parsed dates only, never raw request values.
+            request.setAttribute("fromDate", fromDate);
+            request.setAttribute("toDate", toDate);
+
+            if (fromDate.isAfter(toDate)) {
+                throw new IllegalArgumentException(
+                        "Start date must not be after end date."
+                );
+            }
+
+            if (fromDate.getYear() < 1
+                    || toDate.getYear() > 9998) {
+
+                throw new IllegalArgumentException(
+                        "Report years must be between 1 and 9998."
+                );
+            }
+
+            ReportDAO reportDAO = new ReportDAO();
+
+            BigDecimal totalRevenue =
+                    reportDAO.getTotalRevenue(
+                            fromDate,
+                            toDate
+                    );
+
+            List<ReportStatistic> bookingStatistics =
+                    reportDAO.getBookingStatistics(
+                            fromDate,
+                            toDate
+                    );
+
+            List<ReportStatistic> paymentStatistics =
+                    reportDAO.getPaymentStatistics(
+                            fromDate,
+                            toDate
+                    );
+
+            List<ReportStatistic> roomStatistics =
+                    reportDAO.getRoomStatusStatistics();
+
+            long customerCount =
+                    reportDAO.getCustomerCount();
+
+            ReviewStatistics reviewStatistics =
+                    reportDAO.getReviewStatistics();
+
+            double occupancyRate =
+                    reportDAO.getOccupancyRate(
+                            fromDate,
+                            toDate
+                    );
+
+            long totalBookings = 0;
+
+            for (ReportStatistic item : bookingStatistics) {
+                totalBookings += item.getTotalCount();
+            }
+
+            long availableRooms = 0;
+
+            for (ReportStatistic item : roomStatistics) {
+                if ("available".equals(item.getStatus())) {
+                    availableRooms = item.getTotalCount();
+                    break;
+                }
+            }
+
+            /*
+             * The monthly chart covers the full calendar year
+             * containing the selected start date.
+             */
+            int chartYear = fromDate.getYear();
+
+            List<RevenueReport> monthlyRevenue =
+                    reportDAO.getRevenueByMonth(chartYear);
+
+            BigDecimal chartMaximum = BigDecimal.ZERO;
+
+            for (RevenueReport item : monthlyRevenue) {
+                chartMaximum = chartMaximum.max(
+                        item.getTotalRevenue()
+                );
+            }
+
+            // A positive maximum is required by the HTML meter element.
+            if (chartMaximum.signum() == 0) {
+                chartMaximum = BigDecimal.ONE;
+            }
+
+            // Publish statistics only after all queries succeed.
+            request.setAttribute(
+                    "totalRevenue",
+                    totalRevenue
+            );
+
+            request.setAttribute(
+                    "totalBookings",
+                    totalBookings
+            );
+
+            request.setAttribute(
+                    "bookingStatistics",
+                    bookingStatistics
+            );
+
+            request.setAttribute(
+                    "paymentStatistics",
+                    paymentStatistics
+            );
+
+            request.setAttribute(
+                    "roomStatistics",
+                    roomStatistics
+            );
+
+            request.setAttribute(
+                    "customerCount",
+                    customerCount
+            );
+
+            request.setAttribute(
+                    "reviewStatistics",
+                    reviewStatistics
+            );
+
+            request.setAttribute(
+                    "occupancyRate",
+                    occupancyRate
+            );
+
+            request.setAttribute(
+                    "availableRooms",
+                    availableRooms
+            );
+
+            request.setAttribute(
+                    "monthlyRevenue",
+                    monthlyRevenue
+            );
+
+            request.setAttribute(
+                    "chartYear",
+                    chartYear
+            );
+
+            request.setAttribute(
+                    "chartMaximum",
+                    chartMaximum
+            );
+
+        } catch (DateTimeParseException ex) {
+
+            response.setStatus(
+                    HttpServletResponse.SC_BAD_REQUEST
+            );
+
+            request.setAttribute(
+                    "dashboardError",
+                    "Invalid date. Please use the date picker."
+            );
+
+        } catch (IllegalArgumentException ex) {
+
+            response.setStatus(
+                    HttpServletResponse.SC_BAD_REQUEST
+            );
+
+            request.setAttribute(
+                    "dashboardError",
+                    ex.getMessage()
+            );
+
+        } catch (IllegalStateException ex) {
+
+            getServletContext().log(
+                    "Unable to load dashboard statistics.",
+                    ex
+            );
+
+            response.setStatus(
+                    HttpServletResponse.SC_SERVICE_UNAVAILABLE
+            );
+
+            request.setAttribute(
+                    "dashboardError",
+                    "Dashboard data is temporarily unavailable. "
+                    + "Please try again later."
+            );
+        }
+
+        request.getRequestDispatcher(
+                "/WEB-INF/reports/dashboard.jsp"
+        ).forward(request, response);
     }
 }
 
@@ -3768,7 +4057,7 @@ public class LoginServlet extends HttpServlet {
         } else if ("admin".equalsIgnoreCase(user.getRole())) {
             target = "/room";
         } else if ("manager".equalsIgnoreCase(user.getRole())) {
-            target = "/reports";
+            target = "/dashboard";
         }
         session.removeAttribute("pendingBookingUrl");
         res.sendRedirect(req.getContextPath() + target);
@@ -4566,248 +4855,456 @@ public class RegisterServlet extends HttpServlet {
 ==================================================
 FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\controller\ReportsServlet.java
 ==================================================
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
 package controller;
 
-import dao.BookingDAO;
-import dao.PaymentDAO;
 import dao.ReportDAO;
+import dao.ReportRecordsDAO;
 import dao.ReviewDAO;
-import java.io.IOException;
-import java.io.PrintWriter;
+import model.User;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.time.LocalDate;
-import java.util.List;
-import model.Booking;
-import model.Payment;
-import model.RevenueReport;
-import model.Review;
+import jakarta.servlet.http.HttpSession;
 
-/**
- *
- * @author Äáº·ng HoÃ ng VÅ©
- */
-@WebServlet(name = "ReportsServlet", urlPatterns = {"/reports"})
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+
+@WebServlet(
+        name = "ReportsServlet",
+        urlPatterns = {"/reports"}
+)
 public class ReportsServlet extends HttpServlet {
 
-    /**
-     * Processes both GET and POST requests.
-     * This is a placeholder method and is not used in real logic.
-     *
-     * @param request the HttpServletRequest object
-     * @param response the HttpServletResponse object
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try ( PrintWriter out = response.getWriter()) {
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet ReportsServlet</title>");
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet ReportsServlet at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
-        }
-    }
+    private static final int PAGE_SIZE = 5;
 
-    /**
-     * Handles the HTTP GET method.
-     * Dynamically loads and forwards different types of reports based on the "view" parameter.
-     *
-     * @param request the HttpServletRequest containing parameters like view, page-index, year
-     * @param response the HttpServletResponse used to redirect or forward
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
-        
-        if (request.getParameter("view") == null) {
-            response.sendRedirect("./reports?view=bookings");
+
+        response.setContentType("text/html;charset=UTF-8");
+        response.setHeader("Cache-Control", "no-store");
+
+        // AuthenticationFilter also revalidates account status and role.
+        HttpSession session = request.getSession(false);
+
+        User user = session == null
+                ? null
+                : (User) session.getAttribute("loggedUser");
+
+        if (user == null) {
+            response.sendRedirect(
+                    request.getContextPath() + "/login"
+            );
+            return;
+        }
+
+        if (!"manager".equalsIgnoreCase(user.getRole())) {
+            response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN
+            );
             return;
         }
 
         String view = request.getParameter("view");
 
+        if (view == null || view.trim().isEmpty()) {
+            view = "bookings";
+        }
+
         switch (view) {
-            case "bookings": {
-                // Load all bookings, delete unpaid overdue ones
-                BookingDAO bDAO = new BookingDAO();
-                bDAO.expirePendingBookings();
-                List<Booking> allBookings = bDAO.getAll();
+            case "bookings":
+            case "payments":
+                showRecords(request, response, view);
+                return;
 
-                int pageSize = 5;
-                int pageIndex = 1;
-                String pageParam = request.getParameter("page-index");
-
-                if (pageParam != null) {
-                    try {
-                        pageIndex = Integer.parseInt(pageParam);
-                    } catch (NumberFormatException ignored) {}
-                }
-
-                int totalBookings = allBookings.size();
-                int totalPages = (int) Math.ceil((double) totalBookings / pageSize);
-                if (totalPages == 0) totalPages = 1;
-
-                if (pageParam == null || pageIndex < 1) {
-                    response.sendRedirect("./reports?view=bookings&page-index=1");
-                    return;
-                } else if (pageIndex > totalPages) {
-                    response.sendRedirect("./reports?view=bookings&page-index=" + totalPages);
-                    return;
-                }
-
-                int fromIndex = (pageIndex - 1) * pageSize;
-                int toIndex = Math.min(fromIndex + pageSize, totalBookings);
-                List<Booking> pageBookings = allBookings.subList(fromIndex, toIndex);
-
-                request.setAttribute("bookings", pageBookings);
-                request.setAttribute("totalPages", totalPages);
-                request.setAttribute("currentPage", pageIndex);
-                request.getRequestDispatcher("/WEB-INF/reports/books.jsp").forward(request, response);
-                break;
-            }
-            case "payments": {
-                // Load all payments and paginate
-                PaymentDAO paymentDAO = new PaymentDAO();
-                List<Payment> allPayments = paymentDAO.getAllPayments();
-
-                int pageSize = 10;
-                int pageIndex = 1;
-                String pageParam = request.getParameter("page-index");
-
-                if (pageParam != null) {
-                    try {
-                        pageIndex = Integer.parseInt(pageParam);
-                    } catch (NumberFormatException ignored) {}
-                } else {
-                    response.sendRedirect("./reports?view=payments&page-index=1");
-                    return;
-                }
-
-                int totalPayments = allPayments.size();
-                int totalPages = (int) Math.ceil((double) totalPayments / pageSize);
-                if (totalPages == 0) totalPages = 1;
-
-                if (pageIndex < 1) {
-                    response.sendRedirect("./reports?view=payments&page-index=1");
-                    return;
-                } else if (pageIndex > totalPages) {
-                    response.sendRedirect("./reports?view=payments&page-index=" + totalPages);
-                    return;
-                }
-
-                int fromIndex = (pageIndex - 1) * pageSize;
-                int toIndex = Math.min(fromIndex + pageSize, totalPayments);
-                List<Payment> pagePayments = allPayments.subList(fromIndex, toIndex);
-
-                request.setAttribute("payments", pagePayments);
-                request.setAttribute("currentPage", pageIndex);
-                request.setAttribute("totalPages", totalPages);
-                request.getRequestDispatcher("/WEB-INF/reports/payments.jsp").forward(request, response);
-                break;
-            }
             case "reviews": {
-                // Load all reviews
-                ReviewDAO dao = new ReviewDAO();
-                List<Review> reviews = dao.getAllReviews();
 
-                request.setAttribute("reviews", reviews);
-                request.getRequestDispatcher("/WEB-INF/reports/reviews.jsp").forward(request, response);
-                break;
-            }
-            case "month": {
-                // Load monthly revenue report for a given year
-                int currentYear = LocalDate.now().getYear();
-                request.setAttribute("currentYear", currentYear);
+                try {
+                    // Publish records only after the complete query succeeds.
+                    request.setAttribute(
+                            "reviews",
+                            new ReviewDAO().getAllReviews()
+                    );
 
-                String yearParam = request.getParameter("year");
-                int year = currentYear;
+                } catch (IllegalStateException ex) {
 
-                if (yearParam != null) {
-                    try {
-                        year = Integer.parseInt(yearParam);
-                    } catch (NumberFormatException ignored) {}
+                    // Keep technical details in server logs.
+                    getServletContext().log(
+                            "Unable to load the Manager review report.",
+                            ex
+                    );
+
+                    response.setStatus(
+                            HttpServletResponse.SC_SERVICE_UNAVAILABLE
+                    );
+
+                    request.setAttribute(
+                            "reviewLoadError",
+                            "Review data is temporarily unavailable. "
+                            + "Please try again later."
+                    );
                 }
 
-                ReportDAO rdao = new ReportDAO();
-                List<Integer> availableYears = rdao.getAvailableYears();
-                List<RevenueReport> data = rdao.getRevenueByMonth(year);
+                request.getRequestDispatcher(
+                        "/WEB-INF/reports/reviews.jsp"
+                ).forward(request, response);
 
-                request.setAttribute("reportData", data);
-                request.setAttribute("view", "month");
-                request.setAttribute("selectedYear", year);
-                request.setAttribute("availableYears", availableYears);
-
-                request.getRequestDispatcher("/WEB-INF/reports/revenue_chart.jsp").forward(request, response);
-                break;
+                return;
             }
-            case "year": {
-                // Load yearly revenue report
-                int currentYear = LocalDate.now().getYear();
-                request.setAttribute("currentYear", currentYear);
 
-                ReportDAO rdao = new ReportDAO();
-                List<RevenueReport> data = rdao.getRevenueByYear();
-                List<Integer> availableYears = rdao.getAvailableYears();
+            case "month":
+            case "year":
+                showRevenue(request, response, view);
+                return;
 
-                int selectedYear = availableYears.isEmpty() ? 2025 : availableYears.get(availableYears.size() - 1);
-
-                request.setAttribute("reportData", data);
-                request.setAttribute("view", "year");
-                request.setAttribute("availableYears", availableYears);
-                request.setAttribute("selectedYear", selectedYear);
-
-                request.getRequestDispatcher("/WEB-INF/reports/revenue_chart.jsp").forward(request, response);
-                break;
-            }
-            default: {
-                // Invalid view fallback
-                request.getRequestDispatcher("/WEB-INF/error/error404.jsp").forward(request, response);
-                break;
-            }
+            default:
+                response.sendError(
+                        HttpServletResponse.SC_NOT_FOUND
+                );
         }
     }
 
-    /**
-     * Handles the HTTP POST method.
-     * Currently delegates to processRequest (not used).
-     *
-     * @param request the HttpServletRequest object
-     * @param response the HttpServletResponse object
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    private void showRecords(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            String view)
             throws ServletException, IOException {
-        processRequest(request, response);
+
+        request.setAttribute("reportView", view);
+        request.setAttribute("filterActive", false);
+
+        configureLinks(request, view, null, null, 1, 1);
+
+        try {
+            String fromParameter
+                    = trim(request.getParameter("fromDate"));
+
+            String toParameter
+                    = trim(request.getParameter("toDate"));
+
+            LocalDate fromDate = null;
+            LocalDate toDate = null;
+
+            if (!fromParameter.isEmpty()
+                    || !toParameter.isEmpty()) {
+
+                if (fromParameter.isEmpty()
+                        || toParameter.isEmpty()) {
+
+                    throw new IllegalArgumentException(
+                            "Please select both start date and end date."
+                    );
+                }
+
+                fromDate = LocalDate.parse(fromParameter);
+                toDate = LocalDate.parse(toParameter);
+
+                request.setAttribute("fromDate", fromDate);
+                request.setAttribute("toDate", toDate);
+
+                if (fromDate.isAfter(toDate)) {
+                    throw new IllegalArgumentException(
+                            "Start date must not be after end date."
+                    );
+                }
+
+                if (fromDate.getYear() < 1
+                        || toDate.getYear() > 9998) {
+
+                    throw new IllegalArgumentException(
+                            "Report years must be between 1 and 9998."
+                    );
+                }
+            }
+
+            ReportRecordsDAO dao = new ReportRecordsDAO();
+
+            boolean bookingsView = "bookings".equals(view);
+
+            long totalRecords = bookingsView
+                    ? dao.countBookingRecords(fromDate, toDate)
+                    : dao.countPaymentRecords(fromDate, toDate);
+
+            long totalPages = totalRecords == 0
+                    ? 1
+                    : 1 + (totalRecords - 1) / PAGE_SIZE;
+
+            // Clamp invalid or excessive page numbers to a valid page.
+            long page = Math.min(
+                    parsePage(request.getParameter("page-index")),
+                    totalPages
+            );
+
+            if (bookingsView) {
+                request.setAttribute(
+                        "bookings",
+                        dao.getBookingRecords(
+                                fromDate,
+                                toDate,
+                                page,
+                                PAGE_SIZE
+                        )
+                );
+            } else {
+                request.setAttribute(
+                        "payments",
+                        dao.getPaymentRecords(
+                                fromDate,
+                                toDate,
+                                page,
+                                PAGE_SIZE
+                        )
+                );
+            }
+
+            request.setAttribute(
+                    "filterActive",
+                    fromDate != null
+            );
+            request.setAttribute("totalRecords", totalRecords);
+            request.setAttribute("totalPages", totalPages);
+            request.setAttribute("currentPage", page);
+
+            configureLinks(
+                    request,
+                    view,
+                    fromDate,
+                    toDate,
+                    page,
+                    totalPages
+            );
+
+        } catch (DateTimeParseException ex) {
+
+            response.setStatus(
+                    HttpServletResponse.SC_BAD_REQUEST
+            );
+
+            request.setAttribute(
+                    "reportError",
+                    "Invalid date. Please use a valid date in YYYY-MM-DD format."
+            );
+
+        } catch (IllegalArgumentException ex) {
+
+            response.setStatus(
+                    HttpServletResponse.SC_BAD_REQUEST
+            );
+
+            request.setAttribute(
+                    "reportError",
+                    ex.getMessage()
+            );
+
+        } catch (IllegalStateException ex) {
+
+            getServletContext().log(
+                    "Unable to load report records.",
+                    ex
+            );
+
+            response.setStatus(
+                    HttpServletResponse.SC_SERVICE_UNAVAILABLE
+            );
+
+            request.setAttribute(
+                    "reportError",
+                    "Report data is temporarily unavailable. Please try again."
+            );
+        }
+
+        String jsp = "bookings".equals(view)
+                ? "/WEB-INF/reports/books.jsp"
+                : "/WEB-INF/reports/payments.jsp";
+
+        request.getRequestDispatcher(jsp)
+                .forward(request, response);
     }
 
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String describing the servlet
-     */
-    @Override
-    public String getServletInfo() {
-        return "Handles viewing reports of bookings, payments, reviews, and revenue (monthly/yearly)";
-    }// </editor-fold>
+    private void showRevenue(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            String view)
+            throws ServletException, IOException {
 
+        int currentYear = LocalDate.now(
+                ZoneId.of("Asia/Ho_Chi_Minh")
+        ).getYear();
+
+        try {
+            ReportDAO dao = new ReportDAO();
+            List<Integer> years = dao.getAvailableYears();
+
+            int selectedYear = currentYear;
+
+            if ("month".equals(view)) {
+                String parameter
+                        = trim(request.getParameter("year"));
+
+                if (!parameter.isEmpty()) {
+                    selectedYear = Integer.parseInt(parameter);
+                }
+
+                if (selectedYear < 1 || selectedYear > 9998) {
+                    throw new IllegalArgumentException(
+                            "Report years must be between 1 and 9998."
+                    );
+                }
+
+                request.setAttribute(
+                        "reportData",
+                        dao.getRevenueByMonth(selectedYear)
+                );
+
+            } else {
+                if (!years.isEmpty()) {
+                    selectedYear = years.get(years.size() - 1);
+                }
+
+                request.setAttribute(
+                        "reportData",
+                        dao.getRevenueByYear()
+                );
+            }
+
+            request.setAttribute("view", view);
+            request.setAttribute("currentYear", currentYear);
+            request.setAttribute("selectedYear", selectedYear);
+            request.setAttribute("availableYears", years);
+
+            request.getRequestDispatcher(
+                    "/WEB-INF/reports/revenue_chart.jsp"
+            ).forward(request, response);
+
+        } catch (IllegalArgumentException ex) {
+
+            response.sendError(
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    "Invalid report year."
+            );
+
+        } catch (IllegalStateException ex) {
+
+            getServletContext().log(
+                    "Unable to load revenue report.",
+                    ex
+            );
+
+            response.sendError(
+                    HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                    "Revenue data is temporarily unavailable."
+            );
+        }
+    }
+
+    private void configureLinks(
+            HttpServletRequest request,
+            String view,
+            LocalDate fromDate,
+            LocalDate toDate,
+            long page,
+            long totalPages) {
+
+        request.setAttribute(
+                "bookingsUrl",
+                reportUrl(
+                        request, "bookings", 1,
+                        fromDate, toDate
+                )
+        );
+
+        request.setAttribute(
+                "paymentsUrl",
+                reportUrl(
+                        request, "payments", 1,
+                        fromDate, toDate
+                )
+        );
+
+        request.setAttribute(
+                "resetUrl",
+                reportUrl(request, view, 1, null, null)
+        );
+
+        request.setAttribute(
+                "firstPageUrl",
+                reportUrl(request, view, 1, fromDate, toDate)
+        );
+
+        request.setAttribute(
+                "previousPageUrl",
+                reportUrl(
+                        request, view, Math.max(1, page - 1),
+                        fromDate, toDate
+                )
+        );
+
+        request.setAttribute(
+                "nextPageUrl",
+                reportUrl(
+                        request, view, Math.min(totalPages, page + 1),
+                        fromDate, toDate
+                )
+        );
+
+        request.setAttribute(
+                "lastPageUrl",
+                reportUrl(
+                        request, view, totalPages,
+                        fromDate, toDate
+                )
+        );
+
+        String dashboardUrl
+                = request.getContextPath() + "/dashboard";
+
+        if (fromDate != null && toDate != null) {
+            dashboardUrl += "?fromDate=" + fromDate
+                    + "&toDate=" + toDate;
+        }
+
+        request.setAttribute("dashboardUrl", dashboardUrl);
+    }
+
+    private String reportUrl(
+            HttpServletRequest request,
+            String view,
+            long page,
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        String url = request.getContextPath()
+                + "/reports?view=" + view
+                + "&page-index=" + page;
+
+        if (fromDate != null && toDate != null) {
+            url += "&fromDate=" + fromDate
+                    + "&toDate=" + toDate;
+        }
+
+        return url;
+    }
+
+    private long parsePage(String value) {
+
+        try {
+            return Math.max(1, Long.parseLong(trim(value)));
+        } catch (NumberFormatException ex) {
+            return 1;
+        }
+    }
+
+    private String trim(String value) {
+        return value == null ? "" : value.trim();
+    }
 }
 
 
@@ -5263,7 +5760,7 @@ import model.User;
 @WebServlet(name = "RoomServlet", urlPatterns = {"/room"})
 public class RoomServlet extends HttpServlet {
 
-    private static final int PAGE_SIZE = 5;
+    private static final int PAGE_SIZE = 6;
     private static final DateTimeFormatter DATE_FORMAT =
             DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
 
@@ -5614,9 +6111,8 @@ public class RoomTypeServlet extends HttpServlet {
 
             switch (view) {
                 case "create": {
-                    request.getRequestDispatcher(
-                            "/WEB-INF/roomType/create.jsp"
-                    ).forward(request, response);
+                    request.setAttribute("allAmenities", new dao.AmenityDAO().getAllAmenities());
+                    request.getRequestDispatcher("/WEB-INF/roomType/create.jsp").forward(request, response);
                     break;
                 }
 
@@ -5653,8 +6149,7 @@ public class RoomTypeServlet extends HttpServlet {
                 }
 
                 case "update": {
-                    if (request.getParameter("id") == null
-                            || request.getParameter("id").trim().isEmpty()) {
+                    if (request.getParameter("id") == null || request.getParameter("id").trim().isEmpty()) {
                         response.sendRedirect("./room-type");
                         return;
                     }
@@ -5666,14 +6161,15 @@ public class RoomTypeServlet extends HttpServlet {
                     RoomType rt = rtDAO.getRoomTypeById(id);
                     String imgPath = rt.getPicture();
 
+                    dao.AmenityDAO aDao = new dao.AmenityDAO();
+                    request.setAttribute("allAmenities", aDao.getAllAmenities());
+                    request.setAttribute("roomAmenities", aDao.getAmenitiesByRoomTypeId(id));
                     request.setAttribute("roomType", rt);
                     session.setAttribute("updateRoomTypeId", id);
                     session.setAttribute("updateName", rt.getName());
                     session.setAttribute("updateImgPath", imgPath);
 
-                    request.getRequestDispatcher(
-                            "/WEB-INF/roomType/update.jsp"
-                    ).forward(request, response);
+                    request.getRequestDispatcher("/WEB-INF/roomType/update.jsp").forward(request, response);
                     break;
                 }
 
@@ -5690,7 +6186,7 @@ public class RoomTypeServlet extends HttpServlet {
         }
     }
 
-    @Override
+@Override
     protected void doPost(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -5783,7 +6279,7 @@ public class RoomTypeServlet extends HttpServlet {
                     );
 
                     if (!folder.exists()) {
-                        folder.mkdir();
+                        folder.mkdirs();
                     }
 
                     String imgFileName = imgPart.getSubmittedFileName();
@@ -5798,7 +6294,14 @@ public class RoomTypeServlet extends HttpServlet {
                     roomType.setCapacity(capacity);
                     roomType.setPicture("roomType/" + imgFileName);
 
-                    rtDAO.createRoomType(roomType);
+                    // THAY Äá»”I á»ž ÄÃ‚Y: LÆ°u roomType vÃ  láº¥y ID tráº£ vá»
+                    int newRoomTypeId = rtDAO.createRoomType(roomType);
+                    
+                    // Náº¾U Táº O THÃ€NH CÃ”NG, LÆ¯U KÃˆM AMENITIES
+                    if (newRoomTypeId > 0) {
+                        String[] selectedAmenities = request.getParameterValues("amenities");
+                        new dao.AmenityDAO().updateAmenitiesForRoomType(newRoomTypeId, selectedAmenities);
+                    }
                     break;
                 }
 
@@ -5806,6 +6309,10 @@ public class RoomTypeServlet extends HttpServlet {
                     int id = Integer.parseInt(
                             request.getParameter("id")
                     );
+                    
+                    // THAY Äá»”I á»ž ÄÃ‚Y: TrÃ¡nh lá»—i khÃ³a ngoáº¡i, ta xÃ³a data bÃªn báº£ng trung gian trÆ°á»›c khi xÃ³a RoomType
+                    new dao.AmenityDAO().updateAmenitiesForRoomType(id, null); 
+                    
                     rtDAO.deleteRoomType(id);
                     break;
                 }
@@ -5939,7 +6446,7 @@ public class RoomTypeServlet extends HttpServlet {
                         );
 
                         if (!folder.exists()) {
-                            folder.mkdir();
+                            folder.mkdirs();
                         }
 
                         String imgFileName = imgPart.getSubmittedFileName();
@@ -5949,7 +6456,7 @@ public class RoomTypeServlet extends HttpServlet {
                         picture = "roomType/" + imgFileName;
                     }
 
-                    rtDAO.updateRoomType(
+                    int isUpdated = rtDAO.updateRoomType(
                             id,
                             name,
                             description,
@@ -5958,6 +6465,12 @@ public class RoomTypeServlet extends HttpServlet {
                             capacity,
                             picture
                     );
+                    
+                    // THAY Äá»”I á»ž ÄÃ‚Y: Náº¾U Cáº¬P NHáº¬T THÃ€NH CÃ”NG, LÆ¯U KÃˆM AMENITIES
+                    if (isUpdated > 0) {
+                        String[] selectedAmenities = request.getParameterValues("amenities");
+                        new dao.AmenityDAO().updateAmenitiesForRoomType(id, selectedAmenities);
+                    }
                     break;
                 }
 
@@ -5969,7 +6482,7 @@ public class RoomTypeServlet extends HttpServlet {
             response.sendRedirect("./room-type?page-index=1");
 
         } catch (Exception ex) {
-            Logger.getLogger(DBContext.class.getName())
+            Logger.getLogger(db.DBContext.class.getName())
                     .log(Level.SEVERE, null, ex);
         }
     }
@@ -5979,6 +6492,7 @@ public class RoomTypeServlet extends HttpServlet {
         return "RoomTypeServlet handles room type management operations including CRUD.";
     }
 }
+
 
 
 ==================================================
@@ -6145,6 +6659,105 @@ public class VerifyOtpServlet extends HttpServlet {
     }
 }
 
+
+
+==================================================
+FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\dao\AmenityDAO.java
+==================================================
+package dao;
+
+import db.DBContext;
+import model.Amenity;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class AmenityDAO extends DBContext {
+
+    // Láº¥y Táº¤T Cáº¢ tiá»‡n Ã­ch cÃ³ trong há»‡ thá»‘ng (dÃ¹ng Ä‘á»ƒ render checkbox lÃºc thÃªm/sá»­a loáº¡i phÃ²ng)
+    public List<Amenity> getAllAmenities() {
+        List<Amenity> list = new ArrayList<>();
+        String sql = "SELECT AmenityID, Name, Description FROM Amenity ORDER BY AmenityID ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(new Amenity(rs.getInt("AmenityID"), rs.getString("Name"), rs.getString("Description")));
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(AmenityDAO.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return list;
+    }
+
+    // Láº¥y nhá»¯ng tiá»‡n Ã­ch cá»§a RIÃŠNG 1 Loáº¡i phÃ²ng (dá»±a vÃ o RoomTypeID)
+    public List<Amenity> getAmenitiesByRoomTypeId(int roomTypeId) {
+        List<Amenity> list = new ArrayList<>();
+        String sql = "SELECT a.AmenityID, a.Name, a.Description "
+                   + "FROM Amenity a "
+                   + "JOIN RoomTypeAmenity rta ON a.AmenityID = rta.AmenityID "
+                   + "WHERE rta.RoomTypeID = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roomTypeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Amenity(rs.getInt("AmenityID"), rs.getString("Name"), rs.getString("Description")));
+                }
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(AmenityDAO.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return list;
+    }
+
+    // Cáº­p nháº­t tiá»‡n Ã­ch cho 1 loáº¡i phÃ²ng (XÃ³a háº¿t cÃ¡i cÅ© -> ThÃªm láº¡i cÃ¡c cÃ¡i má»›i Ä‘Æ°á»£c check)
+    public boolean updateAmenitiesForRoomType(int roomTypeId, String[] amenityIds) {
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); // DÃ¹ng Transaction
+
+            // 1. XÃ³a toÃ n bá»™ liÃªn káº¿t cÅ©
+            String deleteSql = "DELETE FROM RoomTypeAmenity WHERE RoomTypeID = ?";
+            try (PreparedStatement psDel = conn.prepareStatement(deleteSql)) {
+                psDel.setInt(1, roomTypeId);
+                psDel.executeUpdate();
+            }
+
+            // 2. Insert cÃ¡c liÃªn káº¿t má»›i
+            if (amenityIds != null && amenityIds.length > 0) {
+                String insertSql = "INSERT INTO RoomTypeAmenity (RoomTypeID, AmenityID) VALUES (?, ?)";
+                try (PreparedStatement psIns = conn.prepareStatement(insertSql)) {
+                    for (String idStr : amenityIds) {
+                        psIns.setInt(1, roomTypeId);
+                        psIns.setInt(2, Integer.parseInt(idStr));
+                        psIns.addBatch();
+                    }
+                    psIns.executeBatch();
+                }
+            }
+
+            conn.commit();
+            return true;
+        } catch (SQLException ex) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException e) { }
+            }
+            Logger.getLogger(AmenityDAO.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException e) { }
+            }
+        }
+    }
+}
 
 
 ==================================================
@@ -10189,177 +10802,1058 @@ FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\dao\ReportDAO.java
 package dao;
 
 import db.DBContext;
+import model.ReportStatistic;
 import model.RevenueReport;
+import model.ReviewStatistics;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Handles revenue report data.
- *
- * Revenue is calculated from successful payments.
+ * Retrieves revenue and management statistics for reports and dashboards.
  */
 public class ReportDAO extends DBContext {
 
-    /**
-     * Get total paid revenue grouped by month
-     * for a selected year.
+    /*
+     * Reporting period convention:
      *
-     * @param year selected report year
-     * @return monthly revenue report
+     * Both fromDate and toDate are inclusive.
+     *
+     * Example:
+     * fromDate = 2025-07-01
+     * toDate   = 2025-07-31
+     *
+     * SQL uses:
+     * date >= 2025-07-01
+     * date <  2025-08-01
+     */
+
+    // =========================================================
+    // 1. MONTHLY REVENUE
+    // =========================================================
+
+    /**
+     * Returns paid revenue for all twelve months of the selected year.
+     * Months without successful payments have zero revenue.
      */
     public List<RevenueReport> getRevenueByMonth(int year) {
 
-        List<RevenueReport> list = new ArrayList<>();
+        validateYear(year);
 
-        String sql
-                = "SELECT "
-                + "MONTH(PaymentDate) AS Month, "
+        String sql =
+                "SELECT MONTH(PaymentDate) AS ReportMonth, "
                 + "SUM(Amount) AS Revenue "
                 + "FROM Payment "
                 + "WHERE PaymentStatus = 'paid' "
-                + "AND PaymentDate IS NOT NULL "
-                + "AND YEAR(PaymentDate) = ? "
+                + "AND PaymentDate >= ? "
+                + "AND PaymentDate < ? "
                 + "GROUP BY MONTH(PaymentDate) "
-                + "ORDER BY MONTH(PaymentDate)";
+                + "ORDER BY ReportMonth";
 
-        try {
+        Date from = Date.valueOf(LocalDate.of(year, 1, 1));
+        Date until = Date.valueOf(LocalDate.of(year + 1, 1, 1));
 
-            ResultSet rs = executeSelectionQuery(
-                    sql,
-                    new Object[]{year}
+        List<RevenueReport> existing = query(
+                sql,
+                rs -> new RevenueReport(
+                        String.valueOf(rs.getInt("ReportMonth")),
+                        rs.getBigDecimal("Revenue")
+                ),
+                from,
+                until
+        );
+
+        Map<String, BigDecimal> monthlyRevenue =
+                new LinkedHashMap<>();
+
+        for (RevenueReport item : existing) {
+            monthlyRevenue.put(
+                    item.getTimeUnit(),
+                    item.getTotalRevenue()
             );
-
-            while (rs.next()) {
-
-                String month
-                        = String.valueOf(
-                                rs.getInt("Month")
-                        );
-
-                double revenue
-                        = rs.getDouble("Revenue");
-
-                RevenueReport report
-                        = new RevenueReport(
-                                month,
-                                revenue
-                        );
-
-                list.add(report);
-            }
-
-            rs.close();
-
-        } catch (SQLException e) {
-
-            e.printStackTrace();
         }
 
-        return list;
+        List<RevenueReport> result = new ArrayList<>();
+
+        for (int month = 1; month <= 12; month++) {
+
+            String label = String.valueOf(month);
+
+            result.add(new RevenueReport(
+                    label,
+                    monthlyRevenue.getOrDefault(
+                            label,
+                            BigDecimal.ZERO
+                    )
+            ));
+        }
+
+        return result;
     }
 
+    // =========================================================
+    // 2. YEARLY REVENUE
+    // =========================================================
 
     /**
-     * Get total paid revenue grouped by year.
-     *
-     * @return yearly revenue report
+     * Returns successful payment revenue grouped by calendar year.
      */
     public List<RevenueReport> getRevenueByYear() {
 
-        List<RevenueReport> list = new ArrayList<>();
-
-        String sql
-                = "SELECT "
-                + "YEAR(PaymentDate) AS Year, "
+        String sql =
+                "SELECT YEAR(PaymentDate) AS ReportYear, "
                 + "SUM(Amount) AS Revenue "
                 + "FROM Payment "
                 + "WHERE PaymentStatus = 'paid' "
                 + "AND PaymentDate IS NOT NULL "
                 + "GROUP BY YEAR(PaymentDate) "
-                + "ORDER BY YEAR(PaymentDate)";
+                + "ORDER BY ReportYear";
 
-        try {
-
-            ResultSet rs = executeSelectionQuery(
-                    sql,
-                    null
-            );
-
-            while (rs.next()) {
-
-                String year
-                        = String.valueOf(
-                                rs.getInt("Year")
-                        );
-
-                double revenue
-                        = rs.getDouble("Revenue");
-
-                RevenueReport report
-                        = new RevenueReport(
-                                year,
-                                revenue
-                        );
-
-                list.add(report);
-            }
-
-            rs.close();
-
-        } catch (SQLException e) {
-
-            e.printStackTrace();
-        }
-
-        return list;
+        return query(
+                sql,
+                rs -> new RevenueReport(
+                        String.valueOf(rs.getInt("ReportYear")),
+                        rs.getBigDecimal("Revenue")
+                )
+        );
     }
 
+    // =========================================================
+    // 3. AVAILABLE REPORT YEARS
+    // =========================================================
 
     /**
-     * Get all years that contain successful
-     * payment records.
-     *
-     * @return available report years
+     * Returns years containing successful payments, in ascending order.
      */
     public List<Integer> getAvailableYears() {
 
-        List<Integer> years
-                = new ArrayList<>();
-
-        String sql
-                = "SELECT DISTINCT "
-                + "YEAR(PaymentDate) AS Year "
+        String sql =
+                "SELECT DISTINCT YEAR(PaymentDate) AS ReportYear "
                 + "FROM Payment "
                 + "WHERE PaymentStatus = 'paid' "
                 + "AND PaymentDate IS NOT NULL "
-                + "ORDER BY Year";
+                + "ORDER BY ReportYear";
 
-        try {
+        return query(
+                sql,
+                rs -> rs.getInt("ReportYear")
+        );
+    }
 
-            ResultSet rs
-                    = executeSelectionQuery(
-                            sql,
-                            null
-                    );
+    // =========================================================
+    // 4. TOTAL REVENUE WITHIN A REPORTING PERIOD
+    // =========================================================
 
-            while (rs.next()) {
+    /**
+     * Calculates revenue from paid transactions within the selected period.
+     * Revenue is based on payment amounts rather than booking totals.
+     */
+    public BigDecimal getTotalRevenue(
+            LocalDate fromDate,
+            LocalDate toDate) {
 
-                years.add(
-                        rs.getInt("Year")
+        Date[] dates = getPeriodBounds(fromDate, toDate);
+
+        String sql =
+                "SELECT COALESCE(SUM(Amount), 0) AS Revenue "
+                + "FROM Payment "
+                + "WHERE PaymentStatus = 'paid' "
+                + "AND PaymentDate >= ? "
+                + "AND PaymentDate < ?";
+
+        List<BigDecimal> result = query(
+                sql,
+                rs -> rs.getBigDecimal("Revenue"),
+                dates[0],
+                dates[1]
+        );
+
+        return result.get(0);
+    }
+
+    // =========================================================
+    // 5. BOOKING STATISTICS BY STATUS
+    // =========================================================
+
+    /**
+     * Counts bookings by status using their creation dates.
+     * All supported statuses are returned, including those with zero bookings.
+     */
+    public List<ReportStatistic> getBookingStatistics(
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        Date[] dates = getPeriodBounds(fromDate, toDate);
+
+        String sql =
+                "SELECT Status, COUNT_BIG(*) AS TotalCount "
+                + "FROM Booking "
+                + "WHERE BookingDate >= ? "
+                + "AND BookingDate < ? "
+                + "GROUP BY Status";
+
+        List<ReportStatistic> existing = query(
+                sql,
+                rs -> new ReportStatistic(
+                        rs.getString("Status"),
+                        rs.getLong("TotalCount"),
+                        BigDecimal.ZERO
+                ),
+                dates[0],
+                dates[1]
+        );
+
+        return completeStatuses(
+                existing,
+                "pending",
+                "confirmed",
+                "cancelled",
+                "checked_in",
+                "checked_out",
+                "completed"
+        );
+    }
+
+    // =========================================================
+    // 6. CURRENT TOTAL CUSTOMER COUNT
+    // =========================================================
+
+    /**
+     * Returns the current total number of registered customers.
+     * This value is not restricted to the selected reporting period.
+     */
+    public long getCustomerCount() {
+
+        String sql =
+                "SELECT COUNT_BIG(*) AS TotalCustomers "
+                + "FROM Customer";
+
+        List<Long> result = query(
+                sql,
+                rs -> rs.getLong("TotalCustomers")
+        );
+
+        return result.get(0);
+    }
+
+    // =========================================================
+    // 7. CURRENT ROOM STATUS STATISTICS
+    // =========================================================
+
+    /**
+     * Counts rooms by their current operational status.
+     * These values do not represent historical room statuses.
+     */
+    public List<ReportStatistic> getRoomStatusStatistics() {
+
+        String sql =
+                "SELECT Status, COUNT_BIG(*) AS TotalCount "
+                + "FROM Room "
+                + "GROUP BY Status";
+
+        List<ReportStatistic> existing = query(
+                sql,
+                rs -> new ReportStatistic(
+                        rs.getString("Status"),
+                        rs.getLong("TotalCount"),
+                        BigDecimal.ZERO
+                )
+        );
+
+        return completeStatuses(
+                existing,
+                "available",
+                "maintenance",
+                "out_of_service"
+        );
+    }
+
+    // =========================================================
+    // 8. APPROVED REVIEW STATISTICS
+    // =========================================================
+
+    /**
+     * Returns the total number of approved reviews and their average rating.
+     * As specified in the SDS, these are overall statistics.
+     */
+    public ReviewStatistics getReviewStatistics() {
+
+        String sql =
+                "SELECT COUNT_BIG(*) AS TotalReviews, "
+                + "AVG(CAST(Star AS DECIMAL(10, 2))) "
+                + "AS AverageRating "
+                + "FROM Review "
+                + "WHERE ReviewStatus = 'approved'";
+
+        List<ReviewStatistics> result = query(
+                sql,
+                rs -> new ReviewStatistics(
+                        rs.getLong("TotalReviews"),
+                        rs.getBigDecimal("AverageRating")
+                )
+        );
+
+        return result.get(0);
+    }
+
+    // =========================================================
+    // 9. PAYMENT STATISTICS BY STATUS
+    // =========================================================
+
+    /**
+     * Counts transactions and sums their amounts by payment status.
+     *
+     * Filtering uses PaymentDate.
+     * Transactions with a null PaymentDate are excluded.
+     * Amounts for different statuses must not be combined as paid revenue.
+     */
+    public List<ReportStatistic> getPaymentStatistics(
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        Date[] dates = getPeriodBounds(fromDate, toDate);
+
+        String sql =
+                "SELECT PaymentStatus, "
+                + "COUNT_BIG(*) AS TotalCount, "
+                + "COALESCE(SUM(Amount), 0) AS TotalAmount "
+                + "FROM Payment "
+                + "WHERE PaymentDate >= ? "
+                + "AND PaymentDate < ? "
+                + "GROUP BY PaymentStatus";
+
+        List<ReportStatistic> existing = query(
+                sql,
+                rs -> new ReportStatistic(
+                        rs.getString("PaymentStatus"),
+                        rs.getLong("TotalCount"),
+                        rs.getBigDecimal("TotalAmount")
+                ),
+                dates[0],
+                dates[1]
+        );
+
+        return completeStatuses(
+                existing,
+                "pending",
+                "paid",
+                "failed",
+                "refunded"
+        );
+    }
+
+    // =========================================================
+    // 10. ESTIMATED ROOM OCCUPANCY RATE
+    // =========================================================
+
+    /**
+     * Estimates occupancy as a percentage using stored stay dates.
+     *
+     * Only rooms currently marked as available are included in both
+     * occupied room nights and total room capacity.
+     *
+     * This assumes that these rooms were operational throughout the period.
+     * Historical maintenance records are not available in the current schema.
+     *
+     * Only checked-in, checked-out, and completed bookings are included.
+     * Checkout dates are excluded from occupied nights.
+     *
+     * Returns zero when no currently available rooms exist.
+     * In that case, the dashboard should display "Not applicable".
+     */
+    public double getOccupancyRate(
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        Date[] dates = getPeriodBounds(fromDate, toDate);
+
+        String sql =
+                "WITH Capacity AS ( "
+                + "    SELECT COUNT_BIG(*) AS RoomCount "
+                + "    FROM Room "
+                + "    WHERE Status = 'available' "
+                + "), Occupied AS ( "
+                + "    SELECT COALESCE(SUM( "
+                + "        CAST(DATEDIFF(DAY, "
+                + "            CASE WHEN bd.CheckInDate < ? "
+                + "                 THEN ? "
+                + "                 ELSE bd.CheckInDate END, "
+                + "            CASE WHEN bd.CheckOutDate > ? "
+                + "                 THEN ? "
+                + "                 ELSE bd.CheckOutDate END "
+                + "        ) AS BIGINT) "
+                + "    ), 0) AS RoomNights "
+                + "    FROM BookingDetail bd "
+                + "    JOIN Booking b ON b.BookingID = bd.BookingID "
+                + "    JOIN Room r ON r.RoomNumber = bd.RoomNumber "
+                + "    WHERE r.Status = 'available' "
+                + "    AND b.Status IN ( "
+                + "        'checked_in', 'checked_out', 'completed' "
+                + "    ) "
+                + "    AND bd.CheckInDate < ? "
+                + "    AND bd.CheckOutDate > ? "
+                + ") "
+                + "SELECT c.RoomCount, o.RoomNights "
+                + "FROM Capacity c CROSS JOIN Occupied o";
+
+        List<long[]> result = query(
+                sql,
+                rs -> new long[]{
+                    rs.getLong("RoomCount"),
+                    rs.getLong("RoomNights")
+                },
+                dates[0],
+                dates[0],
+                dates[1],
+                dates[1],
+                dates[1],
+                dates[0]
+        );
+
+        long roomCount = result.get(0)[0];
+        long occupiedRoomNights = result.get(0)[1];
+
+        if (roomCount == 0) {
+            return 0.0;
+        }
+
+        long days = ChronoUnit.DAYS.between(
+                fromDate,
+                toDate.plusDays(1)
+        );
+
+        BigDecimal capacity = BigDecimal.valueOf(roomCount)
+                .multiply(BigDecimal.valueOf(days));
+
+        return BigDecimal.valueOf(occupiedRoomNights)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(capacity, 2, RoundingMode.HALF_UP)
+                .doubleValue();
+    }
+
+    // =========================================================
+    // HELPER METHODS
+    // =========================================================
+
+    /**
+     * Validates the year and reserves room for the exclusive upper bound.
+     */
+    private void validateYear(int year) {
+
+        if (year < 1 || year > 9998) {
+            throw new IllegalArgumentException(
+                    "Report year must be between 1 and 9998."
+            );
+        }
+    }
+
+    /**
+     * Converts an inclusive date range into SQL query boundaries.
+     * The returned end boundary is exclusive.
+     */
+    private Date[] getPeriodBounds(
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        if (fromDate == null || toDate == null) {
+            throw new IllegalArgumentException(
+                    "Start date and end date are required."
+            );
+        }
+
+        validateYear(fromDate.getYear());
+        validateYear(toDate.getYear());
+
+        if (fromDate.isAfter(toDate)) {
+            throw new IllegalArgumentException(
+                    "Start date must not be after end date."
+            );
+        }
+
+        return new Date[]{
+            Date.valueOf(fromDate),
+            Date.valueOf(toDate.plusDays(1))
+        };
+    }
+
+    /**
+     * Adds zero-valued entries for statuses without matching records.
+     * Results follow the order of the supplied status names.
+     */
+    private List<ReportStatistic> completeStatuses(
+            List<ReportStatistic> existing,
+            String... statuses) {
+
+        Map<String, ReportStatistic> indexed =
+                new LinkedHashMap<>();
+
+        for (ReportStatistic item : existing) {
+            indexed.put(item.getStatus(), item);
+        }
+
+        List<ReportStatistic> result = new ArrayList<>();
+
+        for (String status : statuses) {
+
+            ReportStatistic item = indexed.get(status);
+
+            if (item == null) {
+                item = new ReportStatistic(
+                        status,
+                        0,
+                        BigDecimal.ZERO
                 );
             }
 
-            rs.close();
-
-        } catch (SQLException e) {
-
-            e.printStackTrace();
+            result.add(item);
         }
 
-        return years;
+        return result;
+    }
+
+    /**
+     * Executes a parameterized query and maps its result rows.
+     * JDBC resources are closed automatically.
+     * SQL failures are propagated for the servlet to handle.
+     */
+    private <T> List<T> query(
+            String sql,
+            RowMapper<T> mapper,
+            Object... parameters) {
+
+        List<T> result = new ArrayList<>();
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement =
+                     connection.prepareStatement(sql)) {
+
+            for (int i = 0; i < parameters.length; i++) {
+                statement.setObject(i + 1, parameters[i]);
+            }
+
+            try (ResultSet rs = statement.executeQuery()) {
+
+                while (rs.next()) {
+                    result.add(mapper.map(rs));
+                }
+            }
+
+        } catch (SQLException ex) {
+
+            throw new IllegalStateException(
+                    "Unable to load report data.",
+                    ex
+            );
+        }
+
+        return result;
+    }
+
+    /**
+     * Maps the current result-set row to a model or value.
+     */
+    @FunctionalInterface
+    private interface RowMapper<T> {
+
+        T map(ResultSet rs) throws SQLException;
+    }
+}
+
+
+==================================================
+FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\dao\ReportRecordsDAO.java
+==================================================
+package dao;
+
+import db.DBContext;
+import model.Booking;
+import model.BookingDetail;
+import model.Customer;
+import model.Discount;
+import model.Payment;
+import model.User;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Provides read-only booking and payment records for reports.
+ */
+public class ReportRecordsDAO extends DBContext {
+
+    private static final String BOOKING_COLUMNS =
+            "b.BookingID, b.CustomerID, b.BookingDate, "
+            + "b.Status AS BookingStatus, b.TotalPrice, "
+            + "b.SpecialRequest, b.CancellationDate, "
+            + "b.CancellationReason, "
+            + "c.FirstName, c.LastName, c.Email, "
+            + "u.UserID, u.Username, u.DisplayName ";
+
+    private static final String CUSTOMER_JOINS =
+            "JOIN Customer c ON c.CustomerID = b.CustomerID "
+            + "LEFT JOIN [User] u ON u.UserID = c.UserID ";
+
+    public long countBookingRecords(
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        return countRecords(false, fromDate, toDate);
+    }
+
+    public long countPaymentRecords(
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        return countRecords(true, fromDate, toDate);
+    }
+
+    public List<Booking> getBookingRecords(
+            LocalDate fromDate,
+            LocalDate toDate,
+            long page,
+            int pageSize) {
+
+        validatePage(page, pageSize);
+
+        String sql =
+                "SELECT " + BOOKING_COLUMNS
+                + "FROM Booking b "
+                + CUSTOMER_JOINS
+                + dateCondition(false, fromDate, toDate)
+                + "ORDER BY b.BookingDate DESC, b.BookingID DESC "
+                + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+
+        List<Booking> records = new ArrayList<>();
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement =
+                     connection.prepareStatement(sql)) {
+
+            int index = bindDates(
+                    statement,
+                    fromDate,
+                    toDate
+            );
+
+            statement.setLong(
+                    index++,
+                    Math.multiplyExact(page - 1, (long) pageSize)
+            );
+
+            statement.setInt(index, pageSize);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    records.add(mapBooking(rs));
+                }
+            }
+
+            // Load room details after closing the parent result set.
+            loadRoomDetails(connection, records);
+
+            return records;
+
+        } catch (SQLException ex) {
+            throw new IllegalStateException(
+                    "Unable to load booking report records.",
+                    ex
+            );
+        }
+    }
+
+    public List<Payment> getPaymentRecords(
+            LocalDate fromDate,
+            LocalDate toDate,
+            long page,
+            int pageSize) {
+
+        validatePage(page, pageSize);
+
+        String sql =
+                "SELECT " + BOOKING_COLUMNS
+                + ", p.PaymentID, p.PaymentDate, p.Amount, "
+                + "p.PaymentMethod, p.PaymentStatus, "
+                + "p.TransactionCode, p.DiscountID, "
+                + "d.Code AS DiscountCode, d.SaleOff "
+                + "FROM Payment p "
+                + "JOIN Booking b ON b.BookingID = p.BookingID "
+                + CUSTOMER_JOINS
+                + "LEFT JOIN Discount d ON d.DiscountID = p.DiscountID "
+                + dateCondition(true, fromDate, toDate)
+                + "ORDER BY p.PaymentDate DESC, p.PaymentID DESC "
+                + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+
+        List<Payment> records = new ArrayList<>();
+        Map<Integer, Booking> bookings = new LinkedHashMap<>();
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement =
+                     connection.prepareStatement(sql)) {
+
+            int index = bindDates(
+                    statement,
+                    fromDate,
+                    toDate
+            );
+
+            statement.setLong(
+                    index++,
+                    Math.multiplyExact(page - 1, (long) pageSize)
+            );
+
+            statement.setInt(index, pageSize);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+
+                    int bookingId = rs.getInt("BookingID");
+                    Booking booking = bookings.get(bookingId);
+
+                    if (booking == null) {
+                        booking = mapBooking(rs);
+                        bookings.put(bookingId, booking);
+                    }
+
+                    Payment payment = new Payment();
+
+                    payment.setId(rs.getInt("PaymentID"));
+                    payment.setBooking(booking);
+                    payment.setAmount(rs.getBigDecimal("Amount"));
+                    payment.setPaymentMethod(
+                            rs.getString("PaymentMethod")
+                    );
+                    payment.setPaymentStatus(
+                            rs.getString("PaymentStatus")
+                    );
+                    payment.setTransactionCode(
+                            rs.getString("TransactionCode")
+                    );
+
+                    Timestamp paymentDate =
+                            rs.getTimestamp("PaymentDate");
+
+                    if (paymentDate != null) {
+                        payment.setPaymentDate(
+                                paymentDate.toLocalDateTime()
+                        );
+                    }
+
+                    Object discountId =
+                            rs.getObject("DiscountID");
+
+                    if (discountId != null) {
+                        Discount discount = new Discount();
+
+                        discount.setId(
+                                ((Number) discountId).intValue()
+                        );
+                        discount.setCode(
+                                rs.getString("DiscountCode")
+                        );
+                        discount.setSaleOff(
+                                rs.getBigDecimal("SaleOff")
+                        );
+
+                        payment.setDiscount(discount);
+                    }
+
+                    records.add(payment);
+                }
+            }
+
+            loadRoomDetails(
+                    connection,
+                    new ArrayList<>(bookings.values())
+            );
+
+            return records;
+
+        } catch (SQLException ex) {
+            throw new IllegalStateException(
+                    "Unable to load payment report records.",
+                    ex
+            );
+        }
+    }
+
+    private long countRecords(
+            boolean paymentReport,
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        String from = paymentReport
+                ? "FROM Payment p "
+                : "FROM Booking b ";
+
+        String sql =
+                "SELECT COUNT_BIG(*) AS TotalRecords "
+                + from
+                + dateCondition(
+                        paymentReport,
+                        fromDate,
+                        toDate
+                );
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement =
+                     connection.prepareStatement(sql)) {
+
+            bindDates(statement, fromDate, toDate);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                rs.next();
+                return rs.getLong("TotalRecords");
+            }
+
+        } catch (SQLException ex) {
+            throw new IllegalStateException(
+                    "Unable to count report records.",
+                    ex
+            );
+        }
+    }
+
+    /**
+     * Column names are selected internally, never from request input.
+     */
+    private String dateCondition(
+            boolean paymentReport,
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        validatePeriod(fromDate, toDate);
+
+        if (fromDate == null) {
+            return "";
+        }
+
+        String column = paymentReport
+                ? "p.PaymentDate"
+                : "b.BookingDate";
+
+        return "WHERE " + column + " >= ? "
+                + "AND " + column + " < ? ";
+    }
+
+    /**
+     * Uses an exclusive upper bound to include the entire end date.
+     */
+    private int bindDates(
+            PreparedStatement statement,
+            LocalDate fromDate,
+            LocalDate toDate)
+            throws SQLException {
+
+        validatePeriod(fromDate, toDate);
+
+        if (fromDate == null) {
+            return 1;
+        }
+
+        statement.setTimestamp(
+                1,
+                Timestamp.valueOf(fromDate.atStartOfDay())
+        );
+
+        statement.setTimestamp(
+                2,
+                Timestamp.valueOf(
+                        toDate.plusDays(1).atStartOfDay()
+                )
+        );
+
+        return 3;
+    }
+
+    private Booking mapBooking(ResultSet rs)
+            throws SQLException {
+
+        Customer customer = new Customer();
+
+        customer.setCustomerID(rs.getInt("CustomerID"));
+        customer.setFirstName(rs.getString("FirstName"));
+        customer.setLastName(rs.getString("LastName"));
+        customer.setEmail(rs.getString("Email"));
+
+        if (rs.getObject("UserID") != null) {
+            User user = new User();
+
+            user.setId(rs.getInt("UserID"));
+            user.setUsername(rs.getString("Username"));
+            user.setDisplayName(rs.getString("DisplayName"));
+
+            customer.setUser(user);
+        }
+
+        Booking booking = new Booking();
+
+        booking.setId(rs.getInt("BookingID"));
+        booking.setCustomer(customer);
+        booking.setStatus(rs.getString("BookingStatus"));
+        booking.setTotalPrice(rs.getBigDecimal("TotalPrice"));
+        booking.setSpecialRequest(
+                rs.getString("SpecialRequest")
+        );
+        booking.setCancellationReason(
+                rs.getString("CancellationReason")
+        );
+
+        Timestamp bookingDate =
+                rs.getTimestamp("BookingDate");
+
+        if (bookingDate != null) {
+            booking.setBookingDate(
+                    bookingDate.toLocalDateTime()
+            );
+        }
+
+        Timestamp cancellationDate =
+                rs.getTimestamp("CancellationDate");
+
+        if (cancellationDate != null) {
+            booking.setCancellationDate(
+                    cancellationDate.toLocalDateTime()
+            );
+        }
+
+        return booking;
+    }
+
+    /**
+     * Loads room details for the current page in one additional query.
+     */
+    private void loadRoomDetails(
+            Connection connection,
+            List<Booking> bookings)
+            throws SQLException {
+
+        if (bookings.isEmpty()) {
+            return;
+        }
+
+        Map<Integer, Booking> indexed = new LinkedHashMap<>();
+
+        for (Booking booking : bookings) {
+            booking.setDetails(new ArrayList<>());
+            indexed.put(booking.getId(), booking);
+        }
+
+        String placeholders = String.join(
+                ",",
+                Collections.nCopies(indexed.size(), "?")
+        );
+
+        String sql =
+                "SELECT BookingDetailID, BookingID, RoomNumber, "
+                + "CheckInDate, CheckOutDate, PricePerNight, "
+                + "GuestCount, SpecialRequest "
+                + "FROM BookingDetail "
+                + "WHERE BookingID IN (" + placeholders + ") "
+                + "ORDER BY BookingID, BookingDetailID";
+
+        try (PreparedStatement statement =
+                     connection.prepareStatement(sql)) {
+
+            int index = 1;
+
+            for (Integer bookingId : indexed.keySet()) {
+                statement.setInt(index++, bookingId);
+            }
+
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+
+                    BookingDetail detail = new BookingDetail();
+
+                    detail.setId(
+                            rs.getInt("BookingDetailID")
+                    );
+                    detail.setBookingId(
+                            rs.getInt("BookingID")
+                    );
+                    detail.setRoomNumber(
+                            rs.getInt("RoomNumber")
+                    );
+                    detail.setCheckInDate(
+                            rs.getDate("CheckInDate").toLocalDate()
+                    );
+                    detail.setCheckOutDate(
+                            rs.getDate("CheckOutDate").toLocalDate()
+                    );
+                    detail.setPricePerNight(
+                            rs.getBigDecimal("PricePerNight")
+                    );
+                    detail.setGuestCount(
+                            rs.getInt("GuestCount")
+                    );
+                    detail.setSpecialRequest(
+                            rs.getString("SpecialRequest")
+                    );
+
+                    indexed.get(detail.getBookingId())
+                            .getDetails()
+                            .add(detail);
+                }
+            }
+        }
+    }
+
+    private void validatePeriod(
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        if (fromDate == null && toDate == null) {
+            return;
+        }
+
+        if (fromDate == null || toDate == null) {
+            throw new IllegalArgumentException(
+                    "Please select both start date and end date."
+            );
+        }
+
+        if (fromDate.isAfter(toDate)) {
+            throw new IllegalArgumentException(
+                    "Start date must not be after end date."
+            );
+        }
+
+        if (fromDate.getYear() < 1
+                || toDate.getYear() > 9998) {
+
+            throw new IllegalArgumentException(
+                    "Report years must be between 1 and 9998."
+            );
+        }
+    }
+
+    private void validatePage(long page, int pageSize) {
+
+        if (page < 1 || pageSize < 1 || pageSize > 100) {
+            throw new IllegalArgumentException(
+                    "Invalid report pagination."
+            );
+        }
     }
 }
 
@@ -10412,14 +11906,13 @@ public class ReviewDAO extends DBContext {
             return false;
         }
 
-        String sql =
-                "INSERT INTO Review "
+        String sql
+                = "INSERT INTO Review "
                 + "(BookingID, Comment, Star, ReviewStatus) "
                 + "VALUES (?, ?, ?, 'pending')";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
@@ -10453,22 +11946,21 @@ public class ReviewDAO extends DBContext {
     public boolean isBookingReviewed(
             int bookingId) {
 
-        String sql =
-                "SELECT 1 "
+        String sql
+                = "SELECT 1 "
                 + "FROM Review "
                 + "WHERE BookingID = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
                     bookingId
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 return rs.next();
             }
@@ -10492,11 +11984,11 @@ public class ReviewDAO extends DBContext {
     public List<Review> getReviewsByRoomNumber(
             int roomNumber) {
 
-        List<Review> list =
-                new ArrayList<>();
+        List<Review> list
+                = new ArrayList<>();
 
-        String sql =
-                "SELECT DISTINCT "
+        String sql
+                = "SELECT DISTINCT "
                 + "r.ReviewID, "
                 + "r.Comment, "
                 + "r.Star, "
@@ -10537,17 +12029,16 @@ public class ReviewDAO extends DBContext {
                 + "ORDER BY r.ReviewDate DESC, "
                 + "r.ReviewID DESC";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
                     roomNumber
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 while (rs.next()) {
 
@@ -10578,8 +12069,8 @@ public class ReviewDAO extends DBContext {
     public BigDecimal getAverageStarByRoomNumber(
             int roomNumber) {
 
-        String sql =
-                "SELECT AVG(r.Star) AS AvgStar "
+        String sql
+                = "SELECT AVG(r.Star) AS AvgStar "
                 + "FROM Review r "
                 + "JOIN Booking b "
                 + "ON b.BookingID = r.BookingID "
@@ -10588,22 +12079,21 @@ public class ReviewDAO extends DBContext {
                 + "WHERE bd.RoomNumber = ? "
                 + "AND r.ReviewStatus = 'approved'";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
                     roomNumber
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 if (rs.next()) {
 
-                    BigDecimal avg =
-                            rs.getBigDecimal(
+                    BigDecimal avg
+                            = rs.getBigDecimal(
                                     "AvgStar"
                             );
 
@@ -10626,23 +12116,18 @@ public class ReviewDAO extends DBContext {
                 .setScale(1);
     }
 
-    /*
-     * =========================================================
-     * 5. GET ALL REVIEWS FOR ADMIN
+    /**
+     * Loads all reviews.
      *
-     * Admin sees:
-     * pending
-     * approved
-     * rejected
-     * =========================================================
+     * Returns an empty list only when the query succeeds without results.
+     * Database failures are propagated to the calling servlet.
      */
     public List<Review> getAllReviews() {
 
-        List<Review> list =
-                new ArrayList<>();
+        List<Review> reviews = new ArrayList<>();
 
-        String sql =
-                "SELECT "
+        String sql
+                = "SELECT "
                 + "r.ReviewID, "
                 + "r.Comment, "
                 + "r.Star, "
@@ -10670,43 +12155,34 @@ public class ReviewDAO extends DBContext {
                 + "u.Role, "
                 + "u.DisplayName "
                 + "FROM Review r "
-                + "JOIN Booking b "
-                + "ON b.BookingID = r.BookingID "
-                + "JOIN Customer c "
-                + "ON c.CustomerID = b.CustomerID "
-                + "JOIN [User] u "
-                + "ON u.UserID = c.UserID "
+                + "JOIN Booking b ON b.BookingID = r.BookingID "
+                + "JOIN Customer c ON c.CustomerID = b.CustomerID "
+                + "JOIN [User] u ON u.UserID = c.UserID "
                 + "ORDER BY "
                 + "CASE r.ReviewStatus "
-                + "WHEN 'pending' THEN 1 "
-                + "WHEN 'approved' THEN 2 "
-                + "WHEN 'rejected' THEN 3 "
-                + "ELSE 4 END, "
+                + "    WHEN 'pending' THEN 1 "
+                + "    WHEN 'approved' THEN 2 "
+                + "    WHEN 'rejected' THEN 3 "
+                + "    ELSE 4 "
+                + "END, "
                 + "r.ReviewDate DESC, "
                 + "r.ReviewID DESC";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql);
-             ResultSet rs =
-                     ps.executeQuery()) {
+        try (Connection connection = getConnection(); PreparedStatement statement
+                = connection.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
 
             while (rs.next()) {
-
-                list.add(
-                        mapReview(
-                                conn,
-                                rs
-                        )
-                );
+                reviews.add(mapReview(connection, rs));
             }
 
-        } catch (SQLException e) {
+            return reviews;
 
-            e.printStackTrace();
+        } catch (SQLException ex) {
+            throw new IllegalStateException(
+                    "Unable to load review records.",
+                    ex
+            );
         }
-
-        return list;
     }
 
     /*
@@ -10752,14 +12228,13 @@ public class ReviewDAO extends DBContext {
             return false;
         }
 
-        String sql =
-                "UPDATE Review "
+        String sql
+                = "UPDATE Review "
                 + "SET ReviewStatus = ? "
                 + "WHERE ReviewID = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setString(
                     1,
@@ -10796,8 +12271,8 @@ public class ReviewDAO extends DBContext {
             int customerId,
             int roomNumber) {
 
-        String sql =
-                "SELECT 1 "
+        String sql
+                = "SELECT 1 "
                 + "FROM Booking b "
                 + "JOIN BookingDetail bd "
                 + "ON bd.BookingID = b.BookingID "
@@ -10811,9 +12286,8 @@ public class ReviewDAO extends DBContext {
                 + "    WHERE r.BookingID = b.BookingID "
                 + ")";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
@@ -10830,8 +12304,8 @@ public class ReviewDAO extends DBContext {
                     roomNumber
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 return rs.next();
             }
@@ -10853,8 +12327,8 @@ public class ReviewDAO extends DBContext {
             ResultSet rs)
             throws SQLException {
 
-        User user =
-                new User(
+        User user
+                = new User(
                         rs.getInt(
                                 "UserID"
                         ),
@@ -10875,8 +12349,8 @@ public class ReviewDAO extends DBContext {
                 )
         );
 
-        Customer customer =
-                new Customer(
+        Customer customer
+                = new Customer(
                         rs.getInt(
                                 "CustomerID"
                         ),
@@ -10907,8 +12381,8 @@ public class ReviewDAO extends DBContext {
                         user
                 );
 
-        Booking booking =
-                new Booking();
+        Booking booking
+                = new Booking();
 
         booking.setId(
                 rs.getInt(
@@ -10971,8 +12445,8 @@ public class ReviewDAO extends DBContext {
                 )
         );
 
-        Review review =
-                new Review();
+        Review review
+                = new Review();
 
         review.setReviewID(
                 rs.getInt(
@@ -11023,13 +12497,13 @@ public class ReviewDAO extends DBContext {
             getBookingDetails(
                     Connection conn,
                     int bookingId)
-                    throws SQLException {
+            throws SQLException {
 
-        List<model.BookingDetail> list =
-                new ArrayList<>();
+        List<model.BookingDetail> list
+                = new ArrayList<>();
 
-        String sql =
-                "SELECT "
+        String sql
+                = "SELECT "
                 + "BookingDetailID, "
                 + "BookingID, "
                 + "RoomNumber, "
@@ -11042,21 +12516,21 @@ public class ReviewDAO extends DBContext {
                 + "WHERE BookingID = ? "
                 + "ORDER BY BookingDetailID";
 
-        try (PreparedStatement ps =
-                conn.prepareStatement(sql)) {
+        try (PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
                     bookingId
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 while (rs.next()) {
 
-                    model.BookingDetail detail =
-                            new model.BookingDetail();
+                    model.BookingDetail detail
+                            = new model.BookingDetail();
 
                     detail.setId(
                             rs.getInt(
@@ -11128,6 +12602,7 @@ public class ReviewDAO extends DBContext {
 }
 
 
+
 ==================================================
 FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\dao\RoomDAO.java
 ==================================================
@@ -11149,7 +12624,7 @@ import model.RoomType;
 
 public class RoomDAO extends DBContext {
 
-    private static final int PAGE_SIZE = 5;
+    private static final int PAGE_SIZE = 6;
 
     /*
      * =========================================================
@@ -12016,8 +13491,7 @@ import java.util.logging.Logger;
 import model.RoomType;
 
 /**
- * DAO (Data Access Object) class to handle operations related to RoomType
- * entity in the database. Author: Äáº·ng HoÃ ng VÅ©
+ * DAO (Data Access Object) class to handle operations related to RoomType entity in the database. Author: Äáº·ng HoÃ ng VÅ©
  */
 public class RoomTypeDAO extends DBContext {
 
@@ -12052,8 +13526,7 @@ public class RoomTypeDAO extends DBContext {
     }
 
     /**
-     * Calculates the total number of pages for paginated display, assuming 5
-     * items per page.
+     * Calculates the total number of pages for paginated display, assuming 5 items per page.
      *
      * @return number of total pages
      */
@@ -12104,27 +13577,36 @@ public class RoomTypeDAO extends DBContext {
     }
 
     /**
-     * Inserts a new RoomType record into the database.
+     * Inserts a new RoomType record into the database and returns the generated ID.
      *
      * @param roomType RoomType object containing data to be inserted
-     * @return number of affected rows (should be 1 if successful)
+     * @return The ID of the newly created room type, or 0 if failed.
      */
     public int createRoomType(RoomType roomType) {
         String query = "INSERT INTO RoomType (Name, Description, PricePerNight, Beds, Capacity, Picture) VALUES (?, ?, ?, ?, ?, ?)";
         try {
-            Object[] params = {
-                roomType.getName(),
-                roomType.getDescription(),
-                roomType.getPricePerNight(),
-                roomType.getBeds(),
-                roomType.getCapacity(),
-                roomType.getPicture()
-            };
-            return this.executeQuery(query, params);
+            // ChÃº Ã½: DÃ¹ng Statement.RETURN_GENERATED_KEYS Ä‘á»ƒ láº¥y ID
+            PreparedStatement pstatement = this.getConnection().prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            pstatement.setString(1, roomType.getName());
+            pstatement.setString(2, roomType.getDescription());
+            pstatement.setBigDecimal(3, roomType.getPricePerNight());
+            pstatement.setInt(4, roomType.getBeds());
+            pstatement.setInt(5, roomType.getCapacity());
+            pstatement.setString(6, roomType.getPicture());
+
+            int affectedRows = pstatement.executeUpdate();
+
+            if (affectedRows > 0) {
+                try (ResultSet rs = pstatement.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        return rs.getInt(1); // Tráº£ vá» ID vá»«a táº¡o
+                    }
+                }
+            }
         } catch (SQLException ex) {
             Logger.getLogger(RoomTypeDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return 0;
+        return 0; // Tráº£ vá» 0 náº¿u tháº¥t báº¡i
     }
 
     /**
@@ -12597,6 +14079,7 @@ import java.util.Objects;
             "/room-type",
             "/discounts",
             "/reports",
+            "/dashboard",
             "/admin/*",
             "/toggle-animation"
         }
@@ -12708,11 +14191,15 @@ public class AuthenticationFilter implements Filter {
             return;
         }
 
-        if ("/reports".equals(servletPath)) {
+        // Reporting pages are restricted to Hotel Managers.
+        if ("/reports".equals(servletPath)
+                || "/dashboard".equals(servletPath)) {
+
             if (!isRole(role, "manager")) {
                 deny(res);
                 return;
             }
+
             chain.doFilter(request, response);
             return;
         }
@@ -12825,6 +14312,51 @@ public class AuthenticationFilter implements Filter {
     }
 }
 
+
+
+==================================================
+FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\model\Amenity.java
+==================================================
+package model;
+
+public class Amenity {
+    private int amenityID;
+    private String name;
+    private String description;
+
+    public Amenity() {
+    }
+
+    public Amenity(int amenityID, String name, String description) {
+        this.amenityID = amenityID;
+        this.name = name;
+        this.description = description;
+    }
+
+    public int getAmenityID() {
+        return amenityID;
+    }
+
+    public void setAmenityID(int amenityID) {
+        this.amenityID = amenityID;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+}
 
 
 ==================================================
@@ -13640,77 +15172,106 @@ public class Payment {
 
 
 ==================================================
-FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\model\RevenueReport.java
+FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\model\ReportStatistic.java
 ==================================================
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package model;
-
+import java.math.BigDecimal;
 /**
  *
- * @author Tráº§n Nguyá»…n
+ * @author Nguyen Hoang Nhat
  */
+public class ReportStatistic {
+
+    private final String status;
+    private final long totalCount;
+    private final BigDecimal totalAmount;
+
+    public ReportStatistic(
+            String status,
+            long totalCount,
+            BigDecimal totalAmount) {
+
+        this.status = status;
+        this.totalCount = totalCount;
+        this.totalAmount = totalAmount == null
+                ? BigDecimal.ZERO
+                : totalAmount;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public long getTotalCount() {
+        return totalCount;
+    }
+
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
+    }
+}
+
+
+
+==================================================
+FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\model\RevenueReport.java
+==================================================
+package model;
+
+import java.math.BigDecimal;
+
 /**
- * Represents a revenue report for a specific time period. This class holds
- * financial data aggregated by time units (day, week, month, etc.).
+ * Stores revenue aggregated by a time unit, such as a month or year.
  */
 public class RevenueReport {
-    // Time period identifier (e.g., "2023-04", "Week 15", "Q2")
+
     private String timeUnit;
+    private BigDecimal totalRevenue;
 
-    // Total revenue amount for the specified time period
-    private double totalRevenue;
+    public RevenueReport(
+            String timeUnit,
+            BigDecimal totalRevenue) {
 
-    /**
-     * Constructs a RevenueReport with specified time period and revenue amount.
-     *
-     * @param timeUnit The time period identifier (e.g., month, quarter, year)
-     * @param totalRevenue The total revenue generated in this period
-     */
-    public RevenueReport(String timeUnit, double totalRevenue) {
         this.timeUnit = timeUnit;
-        this.totalRevenue = totalRevenue;
+        setTotalRevenue(totalRevenue);
     }
 
     /**
-     * Gets the time period identifier for this report.
-     *
-     * @return String representing the time period (e.g., "April 2023")
+     * Preserves compatibility with existing code that passes a double.
      */
+    public RevenueReport(
+            String timeUnit,
+            double totalRevenue) {
+
+        this(timeUnit, BigDecimal.valueOf(totalRevenue));
+    }
+
     public String getTimeUnit() {
         return timeUnit;
     }
 
-    /**
-     * Gets the total revenue amount for this period.
-     *
-     * @return double value of the total revenue
-     */
-    public double getTotalRevenue() {
-        return totalRevenue;
-    }
-
-    /**
-     * Sets the time period identifier for this report.
-     *
-     * @param timeUnit The time period to set (e.g., "Q1 2023")
-     */
     public void setTimeUnit(String timeUnit) {
         this.timeUnit = timeUnit;
     }
 
-    /**
-     * Sets the total revenue amount for this period.
-     *
-     * @param totalRevenue The revenue amount to set
-     */
+    public BigDecimal getTotalRevenue() {
+        return totalRevenue;
+    }
+
+    public void setTotalRevenue(BigDecimal totalRevenue) {
+        this.totalRevenue = totalRevenue == null
+                ? BigDecimal.ZERO
+                : totalRevenue;
+    }
+
     public void setTotalRevenue(double totalRevenue) {
-        this.totalRevenue = totalRevenue;
+        setTotalRevenue(BigDecimal.valueOf(totalRevenue));
     }
 }
-
 
 
 ==================================================
@@ -13816,6 +15377,46 @@ public class Review {
             String reviewStatus) {
 
         this.reviewStatus = reviewStatus;
+    }
+}
+
+
+==================================================
+FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\model\ReviewStatistics.java
+==================================================
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package model;
+import java.math.BigDecimal;
+/**
+ *
+ * @author Nguyen Hoang Nhat
+ */
+public class ReviewStatistics {
+
+    private final long totalReviews;
+    private final BigDecimal averageRating;
+
+    public ReviewStatistics(
+            long totalReviews,
+            BigDecimal averageRating) {
+
+        this.totalReviews = totalReviews;
+        this.averageRating = averageRating;
+    }
+
+    public long getTotalReviews() {
+        return totalReviews;
+    }
+
+    public BigDecimal getAverageRating() {
+        return averageRating;
+    }
+
+    public boolean isHasReviews() {
+        return totalReviews > 0;
     }
 }
 
@@ -13929,6 +15530,8 @@ FILE: D:\Github\Group-4-SWP391\HotelPage\src\main\java\model\RoomType.java
 package model;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -13946,7 +15549,7 @@ public class RoomType {
     private int beds;               // Number of beds in the room
     private int capacity;           // Maximum guest capacity
     private String picture;         // URL or path to room type image (optional)
-
+    private List<Amenity> amenities = new ArrayList<>();
     /**
      * Default constructor creates an empty RoomType object.
      */
@@ -14115,6 +15718,14 @@ public class RoomType {
      */
     public void setPicture(String picture) {
         this.picture = picture;
+    }
+    
+    public List<Amenity> getAmenities() {
+        return amenities;
+    }
+
+    public void setAmenities(List<Amenity> amenities) {
+        this.amenities = amenities;
     }
 }
 
