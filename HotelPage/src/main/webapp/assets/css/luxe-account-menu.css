@@ -1,0 +1,330 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : Nov 4, 2026, 11:56:46 PM
+    Author     : Nguyen Hoang Nhat
+*/
+header.luxe-shared-header.luxe-header-v4 {
+    overflow: visible !important;
+    z-index: 1040;
+    border-bottom: 1px solid #e5dbcf;
+}
+header.luxe-header-v4 > nav {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+    max-width: 1840px;
+    min-height: 84px;
+    margin: 0 auto;
+    padding: 15px clamp(20px, 2.4vw, 42px) !important;
+}
+header.luxe-header-v4 #nav-heading {
+    min-width: 0;
+}
+header.luxe-header-v4 #nav-heading a {
+    white-space: nowrap;
+    font: 700 26px/1.2 Georgia, 'Times New Roman', serif;
+    letter-spacing: -.5px;
+    color: #2b221b;
+}
+header.luxe-header-v4 #navbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: stretch;
+    flex-wrap: wrap;
+    min-width: 0;
+    gap: 6px 19px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+header.luxe-header-v4 #navbar > li {
+    margin: 0;
+}
+header.luxe-header-v4 #navbar > li > a {
+    display: inline-block;
+    padding: 10px 0;
+    color: #584535;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.4;
+    white-space: nowrap;
+    text-decoration: none;
+}
+header.luxe-header-v4 #navbar > li > a:hover {
+    color: #9b7149;
+}
+header.luxe-header-v4 .auth-nav {
+    position: static !important;
+    display: flex;
+    justify-self: end;
+    justify-content: flex-end;
+    align-items: center;
+    min-width: 0;
+    min-height: 46px;
+    margin: 0 !important;
+    gap: 10px;
+}
+header.luxe-header-v4 .luxe-account-details {
+    position: relative;
+    margin: 0;
+    color: #3f2e20;
+    font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+header.luxe-header-v4 .luxe-account-trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    max-width: 260px;
+    padding: 5px 10px 5px 5px;
+    border: 1px solid #dfd0bd;
+    border-radius: 12px;
+    background: #fbf8f3;
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+    transition: background .18s, border-color .18s;
+}
+header.luxe-header-v4 .luxe-account-trigger::-webkit-details-marker {
+    display: none;
+}
+header.luxe-header-v4 .luxe-account-trigger::marker {
+    content: '';
+}
+header.luxe-header-v4 .luxe-account-trigger:hover,
+header.luxe-header-v4 .luxe-account-details[open] .luxe-account-trigger {
+    background: #f1e7d8;
+    border-color: #bfa17d;
+}
+header.luxe-header-v4 .luxe-account-avatar {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #dfc39a;
+    border-radius: 50%;
+    background: #f0dfc1;
+    color: #795020;
+    font-size: 18px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+header.luxe-header-v4 .luxe-account-text {
+    display: block;
+    min-width: 0;
+}
+header.luxe-header-v4 .luxe-account-text strong {
+    display: block;
+    max-width: 165px;
+    overflow: hidden;
+    color: #3d2c1f;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+header.luxe-header-v4 .luxe-account-text small {
+    display: block;
+    color: #8a7158;
+    font-size: 11px;
+    line-height: 1.4;
+}
+header.luxe-header-v4 .luxe-account-trigger svg,
+header.luxe-header-v4 .luxe-account-item svg,
+header.luxe-header-v4 .luxe-nav-trigger svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+header.luxe-header-v4 .luxe-account-trigger .luxe-account-chevron {
+    width: 17px;
+    height: 17px;
+    margin-left: 5px;
+    color: #8a7152;
+    transition: transform .18s;
+}
+header.luxe-header-v4 .luxe-account-details[open] .luxe-account-chevron {
+    transform: rotate(180deg);
+}
+header.luxe-header-v4 .luxe-account-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 1070;
+    width: 274px;
+    max-width: calc(100vw - 32px);
+    padding: 8px;
+    border: 1px solid #dfcfb7;
+    border-radius: 13px;
+    background: #fffdf9;
+    box-shadow: 0 12px 35px #2b221b1a;
+}
+header.luxe-header-v4 .luxe-account-panel-heading {
+    padding: 11px 12px 14px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid #eee4d7;
+}
+header.luxe-header-v4 .luxe-account-panel-heading strong {
+    display: block;
+    margin-bottom: 3px;
+    color: #3d2c1f;
+    font-size: 14px;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+header.luxe-header-v4 .luxe-account-panel-heading > span {
+    display: block;
+    color: #8a7158;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+header.luxe-header-v4 .luxe-account-form {
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+header.luxe-header-v4 .luxe-account-item {
+    appearance: none;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 11px;
+    width: 100%;
+    min-height: 46px;
+    margin: 0;
+    padding: 11px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #57412e;
+    font: 550 14px/1.5 Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .18s, color .18s;
+}
+header.luxe-header-v4 .luxe-account-item:hover {
+    background: #f3e9da;
+    color: #795020;
+    text-decoration: none;
+}
+header.luxe-header-v4 .luxe-account-separator {
+    height: 1px;
+    margin: 7px 4px;
+    background: #e9dece;
+}
+header.luxe-header-v4 .luxe-account-logout {
+    color: #a24239;
+}
+header.luxe-header-v4 .luxe-account-logout:hover {
+    background: #faeee8;
+    color: #8d302a;
+}
+header.luxe-header-v4 .luxe-animation-dot {
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    margin-left: auto;
+    border-radius: 50%;
+}
+header.luxe-header-v4 .luxe-animation-dot.is-on {
+    background: #24865c;
+}
+header.luxe-header-v4 .luxe-animation-dot.is-off {
+    background: #a59b8d;
+}
+header.luxe-header-v4 .luxe-nav-trigger {
+    display: none;
+}
+header.luxe-header-v4 .luxe-account-trigger:focus-visible,
+header.luxe-header-v4 .luxe-account-item:focus-visible,
+header.luxe-header-v4 .luxe-nav-trigger:focus-visible {
+    outline: 2px solid #b29a7b;
+    outline-offset: 3px;
+}
+@media (max-width: 1250px) {
+    header.luxe-header-v4 > nav {
+        grid-template-columns: minmax(0, 1fr) auto auto !important;
+        gap: 12px;
+    }
+    header.luxe-header-v4 #navbar {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-content: flex-start;
+        gap: 8px 20px;
+        padding-top: 12px;
+        border-top: 1px solid #e8ddce;
+    }
+    header.luxe-header-v4.luxe-header-enhanced .luxe-nav-trigger {
+        display: grid;
+        place-items: center;
+        grid-column: 2;
+        grid-row: 1;
+        width: 42px;
+        height: 42px;
+        border: 1px solid #dfd0bd;
+        border-radius: 9px;
+        background: #fbf8f3;
+        color: #795b38;
+        cursor: pointer;
+    }
+    header.luxe-header-v4.luxe-header-enhanced:not(.is-nav-open) #navbar {
+        display: none;
+    }
+    header.luxe-header-v4 .auth-nav {
+        grid-column: 3;
+        grid-row: 1;
+    }
+}
+@media (max-width: 640px) {
+    header.luxe-header-v4 > nav {
+        min-height: 76px;
+        padding: 12px 16px !important;
+        gap: 8px;
+    }
+    header.luxe-header-v4 #nav-heading a {
+        font-size: 22px;
+    }
+    header.luxe-header-v4 .luxe-account-text {
+        display: none;
+    }
+    header.luxe-header-v4 .luxe-account-trigger {
+        min-height: 46px;
+        padding: 4px 7px 4px 4px;
+        gap: 4px;
+    }
+    header.luxe-header-v4 .luxe-account-avatar {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+    header.luxe-header-v4 .luxe-account-trigger .luxe-account-chevron {
+        margin-left: 1px;
+        width: 15px;
+    }
+    header.luxe-header-v4 #navbar > li > a {
+        padding: 8px 0;
+        font-size: 14px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    header.luxe-header-v4 .luxe-account-trigger,
+    header.luxe-header-v4 .luxe-account-item,
+    header.luxe-header-v4 .luxe-account-chevron {
+        transition: none;
+    }
+}
+

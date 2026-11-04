@@ -1,8 +1,10 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ page import="util.AuthSupport" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%-- Updated by Nguyen Hoang Nhat --%>
 
-<header class="luxe-shared-header">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/luxe-account-menu.css?v=account-dropdown-v4">
+<header class="luxe-shared-header luxe-header-v4" data-luxe-header>
     <nav>
         <span id="nav-heading">
             <a href="${pageContext.request.contextPath}/">
@@ -10,10 +12,15 @@
             </a>
         </span>
 
+        <button type="button" class="luxe-nav-trigger" data-luxe-nav-toggle
+                aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
         <ul id="navbar">
             <c:choose>
                 <%-- Administrator navigation. --%>
                 <c:when test="${sessionScope.loggedUser.role == 'admin'}">
+                    <li><a href="${pageContext.request.contextPath}/admin/users">Accounts</a></li>
                     <li>
                         <a href="${pageContext.request.contextPath}/room">
                             Rooms
@@ -209,44 +216,59 @@
                 </div>
             </c:when>
 
-            <%-- Other authenticated roles. --%>
+            <%-- Staff / Manager / Admin: compact native account dropdown. --%>
             <c:otherwise>
-                <div class="auth-nav">
-                    <span class="luxe-user-name">
-                        Hi,
-                        <c:choose>
-                            <c:when test="${not empty sessionScope.loggedUser.displayName}">
-                                <c:out value="${sessionScope.loggedUser.displayName}" />
-                            </c:when>
-                            <c:otherwise>
-                                <c:out value="${sessionScope.loggedUser.username}" />
-                            </c:otherwise>
-                        </c:choose>
-                    </span>
-
-                    <c:if test="${sessionScope.loggedUser.role == 'staff'
-                                  or sessionScope.loggedUser.role == 'admin'
-                                  or sessionScope.loggedUser.role == 'manager'}">
-                          <a href="${pageContext.request.contextPath}/change-password"
-                             class="luxe-auth-button">
-                              Change Password
-                          </a>
-                    </c:if>
-
-                    <form method="post"
-                          action="${pageContext.request.contextPath}/logout"
-                          class="luxe-logout-form">
-
-                        <input type="hidden"
-                               name="csrfToken"
-                               value="<%= AuthSupport.token(session)%>">
-
-                        <button type="submit"
-                                id="logout"
-                                class="luxe-auth-button">
-                            Logout
-                        </button>
-                    </form>
+                <c:set var="luxeHeaderName"
+                       value="${not empty sessionScope.loggedUser.displayName ? sessionScope.loggedUser.displayName : sessionScope.loggedUser.username}" />
+                <div class="auth-nav luxe-staff-auth">
+                    <details class="luxe-account-details" data-luxe-account>
+                        <summary class="luxe-account-trigger" aria-label="Account options">
+                            <span class="luxe-account-avatar" aria-hidden="true"><c:out value="${fn:substring(luxeHeaderName, 0, 1)}" /></span>
+                            <span class="luxe-account-text">
+                                <strong><c:out value="${luxeHeaderName}" /></strong>
+                                <small>
+                                    <c:choose>
+                                        <c:when test="${sessionScope.loggedUser.role == 'admin'}">Administrator</c:when>
+                                        <c:when test="${sessionScope.loggedUser.role == 'staff'}">Hotel Staff</c:when>
+                                        <c:when test="${sessionScope.loggedUser.role == 'manager'}">Hotel Manager</c:when>
+                                        <c:otherwise>Account</c:otherwise>
+                                    </c:choose>
+                                </small>
+                            </span>
+                            <svg class="luxe-account-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+                        </summary>
+                        <div class="luxe-account-panel" role="group" aria-label="Account actions">
+                            <div class="luxe-account-panel-heading">
+                                <strong><c:out value="${luxeHeaderName}" /></strong>
+                                <span>@<c:out value="${sessionScope.loggedUser.username}" /></span>
+                            </div>
+                            <c:if test="${sessionScope.loggedUser.role == 'staff'
+                                          or sessionScope.loggedUser.role == 'admin'
+                                          or sessionScope.loggedUser.role == 'manager'}">
+                                  <a class="luxe-account-item" href="${pageContext.request.contextPath}/change-password">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="5"/><path d="m12 11 8-8m-3 3 3 3m-6 0 3 3"/></svg>
+                                      <span>Change Password</span>
+                                  </a>
+                                  <form method="post" action="${pageContext.request.contextPath}/toggle-animation" class="luxe-account-form">
+                                      <input type="hidden" name="csrfToken" value="<%= AuthSupport.token(session)%>">
+                                      <input type="hidden" name="toggleAnimation" value="${cookie.animation.value == 'disable' ? 'enable' : 'disable'}">
+                                      <button type="submit" class="luxe-account-item">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h6l-1 8 9-13h-6l1-7Z"/></svg>
+                                          <span>${cookie.animation.value == 'disable' ? 'Enable Animations' : 'Disable Animations'}</span>
+                                          <span class="luxe-animation-dot ${cookie.animation.value == 'disable' ? 'is-off' : 'is-on'}" aria-hidden="true"></span>
+                                      </button>
+                                  </form>
+                            </c:if>
+                            <div class="luxe-account-separator" aria-hidden="true"></div>
+                            <form method="post" action="${pageContext.request.contextPath}/logout" class="luxe-account-form">
+                                <input type="hidden" name="csrfToken" value="<%= AuthSupport.token(session)%>">
+                                <button type="submit" class="luxe-account-item luxe-account-logout">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v16h5m5-12 4 4-4 4m-6-4h13"/></svg>
+                                    <span>Log out</span>
+                                </button>
+                            </form>
+                        </div>
+                    </details>
                 </div>
             </c:otherwise>
         </c:choose>
@@ -277,3 +299,4 @@
         }
     })();
 </script>
+<script defer src="${pageContext.request.contextPath}/assets/js/luxe-account-menu.js?v=account-dropdown-v4"></script>

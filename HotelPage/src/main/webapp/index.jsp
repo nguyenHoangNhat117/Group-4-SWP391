@@ -22,10 +22,14 @@
     </head>
     <body class="luxe-home ${cookie.animation.value == 'disable' ? 'disable-animation' : ''}">
         <%@include file="/WEB-INF/include/header.jsp" %>
-        <form action="./toggle-animation" method="post" class="text-end mt-2 me-2">
-            <input type="hidden" name="toggleAnimation" value="${cookie.animation.value == "enable" || cookie.animation.value == null ? "disable" : "enable"}">
-            <button class="btn btn-sm btn-primary" type="submit">${cookie.animation.value == "enable" || cookie.animation.value == null ? "Disable" : "Enable"} Animations</button>
-        </form>
+        <c:if test="${sessionScope.loggedUser.role != 'admin'
+                      and sessionScope.loggedUser.role != 'staff'
+                      and sessionScope.loggedUser.role != 'manager'}">
+              <form action="./toggle-animation" method="post" class="text-end mt-2 me-2">
+                  <input type="hidden" name="toggleAnimation" value="${cookie.animation.value == "enable" || cookie.animation.value == null ? "disable" : "enable"}">
+                  <button class="btn btn-sm btn-primary" type="submit">${cookie.animation.value == "enable" || cookie.animation.value == null ? "Disable" : "Enable"} Animations</button>
+              </form>
+        </c:if>
         <main>
             <div class="main-wrapper">
                 <section id="hero">
@@ -164,4 +168,3 @@
         </script>
     </body>
 </html>
-
