@@ -181,6 +181,16 @@ public class BookingServlet extends HttpServlet {
                 || session.getAttribute("loggedUser") == null
                 || session.getAttribute("customer") == null) {
 
+            // Bắt đầu thêm phần lưu pendingBookingUrl
+            HttpSession guestSession = request.getSession(true);
+            // Lưu ý: Parameter trong doPost là "room-number" theo input của form
+            String roomNumberParam = request.getParameter("room-number");
+
+            if (roomNumberParam != null && roomNumberParam.trim().matches("[0-9]+")) {
+                guestSession.setAttribute("pendingBookingUrl", "/details?roomNumber=" + roomNumberParam.trim());
+            }
+            // Kết thúc phần thêm mới
+
             response.sendRedirect(
                     request.getContextPath()
                     + "/login"

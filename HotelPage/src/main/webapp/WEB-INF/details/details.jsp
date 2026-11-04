@@ -250,7 +250,7 @@
                                     </div>
                                 </div>
 
-<div class="mb-3">
+                                <div class="mb-3">
                                     <label for="detailGuestCount" class="form-label small fw-bold text-uppercase text-muted">
                                         Number of Guests (Max: ${room.roomType.capacity})
                                     </label>
