@@ -220,8 +220,14 @@ public class LoginServlet extends HttpServlet {
         String target = "/";
         if ("customer".equalsIgnoreCase(user.getRole())) {
             Object pending = session.getAttribute("pendingBookingUrl");
-            if (pending instanceof String && ((String) pending).startsWith("/details?roomNumber=")) {
-                target = (String) pending;
+            if (pending instanceof String) {
+                String pendingUrl = ((String) pending).trim();
+                // Nếu Filter lưu "/booking?roomNumber=..." -> Tự động đổi thành "/details?roomNumber=..."
+                if (pendingUrl.matches("/booking\\?roomNumber=[0-9]+")) {
+                    target = pendingUrl.replaceFirst("^/booking", "/details");
+                } else if (pendingUrl.matches("/details\\?roomNumber=[0-9]+")) {
+                    target = pendingUrl;
+                }
             }
         } else if ("staff".equalsIgnoreCase(user.getRole())) {
             target = "/customers";
@@ -230,7 +236,6 @@ public class LoginServlet extends HttpServlet {
         } else if ("manager".equalsIgnoreCase(user.getRole())) {
             target = "/dashboard";
         }
-
         session.removeAttribute("pendingBookingUrl");
         res.sendRedirect(req.getContextPath() + target);
     }
