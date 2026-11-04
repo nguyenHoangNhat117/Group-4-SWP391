@@ -387,9 +387,15 @@
                                                 </div>
                                             </div>
 
-                                            <p class="text-muted small mb-4" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-                                                ${room.roomType.description}
+                                            <p class="text-muted small mb-2" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                                                <c:out value="${room.roomType.description}"/>
                                             </p>
+
+                                            <!-- THÊM DÒNG NÀY: Text link thay cho nút Details -->
+                                            <a href="${pageContext.request.contextPath}/details?roomNumber=${room.roomNumber}" 
+                                               class="text-decoration-none fw-semibold small mb-4 room-title-hover d-inline-block" style="color: #6c757d;">
+                                                View Room Detail <i class="bi bi-arrow-right ms-1"></i>
+                                            </a>
 
                                             <div class="d-flex gap-3 mb-4 mt-auto">
                                                 <div class="text-muted small"><i class="bi bi-moon-stars me-1 text-primary"></i> ${room.roomType.beds} Beds</div>
@@ -404,6 +410,7 @@
                                                 </div>
 
                                                 <div class="d-flex gap-2">
+                                                    <!-- ĐÃ XÓA NÚT DETAILS Ở ĐÂY, CHỈ GIỮ LẠI BOOK NOW -->
                                                     <c:if test="${empty sessionScope.loggedUser || sessionScope.loggedUser.role == 'customer'}">
                                                         <a href="./booking?roomNumber=${room.roomNumber}" class="btn btn-book text-decoration-none">
                                                             Book Now

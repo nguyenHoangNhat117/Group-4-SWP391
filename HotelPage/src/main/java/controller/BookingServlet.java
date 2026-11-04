@@ -43,9 +43,11 @@ public class BookingServlet extends HttpServlet {
             return;
         }
 
-        if (session == null | !(session.getAttribute("loggedUser") instanceof User)) {
+        if (session == null
+                || !(session.getAttribute("loggedUser") instanceof User)) {
             HttpSession guestSession = request.getSession(true);
             if (roomNumberParam != null && roomNumberParam.trim().matches("[0-9]+")) {
+                // CHỈNH SỬA TẠI ĐÂY: Ép buộc lưu đường dẫn là /details thay vì /booking
                 guestSession.setAttribute("pendingBookingUrl", "/details?roomNumber=" + roomNumberParam.trim());
             }
             response.sendRedirect(

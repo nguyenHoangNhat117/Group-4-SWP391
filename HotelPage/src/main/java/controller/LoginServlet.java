@@ -220,7 +220,7 @@ public class LoginServlet extends HttpServlet {
         String target = "/";
         if ("customer".equalsIgnoreCase(user.getRole())) {
             Object pending = session.getAttribute("pendingBookingUrl");
-            if (pending instanceof String && ((String) pending).matches("/(booking|details)\\?roomNumber=[0-9]+")) {
+            if (pending instanceof String && ((String) pending).startsWith("/details?roomNumber=")) {
                 target = (String) pending;
             }
         } else if ("staff".equalsIgnoreCase(user.getRole())) {
