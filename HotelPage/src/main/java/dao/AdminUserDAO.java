@@ -2,322 +2,299 @@ package dao;
 
 import db.DBContext;
 import model.AdminAccount;
-import util.AdminAccountPolicy;
-import util.PasswordUtil;
 import java.sql.*;
 import java.util.*;
 
-/**
- * UC18: independent of Customer Management; writes are atomic and reauthorize
- * the actor.
- */
 public class AdminUserDAO extends DBContext {
 
-    public static class AccountException extends Exception {
+    private static final String HISTORY = "EXISTS(SELECT 1 FROM Booking b JOIN Customer bc ON bc.CustomerID=b.CustomerID WHERE bc.UserID=u.UserID)";
+    private static final String FROM = " FROM [User] u LEFT JOIN AccountContact p ON p.UserID=u.UserID LEFT JOIN Customer c ON c.UserID=u.UserID ";
+    private static final String FIELDS = "u.UserID,u.Username,u.Role,u.AccountStatus,u.DisplayName,u.CreatedAt,c.CustomerID,p.FirstName,p.LastName,p.Email,p.Phone,p.Country,p.City,p.Street,sys.fn_varbintohexstr(u.AccountVersion) UV,sys.fn_varbintohexstr(p.ContactVersion) PV,CASE WHEN " + HISTORY + " THEN 1 ELSE 0 END HasHistory";
 
-        public AccountException(String message) {
+    public static class Rejected extends Exception {
+
+        public Rejected(String message) {
             super(message);
         }
     }
-    private static final String SELECT = "SELECT u.UserID,u.Username,u.DisplayName,u.[Role],u.AccountStatus,"
-            + "u.Email,u.Phone,u.FirstName,u.LastName,u.Country,u.City,u.Street,u.CreatedAt,"
-            + "u.AccountVersion AS VersionBytes,c.CustomerID,"
-            + "(SELECT COUNT(*) FROM Booking b WHERE b.CustomerID=c.CustomerID) AS BookingCount "
-            + "FROM [User] u LEFT JOIN Customer c ON c.UserID=u.UserID ";
-    private static final String FILTER = " WHERE u.[Role] IN ('customer','staff','manager','admin') "
-            + "AND (?='' OR CHARINDEX(?,u.Username)>0 OR CHARINDEX(?,u.DisplayName)>0 OR CHARINDEX(?,u.Email)>0) "
-            + "AND (?='' OR u.[Role]=?) AND (?='' OR u.AccountStatus=?) ";
 
-    public static final class Page {
+    private String nz(String s) {
+        return s == null ? "" : s;
+    }
 
-        private final List<AdminAccount> accounts;
-        private final int number, total, pages;
+    private AdminAccount map(ResultSet r) throws SQLException {
+        AdminAccount a = new AdminAccount();
+        a.id = r.getInt("UserID");
+        a.customerId = r.getInt("CustomerID");
+        a.username = r.getString("Username");
+        a.role = r.getString("Role");
+        a.status = r.getString("AccountStatus");
+        a.displayName = r.getString("DisplayName");
+        a.firstName = nz(r.getString("FirstName"));
+        a.lastName = nz(r.getString("LastName"));
+        a.email = nz(r.getString("Email"));
+        a.phone = nz(r.getString("Phone"));
+        a.country = nz(r.getString("Country"));
+        a.city = nz(r.getString("City"));
+        a.street = nz(r.getString("Street"));
+        a.version = r.getString("UV") + ":" + nz(r.getString("PV"));
+        a.hasHistory = r.getBoolean("HasHistory");
+        a.createdAt = r.getTimestamp("CreatedAt").toLocalDateTime();
+        return a;
+    }
 
-        Page(List<AdminAccount> accounts, int number, int total, int size) {
-            this.accounts = accounts;
-            this.number = number;
-            this.total = total;
-            this.pages = Math.max(1, (total + size - 1) / size);
-        }
-
-        public List<AdminAccount> getAccounts() {
-            return accounts;
-        }
-
-        public int getNumber() {
-            return number;
-        }
-
-        public int getTotal() {
-            return total;
-        }
-
-        public int getPages() {
-            return pages;
+    private void bind(PreparedStatement s, Object... values) throws SQLException {
+        for (int i = 0; i < values.length; i++) {
+            s.setObject(i + 1, values[i]);
         }
     }
 
-    public Page search(String keyword, String role, String status, int page) throws SQLException {
-        final int size = 10;
-        Object[] filters = {keyword, keyword, keyword, keyword, role, role, status, status};
-        try (Connection c = getConnection()) {
-            int total = scalar(c, "SELECT COUNT(*) FROM [User] u " + FILTER, filters);
-            int pages = Math.max(1, (total + size - 1) / size);
-            page = Math.max(1, Math.min(page, pages));
-            List<Object> args = new ArrayList<>(Arrays.asList(filters));
-            args.add((page - 1) * size);
-            args.add(size);
-            List<AdminAccount> rows = new ArrayList<>();
-            try (PreparedStatement ps = prepare(c, SELECT + FILTER + "ORDER BY u.UserID DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY", args.toArray()); ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    rows.add(map(rs));
-                }
-            }
-            return new Page(rows, page, total, size);
+    private int execute(Connection c, String sql, Object... args) throws SQLException {
+        try (PreparedStatement s = c.prepareStatement(sql)) {
+            bind(s, args);
+            return s.executeUpdate();
         }
     }
 
     public AdminAccount find(int id) throws SQLException {
-        try (Connection c = getConnection(); PreparedStatement ps = prepare(c, SELECT + "WHERE u.UserID=?", id); ResultSet rs = ps.executeQuery()) {
-            return rs.next() ? map(rs) : null;
+        try (Connection c = getConnection()) {
+            return find(c, id);
         }
     }
 
-    public List<Map<String, Object>> bookings(int userId) throws SQLException {
-        List<Map<String, Object>> rows = new ArrayList<>();
-        try (Connection c = getConnection(); PreparedStatement ps = prepare(c,
-                "SELECT TOP (10) b.BookingID,b.BookingDate,b.Status,b.TotalPrice FROM Booking b "
-                + "JOIN Customer c ON c.CustomerID=b.CustomerID WHERE c.UserID=? ORDER BY b.BookingID DESC", userId); ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                Map<String, Object> row = new LinkedHashMap<>();
-                row.put("id", rs.getInt(1));
-                row.put("date", rs.getTimestamp(2));
-                row.put("status", rs.getString(3));
-                row.put("total", rs.getBigDecimal(4));
-                rows.add(row);
+    private AdminAccount find(Connection c, int id) throws SQLException {
+        try (PreparedStatement s = c.prepareStatement("SELECT " + FIELDS + FROM + " WHERE u.UserID=?")) {
+            bind(s, id);
+            try (ResultSet r = s.executeQuery()) {
+                return r.next() ? map(r) : null;
+            }
+        }
+    }
+
+    public AdminAccount.Page search(String keyword, String role, String status, int page) throws SQLException {
+        AdminAccount.Page result = new AdminAccount.Page();
+        List<Object> args = new ArrayList<>();
+        String where = " WHERE u.Role IN ('customer','staff','manager','admin') ";
+        if (!keyword.isEmpty()) {
+            where += " AND (u.Username LIKE ? ESCAPE '~' OR p.Email LIKE ? ESCAPE '~' OR u.DisplayName LIKE ? ESCAPE '~')";
+            String k = "%" + keyword.replace("~", "~~").replace("%", "~%").replace("_", "~_").replace("[", "~[") + "%";
+            Collections.addAll(args, k, k, k);
+        }
+        if (!role.isEmpty()) {
+            where += " AND u.Role=?";
+            args.add(role);
+        }
+        if (!status.isEmpty()) {
+            where += " AND u.AccountStatus=?";
+            args.add(status);
+        }
+        try (Connection c = getConnection()) {
+            try (PreparedStatement s = c.prepareStatement("SELECT COUNT(*) Total,COALESCE(SUM(CASE WHEN u.AccountStatus='active' THEN 1 ELSE 0 END),0) A,COALESCE(SUM(CASE WHEN u.AccountStatus='locked' THEN 1 ELSE 0 END),0) L,COALESCE(SUM(CASE WHEN u.AccountStatus='inactive' THEN 1 ELSE 0 END),0) I" + FROM + where)) {
+                bind(s, args.toArray());
+                try (ResultSet r = s.executeQuery()) {
+                    r.next();
+                    result.total = r.getInt("Total");
+                    result.active = r.getInt("A");
+                    result.locked = r.getInt("L");
+                    result.inactive = r.getInt("I");
+                }
+            }
+            result.pages = Math.max(1, (result.total + 9) / 10);
+            result.page = Math.max(1, Math.min(page, result.pages));
+            try (PreparedStatement s = c.prepareStatement("SELECT " + FIELDS + FROM + where + " ORDER BY u.UserID DESC OFFSET ? ROWS FETCH NEXT 10 ROWS ONLY")) {
+                List<Object> all = new ArrayList<>(args);
+                all.add((result.page - 1) * 10);
+                bind(s, all.toArray());
+                try (ResultSet r = s.executeQuery()) {
+                    while (r.next()) {
+                        result.rows.add(map(r));
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    public List<AdminAccount.BookingRow> history(int userId, int page) throws SQLException {
+        List<AdminAccount.BookingRow> rows = new ArrayList<>();
+        try (Connection c = getConnection(); PreparedStatement s = c.prepareStatement("SELECT b.BookingID,b.BookingDate,b.Status,b.TotalPrice FROM Booking b JOIN Customer c ON c.CustomerID=b.CustomerID WHERE c.UserID=? ORDER BY b.BookingID DESC OFFSET ? ROWS FETCH NEXT 11 ROWS ONLY")) {
+            bind(s, userId, (page - 1) * 10);
+            try (ResultSet r = s.executeQuery()) {
+                while (r.next()) {
+                    AdminAccount.BookingRow b = new AdminAccount.BookingRow();
+                    b.id = r.getInt(1);
+                    b.date = r.getTimestamp(2).toLocalDateTime();
+                    b.status = r.getString(3);
+                    b.total = r.getBigDecimal(4);
+                    rows.add(b);
+                }
             }
         }
         return rows;
     }
 
-    /**
-     * Returns only after commit; callers may send the creation email
-     * afterwards.
-     */
-    public int save(int actorId, String actorHash, AdminAccount a, String password, boolean create)
-            throws SQLException, AccountException {
-        if (!AdminAccountPolicy.validate(a, password, create).isEmpty()) {
-            throw problem("Invalid account information.");
-        }
-        return mutate(actorId, actorHash, a, password, create, false);
+    @FunctionalInterface
+    private interface Work<T> {
+
+        T run(Connection c) throws SQLException, Rejected;
     }
 
-    public void delete(int actorId, String actorHash, int id, String version) throws SQLException, AccountException {
-        AdminAccount a = new AdminAccount();
-        a.setId(id);
-        a.setVersion(version);
-        mutate(actorId, actorHash, a, null, false, true);
-    }
-
-    private int mutate(int actorId, String actorHash, AdminAccount a, String password, boolean create, boolean delete)
-            throws SQLException, AccountException {
-        String hash = create ? PasswordUtil.hash(password) : null;
+    private <T> T transaction(Work<T> work) throws SQLException, Rejected {
         try (Connection c = getConnection()) {
+            c.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             c.setAutoCommit(false);
             try {
-                // SQL Server JDBC uses implicit transactions after setAutoCommit(false).
-                // A stored procedure / SELECT of a variable does not start one. Touch a
-                // table before requesting a transaction-owned application lock.
-                scalar(c, "SELECT TOP (1) UserID FROM [User]");
-                // Serialize admin mutations before taking row locks, preventing two admins
-                // from jointly removing all active admins. Released automatically on commit/rollback.
-                try (PreparedStatement ps = prepare(c, "DECLARE @r int; EXEC @r=sys.sp_getapplock "
-                        + "@Resource=N'UC18.AdminAccounts',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000; SELECT @r;"); ResultSet rs = ps.executeQuery()) {
-                    if (!rs.next()) {
-                        throw new SQLException("sp_getapplock returned no result");
-                    }
-                    int lockCode = rs.getInt(1);
-                    if (lockCode == -1) {
-                        throw problem("Another account update is in progress. Please try again.");
-                    }
-                    if (lockCode == -2 || lockCode == -3) {
-                        throw problem("Transaction interrupted (code " + lockCode + "). Please try again.");
-                    }
-                    if (lockCode < 0) {
-                        throw new SQLException("Unable to acquire UC18 transaction lock; sp_getapplock code=" + lockCode);
-                    }
-                }
-                if (scalar(c, "SELECT COUNT(*) FROM [User] WITH (UPDLOCK,HOLDLOCK) "
-                        + "WHERE UserID=? AND [Role]='admin' AND AccountStatus='active' AND [Password]=?", actorId, actorHash) != 1) {
-                    throw problem("Administrator access has changed. Please sign in again.");
-                }
-                String oldRole = null, oldStatus = null;
-                if (!create) {
-                    try (PreparedStatement ps = prepare(c, "SELECT [Role],AccountStatus,AccountVersion "
-                            + "FROM [User] WITH (UPDLOCK,HOLDLOCK) WHERE UserID=?", a.getId()); ResultSet rs = ps.executeQuery()) {
-                        if (!rs.next()) {
-                            throw problem("Account no longer exists.");
-                        }
-                        oldRole = rs.getString(1);
-                        oldStatus = rs.getString(2);
-                        if (a.getVersion() == null || !a.getVersion().equalsIgnoreCase(versionHex(rs.getBytes(3)))) {
-                            throw problem("Account changed elsewhere. Reload before saving.");
-                        }
-                    }
-                    if (!AdminAccountPolicy.role(oldRole)) {
-                        throw problem("This account role is not supported.");
-                    }
-                    if (AdminAccountPolicy.selfRestricted(actorId, a.getId(), a.getRole(), a.getStatus(), delete)) {
-                        throw problem("You cannot disable, change the role of, or delete your own administrator account.");
-                    }
-                    if ("admin".equals(oldRole) && "active".equals(oldStatus)
-                            && (delete || !"admin".equals(a.getRole()) || !"active".equals(a.getStatus()))
-                            && scalar(c, "SELECT COUNT(*) FROM [User] WITH (UPDLOCK,HOLDLOCK) WHERE [Role]='admin' AND AccountStatus='active'") <= 1) {
-                        throw problem("At least one active administrator is required.");
-                    }
-                }
-                if (delete) {
-                    if (scalar(c, "SELECT COUNT(*) FROM Booking b JOIN Customer x ON x.CustomerID=b.CustomerID WHERE x.UserID=?", a.getId()) > 0) {
-                        throw problem("Account has booking history. Use locked or inactive instead.");
-                    }
-                    execute(c, "DELETE FROM Customer WHERE UserID=?", a.getId());
-                    // Any additional FK (staff audit, payment, etc.) also prevents deletion.
-                    if (execute(c, "DELETE FROM [User] WHERE UserID=?", a.getId()) != 1) {
-                        throw new SQLException("Missing account during delete");
-                    }
-                } else {
-                    int except = create ? 0 : a.getId();
-                    if (scalar(c, "SELECT COUNT(*) FROM [User] WHERE UserID<>? AND (Email=? OR Username=?)", except, a.getEmail(), a.getEmail()) > 0) {
-                        throw problem("Email is already used by another account.");
-                    }
-                    if (create && scalar(c, "SELECT COUNT(*) FROM [User] WHERE Username=? OR Email=?", a.getUsername(), a.getUsername()) > 0) {
-                        throw problem("Username is already used by another account.");
-                    }
-                    if (create) {
-                        try (PreparedStatement ps = c.prepareStatement("INSERT INTO [User] (Username,[Password],[Role],DisplayName,AccountStatus,"
-                                + "Email,Phone,FirstName,LastName,Country,City,Street) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS)) {
-                            bind(ps, a.getUsername(), hash, a.getRole(), AdminAccountPolicy.displayName(a), a.getStatus(),
-                                    a.getEmail(), a.getPhone(), a.getFirstName(), a.getLastName(), a.getCountry(), a.getCity(), a.getStreet());
-                            if (ps.executeUpdate() != 1) {
-                                throw new SQLException("Account not created");
-                            }
-                            try (ResultSet keys = ps.getGeneratedKeys()) {
-                                if (!keys.next()) {
-                                    throw new SQLException("Missing UserID");
-                                }
-                                a.setId(keys.getInt(1));
-                            }
-                        }
-                    } else {
-                        execute(c, "UPDATE [User] SET [Role]=?,DisplayName=?,AccountStatus=?,Email=?,Phone=?,FirstName=?,LastName=?,Country=?,City=?,Street=? WHERE UserID=?",
-                                a.getRole(), AdminAccountPolicy.displayName(a), a.getStatus(), a.getEmail(), a.getPhone(), a.getFirstName(), a.getLastName(),
-                                a.getCountry(), a.getCity(), a.getStreet(), a.getId());
-                    }
-                    boolean hasCustomer = scalar(c, "SELECT COUNT(*) FROM Customer WHERE UserID=?", a.getId()) > 0;
-                    if (hasCustomer) {
-                        // Never delete/recreate Customer on role changes: CustomerID/history are stable.
-                        execute(c, "UPDATE Customer SET FirstName=?,LastName=?,Email=?,Phone=?,Country=?,City=?,Street=? WHERE UserID=?",
-                                a.getFirstName(), a.getLastName(), a.getEmail(), a.getPhone(), a.getCountry(), a.getCity(), a.getStreet(), a.getId());
-                    } else if ("customer".equals(a.getRole())) {
-                        execute(c, "INSERT INTO Customer (FirstName,LastName,Email,Phone,Country,City,Street,UserID) VALUES (?,?,?,?,?,?,?,?)",
-                                a.getFirstName(), a.getLastName(), a.getEmail(), a.getPhone(), a.getCountry(), a.getCity(), a.getStreet(), a.getId());
-                    }
-                }
+                T value = work.run(c);
                 c.commit();
-                return a.getId();
-            } catch (SQLException | AccountException | RuntimeException e) {
+                return value;
+            } catch (SQLException | Rejected | RuntimeException e) {
                 try {
                     c.rollback();
                 } catch (SQLException rollback) {
                     e.addSuppressed(rollback);
-                }
-                if (e instanceof SQLException) {
-                    int code = ((SQLException) e).getErrorCode();
-                    if (code == 2601 || code == 2627) {
-                        throw problem("Username or email is already in use.");
-                    }
-                    if (delete && code == 547) {
-                        throw problem("Account has history and cannot be deleted. Use locked or inactive.");
-                    }
                 }
                 throw e;
             }
         }
     }
 
-    private static AccountException problem(String message) {
-        return new AccountException(message);
-    }
-
-    private static PreparedStatement prepare(Connection c, String sql, Object... args) throws SQLException {
-        PreparedStatement ps = c.prepareStatement(sql);
-        try {
-            bind(ps, args);
-            return ps;
-        } catch (SQLException e) {
-            ps.close();
-            throw e;
+    private void requireAdmin(Connection c, int actor) throws SQLException, Rejected {
+        try (PreparedStatement s = c.prepareStatement("SELECT UserID FROM [User] WITH(UPDLOCK,HOLDLOCK) WHERE UserID=? AND Role='admin' AND AccountStatus='active'")) {
+            bind(s, actor);
+            try (ResultSet r = s.executeQuery()) {
+                if (!r.next()) {
+                    throw new Rejected("Quyền Administrator đã thay đổi. Hãy đăng nhập lại.");
+                }
+            }
         }
     }
 
-    private static void bind(PreparedStatement ps, Object... args) throws SQLException {
-        for (int i = 0; i < args.length; i++) {
-            ps.setObject(i + 1, args[i]);
+    private AdminAccount lock(Connection c, int id, String version) throws SQLException, Rejected {
+        try (PreparedStatement s = c.prepareStatement("SELECT UserID FROM [User] WITH(UPDLOCK,HOLDLOCK) WHERE UserID=?")) {
+            bind(s, id);
+            s.executeQuery().close();
         }
-    }
-
-    private static int scalar(Connection c, String sql, Object... args) throws SQLException {
-        try (PreparedStatement ps = prepare(c, sql, args); ResultSet rs = ps.executeQuery()) {
-            return rs.next() ? rs.getInt(1) : 0;
+        try (PreparedStatement s = c.prepareStatement("SELECT UserID FROM AccountContact WITH(UPDLOCK,HOLDLOCK) WHERE UserID=?")) {
+            bind(s, id);
+            s.executeQuery().close();
         }
-    }
-
-    private static int execute(Connection c, String sql, Object... args) throws SQLException {
-        try (PreparedStatement ps = prepare(c, sql, args)) {
-            return ps.executeUpdate();
+        AdminAccount a = find(c, id);
+        if (a == null || !AdminAccount.ROLES.contains(a.role)) {
+            throw new Rejected("Tài khoản không tồn tại hoặc ngoài phạm vi UC18.");
         }
-    }
-
-    /**
-     * SQL Server rowversion is eight binary bytes, never text in a character
-     * encoding.
-     */
-    private static String versionHex(byte[] bytes) throws SQLException {
-        if (bytes == null || bytes.length != 8) {
-            throw new SQLException("AccountVersion must contain exactly 8 bytes; check the UC18 schema");
+        if (version == null || !version.equals(a.version)) {
+            throw new Rejected("Dữ liệu đã thay đổi. Đóng form, tải lại và thử lại.");
         }
-        final String digits = "0123456789abcdef";
-        StringBuilder hex = new StringBuilder("0x");
-        for (byte value : bytes) {
-            int unsigned = value & 0xff;
-            hex.append(digits.charAt(unsigned >>> 4)).append(digits.charAt(unsigned & 15));
-        }
-        return hex.toString();
-    }
-
-    private static AdminAccount map(ResultSet r) throws SQLException {
-        AdminAccount a = new AdminAccount();
-        a.setId(r.getInt("UserID"));
-        a.setUsername(r.getString("Username"));
-        a.setDisplayName(r.getString("DisplayName"));
-        a.setRole(r.getString("Role"));
-        a.setStatus(r.getString("AccountStatus"));
-        a.setEmail(r.getString("Email"));
-        a.setPhone(r.getString("Phone"));
-        a.setFirstName(r.getString("FirstName"));
-        a.setLastName(r.getString("LastName"));
-        if (a.getFirstName() == null || a.getFirstName().isBlank()) {
-            a.setFirstName(a.getDisplayName());
-        }
-        a.setCountry(r.getString("Country"));
-        a.setCity(r.getString("City"));
-        a.setStreet(r.getString("Street"));
-        a.setVersion(versionHex(r.getBytes("VersionBytes")));
-        int customer = r.getInt("CustomerID");
-        a.setCustomerId(r.wasNull() ? null : customer);
-        a.setBookingCount(r.getInt("BookingCount"));
-        Timestamp created = r.getTimestamp("CreatedAt");
-        a.setCreatedAt(created == null ? null : created.toLocalDateTime());
         return a;
+    }
+
+    private void unique(Connection c, AdminAccount a) throws SQLException, Rejected {
+        String sql = "SELECT 1 FROM [User] u LEFT JOIN AccountContact p ON p.UserID=u.UserID WHERE u.UserID<>? AND (u.Username=? OR p.Email=? OR u.Username=? OR p.Email=?)";
+        try (PreparedStatement s = c.prepareStatement(sql)) {
+            bind(s, a.id, a.username, a.email, a.email, a.username);
+            try (ResultSet r = s.executeQuery()) {
+                if (r.next()) {
+                    throw new Rejected("Username hoặc Email đã được gán cho tài khoản khác.");
+                }
+            }
+        }
+    }
+
+    public int create(int actor, AdminAccount a, String hash) throws SQLException, Rejected {
+        if (!a.validate(true).isEmpty()) {
+            throw new Rejected("Thông tin tài khoản không hợp lệ.");
+        }
+        return transaction(c -> {
+            requireAdmin(c, actor);
+            unique(c, a);
+            int id;
+            try (PreparedStatement s = c.prepareStatement("SET NOCOUNT ON; DECLARE @ids TABLE(UserID INT); INSERT [User](Username,[Password],Role,DisplayName,AccountStatus) OUTPUT INSERTED.UserID INTO @ids VALUES(?,?,?,?,'active'); SELECT UserID FROM @ids;")) {
+                bind(s, a.username, hash, a.role, a.lastName + " " + a.firstName);
+                try (ResultSet r = s.executeQuery()) {
+                    r.next();
+                    id = r.getInt(1);
+                }
+            }
+            execute(c, "INSERT AccountContact(UserID,FirstName,LastName,Email,Phone,Country,City,Street) VALUES(?,?,?,?,?,?,?,?)", id, a.firstName, a.lastName, a.email, a.phone, a.country, a.city, a.street);
+            if ("customer".equals(a.role)) {
+                ensureCustomer(c, id, a);
+            }
+            return id;
+        });
+    }
+
+    private void ensureCustomer(Connection c, int id, AdminAccount a) throws SQLException {
+        execute(c, "IF NOT EXISTS(SELECT 1 FROM Customer WHERE UserID=?) INSERT Customer(UserID,FirstName,LastName,Email,Phone,Country,City,Street) VALUES(?,?,?,?,?,?,?,?)", id, id, a.firstName, a.lastName, a.email, a.phone, a.country, a.city, a.street);
+    }
+
+    public void update(int actor, AdminAccount a) throws SQLException, Rejected {
+        if (!a.validate(false).isEmpty()) {
+            throw new Rejected("Thông tin tài khoản không hợp lệ.");
+        }
+        transaction(c -> {
+            requireAdmin(c, actor);
+            AdminAccount old = lock(c, a.id, a.version);
+            a.username = old.username;
+            if (actor == a.id && (!"admin".equals(a.role) || !"active".equals(a.status))) {
+                throw new Rejected("Không thể tự khóa, vô hiệu hóa hoặc hạ quyền tài khoản đang đăng nhập.");
+            }
+            unique(c, a);
+            execute(c, "UPDATE [User] SET DisplayName=?,Role=?,AccountStatus=? WHERE UserID=?", a.lastName + " " + a.firstName, a.role, a.status, a.id);
+            execute(c, "UPDATE AccountContact SET FirstName=?,LastName=?,Email=?,Phone=?,Country=?,City=?,Street=? WHERE UserID=?", a.firstName, a.lastName, a.email, a.phone, a.country, a.city, a.street, a.id);
+            if ("customer".equals(a.role)) {
+                ensureCustomer(c, a.id, a);
+            }
+            // Preserve CustomerID and history even when the account leaves the customer role.
+            execute(c, "UPDATE Customer SET FirstName=?,LastName=?,Email=?,Phone=?,Country=?,City=?,Street=? WHERE UserID=?", a.firstName, a.lastName, a.email, a.phone, a.country, a.city, a.street, a.id);
+            return null;
+        });
+    }
+
+    public void toggle(int actor, int id, String version) throws SQLException, Rejected {
+        transaction(c -> {
+            requireAdmin(c, actor);
+            AdminAccount a = lock(c, id, version);
+            if (actor == id) {
+                throw new Rejected("Không thể tự khóa tài khoản đang đăng nhập.");
+            }
+            if ("inactive".equals(a.status)) {
+                throw new Rejected("Tài khoản Inactive: dùng Edit để chọn trạng thái rõ ràng.");
+            }
+            execute(c, "UPDATE [User] SET AccountStatus=? WHERE UserID=?", "locked".equals(a.status) ? "active" : "locked", id);
+            return null;
+        });
+    }
+
+    public AdminAccount resetInitialPassword(int actor, int id, String version, String hash) throws SQLException, Rejected {
+        return transaction(c -> {
+            requireAdmin(c, actor);
+            AdminAccount a = lock(c, id, version);
+            if (actor == id) {
+                throw new Rejected("Dùng Change Password cho tài khoản của bạn.");
+            }
+            if (a.email.isBlank()) {
+                throw new Rejected("Cần cập nhật Email trước.");
+            }
+            execute(c, "UPDATE [User] SET [Password]=? WHERE UserID=?", hash, id);
+            return a;
+        });
+    }
+
+    public void delete(int actor, int id, String version) throws SQLException, Rejected {
+        transaction(c -> {
+            requireAdmin(c, actor);
+            AdminAccount a = lock(c, id, version);
+            if (actor == id) {
+                throw new Rejected("Không thể tự xóa tài khoản đang đăng nhập.");
+            }
+            if (a.hasHistory) {
+                throw new Rejected("Tài khoản có lịch sử giao dịch. Hãy chọn Locked hoặc Inactive.");
+            }
+            // SERIALIZABLE + FK checks prevent a booking inserted concurrently from being orphaned.
+            execute(c, "DELETE Customer WHERE UserID=?", id);
+            execute(c, "DELETE AccountContact WHERE UserID=?", id);
+            execute(c, "DELETE [User] WHERE UserID=?", id);
+            return null;
+        });
     }
 }

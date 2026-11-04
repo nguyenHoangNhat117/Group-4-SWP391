@@ -26,11 +26,11 @@ public class CustomerDAO extends DBContext {
      */
     public List<Customer> getAll() {
 
-        List<Customer> customers =
-                new ArrayList<>();
+        List<Customer> customers
+                = new ArrayList<>();
 
-        String sql =
-                "SELECT "
+        String sql
+                = "SELECT "
                 + "c.CustomerID, "
                 + "c.FirstName, "
                 + "c.LastName, "
@@ -52,11 +52,9 @@ public class CustomerDAO extends DBContext {
                 + "ON u.UserID = c.UserID "
                 + "ORDER BY c.CustomerID DESC";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql);
-             ResultSet rs =
-                     ps.executeQuery()) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql); ResultSet rs
+                = ps.executeQuery()) {
 
             while (rs.next()) {
 
@@ -82,8 +80,8 @@ public class CustomerDAO extends DBContext {
     public Customer getCustomerByUserID(
             int userID) {
 
-        String sql =
-                "SELECT "
+        String sql
+                = "SELECT "
                 + "c.CustomerID, "
                 + "c.FirstName, "
                 + "c.LastName, "
@@ -105,17 +103,16 @@ public class CustomerDAO extends DBContext {
                 + "ON u.UserID = c.UserID "
                 + "WHERE c.UserID = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
                     userID
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 if (rs.next()) {
 
@@ -140,8 +137,8 @@ public class CustomerDAO extends DBContext {
     public Customer getCustomerById(
             int customerId) {
 
-        String sql =
-                "SELECT "
+        String sql
+                = "SELECT "
                 + "c.CustomerID, "
                 + "c.FirstName, "
                 + "c.LastName, "
@@ -163,17 +160,16 @@ public class CustomerDAO extends DBContext {
                 + "ON u.UserID = c.UserID "
                 + "WHERE c.CustomerID = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setInt(
                     1,
                     customerId
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 if (rs.next()) {
 
@@ -208,8 +204,8 @@ public class CustomerDAO extends DBContext {
             int page,
             int pageSize) {
 
-        List<Customer> customers =
-                new ArrayList<>();
+        List<Customer> customers
+                = new ArrayList<>();
 
         if (page < 1) {
             page = 1;
@@ -219,8 +215,8 @@ public class CustomerDAO extends DBContext {
             pageSize = 10;
         }
 
-        StringBuilder sql =
-                new StringBuilder();
+        StringBuilder sql
+                = new StringBuilder();
 
         sql.append(
                 "SELECT "
@@ -243,15 +239,15 @@ public class CustomerDAO extends DBContext {
                 + "FROM Customer c "
                 + "JOIN [User] u "
                 + "ON u.UserID = c.UserID "
-                + "WHERE 1 = 1 "
+                + "WHERE u.[Role] = 'customer' "
         );
 
-        boolean hasKeyword =
-                keyword != null
+        boolean hasKeyword
+                = keyword != null
                 && !keyword.trim().isEmpty();
 
-        boolean hasStatus =
-                isValidAccountStatus(
+        boolean hasStatus
+                = isValidAccountStatus(
                         accountStatus
                 );
 
@@ -287,18 +283,17 @@ public class CustomerDAO extends DBContext {
                 + "FETCH NEXT ? ROWS ONLY"
         );
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(
-                             sql.toString()
-                     )) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(
+                        sql.toString()
+                )) {
 
             int parameterIndex = 1;
 
             if (hasKeyword) {
 
-                String search =
-                        "%"
+                String search
+                        = "%"
                         + keyword.trim()
                         + "%";
 
@@ -331,8 +326,8 @@ public class CustomerDAO extends DBContext {
                     pageSize
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 while (rs.next()) {
 
@@ -358,23 +353,23 @@ public class CustomerDAO extends DBContext {
             String keyword,
             String accountStatus) {
 
-        StringBuilder sql =
-                new StringBuilder();
+        StringBuilder sql
+                = new StringBuilder();
 
         sql.append(
                 "SELECT COUNT(*) AS Total "
                 + "FROM Customer c "
                 + "JOIN [User] u "
                 + "ON u.UserID = c.UserID "
-                + "WHERE 1 = 1 "
+                + "WHERE u.[Role] = 'customer' "
         );
 
-        boolean hasKeyword =
-                keyword != null
+        boolean hasKeyword
+                = keyword != null
                 && !keyword.trim().isEmpty();
 
-        boolean hasStatus =
-                isValidAccountStatus(
+        boolean hasStatus
+                = isValidAccountStatus(
                         accountStatus
                 );
 
@@ -404,18 +399,17 @@ public class CustomerDAO extends DBContext {
             );
         }
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(
-                             sql.toString()
-                     )) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(
+                        sql.toString()
+                )) {
 
             int parameterIndex = 1;
 
             if (hasKeyword) {
 
-                String search =
-                        "%"
+                String search
+                        = "%"
                         + keyword.trim()
                         + "%";
 
@@ -438,8 +432,8 @@ public class CustomerDAO extends DBContext {
                 );
             }
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 if (rs.next()) {
 
@@ -473,8 +467,8 @@ public class CustomerDAO extends DBContext {
             return false;
         }
 
-        String sql =
-                "UPDATE u "
+        String sql
+                = "UPDATE u "
                 + "SET u.AccountStatus = ? "
                 + "FROM [User] u "
                 + "JOIN Customer c "
@@ -482,9 +476,8 @@ public class CustomerDAO extends DBContext {
                 + "WHERE c.CustomerID = ? "
                 + "AND u.[Role] = 'customer'";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setString(
                     1,
@@ -527,14 +520,13 @@ public class CustomerDAO extends DBContext {
             return false;
         }
 
-        String sql =
-                "UPDATE Customer SET "
+        String sql
+                = "UPDATE Customer SET "
                 + "FirstName = ?, LastName = ?, Email = ?, Phone = ?, "
                 + "Country = ?, City = ?, Street = ? "
-                + "WHERE CustomerID = ?";
+                + "WHERE CustomerID = ? AND EXISTS (SELECT 1 FROM [User] u WHERE u.UserID = Customer.UserID AND u.Role = 'customer')";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, emptyToNull(firstName));
             ps.setString(2, emptyToNull(lastName));
@@ -570,8 +562,8 @@ public class CustomerDAO extends DBContext {
             String city,
             String street) {
 
-        String sql =
-                "UPDATE Customer "
+        String sql
+                = "UPDATE Customer "
                 + "SET "
                 + "FirstName = ?, "
                 + "LastName = ?, "
@@ -582,9 +574,8 @@ public class CustomerDAO extends DBContext {
                 + "Street = ? "
                 + "WHERE UserID = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setString(
                     1,
@@ -649,8 +640,8 @@ public class CustomerDAO extends DBContext {
             return;
         }
 
-        String sql =
-                "UPDATE Customer "
+        String sql
+                = "UPDATE Customer "
                 + "SET "
                 + "FirstName = ?, "
                 + "LastName = ?, "
@@ -662,9 +653,8 @@ public class CustomerDAO extends DBContext {
                 + "Avatar = ? "
                 + "WHERE UserID = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setString(
                     1,
@@ -751,15 +741,14 @@ public class CustomerDAO extends DBContext {
             return false;
         }
 
-        String sql =
-                "SELECT 1 "
+        String sql
+                = "SELECT 1 "
                 + "FROM Customer "
                 + "WHERE Email = ? "
                 + "AND CustomerID <> ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             ps.setString(
                     1,
@@ -771,8 +760,8 @@ public class CustomerDAO extends DBContext {
                     customerId
             );
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
+            try (ResultSet rs
+                    = ps.executeQuery()) {
 
                 return rs.next();
             }
@@ -793,8 +782,8 @@ public class CustomerDAO extends DBContext {
             ResultSet rs)
             throws SQLException {
 
-        User user =
-                new User();
+        User user
+                = new User();
 
         user.setId(
                 rs.getInt(
@@ -842,8 +831,8 @@ public class CustomerDAO extends DBContext {
             );
         }
 
-        Customer customer =
-                new Customer();
+        Customer customer
+                = new Customer();
 
         customer.setCustomerID(
                 rs.getInt(

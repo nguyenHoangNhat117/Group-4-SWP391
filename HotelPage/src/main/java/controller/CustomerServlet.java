@@ -1,5 +1,7 @@
 package controller;
 
+import util.AuthSupport;
+
 import dao.CustomerDAO;
 
 import jakarta.servlet.ServletException;
@@ -46,8 +48,8 @@ public class CustomerServlet
          * Filter already protects /customers,
          * but servlet checks role again.
          */
-        User user =
-                getAuthorizedUser(
+        User user
+                = getAuthorizedUser(
                         request
                 );
 
@@ -60,8 +62,8 @@ public class CustomerServlet
             return;
         }
 
-        String view =
-                request.getParameter(
+        String view
+                = request.getParameter(
                         "view"
                 );
 
@@ -109,22 +111,22 @@ public class CustomerServlet
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        CustomerDAO customerDAO =
-                new CustomerDAO();
+        CustomerDAO customerDAO
+                = new CustomerDAO();
 
-        String keyword =
-                request.getParameter(
+        String keyword
+                = request.getParameter(
                         "keyword"
                 );
 
         if (keyword != null) {
 
-            keyword =
-                    keyword.trim();
+            keyword
+                    = keyword.trim();
         }
 
-        String status =
-                request.getParameter(
+        String status
+                = request.getParameter(
                         "status"
                 );
 
@@ -134,22 +136,22 @@ public class CustomerServlet
             status = null;
         }
 
-        int currentPage =
-                parsePositiveInt(
+        int currentPage
+                = parsePositiveInt(
                         request.getParameter(
                                 "page-index"
                         ),
                         1
                 );
 
-        int totalCustomers =
-                customerDAO.countCustomers(
+        int totalCustomers
+                = customerDAO.countCustomers(
                         keyword,
                         status
                 );
 
-        int totalPages =
-                totalCustomers == 0
+        int totalPages
+                = totalCustomers == 0
                         ? 0
                         : (int) Math.ceil(
                                 totalCustomers
@@ -159,12 +161,12 @@ public class CustomerServlet
         if (totalPages > 0
                 && currentPage > totalPages) {
 
-            currentPage =
-                    totalPages;
+            currentPage
+                    = totalPages;
         }
 
-        List<Customer> customers =
-                customerDAO.searchCustomers(
+        List<Customer> customers
+                = customerDAO.searchCustomers(
                         keyword,
                         status,
                         currentPage,
@@ -216,8 +218,8 @@ public class CustomerServlet
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        Integer customerId =
-                parseId(
+        Integer customerId
+                = parseId(
                         request.getParameter(
                                 "id"
                         )
@@ -232,15 +234,16 @@ public class CustomerServlet
             return;
         }
 
-        CustomerDAO customerDAO =
-                new CustomerDAO();
+        CustomerDAO customerDAO
+                = new CustomerDAO();
 
-        Customer customer =
-                customerDAO.getCustomerById(
+        Customer customer
+                = customerDAO.getCustomerById(
                         customerId
                 );
 
-        if (customer == null) {
+        if (customer == null || customer.getUser() == null
+                || !"customer".equals(customer.getUser().getRole())) {
 
             response.sendError(
                     HttpServletResponse.SC_NOT_FOUND
@@ -276,8 +279,8 @@ public class CustomerServlet
                 "UTF-8"
         );
 
-        User user =
-                getAuthorizedUser(
+        User user
+                = getAuthorizedUser(
                         request
                 );
 
@@ -290,8 +293,12 @@ public class CustomerServlet
             return;
         }
 
-        String action =
-                request.getParameter(
+        if (!AuthSupport.checkCsrf(request, response)) {
+            return;
+        }
+
+        String action
+                = request.getParameter(
                         "action"
                 );
 
@@ -305,21 +312,21 @@ public class CustomerServlet
             return;
         }
 
-        Integer customerId =
-                parseId(
+        Integer customerId
+                = parseId(
                         request.getParameter(
                                 "customer-id"
                         )
                 );
 
-        String accountStatus =
-                request.getParameter(
+        String accountStatus
+                = request.getParameter(
                         "account-status"
                 );
 
         if (customerId == null
                 || ("update-status".equals(action)
-                    && !isValidAccountStatus(accountStatus))) {
+                && !isValidAccountStatus(accountStatus))) {
 
             response.sendRedirect(
                     request.getContextPath()
@@ -330,18 +337,19 @@ public class CustomerServlet
             return;
         }
 
-        CustomerDAO customerDAO =
-                new CustomerDAO();
+        CustomerDAO customerDAO
+                = new CustomerDAO();
 
         /*
          * Ensure selected customer exists.
          */
-        Customer customer =
-                customerDAO.getCustomerById(
+        Customer customer
+                = customerDAO.getCustomerById(
                         customerId
                 );
 
-        if (customer == null) {
+        if (customer == null || customer.getUser() == null
+                || !"customer".equals(customer.getUser().getRole())) {
 
             response.sendRedirect(
                     request.getContextPath()
@@ -391,14 +399,14 @@ public class CustomerServlet
                     + "/customers?view=detail&id="
                     + customerId
                     + (infoUpdated
-                        ? "&message=info-updated"
-                        : "&message=info-update-failed")
+                            ? "&message=info-updated"
+                            : "&message=info-update-failed")
             );
             return;
         }
 
-        boolean updated =
-                customerDAO.updateAccountStatus(
+        boolean updated
+                = customerDAO.updateAccountStatus(
                         customerId,
                         accountStatus
                 );
@@ -438,16 +446,16 @@ public class CustomerServlet
     private User getAuthorizedUser(
             HttpServletRequest request) {
 
-        HttpSession session =
-                request.getSession(false);
+        HttpSession session
+                = request.getSession(false);
 
         if (session == null) {
 
             return null;
         }
 
-        User user =
-                (User) session.getAttribute(
+        User user
+                = (User) session.getAttribute(
                         "loggedUser"
                 );
 
@@ -457,13 +465,14 @@ public class CustomerServlet
         }
 
         if (!"staff".equalsIgnoreCase(
-                    user.getRole())
+                user.getRole())
                 && !"admin".equalsIgnoreCase(
-                    user.getRole())) {
+                        user.getRole())) {
 
             return null;
         }
 
+        AuthSupport.token(session);
         return user;
     }
 
@@ -483,8 +492,8 @@ public class CustomerServlet
 
         try {
 
-            int id =
-                    Integer.parseInt(
+            int id
+                    = Integer.parseInt(
                             raw.trim()
                     );
 
@@ -510,8 +519,8 @@ public class CustomerServlet
 
         try {
 
-            int value =
-                    Integer.parseInt(
+            int value
+                    = Integer.parseInt(
                             raw.trim()
                     );
 

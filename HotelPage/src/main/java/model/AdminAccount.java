@@ -1,152 +1,69 @@
 package model;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.*;
+import util.AuthSupport;
+
 /**
- * UC18 view model. Never contains password hashes or plaintext passwords.
+ * View model for UC18. Never includes password hashes.
  */
 public class AdminAccount {
 
-    private int id;
-    private String username;
-    private String displayName;
-    private String role;
-    private String status;
-    private String email;
-    private String phone;
-    private String firstName;
-    private String lastName;
-    private String country;
-    private String city;
-    private String street;
-    private String version;
-    private Integer customerId;
-    private int bookingCount;
-    private java.time.LocalDateTime createdAt;
+    public int id, customerId;
+    public String username = "", role = "customer", status = "active", displayName = "";
+    public String firstName = "", lastName = "", email = "", phone = "", country = "", city = "", street = "", version = "";
+    public boolean hasHistory;
+    public LocalDateTime createdAt;
+    public static final List<String> ROLES = Collections.unmodifiableList(Arrays.asList("customer", "staff", "manager", "admin"));
+    public static final List<String> STATUSES = Collections.unmodifiableList(Arrays.asList("active", "locked", "inactive"));
 
-    public int getId() {
-        return id;
+    public Map<String, String> validate(boolean creating) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        if (creating && (!AuthSupport.validUsername(username) || username.contains("@"))) {
+            errors.put("username", "Username: 3–50 ký tự, không chứa @ hoặc ký tự điều khiển.");
+        }
+        if (!AuthSupport.validEmail(email)) {
+            errors.put("email", "Email không hợp lệ hoặc vượt 100 ký tự.");
+        }
+        if (!AuthSupport.validPhone(phone)) {
+            errors.put("phone", "Số điện thoại cần 10–11 chữ số.");
+        }
+        if (!validName(firstName) || !validName(lastName) || (lastName + " " + firstName).length() > 100) {
+            errors.put("name", "Họ và tên bắt buộc, mỗi phần tối đa 50 ký tự, tổng tối đa 100.");
+        }
+        if (!ROLES.contains(role)) {
+            errors.put("role", "Role không hợp lệ.");
+        }
+        if (!STATUSES.contains(status) || (creating && !"active".equals(status))) {
+            errors.put("status", "Status không hợp lệ.");
+        }
+        if (!bounded(country, 50) || !bounded(city, 50) || !bounded(street, 100)) {
+            errors.put("address", "Địa chỉ vượt giới hạn hoặc có ký tự điều khiển.");
+        }
+        return errors;
     }
 
-    public void setId(int value) {
-        id = value;
+    private boolean validName(String value) {
+        return !value.isBlank() && bounded(value, 50);
     }
 
-    public String getUsername() {
-        return username;
+    private boolean bounded(String value, int max) {
+        return value != null && value.length() <= max && value.chars().noneMatch(Character::isISOControl);
     }
 
-    public void setUsername(String value) {
-        username = value;
+    public static class BookingRow {
+
+        public int id;
+        public String status;
+        public BigDecimal total;
+        public LocalDateTime date;
     }
 
-    public String getDisplayName() {
-        return displayName;
-    }
+    public static class Page {
 
-    public void setDisplayName(String value) {
-        displayName = value;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String value) {
-        role = value;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String value) {
-        status = value;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String value) {
-        email = value;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String value) {
-        phone = value;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String value) {
-        firstName = value;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String value) {
-        lastName = value;
-    }
-
-    public String getCountry() {
-        return country;
-    }
-
-    public void setCountry(String value) {
-        country = value;
-    }
-
-    public String getCity() {
-        return city;
-    }
-
-    public void setCity(String value) {
-        city = value;
-    }
-
-    public String getStreet() {
-        return street;
-    }
-
-    public void setStreet(String value) {
-        street = value;
-    }
-
-    public String getVersion() {
-        return version;
-    }
-
-    public void setVersion(String value) {
-        version = value;
-    }
-
-    public Integer getCustomerId() {
-        return customerId;
-    }
-
-    public void setCustomerId(Integer value) {
-        customerId = value;
-    }
-
-    public int getBookingCount() {
-        return bookingCount;
-    }
-
-    public void setBookingCount(int value) {
-        bookingCount = value;
-    }
-
-    public java.time.LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(java.time.LocalDateTime value) {
-        createdAt = value;
+        public List<AdminAccount> rows = new ArrayList<>();
+        public int total, page, pages;
+        public int active, locked, inactive;
     }
 }

@@ -140,8 +140,8 @@ public class UserDAO extends DBContext {
         String sql
                 = "SELECT u.* "
                 + "FROM [User] u "
-                + "LEFT JOIN Customer c ON c.UserID = u.UserID "
-                + "WHERE u.Username = ? OR u.Email = ?";
+                + "LEFT JOIN AccountContact c ON c.UserID = u.UserID "
+                + "WHERE u.Username = ? OR c.Email = ?";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -204,7 +204,7 @@ public class UserDAO extends DBContext {
             return false;
         }
 
-        // Keep the existing MD5 implementation.
+        // PBKDF2 for new passwords; PasswordUtil.verify accepts legacy MD5.
         String hash = PasswordUtil.hash(password);
 
         String insertUser
@@ -283,14 +283,14 @@ public class UserDAO extends DBContext {
 
     public boolean isUsernameExists(String username) {
         return exists(
-                "SELECT 1 FROM [User] WHERE ? IN (Username, Email)",
+                "SELECT 1 FROM [User] WHERE Username = ?",
                 username
         );
     }
 
     public boolean checkEmailExists(String email) {
         return exists(
-                "SELECT 1 FROM [User] WHERE ? IN (Username, Email)",
+                "SELECT 1 FROM AccountContact WHERE Email = ?",
                 email
         );
     }
