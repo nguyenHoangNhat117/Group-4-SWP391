@@ -218,30 +218,20 @@ public class LoginServlet extends HttpServlet {
         );
 
         String target = "/";
-
         if ("customer".equalsIgnoreCase(user.getRole())) {
             Object pending = session.getAttribute("pendingBookingUrl");
-
-            // Only allow the existing internal booking URL format.
-            if (pending instanceof String
-                    && ((String) pending).matches(
-                            "/booking\\?roomNumber=[0-9]+"
-                    )) {
+            if (pending instanceof String && ((String) pending).matches("/(booking|details)\\?roomNumber=[0-9]+")) {
                 target = (String) pending;
             }
-
         } else if ("staff".equalsIgnoreCase(user.getRole())) {
             target = "/customers";
-
         } else if ("admin".equalsIgnoreCase(user.getRole())) {
             target = "/room";
-
         } else if ("manager".equalsIgnoreCase(user.getRole())) {
             target = "/dashboard";
         }
 
         session.removeAttribute("pendingBookingUrl");
-
         res.sendRedirect(req.getContextPath() + target);
     }
 

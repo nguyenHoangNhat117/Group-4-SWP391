@@ -404,11 +404,6 @@
                                                 </div>
 
                                                 <div class="d-flex gap-2">
-                                                    <!-- Trigger UC07 View Room Details (Alternative Flow 6a) -->
-                                                    <a href="${pageContext.request.contextPath}/details?roomNumber=${room.roomNumber}"
-                                                       class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold">
-                                                        Details
-                                                    </a>
                                                     <c:if test="${empty sessionScope.loggedUser || sessionScope.loggedUser.role == 'customer'}">
                                                         <a href="./booking?roomNumber=${room.roomNumber}" class="btn btn-book text-decoration-none">
                                                             Book Now
