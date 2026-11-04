@@ -45,6 +45,11 @@ public class BookingServlet extends HttpServlet {
 
         if (session == null
                 || !(session.getAttribute("loggedUser") instanceof User)) {
+            HttpSession guestSession = request.getSession(true);
+            if (roomNumberParam != null && roomNumberParam.trim().matches("[0-9]+")) {
+                // CHỈNH SỬA TẠI ĐÂY: Ép buộc lưu đường dẫn là /details thay vì /booking
+                guestSession.setAttribute("pendingBookingUrl", "/details?roomNumber=" + roomNumberParam.trim());
+            }
             response.sendRedirect(
                     request.getContextPath() + "/login"
             );
@@ -175,6 +180,16 @@ public class BookingServlet extends HttpServlet {
         if (session == null
                 || session.getAttribute("loggedUser") == null
                 || session.getAttribute("customer") == null) {
+
+            // Bắt đầu thêm phần lưu pendingBookingUrl
+            HttpSession guestSession = request.getSession(true);
+            // Lưu ý: Parameter trong doPost là "room-number" theo input của form
+            String roomNumberParam = request.getParameter("room-number");
+
+            if (roomNumberParam != null && roomNumberParam.trim().matches("[0-9]+")) {
+                guestSession.setAttribute("pendingBookingUrl", "/details?roomNumber=" + roomNumberParam.trim());
+            }
+            // Kết thúc phần thêm mới
 
             response.sendRedirect(
                     request.getContextPath()
@@ -492,8 +507,8 @@ public class BookingServlet extends HttpServlet {
 
         // Keep the customer's selection for the first payment of this booking.
         // The payment page and servlet do not trust a modifiable URL percentage.
-        java.util.Map<Integer, Integer> initialChoices =
-                (java.util.Map<Integer, Integer>) session.getAttribute("bookingInitialChoices");
+        java.util.Map<Integer, Integer> initialChoices
+                = (java.util.Map<Integer, Integer>) session.getAttribute("bookingInitialChoices");
         if (initialChoices == null) {
             initialChoices = new java.util.HashMap<>();
             session.setAttribute("bookingInitialChoices", initialChoices);

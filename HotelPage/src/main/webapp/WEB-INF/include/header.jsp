@@ -108,15 +108,6 @@
                     </li>
                 </c:when>
 
-                <%-- Preserve the existing IT Support menu. --%>
-                <c:when test="${sessionScope.loggedUser.role == 'it_support'}">
-                    <li>
-                        <a href="${pageContext.request.contextPath}/">
-                            Home
-                        </a>
-                    </li>
-                </c:when>
-
                 <%-- Guest navigation. --%>
                 <c:otherwise>
                     <li>
@@ -127,6 +118,11 @@
                     <li>
                         <a href="${pageContext.request.contextPath}/#restaurant">
                             Restaurant
+                        </a>
+                    </li>
+                    <li>
+                        <a href="${pageContext.request.contextPath}/booking">
+                            Booking
                         </a>
                     </li>
                     <li>

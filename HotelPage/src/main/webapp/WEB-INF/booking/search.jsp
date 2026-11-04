@@ -190,6 +190,14 @@
                             </div>
                         </c:if>
 
+                        <c:if test="${param.error == 'room-unavailable'}">
+                            <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                The requested room is no longer available.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        </c:if>
+
                         <form method="post" action="<%= request.getContextPath()%>/room?action=search">
                             <input type="hidden" name="source" value="search">
                             <div class="row g-3 align-items-end">
