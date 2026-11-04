@@ -43,8 +43,11 @@ public class BookingServlet extends HttpServlet {
             return;
         }
 
-        if (session == null
-                || !(session.getAttribute("loggedUser") instanceof User)) {
+        if (session == null | !(session.getAttribute("loggedUser") instanceof User)) {
+            HttpSession guestSession = request.getSession(true);
+            if (roomNumberParam != null && roomNumberParam.trim().matches("[0-9]+")) {
+                guestSession.setAttribute("pendingBookingUrl", "/details?roomNumber=" + roomNumberParam.trim());
+            }
             response.sendRedirect(
                     request.getContextPath() + "/login"
             );
@@ -492,8 +495,8 @@ public class BookingServlet extends HttpServlet {
 
         // Keep the customer's selection for the first payment of this booking.
         // The payment page and servlet do not trust a modifiable URL percentage.
-        java.util.Map<Integer, Integer> initialChoices =
-                (java.util.Map<Integer, Integer>) session.getAttribute("bookingInitialChoices");
+        java.util.Map<Integer, Integer> initialChoices
+                = (java.util.Map<Integer, Integer>) session.getAttribute("bookingInitialChoices");
         if (initialChoices == null) {
             initialChoices = new java.util.HashMap<>();
             session.setAttribute("bookingInitialChoices", initialChoices);

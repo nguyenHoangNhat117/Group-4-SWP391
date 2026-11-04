@@ -1039,4 +1039,36 @@ public class RoomDAO extends DBContext {
                 roomType
         );
     }
+
+    /*
+     * =========================================================
+     * 8A. CHECK IF ROOM EXISTS AND ITS ROOM TYPE IS ACTIVE (UC07)
+     *
+     * Exception 2a: Room must exist and its RoomType must not be
+     * deactivated by an Administrator.
+     * =========================================================
+     */
+    public boolean isRoomViewable(int roomNumber) {
+
+        String sql
+                = "SELECT 1 "
+                + "FROM Room r "
+                + "JOIN RoomType rt ON rt.RoomTypeID = r.RoomTypeID "
+                + "WHERE r.RoomNumber = ? "
+                + "AND rt.IsActive = 1";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, roomNumber);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+
+        } catch (SQLException ex) {
+            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return false;
+    }
 }
