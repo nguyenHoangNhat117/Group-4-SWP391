@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%-- 
     Document   : update
     Created on : May 26, 2025, 9:46:21 AM
@@ -16,7 +17,7 @@
             http-equiv="Content-Type"
             content="text/html; charset=UTF-8">
 
-        <title>Update Room</title>
+        <title data-i18n="screen.28dd027503c97963">${requestScope.i18n['screen.28dd027503c97963']}</title>
 
         <link
             href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
@@ -47,8 +48,7 @@
 
                         <p class="alert alert-danger text-center">
 
-                            Missing parameters in the form.
-                            Please try again.
+                            <ui:text key="screen.9eca9b88d5fc8dff"/>
 
                         </p>
 
@@ -58,8 +58,7 @@
 
                         <p class="alert alert-danger text-center">
 
-                            The selected room does not exist.
-                            Please try again.
+                            <ui:text key="screen.3fdba5bec2f36527"/>
 
                         </p>
 
@@ -69,8 +68,7 @@
 
                         <p class="alert alert-danger text-center">
 
-                            Invalid room number.
-                            Please try again.
+                            <ui:text key="screen.c3aca855791617f8"/>
 
                         </p>
 
@@ -80,8 +78,7 @@
 
                         <p class="alert alert-danger text-center">
 
-                            Invalid room status.
-                            Please try again.
+                            <ui:text key="screen.3e84be96fde86c7f"/>
 
                         </p>
 
@@ -91,8 +88,7 @@
 
                         <p class="alert alert-danger text-center">
 
-                            Invalid room type.
-                            Please try again.
+                            <ui:text key="screen.cb5b07a14e46aec9"/>
 
                         </p>
 
@@ -102,8 +98,7 @@
 
                         <p class="alert alert-danger text-center">
 
-                            Room could not be updated.
-                            Please try again.
+                            <ui:text key="screen.7a6796bf186f2fdc"/>
 
                         </p>
 
@@ -121,7 +116,7 @@
                         class="d-flex flex-column">
 
                         <h2 class="mb-4 text-center">
-                            Room Update
+                            <ui:text key="screen.9181744d5adbd775"/>
                         </h2>
 
                         <!-- Room Number -->
@@ -131,7 +126,7 @@
                                 for="room-number"
                                 class="form-label fs-5 fw-semibold">
 
-                                Room Number
+                                <ui:text key="screen.f91ba3e6d86ddac0"/>
 
                             </label>
 
@@ -164,7 +159,7 @@
                                 for="status"
                                 class="form-label fs-5 fw-semibold">
 
-                                Status
+                                <ui:text key="screen.920e413c7d411b61"/>
 
                             </label>
 
@@ -178,9 +173,9 @@
                                     value="available"
                                     ${requestScope.room.status == 'available'
                                       ? 'selected'
-                                      : ''}>
+                                      : ''} data-i18n="screen.e674447337e83c13">
 
-                                    Available
+                                    ${requestScope.i18n['screen.e674447337e83c13']}
 
                                 </option>
 
@@ -188,9 +183,9 @@
                                     value="maintenance"
                                     ${requestScope.room.status == 'maintenance'
                                       ? 'selected'
-                                      : ''}>
+                                      : ''} data-i18n="screen.17ccfa5b681e3e7b">
 
-                                    Maintenance
+                                    ${requestScope.i18n['screen.17ccfa5b681e3e7b']}
 
                                 </option>
 
@@ -198,9 +193,9 @@
                                     value="out_of_service"
                                     ${requestScope.room.status == 'out_of_service'
                                       ? 'selected'
-                                      : ''}>
+                                      : ''} data-i18n="screen.3cd4b662003a9db7">
 
-                                    Out of Service
+                                    ${requestScope.i18n['screen.3cd4b662003a9db7']}
 
                                 </option>
 
@@ -215,7 +210,7 @@
                                 for="room-type"
                                 class="form-label fs-5 fw-semibold">
 
-                                Room Type
+                                <ui:text key="screen.82dea9a01c0033ec"/>
 
                             </label>
 
@@ -256,7 +251,7 @@
                                 class="btn btn-primary
                                        fs-5 px-4 rounded-3">
 
-                                Update
+                                <ui:text key="screen.c1c1009d3f37ec05"/>
 
                             </button>
 

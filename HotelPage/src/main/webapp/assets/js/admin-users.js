@@ -12,7 +12,7 @@
                 form.reportValidity();
                 return;
             }
-            if (form.dataset.confirm && !window.confirm(form.dataset.confirm)) {
+            if (form.dataset.confirm && !window.confirm(window.UC24Translate ? window.UC24Translate(form.dataset.confirm) : form.dataset.confirm)) {
                 event.preventDefault();
                 return;
             }

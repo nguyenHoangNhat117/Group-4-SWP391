@@ -20,7 +20,7 @@
         const el = document.createElementNS(ns, tag);
         Object.entries(attrs || {}).forEach(([key, value]) => el.setAttribute(key, value));
         if (text !== undefined)
-            el.textContent = text;
+            { el.textContent = text; el.setAttribute("data-ui-label", text); }
         return el;
     }
     function node(tag, className, text) {
@@ -28,7 +28,7 @@
         if (className)
             el.className = className;
         if (text !== undefined)
-            el.textContent = text;
+            { el.textContent = text; el.setAttribute("data-ui-label", text); }
         return el;
     }
     function animate(duration, update, valid) {

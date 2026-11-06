@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@page import="util.AuthSupport"%>
 <%-- 
     Document   : forgot password
@@ -14,13 +15,13 @@
     String enteredEmail = (String) request.getAttribute("enteredEmail");
 %>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${requestScope.uiLanguage}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0">
 
-        <title>Forgot Password | Luxe Escape</title>
+        <title data-i18n="screen.a2e53a4889187d56">${requestScope.i18n['screen.a2e53a4889187d56']}</title>
 
         <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
               rel="stylesheet">
@@ -52,12 +53,12 @@
                            name="csrfToken"
                            value="<%= AuthSupport.token(session)%>">
 
-                    <h1 class="text-center">Forgot Password</h1>
+                    <h1 class="text-center"><ui:text key="screen.fdfd41de7ae5e1d9"/></h1>
 
                     <% if (error != null) {%>
                     <div class="alert alert-danger mt-3 auth-message"
                          role="alert">
-                        <%= AuthSupport.html(error)%>
+                        <ui:message text="<%= error %>"/>
                     </div>
                     <% }%>
 
@@ -70,16 +71,16 @@
                                value="<%= AuthSupport.html(enteredEmail)%>"
                                placeholder=" "
                                required>
-                        <label for="email">Email</label>
+                        <label for="email"><ui:text key="screen.969ccbd3cf6300ec"/></label>
                     </div>
 
                     <button class="btn" type="submit">
-                        Send OTP
+                        <ui:text key="screen.9c45665a6ee4c7d0"/>
                     </button>
 
                     <div class="login-register mt-3">
                         <a href="<%= contextPath%>/login">
-                            Back to login
+                            <ui:text key="screen.3e3806ff17302cba"/>
                         </a>
                     </div>
                 </form>
@@ -87,8 +88,7 @@
         </main>
 
         <footer>
-            &copy; 2026 FPT University SE2001 Group 4.
-            All rights reserved.
+            <ui:text key="screen.e054863fe5b390e5"/>
         </footer>
     </body>
 </html>

@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%-- 
     Document   : create
     Created on : Oct 19, 2026, 4:28:05 AM
@@ -10,7 +11,7 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>Create Room Type</title>
+        <title data-i18n="screen.cf53dfbb45bc51f9">${requestScope.i18n['screen.cf53dfbb45bc51f9']}</title>
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
@@ -24,64 +25,64 @@
                 <c:choose>
                     <c:when test="${param.error == 'missing-params'}">
                         <p class="alert alert-danger text-center">
-                            Missing parameters in the form. Please try again.
+                            <ui:text key="screen.9eca9b88d5fc8dff"/>
                         </p>
                     </c:when>
                     <c:when test="${param.error == 'name-exist'}">
                         <p class="alert alert-danger text-center">
-                            The room name you entered is already exist. Please edit it or try another name.
+                            <ui:text key="screen.9dda0b654299ce61"/>
                         </p>
                     </c:when>
                     <c:when test="${param.error == 'number-format'}">
                         <p class="alert alert-danger text-center">
-                            Try enter only positive numbers in these following field: Price Per Night, Beds, Capacity.
+                            <ui:text key="screen.1469fc1a6acdc7d0"/>
                         </p>
                     </c:when>
                     <c:when test="${param.error == 'missing-image'}">
                         <p class="alert alert-danger text-center">
-                            A room type must have an image. Please try again.
+                            <ui:text key="screen.de2e7a78d75b71fd"/>
                         </p>
                     </c:when>
                 </c:choose>
                 <form action="room-type" method="post" enctype="multipart/form-data"
                       class="bg-white p-5 rounded shadow-lg w-100" style="max-width: 600px;">
                     <input type="hidden" name="action" value="create">
-                    <h2 class="mb-4 text-center text-dark">Create New Room Type</h2>
+                    <h2 class="mb-4 text-center text-dark"><ui:text key="screen.4e5d70d7ca7b5ab9"/></h2>
 
                     <!-- Room Type Name -->
                     <div class="mb-3">
-                        <label for="name" class="form-label fs-5 fw-semibold">Room Type Name</label>
+                        <label for="name" class="form-label fs-5 fw-semibold"><ui:text key="screen.741b94aab7248c7b"/></label>
                         <input type="text" id="name" name="name" class="form-control form-control-lg" required>
                     </div>
 
                     <!-- Description -->
                     <div class="mb-3">
-                        <label for="description" class="form-label fs-5 fw-semibold">Description</label>
+                        <label for="description" class="form-label fs-5 fw-semibold"><ui:text key="screen.526e0087cc3f254d"/></label>
                         <textarea id="description" name="description" class="form-control form-control-lg" rows="4" required></textarea>
                     </div>
 
                     <!-- Price Per Night -->
                     <div class="mb-3">
-                        <label for="pricePerNight" class="form-label fs-5 fw-semibold">Price per Night</label>
+                        <label for="pricePerNight" class="form-label fs-5 fw-semibold"><ui:text key="screen.0702805f3bf73124"/></label>
                         <input type="number" step="0.01" id="pricePerNight" name="pricePerNight"
                                class="form-control form-control-lg" min="1" required>
                     </div>
 
                     <!-- Beds -->
                     <div class="mb-3">
-                        <label for="beds" class="form-label fs-5 fw-semibold">Number of Beds</label>
+                        <label for="beds" class="form-label fs-5 fw-semibold"><ui:text key="screen.551b235c36a098f1"/></label>
                         <input type="number" id="beds" name="beds" class="form-control form-control-lg" min="1" required>
                     </div>
 
                     <!-- Capacity -->
                     <div class="mb-3">
-                        <label for="capacity" class="form-label fs-5 fw-semibold">Capacity</label>
+                        <label for="capacity" class="form-label fs-5 fw-semibold"><ui:text key="screen.ae65d096550ff4eb"/></label>
                         <input type="number" id="capacity" name="capacity" class="form-control form-control-lg" min="1" required>
                     </div>
 
                     <!-- Amenities Checkboxes -->
                     <div class="mb-4">
-                        <label class="form-label fs-5 fw-semibold">Room Amenities</label>
+                        <label class="form-label fs-5 fw-semibold"><ui:text key="screen.fa7a5f35ea119b26"/></label>
                         <div class="row">
                             <c:forEach items="${allAmenities}" var="a">
                                 <div class="col-md-6 mb-2">
@@ -99,14 +100,14 @@
 
                     <!-- Room Picture -->
                     <div class="mb-4">
-                        <label for="picture" class="form-label fs-5 fw-semibold">Room Picture</label>
+                        <label for="picture" class="form-label fs-5 fw-semibold"><ui:text key="screen.1f26160dc5f15704"/></label>
                         <input type="file" name="img" accept=".png, .jpg, .jpeg"
                                class="form-control" id="picture"/>
                     </div>
 
                     <!-- Submit Button -->
                     <div class="text-end">
-                        <button type="submit" class="btn btn-primary btn-lg px-4 rounded-3">Create Room Type</button>
+                        <button type="submit" class="btn btn-primary btn-lg px-4 rounded-3"><ui:text key="screen.cf53dfbb45bc51f9"/></button>
                     </div>
                 </form>
             </main>

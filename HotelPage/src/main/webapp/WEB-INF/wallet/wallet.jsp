@@ -1,10 +1,11 @@
-<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-        <title>My Wallet | Luxe Escape</title>
+<html lang="${requestScope.uiLanguage}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+        <title data-i18n="screen.97e8a79942bca1da">${requestScope.i18n['screen.97e8a79942bca1da']}</title>
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/general.css">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/luxe-modern.css">
@@ -115,29 +116,29 @@
     <body class="wallet-page">
         <%@ include file="/WEB-INF/include/header.jsp" %>
         <main class="wallet-wrap">
-            <div class="wallet-eyebrow">Luxe Escape / Account</div>
-            <h1 class="wallet-heading">My Wallet</h1>
+            <div class="wallet-eyebrow"><ui:text key="screen.281a98aef303211d"/></div>
+            <h1 class="wallet-heading"><ui:text key="screen.46d8ad210d354832"/></h1>
             <section class="wallet-balance">
-                <div class="small text-uppercase" style="letter-spacing:.14em;color:#e8d8c7">Available balance</div>
+                <div class="small text-uppercase" style="letter-spacing:.14em;color:#e8d8c7"><ui:text key="screen.3ab7dd8428d13314"/></div>
                 <div class="amount mt-2"><fmt:formatNumber value="${balance}" type="number" maxFractionDigits="2"/> 
                     <span style="font-size:22px">VND</span>
                 </div>
-                <p class="mb-0 mt-2">Eligible cancellation refunds are credited to your hotel wallet. This credit is not a bank transfer.</p>
+                <p class="mb-0 mt-2"><ui:text key="screen.63d4ea1d3f0d6393"/></p>
             </section>
             <div class="wallet-links mt-4">
-                <a href="${pageContext.request.contextPath}/history?view=bookings">← Back to booking history</a>
+                <a href="${pageContext.request.contextPath}/history?view=bookings"><ui:text key="screen.49464e4e28596c65"/></a>
             </div>
             <section class="wallet-panel">
                 <div class="wallet-panel-head">
-                    <h2>Transaction history</h2>
-                    <p class="text-muted mb-0">All refund credits linked to your bookings</p>
+                    <h2><ui:text key="screen.de7c340f640fdc51"/></h2>
+                    <p class="text-muted mb-0"><ui:text key="screen.979374c44fb4d98e"/></p>
                 </div>
                 <div class="table-responsive">
                     <table class="table wallet-table">
-                        <thead><tr><th>Date</th>
-                                <th>Booking</th>
-                                <th>Type</th>
-                                <th class="text-end">Amount (VND)</th>
+                        <thead><tr><th><ui:text key="screen.99c40ab405926cb5"/></th>
+                                <th><ui:text key="screen.948e03e7054b919e"/></th>
+                                <th><ui:text key="screen.baaddf70fb5d432b"/></th>
+                                <th class="text-end"><ui:text key="screen.00b324ad3f410fba"/></th>
                             </tr></thead><tbody>
                             <c:forEach var="t" items="${transactions}">
                                 <tr>
@@ -157,8 +158,8 @@
                             </c:forEach>
                             <c:if test="${empty transactions}"><tr>
                                     <td colspan="4">
-                                        <div class="wallet-empty">No wallet transactions yet.
-                                            <div class="mt-2 small">Eligible refunds will appear here after cancellation.
+                                        <div class="wallet-empty"><ui:text key="screen.8d82da8a8069d3fb"/>
+                                            <div class="mt-2 small"><ui:text key="screen.4037f14c6eb72ecb"/>
                                             </div>
 
                                         </div>

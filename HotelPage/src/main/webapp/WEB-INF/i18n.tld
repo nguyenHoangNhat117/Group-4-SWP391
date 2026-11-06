@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<taglib xmlns="https://jakarta.ee/xml/ns/jakartaee" version="3.0">
+    <tlib-version>1.0</tlib-version><short-name>messages</short-name>
+    <function><name>key</name><function-class>util.MessageTranslations</function-class>
+        <function-signature>java.lang.String key(java.lang.Object)</function-signature></function>
+    <function><name>text</name><function-class>util.MessageTranslations</function-class>
+        <function-signature>java.lang.String text(java.lang.Object, java.lang.Object)</function-signature></function>
+    <function><name>js</name><function-class>util.MessageTranslations</function-class>
+        <function-signature>java.lang.String js(java.lang.Object, java.lang.Object)</function-signature></function>
+</taglib>

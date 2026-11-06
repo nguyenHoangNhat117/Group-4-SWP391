@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%-- 
     Document   : revenue_chart
     Created on : Jul 11, 2025, 1:34:58 PM
@@ -17,7 +18,7 @@
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta charset="UTF-8">
-        <title>Profile Page</title>
+        <title data-i18n="screen.dbbe59230e6703c7">${requestScope.i18n['screen.dbbe59230e6703c7']}</title>
 
         <!-- Bootstrap & Custom CSS -->
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
@@ -41,12 +42,12 @@
                 <form action="<%= request.getContextPath()%>/avatar" method="post" enctype="multipart/form-data">
                     <!-- Display avatar or default image -->
                          <img src="<%= request.getContextPath()%>/assets/img/<%=(customer.getAvatar() != null && !customer.getAvatar().isEmpty()) ? customer.getAvatar() + "?v=" + System.currentTimeMillis() : "avatar.jpg"%>"
-                         alt="avatar" class="img-thumbnail" width="150" loading="lazy">
+                         alt="${requestScope.i18n['screen.87bbe879c7a5f578']}" class="img-thumbnail" width="150" loading="lazy" data-i18n-alt="screen.87bbe879c7a5f578">
 
                     <!-- Upload avatar trigger -->
                     <label for="avatarFile" class="upload-label">
                         <i class="fas fa-camera upload-icon"></i>
-                        <span>Upload your photo</span>
+                        <span><ui:text key="screen.8c58ac4a340f9aad"/></span>
                     </label>
                     <input type="file" id="avatarFile" name="img" accept=".png, .jpg, .jpeg" class="d-none">
                 </form>
@@ -56,7 +57,7 @@
                 <p><%= customer.getEmail() != null ? customer.getEmail() : ""%></p>
 
                 <div class="account-section">
-                    <button class="account-btn active">Account Details</button>
+                    <button class="account-btn active"><ui:text key="screen.3dae037ca0c24971"/></button>
                 </div>
             </div>
 
@@ -65,36 +66,36 @@
                 <form id="form-1" method="post" action="<%= request.getContextPath()%>/profile">
                     <!-- Personal Details Section -->
                     <div class="form-section">
-                        <h5>Personal Details</h5>
+                        <h5><ui:text key="screen.3a886778636502fa"/></h5>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Username</label>
+                                <label class="form-label"><ui:text key="screen.e3b89e9d33f88e52"/></label>
                                 <input type="text" class="form-control" name="username" value="${loggedUser.username}" readonly>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Display Name</label>
+                                <label class="form-label"><ui:text key="screen.18d67c992b71ce69"/></label>
                                 <input type="text" class="form-control" name="display-name" value="${loggedUser.displayName}">
                             </div>
                         </div>
 
                         <div class="row g-3 mt-3">
                             <div class="col-md-6">
-                                <label class="form-label">First Name</label>
+                                <label class="form-label"><ui:text key="screen.96ce6e6193a04726"/></label>
                                 <input type="text" class="form-control input_type" name="firstName" value="<%= customer.getFirstName() != null ? customer.getFirstName() : ""%>" readonly>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Last Name</label>
+                                <label class="form-label"><ui:text key="screen.f55563b386a39dc3"/></label>
                                 <input type="text" class="form-control input_type" name="lastName" value="<%= customer.getLastName() != null ? customer.getLastName() : ""%>" readonly>
                             </div>
                         </div>
 
                         <div class="row g-3 mt-3">
                             <div class="col-md-6">
-                                <label class="form-label">Email</label>
+                                <label class="form-label"><ui:text key="screen.969ccbd3cf6300ec"/></label>
                                 <input type="email" class="form-control input_type" name="email" value="<%= customer.getEmail() != null ? customer.getEmail() : ""%>" readonly>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Phone</label>
+                                <label class="form-label"><ui:text key="screen.63dceb8800b2dd4a"/></label>
                                 <input type="text" class="form-control input_type" name="phone" value="<%= customer.getPhone() != null ? customer.getPhone() : ""%>" readonly>
                             </div>
                         </div>
@@ -102,21 +103,21 @@
 
                     <!-- Address Section -->
                     <div class="form-section">
-                        <h5>Address</h5>
+                        <h5><ui:text key="screen.56ef8f20955f2564"/></h5>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Country</label>
+                                <label class="form-label"><ui:text key="screen.701d021d08c54579"/></label>
                                 <select id="country" name="country" class="form-control input_type" disabled></select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">City</label>
+                                <label class="form-label"><ui:text key="screen.fc33f73246f48295"/></label>
                                 <select id="city" name="city" class="form-control input_type" disabled></select>
                             </div>
                         </div>
 
                         <div class="row g-3 mt-3">
                             <div class="col-12">
-                                <label class="form-label">Street</label>
+                                <label class="form-label"><ui:text key="screen.c666591df0537cf2"/></label>
                                 <input type="text" class="form-control input_type" name="street" value="<%= customer.getStreet() != null ? customer.getStreet() : ""%>" readonly>
                             </div>
                         </div>
@@ -124,9 +125,9 @@
 
                     <!-- Action Buttons -->
                     <div class="form-actions">
-                        <a id="cancelBtn" class="btn btn-cancel-custom d-none" href="#">Cancel</a>
-                        <button id="editBtn" type="button" class="btn btn-save-custom">Edit Profile</button>
-                        <button id="saveBtn" type="submit" class="btn btn-save-custom d-none">Save</button>
+                        <a id="cancelBtn" class="btn btn-cancel-custom d-none" href="#"><ui:text key="screen.19766ed6ccb2f4a3"/></a>
+                        <button id="editBtn" type="button" class="btn btn-save-custom"><ui:text key="screen.fec2ac0f4cf167e3"/></button>
+                        <button id="saveBtn" type="submit" class="btn btn-save-custom d-none"><ui:text key="screen.1509f561f2416598"/></button>
                     </div>
                 </form>
             </div>

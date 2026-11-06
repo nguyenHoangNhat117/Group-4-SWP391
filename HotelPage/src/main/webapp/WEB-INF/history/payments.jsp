@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="c"
            uri="jakarta.tags.core" %>
 
@@ -14,7 +15,7 @@
         <meta http-equiv="Content-Type"
               content="text/html; charset=UTF-8">
 
-        <title>Payment History</title>
+        <title data-i18n="screen.d4c7bc94c3af4d4f">${requestScope.i18n['screen.d4c7bc94c3af4d4f']}</title>
 
         <link
             href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
@@ -40,7 +41,7 @@
                 <div class="container py-5">
 
                     <h2 class="mb-4 text-center">
-                        Payment History
+                        <ui:text key="screen.d4c7bc94c3af4d4f"/>
                     </h2>
 
 
@@ -61,43 +62,43 @@
                                         <tr>
 
                                             <th>
-                                                Payment ID
+                                                <ui:text key="screen.d9c9afd836811e5a"/>
                                             </th>
 
                                             <th>
-                                                Booking
+                                                <ui:text key="screen.948e03e7054b919e"/>
                                             </th>
 
                                             <th>
-                                                Room / Stay
+                                                <ui:text key="screen.fe43f0a1373a3d68"/>
                                             </th>
 
                                             <th>
-                                                Original Total
+                                                <ui:text key="screen.6dc00412a976f94a"/>
                                             </th>
 
                                             <th>
-                                                Paid Amount
+                                                <ui:text key="screen.6723294ee4a8f78f"/>
                                             </th>
 
                                             <th>
-                                                Method
+                                                <ui:text key="screen.52a0f9b65b278850"/>
                                             </th>
 
                                             <th>
-                                                Status
+                                                <ui:text key="screen.920e413c7d411b61"/>
                                             </th>
 
                                             <th>
-                                                Discount
+                                                <ui:text key="screen.cb72ec985b5f3d75"/>
                                             </th>
 
                                             <th>
-                                                Transaction
+                                                <ui:text key="screen.eec26ddd9a408449"/>
                                             </th>
 
                                             <th>
-                                                Payment Date
+                                                <ui:text key="screen.10b5440f239de9cb"/>
                                             </th>
 
                                         </tr>
@@ -130,7 +131,7 @@
 
                                                     <small class="text-muted">
 
-                                                        ${payment.booking.status}
+                                                        <ui:message text="${payment.booking.status}"/>
 
                                                     </small>
 
@@ -148,8 +149,7 @@
                                                             class="mb-2">
 
                                                             <strong>
-                                                                Room
-                                                                #${detail.roomNumber}
+                                                                <ui:text key="screen.6c8c6af24c9b021c"/>${detail.roomNumber}
                                                             </strong>
 
                                                             <br>
@@ -168,7 +168,7 @@
 
                                                             <small>
 
-                                                                Guests:
+                                                                <ui:text key="screen.1ac580f9fde7374f"/>
                                                                 ${detail.guestCount}
 
                                                             </small>
@@ -207,19 +207,19 @@
                                                     <c:choose>
 
                                                         <c:when test="${payment.paymentMethod == 'cash'}">
-                                                            Cash
+                                                            <ui:text key="screen.e2da108f63008e44"/>
                                                         </c:when>
 
                                                         <c:when test="${payment.paymentMethod == 'bank_transfer'}">
-                                                            Bank Transfer
+                                                            <ui:text key="screen.ee82ae2801cf9097"/>
                                                         </c:when>
 
                                                         <c:when test="${payment.paymentMethod == 'credit_card'}">
-                                                            Credit Card
+                                                            <ui:text key="screen.9f629f57b7d02936"/>
                                                         </c:when>
 
                                                         <c:when test="${payment.paymentMethod == 'e_wallet'}">
-                                                            E-Wallet
+                                                            <ui:text key="screen.f7bb9a1dcdb515df"/>
                                                         </c:when>
 
                                                         <c:otherwise>
@@ -244,7 +244,7 @@
                                                                 class="badge
                                                                 bg-success">
 
-                                                                Paid
+                                                                <ui:text key="screen.fb81b961af456e5e"/>
 
                                                             </span>
 
@@ -258,7 +258,7 @@
                                                                 bg-warning
                                                                 text-dark">
 
-                                                                Pending
+                                                                <ui:text key="screen.331551b0de4157c9"/>
 
                                                             </span>
 
@@ -271,7 +271,7 @@
                                                                 class="badge
                                                                 bg-danger">
 
-                                                                Failed
+                                                                <ui:text key="screen.031a8f0f659df890"/>
 
                                                             </span>
 
@@ -284,7 +284,7 @@
                                                                 class="badge
                                                                 bg-secondary">
 
-                                                                Refunded
+                                                                <ui:text key="screen.117f6a7cf0372277"/>
 
                                                             </span>
 
@@ -293,7 +293,7 @@
 
                                                         <c:otherwise>
 
-                                                            ${payment.paymentStatus}
+                                                            <ui:message text="${payment.paymentStatus}"/>
 
                                                         </c:otherwise>
 
@@ -324,7 +324,7 @@
 
                                                         <c:otherwise>
 
-                                                            No Discount
+                                                            <ui:text key="screen.65a4b024888139b6"/>
 
                                                         </c:otherwise>
 
@@ -380,11 +380,11 @@
                             <c:if test="${totalPages > 1}">
 
                                 <nav
-                                    aria-label="Payment history pagination"
+                                    aria-label="${requestScope.i18n['screen.34c35b4b93d2c51e']}"
                                     class="d-flex
                                     w-100
                                     justify-content-center
-                                    mt-4">
+                                    mt-4" data-i18n-aria-label="screen.34c35b4b93d2c51e">
 
                                     <ul class="pagination">
 
@@ -399,7 +399,7 @@
                                                 class="page-link"
                                                 href="${pageContext.request.contextPath}/history?id=${requestScope.historyCustomerId}&view=payments&page=${currentPage - 1}">
 
-                                                Previous
+                                                <ui:text key="screen.a57b08a480b822a0"/>
 
                                             </a>
 
@@ -442,7 +442,7 @@
                                                 class="page-link"
                                                 href="${pageContext.request.contextPath}/history?id=${requestScope.historyCustomerId}&view=payments&page=${currentPage + 1}">
 
-                                                Next
+                                                <ui:text key="screen.1ff57a29d7c9d11b"/>
 
                                             </a>
 
@@ -464,7 +464,7 @@
                                 alert-info
                                 text-center">
 
-                                No payment records found.
+                                <ui:text key="screen.68a815f07fea6622"/>
 
                             </div>
 

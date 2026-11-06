@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%-- 
     Document   : logout
     Created on : Oct 14, 2026, 6:16:24 PM
@@ -15,13 +16,13 @@
     String logoutToken = (String) request.getAttribute("logoutToken");
 %>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${requestScope.uiLanguage}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0">
 
-        <title>Logout | Luxe Escape</title>
+        <title data-i18n="screen.de97b83b09a01c68">${requestScope.i18n['screen.de97b83b09a01c68']}</title>
 
         <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
               rel="stylesheet">
@@ -65,19 +66,18 @@
             </span>
 
             <nav class="navigation">
-                <a href="<%= contextPath%>/#rooms">Rooms</a>
-                <a href="<%= contextPath%>/booking">Booking</a>
+                <a href="<%= contextPath%>/#rooms"><ui:text key="screen.bd32f6cedb5fb7ae"/></a>
+                <a href="<%= contextPath%>/booking"><ui:text key="screen.948e03e7054b919e"/></a>
             </nav>
         </header>
 
         <main class="form-signin wrapper show">
             <div class="form-box">
 
-                <h1 class="text-center">Sign out?</h1>
+                <h1 class="text-center"><ui:text key="screen.c1c084addfcc4f90"/></h1>
 
                 <p class="logout-description">
-                    Confirm to end your session.
-                    Your remembered username will also be removed.
+                    <ui:text key="screen.b96ee565123c3b79"/>
                 </p>
 
                 <%-- Logout changes session state, so submit using POST. --%>
@@ -89,20 +89,19 @@
                            value="<%= AuthSupport.html(logoutToken)%>">
 
                     <button class="btn btn-primary" type="submit">
-                        Sign out
+                        <ui:text key="screen.48f0d3d397d49f13"/>
                     </button>
                 </form>
 
                 <a class="logout-cancel"
                    href="<%= contextPath%>/">
-                    Cancel
+                    <ui:text key="screen.19766ed6ccb2f4a3"/>
                 </a>
             </div>
         </main>
 
         <footer>
-            &copy; 2026 FPT University SE2001 Group 4.
-            All rights reserved.
+            <ui:text key="screen.e054863fe5b390e5"/>
         </footer>
 
         <script src="<%= contextPath%>/assets/js/bootstrap.bundle.min.js">

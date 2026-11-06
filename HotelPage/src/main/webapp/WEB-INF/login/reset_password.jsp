@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@page import="util.AuthSupport"%>
 <%-- 
     Document   : reset_password
@@ -13,13 +14,13 @@
     String error = (String) request.getAttribute("error");
 %>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${requestScope.uiLanguage}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0">
 
-        <title>Reset Password | Luxe Escape</title>
+        <title data-i18n="screen.2611d4632dce2a7a">${requestScope.i18n['screen.2611d4632dce2a7a']}</title>
 
         <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
               rel="stylesheet">
@@ -50,12 +51,12 @@
                            name="csrfToken"
                            value="<%= AuthSupport.token(session)%>">
 
-                    <h1 class="text-center">Reset Password</h1>
+                    <h1 class="text-center"><ui:text key="screen.4e70f1fd24babdea"/></h1>
 
                     <% if (error != null) {%>
                     <div class="alert alert-danger mt-3 auth-message"
                          role="alert">
-                        <%= AuthSupport.html(error)%>
+                        <ui:message text="<%= error %>"/>
                     </div>
                     <% }%>
 
@@ -69,7 +70,7 @@
                                autocomplete="new-password"
                                placeholder=" "
                                required>
-                        <label for="password">New password</label>
+                        <label for="password"><ui:text key="screen.3dd9df4441fb348f"/></label>
                     </div>
 
                     <div class="input-box">
@@ -82,17 +83,17 @@
                                placeholder=" "
                                required>
                         <label for="confirmPassword">
-                            Confirm password
+                            <ui:text key="screen.5ac265f396a2c586"/>
                         </label>
                     </div>
 
                     <button class="btn" type="submit">
-                        Reset password
+                        <ui:text key="screen.e0edfeb3a71a1002"/>
                     </button>
 
                     <div class="login-register mt-3">
                         <a href="<%= contextPath%>/login">
-                            Back to login
+                            <ui:text key="screen.3e3806ff17302cba"/>
                         </a>
                     </div>
                 </form>
@@ -100,8 +101,7 @@
         </main>
 
         <footer>
-            &copy; 2026 FPT University SE2001 Group 4.
-            All rights reserved.
+            <ui:text key="screen.e054863fe5b390e5"/>
         </footer>
     </body>
 </html>

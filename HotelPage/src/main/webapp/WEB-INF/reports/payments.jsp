@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
@@ -8,13 +9,13 @@
 <c:set var="ctx" value="${pageContext.request.contextPath}" />
 
 <!DOCTYPE html>
-<html lang="en" class="hotel-reports-page">
+<html lang="${requestScope.uiLanguage}" class="hotel-reports-page">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Payment Report | Luxe Escape</title>
+    <title data-i18n="screen.a0bcbfd785ede222">${requestScope.i18n['screen.a0bcbfd785ede222']}</title>
 
     <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="${ctx}/assets/css/general.css">
@@ -39,11 +40,10 @@
         <section class="report-panel">
 
             <div class="report-panel-heading">
-                <h2>Transaction records</h2>
+                <h2><ui:text key="screen.fcce2e6a27bbcd2c"/></h2>
 
                 <span class="report-meta">
-                    ${totalRecords} matching transactions
-                    · ${fn:length(payments)} on this page
+                    ${totalRecords} <ui:text key="screen.19c42541889b0f94"/> ${fn:length(payments)} <ui:text key="screen.c36ee348ff2d354a"/>
                 </span>
             </div>
 
@@ -57,24 +57,24 @@
 
                             <thead>
                             <tr>
-                                <th scope="col">Payment</th>
-                                <th scope="col">Customer</th>
-                                <th scope="col">Booking</th>
-                                <th scope="col">Room / Stay</th>
+                                <th scope="col"><ui:text key="screen.7048f38b33f135df"/></th>
+                                <th scope="col"><ui:text key="screen.bf3763383aaf4306"/></th>
+                                <th scope="col"><ui:text key="screen.948e03e7054b919e"/></th>
+                                <th scope="col"><ui:text key="screen.fe43f0a1373a3d68"/></th>
 
                                 <th scope="col" class="numeric">
-                                    Booking total
+                                    <ui:text key="screen.dac7b8fa08bd5f4e"/>
                                 </th>
 
                                 <th scope="col" class="numeric">
-                                    Transaction amount
+                                    <ui:text key="screen.7c4d078344a4d56a"/>
                                 </th>
 
-                                <th scope="col">Method</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Promotion</th>
-                                <th scope="col">Transaction code</th>
-                                <th scope="col">Payment date</th>
+                                <th scope="col"><ui:text key="screen.52a0f9b65b278850"/></th>
+                                <th scope="col"><ui:text key="screen.920e413c7d411b61"/></th>
+                                <th scope="col"><ui:text key="screen.8c6a0024dad9f069"/></th>
+                                <th scope="col"><ui:text key="screen.346055a5f7d303b7"/></th>
+                                <th scope="col"><ui:text key="screen.65d5165f258772f9"/></th>
                             </tr>
                             </thead>
 
@@ -98,7 +98,7 @@
                                             </c:when>
 
                                             <c:otherwise>
-                                                Customer #${payment.booking.customer.customerID}
+                                                <ui:text key="screen.641d305570b93564"/>${payment.booking.customer.customerID}
                                             </c:otherwise>
 
                                         </c:choose>
@@ -126,7 +126,7 @@
 
                                                         <strong>
                                                             <a href="${ctx}/details?roomNumber=${detail.roomNumber}">
-                                                                Room #${detail.roomNumber}
+                                                                <ui:text key="screen.6c8c6af24c9b021c"/>${detail.roomNumber}
                                                             </a>
                                                         </strong>
 
@@ -136,7 +136,7 @@
                                                         </span>
 
                                                         <span class="report-muted">
-                                                            ${detail.guestCount} guests
+                                                            ${detail.guestCount} <ui:text key="screen.21d1f8ed9293da7a"/>
                                                         </span>
 
                                                     </div>
@@ -147,7 +147,7 @@
 
                                             <c:otherwise>
                                                 <span class="report-muted">
-                                                    No room information
+                                                    <ui:text key="screen.448d8aa4cbfe963c"/>
                                                 </span>
                                             </c:otherwise>
 
@@ -174,19 +174,19 @@
                                         <c:choose>
 
                                             <c:when test="${payment.paymentMethod == 'cash'}">
-                                                Cash
+                                                <ui:text key="screen.e2da108f63008e44"/>
                                             </c:when>
 
                                             <c:when test="${payment.paymentMethod == 'bank_transfer'}">
-                                                Bank transfer
+                                                <ui:text key="screen.d69d587c81659616"/>
                                             </c:when>
 
                                             <c:when test="${payment.paymentMethod == 'credit_card'}">
-                                                Credit card
+                                                <ui:text key="screen.4ddae6e2f13784aa"/>
                                             </c:when>
 
                                             <c:when test="${payment.paymentMethod == 'e_wallet'}">
-                                                E-wallet
+                                                <ui:text key="screen.59769b23ea9ec19e"/>
                                             </c:when>
 
                                             <c:otherwise>
@@ -198,7 +198,7 @@
 
                                     <td>
                                         <span class="report-status <c:out value='${payment.paymentStatus}' />">
-                                            <c:out value="${payment.paymentStatus}" />
+                                            <ui:message text="${payment.paymentStatus}"/>
                                         </span>
                                     </td>
 
@@ -220,7 +220,7 @@
                                             </c:when>
 
                                             <c:otherwise>
-                                                None
+                                                <ui:text key="screen.dc937b59892604f5"/>
                                             </c:otherwise>
 
                                         </c:choose>
@@ -243,7 +243,7 @@
 
                                             <c:otherwise>
                                                 <span class="report-muted">
-                                                    Not recorded
+                                                    <ui:text key="screen.b37c7879f6c359f6"/>
                                                 </span>
                                             </c:otherwise>
 
@@ -264,7 +264,7 @@
 
                 <c:otherwise>
                     <div class="report-empty">
-                        No payment transactions match the selected period.
+                        <ui:text key="screen.c79a98ccca090390"/>
                     </div>
                 </c:otherwise>
 

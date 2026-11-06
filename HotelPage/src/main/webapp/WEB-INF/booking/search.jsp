@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%-- 
     Document   : booking (Search Rooms)
     Created on : Oct 19, 2026, 8:42:03 PM
@@ -7,11 +8,11 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${requestScope.uiLanguage}">
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>Discover Rooms - Luxe Hotel</title>
+        <title data-i18n="screen.382994189a1da441">${requestScope.i18n['screen.382994189a1da441']}</title>
 
         <!-- CSS Dependencies -->
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
@@ -166,8 +167,8 @@
                 <!-- Hero Section (Bức ảnh lớn và Câu chào) -->
                 <section class="hero-section">
                     <div class="container hero-content">
-                        <h1>Experience Luxury & Comfort</h1>
-                        <p>Find the perfect room for your unforgettable stay.</p>
+                        <h1><ui:text key="screen.de2cc64dab0cb0fe"/></h1>
+                        <p><ui:text key="screen.f1cff0317824840a"/></p>
                     </div>
                 </section>
 
@@ -177,24 +178,24 @@
                         <c:if test="${param.error == 'missing-dates' || param.error == 'invalid-dates'}">
                             <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                Check-out date must be later than Check-in date, and Check-in date cannot be in the past.
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                <ui:text key="screen.0fd3e982eaee6db5"/>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}" data-i18n-aria-label="screen.7d9eb7acb13e2462"></button>
                             </div>
                         </c:if>
 
                         <c:if test="${param.error == 'invalid-filter'}">
                             <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                Please enter valid numeric filter values (Guest count must be greater than 0, and Minimum price cannot exceed Maximum price).
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                <ui:text key="screen.5effc47a5bae9591"/>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}" data-i18n-aria-label="screen.7d9eb7acb13e2462"></button>
                             </div>
                         </c:if>
 
                         <c:if test="${param.error == 'room-unavailable'}">
                             <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                The requested room is no longer available.
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                <ui:text key="screen.fd750fe8304a0f1d"/>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}" data-i18n-aria-label="screen.7d9eb7acb13e2462"></button>
                             </div>
                         </c:if>
 
@@ -205,22 +206,22 @@
                                 <!-- Cột 1: Ngày Check-in & Check-out -->
                                 <div class="col-lg-4 col-md-6">
                                     <div class="search-field">
-                                        <label for="floatingBookingDate">Check-in &amp; Check-out <span class="text-danger">*</span></label>
+                                        <label for="floatingBookingDate"><ui:text key="screen.c832b0d0d927dcff"/> <span class="text-danger">*</span></label>
                                         <i class="bi bi-calendar3"></i>
                                         <input type="text"
                                                class="form-control ${param.error == 'missing-dates' || param.error == 'invalid-dates' ? 'is-invalid border-danger' : ''}"
                                                id="floatingBookingDate"
-                                               placeholder="Select your dates"
+                                               placeholder="${requestScope.i18n['screen.d54be811186bb99f']}"
                                                name="booking-dates"
                                                value="${sessionScope.dates}"
-                                               readonly required>
+                                               readonly required data-i18n-placeholder="screen.d54be811186bb99f">
                                     </div>
                                 </div>
 
                                 <!-- Cột 2: Số lượng khách (Capacity - BR-15) -->
                                 <div class="col-lg-2 col-md-3 col-sm-6">
                                     <div class="search-field">
-                                        <label for="guest-count">Guests <span class="text-danger">*</span></label>
+                                        <label for="guest-count"><ui:text key="screen.3c8e0fde6fcc71e0"/> <span class="text-danger">*</span></label>
                                         <i class="bi bi-people-fill"></i>
                                         <input type="number"
                                                class="form-control ${param.error == 'invalid-filter' ? 'is-invalid border-danger' : ''}"
@@ -235,10 +236,10 @@
                                 <!-- Cột 3: Loại phòng (Optional RoomType - BR-16) -->
                                 <div class="col-lg-2 col-md-3 col-sm-6">
                                     <div class="search-field">
-                                        <label for="room-type-id">Room Type</label>
+                                        <label for="room-type-id"><ui:text key="screen.82dea9a01c0033ec"/></label>
                                         <i class="bi bi-door-open-fill"></i>
                                         <select class="form-control" id="room-type-id" name="room-type-id">
-                                            <option value="">All Types</option>
+                                            <option value="" data-i18n="screen.bc01325482f36133">${requestScope.i18n['screen.bc01325482f36133']}</option>
                                             <c:forEach var="rt" items="${requestScope.roomTypes}">
                                                 <option value="${rt.id}" ${sessionScope.searchRoomTypeId == rt.id ? 'selected' : ''}>
                                                     ${rt.name}
@@ -252,7 +253,7 @@
                                 <div class="col-lg-2 col-md-6 col-sm-12">
                                     <div class="row g-2">
                                         <div class="col-6">
-                                            <label for="min-price" class="small fw-semibold text-secondary text-uppercase">Min ($)</label>
+                                            <label for="min-price" class="small fw-semibold text-secondary text-uppercase"><ui:text key="screen.c5ad45f2c77175b7"/></label>
                                             <input type="number" step="0.01" min="0"
                                                    class="form-control px-2 py-2 ${param.error == 'invalid-filter' ? 'is-invalid border-danger' : ''}"
                                                    id="min-price" name="min-price"
@@ -260,12 +261,12 @@
                                                    value="${sessionScope.searchMinPrice}">
                                         </div>
                                         <div class="col-6">
-                                            <label for="max-price" class="small fw-semibold text-secondary text-uppercase">Max ($)</label>
+                                            <label for="max-price" class="small fw-semibold text-secondary text-uppercase"><ui:text key="screen.a97dc5177dd9eee6"/></label>
                                             <input type="number" step="0.01" min="0"
                                                    class="form-control px-2 py-2 ${param.error == 'invalid-filter' ? 'is-invalid border-danger' : ''}"
                                                    id="max-price" name="max-price"
-                                                   placeholder="Any"
-                                                   value="${sessionScope.searchMaxPrice}">
+                                                   placeholder="${requestScope.i18n['screen.2b505597daa736f1']}"
+                                                   value="${sessionScope.searchMaxPrice}" data-i18n-placeholder="screen.2b505597daa736f1">
                                         </div>
                                     </div>
                                 </div>
@@ -273,7 +274,7 @@
                                 <!-- Cột 5: Nút Search -->
                                 <div class="col-lg-2 col-md-6 col-sm-12">
                                     <button class="btn btn-search" type="submit" id="find-rooms-button">
-                                        <i class="bi bi-search"></i> Search
+                                        <i class="bi bi-search"></i> <ui:text key="screen.49c266baaaa70981"/>
                                     </button>
                                 </div>
 
@@ -289,22 +290,22 @@
                             <div class="col-md-4">
                                 <div class="benefit-card">
                                     <i class="bi bi-shield-check benefit-icon"></i>
-                                    <h5 class="fw-bold">Secure Booking</h5>
-                                    <p class="text-muted">Your booking is protected with 256-bit encryption.</p>
+                                    <h5 class="fw-bold"><ui:text key="screen.8813f171b5ea0660"/></h5>
+                                    <p class="text-muted"><ui:text key="screen.66cc6ed54b73e556"/></p>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="benefit-card">
                                     <i class="bi bi-tag benefit-icon"></i>
-                                    <h5 class="fw-bold">Best Price Guarantee</h5>
-                                    <p class="text-muted">You won't find a better rate anywhere else.</p>
+                                    <h5 class="fw-bold"><ui:text key="screen.d3f409fe8a6f84a8"/></h5>
+                                    <p class="text-muted"><ui:text key="screen.250a8d8c0f91e0d7"/></p>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="benefit-card">
                                     <i class="bi bi-cup-hot benefit-icon"></i>
-                                    <h5 class="fw-bold">Premium Amenities</h5>
-                                    <p class="text-muted">Enjoy free Wi-Fi, breakfast, and pool access.</p>
+                                    <h5 class="fw-bold"><ui:text key="screen.cedd20c7becc26f7"/></h5>
+                                    <p class="text-muted"><ui:text key="screen.ae3afbff9216bb81"/></p>
                                 </div>
                             </div>
                         </div>

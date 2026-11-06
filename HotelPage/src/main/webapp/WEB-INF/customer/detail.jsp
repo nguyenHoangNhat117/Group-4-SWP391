@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="c"
            uri="jakarta.tags.core" %>
 
@@ -14,7 +15,7 @@
             http-equiv="Content-Type"
             content="text/html; charset=UTF-8">
 
-        <title>Customer Details</title>
+        <title data-i18n="screen.559a9e5847c0b407">${requestScope.i18n['screen.559a9e5847c0b407']}</title>
 
         <link
             href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
@@ -46,7 +47,7 @@
 
                     <div class="alert alert-success text-center">
 
-                        Account status updated successfully.
+                        <ui:text key="screen.8e157b39a58b2875"/>
 
                     </div>
 
@@ -57,7 +58,7 @@
 
                     <div class="alert alert-danger text-center">
 
-                        Account status could not be updated.
+                        <ui:text key="screen.ca3960b905b70262"/>
 
                     </div>
 
@@ -66,19 +67,19 @@
 
                 <c:if test="${param.message == 'info-updated'}">
                     <div class="alert alert-success text-center">
-                        Customer information updated successfully.
+                        <ui:text key="screen.bda8a60ea20c078f"/>
                     </div>
                 </c:if>
 
                 <c:if test="${param.message == 'info-update-failed'}">
                     <div class="alert alert-danger text-center">
-                        Customer information could not be updated. The email may already be in use.
+                        <ui:text key="screen.28be1ef3256dad41"/>
                     </div>
                 </c:if>
 
                 <c:if test="${param.message == 'invalid-data'}">
                     <div class="alert alert-danger text-center">
-                        Invalid customer information.
+                        <ui:text key="screen.5ac5e9b89eeea9ce"/>
                     </div>
                 </c:if>
 
@@ -101,7 +102,7 @@
 
                             <h2 class="mb-0">
 
-                                Customer Details
+                                <ui:text key="screen.559a9e5847c0b407"/>
 
                             </h2>
 
@@ -110,7 +111,7 @@
                                 href="${pageContext.request.contextPath}/customers"
                                 class="btn btn-outline-secondary">
 
-                                Back
+                                <ui:text key="screen.76900f1bfd16c8d4"/>
 
                             </a>
 
@@ -131,7 +132,7 @@
                                 <p>
 
                                     <strong>
-                                        Customer ID:
+                                        <ui:text key="screen.b01e76be2d45ae6f"/>
                                     </strong>
 
                                     ${customerDetail.customerID}
@@ -142,7 +143,7 @@
                                 <p>
 
                                     <strong>
-                                        First Name:
+                                        <ui:text key="screen.f1f1fc8826026955"/>
                                     </strong>
 
                                     <c:choose>
@@ -163,7 +164,7 @@
                                 <p>
 
                                     <strong>
-                                        Last Name:
+                                        <ui:text key="screen.53aca2c64b62c3f5"/>
                                     </strong>
 
                                     <c:choose>
@@ -184,7 +185,7 @@
                                 <p>
 
                                     <strong>
-                                        Email:
+                                        <ui:text key="screen.17507dcf845793fa"/>
                                     </strong>
 
                                     ${customerDetail.email}
@@ -195,7 +196,7 @@
                                 <p>
 
                                     <strong>
-                                        Phone:
+                                        <ui:text key="screen.3305eb58093dce17"/>
                                     </strong>
 
                                     <c:choose>
@@ -222,7 +223,7 @@
                                 <p>
 
                                     <strong>
-                                        Username:
+                                        <ui:text key="screen.3806d61c34063f85"/>
                                     </strong>
 
                                     ${customerDetail.user.username}
@@ -233,7 +234,7 @@
                                 <p>
 
                                     <strong>
-                                        Display Name:
+                                        <ui:text key="screen.01c17432f91bc0ec"/>
                                     </strong>
 
                                     <c:choose>
@@ -256,7 +257,7 @@
                                 <p>
 
                                     <strong>
-                                        Country:
+                                        <ui:text key="screen.813c3318f9a1d31a"/>
                                     </strong>
 
                                     <c:choose>
@@ -277,7 +278,7 @@
                                 <p>
 
                                     <strong>
-                                        City:
+                                        <ui:text key="screen.c5aaab3ec67f76d9"/>
                                     </strong>
 
                                     <c:choose>
@@ -298,7 +299,7 @@
                                 <p>
 
                                     <strong>
-                                        Street:
+                                        <ui:text key="screen.1ad0a1ffe3863887"/>
                                     </strong>
 
                                     <c:choose>
@@ -325,7 +326,7 @@
                         <hr class="my-4">
 
 
-                        <h4 class="mb-3">Customer Information Management</h4>
+                        <h4 class="mb-3"><ui:text key="screen.7435c82a2428274c"/></h4>
 
                         <form action="${pageContext.request.contextPath}/customers" method="post" class="row g-3 mb-4">
                             <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
@@ -333,36 +334,36 @@
                             <input type="hidden" name="customer-id" value="${customerDetail.customerID}">
 
                             <div class="col-md-6">
-                                <label class="form-label">First Name</label>
+                                <label class="form-label"><ui:text key="screen.96ce6e6193a04726"/></label>
                                 <input class="form-control" name="first-name" maxlength="50" value="<c:out value='${customerDetail.firstName}'/>">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Last Name</label>
+                                <label class="form-label"><ui:text key="screen.f55563b386a39dc3"/></label>
                                 <input class="form-control" name="last-name" maxlength="50" value="<c:out value='${customerDetail.lastName}'/>">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Email</label>
+                                <label class="form-label"><ui:text key="screen.969ccbd3cf6300ec"/></label>
                                 <input type="email" class="form-control" name="email" maxlength="100" required value="<c:out value='${customerDetail.email}'/>">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Phone</label>
+                                <label class="form-label"><ui:text key="screen.63dceb8800b2dd4a"/></label>
                                 <input class="form-control" name="phone" maxlength="20" value="<c:out value='${customerDetail.phone}'/>">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Country</label>
+                                <label class="form-label"><ui:text key="screen.701d021d08c54579"/></label>
                                 <input class="form-control" name="country" maxlength="50" value="<c:out value='${customerDetail.country}'/>">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">City</label>
+                                <label class="form-label"><ui:text key="screen.fc33f73246f48295"/></label>
                                 <input class="form-control" name="city" maxlength="50" value="<c:out value='${customerDetail.city}'/>">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Street</label>
+                                <label class="form-label"><ui:text key="screen.c666591df0537cf2"/></label>
                                 <input class="form-control" name="street" maxlength="100" value="<c:out value='${customerDetail.street}'/>">
                             </div>
                             <div class="col-12 text-end">
                                 <button type="submit" class="btn btn-primary" onclick="return confirm('Update this customer information?');">
-                                    Update Information
+                                    <ui:text key="screen.593f5aaf288e59f6"/>
                                 </button>
                             </div>
                         </form>
@@ -375,7 +376,7 @@
 
                         <h4 class="mb-3">
 
-                            Account Information
+                            <ui:text key="screen.4e59b6c72f6fd0b3"/>
 
                         </h4>
 
@@ -389,10 +390,10 @@
                                 <p>
 
                                     <strong>
-                                        Role:
+                                        <ui:text key="screen.44dd5f163cbadd27"/>
                                     </strong>
 
-                                    ${customerDetail.user.role}
+                                    <ui:message text="${customerDetail.user.role}"/>
 
                                 </p>
 
@@ -400,7 +401,7 @@
                                 <p>
 
                                     <strong>
-                                        Created At:
+                                        <ui:text key="screen.8fd7542a821729b1"/>
                                     </strong>
 
                                     ${customerDetail.user.createdAt}
@@ -417,7 +418,7 @@
                                 <p>
 
                                     <strong>
-                                        Current Status:
+                                        <ui:text key="screen.90cdddb9ee1882a6"/>
                                     </strong>
 
 
@@ -429,7 +430,7 @@
                                             <span
                                                 class="badge bg-success">
 
-                                                Active
+                                                <ui:text key="screen.92340695899bd2d8"/>
 
                                             </span>
 
@@ -441,7 +442,7 @@
                                             <span
                                                 class="badge bg-danger">
 
-                                                Locked
+                                                <ui:text key="screen.a424e33d90931d1e"/>
 
                                             </span>
 
@@ -453,7 +454,7 @@
                                             <span
                                                 class="badge bg-secondary">
 
-                                                Inactive
+                                                <ui:text key="screen.ac7c949f1211b781"/>
 
                                             </span>
 
@@ -481,7 +482,7 @@
 
                         <h4 class="mb-3">
 
-                            Account Status Management
+                            <ui:text key="screen.9f00d170c98434c5"/>
 
                         </h4>
 
@@ -518,9 +519,9 @@
                                         value="active"
                                         ${customerDetail.user.accountStatus == 'active'
                                           ? 'selected'
-                                          : ''}>
+                                          : ''} data-i18n="screen.92340695899bd2d8">
 
-                                        Active
+                                        ${requestScope.i18n['screen.92340695899bd2d8']}
 
                                     </option>
 
@@ -529,9 +530,9 @@
                                         value="locked"
                                         ${customerDetail.user.accountStatus == 'locked'
                                           ? 'selected'
-                                          : ''}>
+                                          : ''} data-i18n="screen.a424e33d90931d1e">
 
-                                        Locked
+                                        ${requestScope.i18n['screen.a424e33d90931d1e']}
 
                                     </option>
 
@@ -540,9 +541,9 @@
                                         value="inactive"
                                         ${customerDetail.user.accountStatus == 'inactive'
                                           ? 'selected'
-                                          : ''}>
+                                          : ''} data-i18n="screen.ac7c949f1211b781">
 
-                                        Inactive
+                                        ${requestScope.i18n['screen.ac7c949f1211b781']}
 
                                     </option>
 
@@ -561,7 +562,7 @@
                                     class="btn btn-primary w-100"
                                     onclick="return confirm('Change this customer account status?');">
 
-                                    Update Status
+                                    <ui:text key="screen.3030ddce9921f3f9"/>
 
                                 </button>
 
@@ -581,7 +582,7 @@
 
                         <h4 class="mb-3">
 
-                            Customer History
+                            <ui:text key="screen.9e90b33666a3d8f3"/>
 
                         </h4>
 
@@ -596,7 +597,7 @@
                                 href="${pageContext.request.contextPath}/history?id=${customerDetail.customerID}&view=bookings"
                                 class="btn btn-outline-primary">
 
-                                View Booking History
+                                <ui:text key="screen.1db635e08edc4126"/>
 
                             </a>
 
@@ -605,7 +606,7 @@
                                 href="${pageContext.request.contextPath}/history?id=${customerDetail.customerID}&view=payments"
                                 class="btn btn-outline-success">
 
-                                View Payment History
+                                <ui:text key="screen.8cf3d5aa6b487a0a"/>
 
                             </a>
 

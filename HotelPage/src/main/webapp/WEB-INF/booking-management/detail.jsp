@@ -1,15 +1,16 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core"%>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt"%>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${requestScope.uiLanguage}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1">
 
-        <title>Booking Details</title>
+        <title data-i18n="screen.a55a969205588064">${requestScope.i18n['screen.a55a969205588064']}</title>
 
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -32,7 +33,7 @@
                     <c:if test="${not empty offlineCreator}">
                         <div class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-3">
                             <span>
-                                Offline booking · Người tạo:
+                                <ui:text key="screen.c121af985135cfbc"/>
                                 <strong>
                                     <c:out value="${offlineCreator}"/>
                                 </strong>
@@ -40,44 +41,43 @@
 
                             <a class="btn btn-primary"
                                href="${pageContext.request.contextPath}/counter-payment?bookingId=${booking.id}">
-                                Thu tiền tại quầy / xem số dư
+                                <ui:text key="screen.feb1966292f16b45"/>
                             </a>
                         </div>
                     </c:if>
 
                     <c:if test="${param.message == 'status-updated'}">
                         <div class="alert alert-success">
-                            Booking status updated successfully.
+                            <ui:text key="screen.f6bc551c4d1033d8"/>
                         </div>
                     </c:if>
 
                     <c:if test="${param.message == 'invalid-transition'}">
                         <div class="alert alert-danger">
-                            Invalid booking status transition.
+                            <ui:text key="screen.1db22959473c83fa"/>
                         </div>
                     </c:if>
 
                     <c:if test="${param.message == 'payment-required'}">
                         <div class="alert alert-warning">
-                            Payment is required before confirming this booking.
-                            For an offline booking, use the counter payment screen.
+                            <ui:text key="screen.2353e54cae2389f7"/>
                         </div>
                     </c:if>
 
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                         <div>
                             <h2 class="fw-bold mb-1">
-                                Booking #${booking.id}
+                                <ui:text key="screen.8e9d3e1467f7cc3f"/>${booking.id}
                             </h2>
                             <span class="text-muted">
-                                Created:
+                                <ui:text key="screen.22d435a3711855db"/>
                                 <c:out value="${booking.bookingDate}"/>
                             </span>
                         </div>
 
                         <a href="${pageContext.request.contextPath}/booking-management"
                            class="btn btn-outline-secondary">
-                            Back to Bookings
+                            <ui:text key="screen.134b66d8c3497148"/>
                         </a>
                     </div>
 
@@ -85,49 +85,49 @@
                         <div class="col-md-6">
                             <div class="card shadow-sm h-100">
                                 <div class="card-body">
-                                    <h5 class="card-title">Booking Status</h5>
+                                    <h5 class="card-title"><ui:text key="screen.ea50259543e17999"/></h5>
 
                                     <div class="mt-3">
                                         <c:choose>
                                             <c:when test="${booking.status == 'pending'}">
                                                 <span class="badge bg-warning text-dark fs-6">
-                                                    Pending
+                                                    <ui:text key="screen.331551b0de4157c9"/>
                                                 </span>
                                             </c:when>
 
                                             <c:when test="${booking.status == 'confirmed'}">
                                                 <span class="badge bg-primary fs-6">
-                                                    Confirmed
+                                                    <ui:text key="screen.fe00b67b6dd1143f"/>
                                                 </span>
                                             </c:when>
 
                                             <c:when test="${booking.status == 'checked_in'}">
                                                 <span class="badge bg-info text-dark fs-6">
-                                                    Checked In
+                                                    <ui:text key="screen.17c05c08a9ac3e5a"/>
                                                 </span>
                                             </c:when>
 
                                             <c:when test="${booking.status == 'checked_out'}">
                                                 <span class="badge bg-secondary fs-6">
-                                                    Checked Out
+                                                    <ui:text key="screen.cbe2b33735c6335c"/>
                                                 </span>
                                             </c:when>
 
                                             <c:when test="${booking.status == 'completed'}">
                                                 <span class="badge bg-success fs-6">
-                                                    Completed
+                                                    <ui:text key="screen.22a970d2e5b1cc23"/>
                                                 </span>
                                             </c:when>
 
                                             <c:when test="${booking.status == 'cancelled'}">
                                                 <span class="badge bg-danger fs-6">
-                                                    Cancelled
+                                                    <ui:text key="screen.d353a99eb4556847"/>
                                                 </span>
                                             </c:when>
 
                                             <c:otherwise>
                                                 <span class="badge bg-dark fs-6">
-                                                    <c:out value="${booking.status}"/>
+                                                    <ui:message text="${booking.status}"/>
                                                 </span>
                                             </c:otherwise>
                                         </c:choose>
@@ -139,28 +139,26 @@
                         <div class="col-md-6">
                             <div class="card shadow-sm h-100">
                                 <div class="card-body">
-                                    <h5 class="card-title">Payment Status</h5>
+                                    <h5 class="card-title"><ui:text key="screen.1f65bccb17385498"/></h5>
 
                                     <div class="mt-3">
                                         <c:choose>
                                             <c:when test="${paid}">
                                                 <span class="badge bg-success fs-6">
-                                                    Fully Paid
+                                                    <ui:text key="screen.ba9054bc0354df6e"/>
                                                 </span>
                                             </c:when>
 
                                             <c:otherwise>
                                                 <span class="badge bg-warning text-dark fs-6">
-                                                    Not Fully Paid
+                                                    <ui:text key="screen.6a00df629fbad618"/>
                                                 </span>
                                             </c:otherwise>
                                         </c:choose>
                                     </div>
 
                                     <p class="small text-muted mt-3 mb-0">
-                                        A deposit may have been collected.
-                                        Check payment records or open the counter
-                                        payment screen to see the remaining balance.
+                                        <ui:text key="screen.28d7d16670dc0a79"/>
                                     </p>
                                 </div>
                             </div>
@@ -169,7 +167,7 @@
 
                     <div class="card shadow-sm mb-4">
                         <div class="card-header">
-                            <strong>Payment Details</strong>
+                            <strong><ui:text key="screen.e9143587ebf6f078"/></strong>
                         </div>
 
                         <div class="card-body">
@@ -179,13 +177,13 @@
                                         <table class="table table-bordered align-middle mb-0">
                                             <thead class="table-light">
                                                 <tr>
-                                                    <th>ID</th>
-                                                    <th>Date</th>
-                                                    <th>Amount</th>
-                                                    <th>Method</th>
-                                                    <th>Status</th>
-                                                    <th>Transaction</th>
-                                                    <th>Discount</th>
+                                                    <th><ui:text key="screen.3843971dcfdee508"/></th>
+                                                    <th><ui:text key="screen.99c40ab405926cb5"/></th>
+                                                    <th><ui:text key="screen.49e96d7cdf58069c"/></th>
+                                                    <th><ui:text key="screen.52a0f9b65b278850"/></th>
+                                                    <th><ui:text key="screen.920e413c7d411b61"/></th>
+                                                    <th><ui:text key="screen.eec26ddd9a408449"/></th>
+                                                    <th><ui:text key="screen.cb72ec985b5f3d75"/></th>
                                                 </tr>
                                             </thead>
 
@@ -209,7 +207,7 @@
                                                 </td>
 
                                                 <td>
-                                                    <c:out value="${payment.paymentStatus}"/>
+                                                    <ui:message text="${payment.paymentStatus}"/>
                                                 </td>
 
                                                 <td>
@@ -236,7 +234,7 @@
 
                                 <c:otherwise>
                                     <span class="text-muted">
-                                        No payment record for this booking.
+                                        <ui:text key="screen.cff1cce696d02556"/>
                                     </span>
                                 </c:otherwise>
                             </c:choose>
@@ -245,19 +243,19 @@
 
                     <div class="card shadow-sm mb-4">
                         <div class="card-header">
-                            <strong>Customer Information</strong>
+                            <strong><ui:text key="screen.8258db6d14e588f6"/></strong>
                         </div>
 
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-md-4">
-                                    <strong>Customer ID:</strong>
+                                    <strong><ui:text key="screen.b01e76be2d45ae6f"/></strong>
                                     <br>
                                     ${booking.customer.customerID}
                                 </div>
 
                                 <div class="col-md-4">
-                                    <strong>Name:</strong>
+                                    <strong><ui:text key="screen.2683cad48a14dc3f"/></strong>
                                     <br>
 
                                     <c:choose>
@@ -273,26 +271,26 @@
                                 </div>
 
                                 <div class="col-md-4">
-                                    <strong>Username:</strong>
+                                    <strong><ui:text key="screen.3806d61c34063f85"/></strong>
                                     <br>
                                     <c:out value="${booking.customer.user.username}"/>
                                 </div>
 
                                 <div class="col-md-4">
-                                    <strong>Email:</strong>
+                                    <strong><ui:text key="screen.17507dcf845793fa"/></strong>
                                     <br>
                                     <c:out value="${booking.customer.email}"/>
                                 </div>
 
                                 <div class="col-md-4">
-                                    <strong>Phone:</strong>
+                                    <strong><ui:text key="screen.3305eb58093dce17"/></strong>
                                     <br>
                                     <c:out value="${empty booking.customer.phone
                                                     ? '-' : booking.customer.phone}"/>
                                 </div>
 
                                 <div class="col-md-4">
-                                    <strong>Address:</strong>
+                                    <strong><ui:text key="screen.fa0882e21637cbe7"/></strong>
                                     <br>
                                     <c:out value="${booking.customer.street}"/>
                                     <c:out value="${booking.customer.city}"/>
@@ -304,7 +302,7 @@
 
                     <div class="card shadow-sm mb-4">
                         <div class="card-header">
-                            <strong>Stay Information</strong>
+                            <strong><ui:text key="screen.1c66fcafeab3b38e"/></strong>
                         </div>
 
                         <div class="card-body">
@@ -314,12 +312,12 @@
                                         <table class="table table-bordered align-middle">
                                             <thead class="table-light">
                                                 <tr>
-                                                    <th>Room</th>
-                                                    <th>Check In</th>
-                                                    <th>Check Out</th>
-                                                    <th>Guests</th>
-                                                    <th>Price / Night</th>
-                                                    <th>Special Request</th>
+                                                    <th><ui:text key="screen.911ea89c43d9dbb8"/></th>
+                                                    <th><ui:text key="screen.f49fc7767bcfb17b"/></th>
+                                                    <th><ui:text key="screen.5b4ecf4c9808dca1"/></th>
+                                                    <th><ui:text key="screen.3c8e0fde6fcc71e0"/></th>
+                                                    <th><ui:text key="screen.2de469ee4cd7c680"/></th>
+                                                    <th><ui:text key="screen.8d40b90ad50b8351"/></th>
                                                 </tr>
                                             </thead>
 
@@ -328,7 +326,7 @@
                                                            items="${booking.details}">
                                                     <tr>
                                                         <td>
-                                                            Room #${detail.roomNumber}
+                                                            <ui:text key="screen.6c8c6af24c9b021c"/>${detail.roomNumber}
                                                         </td>
                                                         <td>${detail.checkInDate}</td>
                                                         <td>${detail.checkOutDate}</td>
@@ -354,7 +352,7 @@
 
                                 <c:otherwise>
                                     <div class="alert alert-info mb-0">
-                                        No booking details found.
+                                        <ui:text key="screen.7c754327645dc989"/>
                                     </div>
                                 </c:otherwise>
                             </c:choose>
@@ -363,13 +361,13 @@
 
                     <div class="card shadow-sm mb-4">
                         <div class="card-header">
-                            <strong>Booking Information</strong>
+                            <strong><ui:text key="screen.e3c166be8ed36aba"/></strong>
                         </div>
 
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <strong>Total Price:</strong>
+                                    <strong><ui:text key="screen.d104a659abae9ebc"/></strong>
                                     <br>
                                     <fmt:formatNumber
                                         value="${booking.totalPrice}"
@@ -378,13 +376,13 @@
                                 </div>
 
                                 <div class="col-md-6">
-                                    <strong>Booking Date:</strong>
+                                    <strong><ui:text key="screen.bf6899307a899450"/></strong>
                                     <br>
                                     <c:out value="${booking.bookingDate}"/>
                                 </div>
 
                                 <div class="col-12">
-                                    <strong>Special Request:</strong>
+                                    <strong><ui:text key="screen.906fb211c5e1ee2e"/></strong>
                                     <br>
                                     <c:out value="${empty booking.specialRequest
                                                     ? '-' : booking.specialRequest}"/>
@@ -392,13 +390,13 @@
 
                                 <c:if test="${booking.status == 'cancelled'}">
                                     <div class="col-md-6">
-                                        <strong>Cancellation Date:</strong>
+                                        <strong><ui:text key="screen.873135e90ec6e045"/></strong>
                                         <br>
                                         <c:out value="${booking.cancellationDate}"/>
                                     </div>
 
                                     <div class="col-md-6">
-                                        <strong>Cancellation Reason:</strong>
+                                        <strong><ui:text key="screen.821b8e24bc1baa29"/></strong>
                                         <br>
                                         <c:out value="${empty booking.cancellationReason
                                                         ? '-' : booking.cancellationReason}"/>
@@ -410,7 +408,7 @@
 
                     <div class="card shadow-sm">
                         <div class="card-header">
-                            <strong>Update Booking Status</strong>
+                            <strong><ui:text key="screen.d275eb2a59741cbf"/></strong>
                         </div>
 
                         <div class="card-body">
@@ -435,7 +433,7 @@
                                         <div class="col-md-8">
                                             <label for="status"
                                                    class="form-label fw-semibold">
-                                                New Status
+                                                <ui:text key="screen.6355462edd94e4b2"/>
                                             </label>
 
                                             <select id="status"
@@ -443,28 +441,28 @@
                                                     class="form-select"
                                                     required>
 
-                                                <option value="" selected disabled>
-                                                    Select new status
+                                                <option value="" selected disabled data-i18n="screen.b575d3e1b784356d">
+                                                    ${requestScope.i18n['screen.b575d3e1b784356d']}
                                                 </option>
 
                                                 <c:forEach var="status"
                                                            items="${nextStatuses}">
-                                                    <option value="${status}">
+                                                    <option value="${status}" data-i18n="screen.fe00b67b6dd1143f">
                                                         <c:choose>
                                                             <c:when test="${status == 'confirmed'}">
-                                                                Confirmed
+                                                                ${requestScope.i18n['screen.fe00b67b6dd1143f']}
                                                             </c:when>
                                                             <c:when test="${status == 'cancelled'}">
-                                                                Cancelled
+                                                                ${requestScope.i18n['screen.d353a99eb4556847']}
                                                             </c:when>
                                                             <c:when test="${status == 'checked_in'}">
-                                                                Checked In
+                                                                ${requestScope.i18n['screen.17c05c08a9ac3e5a']}
                                                             </c:when>
                                                             <c:when test="${status == 'checked_out'}">
-                                                                Checked Out
+                                                                ${requestScope.i18n['screen.cbe2b33735c6335c']}
                                                             </c:when>
                                                             <c:when test="${status == 'completed'}">
-                                                                Completed
+                                                                ${requestScope.i18n['screen.22a970d2e5b1cc23']}
                                                             </c:when>
                                                             <c:otherwise>
                                                                 <c:out value="${status}"/>
@@ -479,7 +477,7 @@
                                             <button type="submit"
                                                     class="btn btn-primary w-100"
                                                     onclick="return confirm('Update this booking status?');">
-                                                Update Status
+                                                <ui:text key="screen.3030ddce9921f3f9"/>
                                             </button>
                                         </div>
                                     </form>
@@ -487,7 +485,7 @@
 
                                 <c:otherwise>
                                     <div class="alert alert-secondary mb-0">
-                                        This booking has no further status transition.
+                                        <ui:text key="screen.da87095c74827c40"/>
                                     </div>
                                 </c:otherwise>
                             </c:choose>

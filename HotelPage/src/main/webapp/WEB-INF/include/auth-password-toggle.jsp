@@ -1,3 +1,5 @@
+<%@ taglib prefix="msg" uri="/WEB-INF/i18n.tld" %>
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%-- 
     Document   : auth-password-toggle
     Created on : Nov 2, 2026, 8:37:10 PM
@@ -82,7 +84,7 @@
 
                     confirmation.setCustomValidity(
                             mismatch
-                            ? "Passwords do not match."
+                            ? ${msg:js("Passwords do not match.", requestScope.uiLanguage)}
                             : ""
                             );
 
@@ -93,7 +95,7 @@
 
                         newPassword.setCustomValidity(
                                 sameAsCurrent
-                                ? "New password must differ from the current password."
+                                ? ${msg:js("New password must differ from the current password.", requestScope.uiLanguage)}
                                 : ""
                                 );
                     }
