@@ -1,0 +1,577 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : Nov 5, 2026, 10:43:58 PM
+    Author     : Nguyen Hoang Nhat
+*/
+html.uc09-page {
+    scroll-snap-type: none;
+}
+
+.offline-booking-page {
+    background: var(--lx-ivory, #fbf8f3);
+}
+
+.offline-booking-page .ob-page {
+    width: 100%;
+    min-width: 0;
+    max-width: 1220px;
+    margin: auto;
+    padding: 38px 24px 64px;
+}
+
+.offline-booking-page .ob-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.offline-booking-page .ob-heading h1 {
+    margin: 0;
+    font-size: clamp(28px, 3vw, 39px);
+}
+
+.offline-booking-page .ob-back {
+    color: var(--lx-gold-dark, #8a7152);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.offline-booking-page .ob-steps {
+    display: flex;
+    gap: 26px;
+    padding: 0 0 24px;
+    margin: 0 0 28px;
+    list-style: none;
+    border-bottom: 1px solid var(--lx-line);
+}
+
+.offline-booking-page .ob-steps li {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+    color: var(--lx-muted);
+}
+
+.offline-booking-page .ob-steps span {
+    display: grid;
+    place-items: center;
+    width: 27px;
+    height: 27px;
+    border-radius: 50%;
+    border: 1px solid #ded3c3;
+    font-size: 12px;
+}
+
+.offline-booking-page .ob-steps .is-current {
+    color: var(--lx-ink);
+    font-weight: 600;
+}
+
+.offline-booking-page .ob-steps .is-current span {
+    background: var(--lx-espresso);
+    color: white;
+    border-color: var(--lx-espresso);
+}
+
+.offline-booking-page .ob-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+    gap: 26px;
+}
+
+.offline-booking-page .ob-stack {
+    display: grid;
+    gap: 22px;
+    min-width: 0;
+}
+
+.offline-booking-page .ob-panel {
+    background: #fff;
+    border: 1px solid var(--lx-line);
+    border-radius: 22px;
+    padding: 28px;
+    box-shadow: 0 10px 35px -24px #543e2b55;
+    animation: ob-arrive .4s ease both;
+    scroll-snap-align: none;
+    scroll-margin-top: 0;
+}
+
+.offline-booking-page .ob-panel-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 23px;
+}
+
+.offline-booking-page .ob-panel h2 {
+    font-size: 23px;
+    margin: 0;
+}
+
+.offline-booking-page .ob-number {
+    color: var(--lx-gold-dark);
+    font-size: 12px;
+    letter-spacing: 2px;
+    font-weight: 600;
+}
+
+.offline-booking-page .ob-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.offline-booking-page .ob-full {
+    grid-column: 1 / -1;
+}
+
+.offline-booking-page .ob-field {
+    min-width: 0;
+}
+
+.offline-booking-page .ob-field label {
+    display: block;
+    margin: 0 0 9px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #514332;
+}
+
+.offline-booking-page .ob-input {
+    width: 100%;
+    min-width: 0;
+    min-height: 49px;
+    border: 1px solid #e3dbcf;
+    border-radius: 12px;
+    background: #fffdfa;
+    padding: 12px 14px;
+    color: var(--lx-ink);
+    font: inherit;
+    font-size: 14px;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.offline-booking-page select.ob-input {
+    padding-right: 32px;
+}
+
+.offline-booking-page textarea.ob-input {
+    min-height: 96px;
+    resize: vertical;
+}
+
+.offline-booking-page .ob-input:hover {
+    border-color: #c6b397;
+}
+
+.offline-booking-page .ob-input:focus {
+    outline: none;
+    border-color: var(--lx-gold);
+    box-shadow: 0 0 0 4px #b29a7b18;
+    background: white;
+}
+
+.offline-booking-page .ob-search {
+    display: flex;
+    align-items: end;
+    gap: 12px;
+}
+
+.offline-booking-page .ob-search .ob-field {
+    flex: 1;
+}
+
+.offline-booking-page .ob-button {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform .2s, box-shadow .2s, background .2s;
+}
+
+.offline-booking-page .ob-primary {
+    background: var(--lx-grad-dark);
+    color: white;
+    box-shadow: 0 9px 20px -12px #2b221b99;
+}
+
+.offline-booking-page .ob-primary:hover {
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -12px #2b221baa;
+}
+
+.offline-booking-page .ob-secondary {
+    background: #f5efe5;
+    color: #755b3c;
+    border-color: #e8dcc9;
+    white-space: nowrap;
+}
+
+.offline-booking-page .ob-secondary:hover {
+    background: #eee3d2;
+}
+
+.offline-booking-page .ob-button:focus-visible,
+.offline-booking-page .ob-back:focus-visible {
+    outline: 3px solid #b29a7b;
+    outline-offset: 4px;
+}
+
+.offline-booking-page .ob-button:disabled {
+    cursor: not-allowed;
+    opacity: .45;
+    transform: none;
+    box-shadow: none;
+}
+
+.offline-booking-page .ob-mode {
+    display: flex;
+    gap: 6px;
+    padding: 5px;
+    background: #f5f0e9;
+    border-radius: 13px;
+    margin-bottom: 22px;
+}
+
+.offline-booking-page .ob-mode label {
+    flex: 1;
+    margin: 0;
+    position: relative;
+    cursor: pointer;
+}
+
+.offline-booking-page .ob-mode input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.offline-booking-page .ob-mode span {
+    display: block;
+    padding: 11px 12px;
+    text-align: center;
+    font-size: 14px;
+    border-radius: 9px;
+    color: var(--lx-muted);
+    transition: background .2s, color .2s, box-shadow .2s;
+}
+
+.offline-booking-page .ob-mode input:checked + span {
+    background: white;
+    color: var(--lx-ink);
+    font-weight: 600;
+    box-shadow: 0 3px 10px #3c2a1810;
+}
+
+.offline-booking-page .ob-mode input:focus-visible + span {
+    outline: 2px solid var(--lx-gold);
+    outline-offset: 1px;
+}
+
+.offline-booking-page .ob-room-field {
+    margin-top: 22px;
+    padding-top: 22px;
+    border-top: 1px solid #eee7dd;
+}
+
+.offline-booking-page .ob-note {
+    margin: 12px 0 0;
+    font-size: 12px;
+    color: var(--lx-muted);
+    line-height: 1.7;
+}
+
+.offline-booking-page .ob-empty {
+    margin: 16px 0 0;
+    padding: 13px 15px;
+    border-radius: 11px;
+    background: #faf3e8;
+    color: #805f32;
+    font-size: 13px;
+}
+
+.offline-booking-page .ob-summary {
+    position: sticky;
+    top: 118px;
+    overflow: hidden;
+    padding: 0;
+}
+
+.offline-booking-page .ob-summary-head {
+    background: linear-gradient(130deg, #f3eadb, #fbf7f0);
+    padding: 27px;
+    border-bottom: 1px solid var(--lx-line);
+    position: relative;
+}
+
+.offline-booking-page .ob-summary-head::after {
+    content: "";
+    position: absolute;
+    width: 130px;
+    height: 130px;
+    border: 1px solid #c7b28b55;
+    border-radius: 50%;
+    right: -45px;
+    top: -45px;
+    pointer-events: none;
+}
+
+.offline-booking-page .ob-summary-head small {
+    display: block;
+    color: #806846;
+    font-size: 11px;
+    letter-spacing: 2px;
+    margin-bottom: 13px;
+}
+
+.offline-booking-page .ob-summary-head h2 {
+    font-size: 30px;
+}
+
+.offline-booking-page .ob-summary-body {
+    padding: 25px;
+}
+
+.offline-booking-page .ob-summary dl {
+    margin: 0;
+}
+
+.offline-booking-page .ob-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding: 11px 0;
+    font-size: 13px;
+}
+
+.offline-booking-page .ob-summary dt {
+    color: var(--lx-muted);
+    font-weight: 400;
+}
+
+.offline-booking-page .ob-summary dd {
+    margin: 0;
+    color: var(--lx-ink);
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.offline-booking-page .ob-total {
+    border-top: 1px dashed #d5c4ac;
+    margin-top: 16px;
+    padding-top: 21px;
+}
+
+.offline-booking-page .ob-total span {
+    color: var(--lx-muted);
+    font-size: 12px;
+}
+
+.offline-booking-page .ob-price {
+    display: block;
+    font-family: var(--lx-serif);
+    color: var(--lx-ink);
+    font-size: 31px;
+    margin: 7px 0 22px;
+    letter-spacing: -.5px;
+    overflow-wrap: anywhere;
+}
+
+.offline-booking-page .ob-summary .ob-button {
+    width: 100%;
+}
+
+.offline-booking-page .ob-cancel {
+    display: block;
+    text-align: center;
+    margin-top: 17px;
+    color: var(--lx-muted);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.offline-booking-page .ob-review-room {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: #faf6ef;
+    border-radius: 15px;
+    padding: 22px;
+    margin-bottom: 25px;
+}
+
+.offline-booking-page .ob-room-mark {
+    width: 66px;
+    height: 66px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #dfcfb5;
+    border-radius: 15px;
+    color: #96784f;
+    flex-shrink: 0;
+}
+
+.offline-booking-page .ob-room-mark svg {
+    width: 34px;
+    height: 34px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+}
+
+.offline-booking-page .ob-review-room strong {
+    display: block;
+    font-family: var(--lx-serif);
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--lx-ink);
+}
+
+.offline-booking-page .ob-review-room span {
+    font-size: 13px;
+    color: var(--lx-muted);
+}
+
+.offline-booking-page .ob-review-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin: 0;
+}
+
+.offline-booking-page .ob-review-details dt {
+    color: var(--lx-muted);
+    font-size: 12px;
+    font-weight: 400;
+    margin-bottom: 7px;
+}
+
+.offline-booking-page .ob-review-details dd {
+    color: var(--lx-ink);
+    font-size: 15px;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.offline-booking-page .ob-review-note {
+    border-top: 1px solid var(--lx-line);
+    margin-top: 25px;
+    padding-top: 20px;
+}
+
+.offline-booking-page [hidden] {
+    display: none !important;
+}
+
+@keyframes ob-arrive {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (max-width: 980px) {
+    .offline-booking-page .ob-grid {
+        grid-template-columns: minmax(0, 1fr) 300px;
+        gap: 18px;
+    }
+
+    .offline-booking-page .ob-panel {
+        padding: 22px;
+    }
+
+    .offline-booking-page .ob-summary {
+        padding: 0;
+    }
+}
+
+@media (max-width: 760px) {
+    .offline-booking-page .ob-page {
+        padding: 28px 16px 40px;
+    }
+
+    .offline-booking-page .ob-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .offline-booking-page .ob-summary {
+        position: static;
+    }
+
+    .offline-booking-page .ob-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .offline-booking-page .ob-steps {
+        gap: 18px;
+    }
+
+    .offline-booking-page .ob-steps li {
+        font-size: 12px;
+        gap: 6px;
+    }
+}
+
+@media (max-width: 430px) {
+    .offline-booking-page .ob-fields,
+    .offline-booking-page .ob-review-details {
+        grid-template-columns: 1fr;
+    }
+
+    .offline-booking-page .ob-search {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .offline-booking-page .ob-panel {
+        padding: 20px;
+        border-radius: 18px;
+    }
+
+    .offline-booking-page .ob-summary {
+        padding: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .offline-booking-page .ob-panel {
+        animation: none;
+    }
+
+    .offline-booking-page .ob-button,
+    .offline-booking-page .ob-input,
+    .offline-booking-page .ob-mode span {
+        transition: none;
+    }
+
+    .offline-booking-page .ob-primary:hover {
+        transform: none;
+    }
+}

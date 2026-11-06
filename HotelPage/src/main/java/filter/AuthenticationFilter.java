@@ -37,6 +37,8 @@ import java.util.Objects;
             "/dashboard",
             "/admin/*",
             "/toggle-animation",
+            "/offline-booking",
+            "/counter-payment",
             "/change-password"
         }
 )
@@ -182,7 +184,9 @@ public class AuthenticationFilter implements Filter {
         }
 
         if ("/customers".equals(servletPath)
-                || "/booking-management".equals(servletPath)) {
+                || "/booking-management".equals(servletPath)
+                || "/offline-booking".equals(servletPath)
+                || "/counter-payment".equals(servletPath)) {
 
             if (!isAnyRole(role, "staff", "admin")) {
                 deny(res);

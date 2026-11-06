@@ -1,6 +1,5 @@
-
 package dao;
- 
+
 import db.DBContext;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -17,9 +16,9 @@ import model.Booking;
 import model.BookingDetail;
 import model.Customer;
 import model.User;
- 
+
 public class BookingDAO extends DBContext {
- 
+
     /*
      * =========================================================
      * 1. GET ALL BOOKINGS
@@ -27,9 +26,9 @@ public class BookingDAO extends DBContext {
      * =========================================================
      */
     public List<Booking> getAll() {
- 
+
         List<Booking> bookings = new ArrayList<>();
- 
+
         String sql
                 = "SELECT "
                 + "b.BookingID, "
@@ -59,22 +58,22 @@ public class BookingDAO extends DBContext {
                 + "JOIN [User] u "
                 + "ON c.UserID = u.UserID "
                 + "ORDER BY b.BookingDate DESC, b.BookingID DESC";
- 
+
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
- 
+
             while (rs.next()) {
- 
+
                 User user = new User(
                         rs.getInt("UserID"),
                         rs.getString("Username"),
                         rs.getString("Password"),
                         rs.getString("Role")
                 );
- 
+
                 user.setDisplayName(
                         rs.getString("DisplayName")
                 );
- 
+
                 Customer customer = new Customer(
                         rs.getInt("CustomerID"),
                         rs.getString("FirstName"),
@@ -87,10 +86,10 @@ public class BookingDAO extends DBContext {
                         rs.getString("Avatar"),
                         user
                 );
- 
+
                 Booking booking = mapBooking(rs);
                 booking.setCustomer(customer);
- 
+
                 /*
                  * Load BookingDetail records belonging
                  * to this Booking.
@@ -101,30 +100,19 @@ public class BookingDAO extends DBContext {
                                 booking.getId()
                         )
                 );
- 
+
                 bookings.add(booking);
             }
- 
+
         } catch (SQLException ex) {
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(Level.SEVERE, "Operation failed", ex);
         }
- 
+
         return bookings;
     }
- 
-    /*
-     * =========================================================
-     * 2. CREATE BOOKING + BOOKING DETAIL
-     *
-     * UC09:
-     * - Revalidate room
-     * - Create Booking with pending status
-     * - Create BookingDetail
-     * - Transaction
-     * =========================================================
-     */
+
     public int createBooking(
             int customerId,
             int roomNumber,
@@ -133,184 +121,227 @@ public class BookingDAO extends DBContext {
             BigDecimal pricePerNight,
             int guestCount,
             BigDecimal totalPrice,
-            String specialRequest) {
- 
-        if (checkInDate == null
-                || checkOutDate == null
-                || !checkOutDate.isAfter(checkInDate)) {
- 
-            return 0;
-        }
- 
-        if (guestCount <= 0) {
-            return 0;
-        }
- 
-        if (pricePerNight == null
-                || pricePerNight.compareTo(
-                        BigDecimal.ZERO
-                ) < 0) {
- 
-            return 0;
-        }
- 
-        if (totalPrice == null
-                || totalPrice.compareTo(
-                        BigDecimal.ZERO
-                ) < 0) {
- 
-            return 0;
-        }
- 
-        String bookingSql
-                = "INSERT INTO Booking "
-                + "(CustomerID, TotalPrice, Status, "
-                + "SpecialRequest) "
-                + "VALUES (?, ?, 'pending', ?)";
- 
-        String detailSql
-                = "INSERT INTO BookingDetail "
-                + "(BookingID, RoomNumber, "
-                + "CheckInDate, CheckOutDate, "
-                + "PricePerNight, GuestCount, "
-                + "SpecialRequest) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
- 
-        Connection conn = null;
- 
-        try {
- 
-            conn = getConnection();
- 
-            /*
-             * Start transaction.
-             */
+            String specialRequest
+    ) {
+        try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
- 
-            /*
-             * Recheck availability using the same connection
-             * immediately before inserting.
-             */
-            if (isRoomBookedInRange(
-                    conn,
-                    roomNumber,
-                    checkInDate,
-                    checkOutDate)) {
- 
+
+            try {
+                int id = createBookingInTransaction(
+                        conn,
+                        customerId,
+                        roomNumber,
+                        checkInDate,
+                        checkOutDate,
+                        pricePerNight,
+                        guestCount,
+                        totalPrice,
+                        specialRequest,
+                        null,
+                        null,
+                        null
+                );
+
+                conn.commit();
+                return id;
+
+            } catch (SQLException | IllegalArgumentException ex) {
                 conn.rollback();
+
+                Logger.getLogger(BookingDAO.class.getName())
+                        .log(Level.WARNING, "Booking rejected", ex);
+
                 return 0;
             }
- 
-            int bookingId;
- 
-            /*
-             * -------------------------
-             * Insert Booking header
-             * -------------------------
-             */
-            try (PreparedStatement ps
-                    = conn.prepareStatement(
-                            bookingSql,
-                            Statement.RETURN_GENERATED_KEYS)) {
- 
-                ps.setInt(1, customerId);
-                ps.setBigDecimal(2, totalPrice);
-                ps.setString(3, specialRequest);
- 
-                int affectedRows = ps.executeUpdate();
- 
-                if (affectedRows == 0) {
-                    conn.rollback();
-                    return 0;
-                }
- 
-                try (ResultSet keys
-                        = ps.getGeneratedKeys()) {
- 
-                    if (!keys.next()) {
-                        conn.rollback();
-                        return 0;
-                    }
- 
-                    bookingId = keys.getInt(1);
-                }
-            }
- 
-            /*
-             * -------------------------
-             * Insert BookingDetail
-             * -------------------------
-             */
-            try (PreparedStatement ps
-                    = conn.prepareStatement(detailSql)) {
- 
-                ps.setInt(1, bookingId);
-                ps.setInt(2, roomNumber);
-                ps.setObject(3, checkInDate);
-                ps.setObject(4, checkOutDate);
-                ps.setBigDecimal(5, pricePerNight);
-                ps.setInt(6, guestCount);
-                ps.setString(7, specialRequest);
- 
-                int detailRows = ps.executeUpdate();
- 
-                if (detailRows == 0) {
-                    conn.rollback();
-                    return 0;
-                }
-            }
- 
-            /*
-             * Everything succeeded.
-             */
-            conn.commit();
- 
-            return bookingId;
- 
+
         } catch (SQLException ex) {
- 
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException rollbackEx) {
- 
-                    Logger.getLogger(
-                            BookingDAO.class.getName()
-                    ).log(
-                            Level.SEVERE,
-                            "Rollback failed",
-                            rollbackEx
+            Logger.getLogger(BookingDAO.class.getName())
+                    .log(Level.SEVERE, "Booking failed", ex);
+
+            return 0;
+        }
+    }
+
+    /*
+ * Online và offline dùng cùng cơ chế khóa phòng.
+ * Method này không tự commit: caller quản lý transaction.
+     */
+    int createBookingInTransaction(
+            Connection conn,
+            int customerId,
+            int roomNumber,
+            LocalDate checkIn,
+            LocalDate checkOut,
+            BigDecimal pricePerNight,
+            int guests,
+            BigDecimal total,
+            String specialRequest,
+            Integer actor,
+            String requestKey,
+            String promotionCode
+    ) throws SQLException {
+
+        model.OfflineBookingDraft.validateStay(
+                checkIn,
+                checkOut,
+                guests,
+                util.ReportPeriod.today()
+        );
+
+        BigDecimal currentPrice = lockAvailableRoom(
+                conn, roomNumber, checkIn, checkOut, guests
+        );
+
+        long nights = java.time.temporal.ChronoUnit.DAYS.between(
+                checkIn, checkOut
+        );
+
+        BigDecimal expectedTotal = currentPrice.multiply(
+                BigDecimal.valueOf(nights)
+        );
+
+        if (pricePerNight == null
+                || total == null
+                || currentPrice.compareTo(pricePerNight) != 0
+                || expectedTotal.compareTo(total) != 0) {
+            throw new IllegalArgumentException(
+                    "Giá phòng đã thay đổi. Vui lòng xem lại tóm tắt."
+            );
+        }
+
+        String sql;
+
+        if (actor == null) {
+            sql = "SET NOCOUNT ON; "
+                    + "DECLARE @ids TABLE(ID INT); "
+                    + "INSERT Booking("
+                    + "CustomerID,TotalPrice,Status,SpecialRequest"
+                    + ") OUTPUT INSERTED.BookingID INTO @ids "
+                    + "VALUES(?,?,'pending',?); "
+                    + "SELECT ID FROM @ids;";
+        } else {
+            sql = "SET NOCOUNT ON; "
+                    + "DECLARE @ids TABLE(ID INT); "
+                    + "INSERT Booking("
+                    + "CustomerID,TotalPrice,Status,SpecialRequest,"
+                    + "CreatedByUserID,OfflineRequestKey,"
+                    + "OfflinePromotionCode,HoldExpiresAt,"
+                    + "OfflineDepositPercent"
+                    + ") OUTPUT INSERTED.BookingID INTO @ids "
+                    + "VALUES(?,?,'pending',?,?,?,?,"
+                    + "DATEADD(MINUTE,?,SYSUTCDATETIME()),?); "
+                    + "SELECT ID FROM @ids;";
+        }
+
+        int id;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, customerId);
+            ps.setBigDecimal(2, total);
+            ps.setNString(3, specialRequest);
+
+            if (actor != null) {
+                ps.setInt(4, actor);
+                ps.setString(5, requestKey);
+                ps.setNString(
+                        6,
+                        promotionCode == null || promotionCode.isEmpty()
+                        ? null : promotionCode
+                );
+                ps.setInt(7, util.OfflineBookingPolicy.HOLD_MINUTES);
+                ps.setInt(8, util.OfflineBookingPolicy.DEPOSIT_PERCENT);
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new SQLException("Missing BookingID");
+                }
+
+                id = rs.getInt(1);
+            }
+        }
+
+        String detailSql
+                = "INSERT BookingDetail("
+                + "BookingID,RoomNumber,CheckInDate,CheckOutDate,"
+                + "PricePerNight,GuestCount,SpecialRequest"
+                + ") VALUES(?,?,?,?,?,?,?)";
+
+        try (PreparedStatement ps = conn.prepareStatement(detailSql)) {
+            ps.setInt(1, id);
+            ps.setInt(2, roomNumber);
+            ps.setObject(3, checkIn);
+            ps.setObject(4, checkOut);
+            ps.setBigDecimal(5, currentPrice);
+            ps.setInt(6, guests);
+            ps.setNString(7, specialRequest);
+            ps.executeUpdate();
+        }
+
+        return id;
+    }
+
+    static BigDecimal lockAvailableRoom(
+            Connection conn,
+            int roomNumber,
+            LocalDate from,
+            LocalDate to,
+            int guests
+    ) throws SQLException {
+
+        BigDecimal price;
+
+        String roomSql
+                = "SELECT rt.PricePerNight "
+                + "FROM Room r WITH(UPDLOCK,HOLDLOCK) "
+                + "JOIN RoomType rt WITH(HOLDLOCK) "
+                + "ON rt.RoomTypeID=r.RoomTypeID "
+                + "WHERE r.RoomNumber=? "
+                + "AND r.Status='available' "
+                + "AND rt.IsActive=1 "
+                + "AND rt.Capacity>=?";
+
+        try (PreparedStatement ps = conn.prepareStatement(roomSql)) {
+            ps.setInt(1, roomNumber);
+            ps.setInt(2, guests);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new IllegalArgumentException(
+                            "Phòng không khả dụng hoặc vượt sức chứa."
+                    );
+                }
+
+                price = rs.getBigDecimal(1);
+            }
+        }
+
+        String conflictSql
+                = "SELECT 1 FROM BookingDetail bd "
+                + "JOIN Booking b ON b.BookingID=bd.BookingID "
+                + "WHERE bd.RoomNumber=? "
+                + "AND b.Status<>'cancelled' "
+                + "AND bd.CheckInDate<? "
+                + "AND bd.CheckOutDate>?";
+
+        try (PreparedStatement ps = conn.prepareStatement(conflictSql)) {
+            ps.setInt(1, roomNumber);
+            ps.setObject(2, to);
+            ps.setObject(3, from);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    throw new IllegalArgumentException(
+                            "Phòng đã được đặt trong kỳ lưu trú. "
+                            + "Vui lòng chọn phòng khác."
                     );
                 }
             }
- 
-            Logger.getLogger(
-                    BookingDAO.class.getName()
-            ).log(Level.SEVERE, "Operation failed", ex);
- 
-            return 0;
- 
-        } finally {
- 
-            if (conn != null) {
- 
-                try {
-                    conn.setAutoCommit(true);
-                } catch (SQLException ignored) {
-                }
- 
-                try {
-                    conn.close();
-                } catch (SQLException ex) {
- 
-                    Logger.getLogger(
-                            BookingDAO.class.getName()
-                    ).log(Level.SEVERE, "Operation failed", ex);
-                }
-            }
         }
+
+        return price;
     }
- 
+
     /*
      * =========================================================
      * 3. CHECK ROOM CONFLICT
@@ -320,22 +351,22 @@ public class BookingDAO extends DBContext {
             int roomNumber,
             LocalDate checkIn,
             LocalDate checkOut) {
- 
+
         try (Connection conn = getConnection()) {
- 
+
             return isRoomBookedInRange(
                     conn,
                     roomNumber,
                     checkIn,
                     checkOut
             );
- 
+
         } catch (SQLException ex) {
- 
+
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(Level.SEVERE, "Operation failed", ex);
- 
+
             /*
              * Safer behaviour:
              * when DB check fails, don't assume room is free.
@@ -343,7 +374,7 @@ public class BookingDAO extends DBContext {
             return true;
         }
     }
- 
+
     /*
      * Internal version used inside createBooking transaction.
      */
@@ -353,7 +384,7 @@ public class BookingDAO extends DBContext {
             LocalDate checkIn,
             LocalDate checkOut)
             throws SQLException {
- 
+
         String sql
                 = "SELECT 1 "
                 + "FROM BookingDetail bd "
@@ -363,20 +394,20 @@ public class BookingDAO extends DBContext {
                 + "AND b.Status <> 'cancelled' "
                 + "AND bd.CheckInDate < ? "
                 + "AND bd.CheckOutDate > ?";
- 
+
         try (PreparedStatement ps
                 = conn.prepareStatement(sql)) {
- 
+
             ps.setInt(1, roomNumber);
             ps.setObject(2, checkOut);
             ps.setObject(3, checkIn);
- 
+
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
         }
     }
- 
+
     /*
      * =========================================================
      * 4. GET BOOKING DETAILS
@@ -384,24 +415,24 @@ public class BookingDAO extends DBContext {
      */
     public List<BookingDetail> getBookingDetails(
             int bookingId) {
- 
+
         try (Connection conn = getConnection()) {
- 
+
             return getBookingDetails(
                     conn,
                     bookingId
             );
- 
+
         } catch (SQLException ex) {
- 
+
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(Level.SEVERE, "Operation failed", ex);
- 
+
             return new ArrayList<>();
         }
     }
- 
+
     /*
      * Internal method to reuse an existing connection.
      */
@@ -409,10 +440,10 @@ public class BookingDAO extends DBContext {
             Connection conn,
             int bookingId)
             throws SQLException {
- 
+
         List<BookingDetail> details
                 = new ArrayList<>();
- 
+
         String sql
                 = "SELECT "
                 + "BookingDetailID, "
@@ -426,78 +457,78 @@ public class BookingDAO extends DBContext {
                 + "FROM BookingDetail "
                 + "WHERE BookingID = ? "
                 + "ORDER BY BookingDetailID";
- 
+
         try (PreparedStatement ps
                 = conn.prepareStatement(sql)) {
- 
+
             ps.setInt(1, bookingId);
- 
+
             try (ResultSet rs
                     = ps.executeQuery()) {
- 
+
                 while (rs.next()) {
- 
+
                     BookingDetail detail
                             = new BookingDetail();
- 
+
                     detail.setId(
                             rs.getInt(
                                     "BookingDetailID"
                             )
                     );
- 
+
                     detail.setBookingId(
                             rs.getInt(
                                     "BookingID"
                             )
                     );
- 
+
                     detail.setRoomNumber(
                             rs.getInt(
                                     "RoomNumber"
                             )
                     );
- 
+
                     detail.setCheckInDate(
                             rs.getObject(
                                     "CheckInDate",
                                     LocalDate.class
                             )
                     );
- 
+
                     detail.setCheckOutDate(
                             rs.getObject(
                                     "CheckOutDate",
                                     LocalDate.class
                             )
                     );
- 
+
                     detail.setPricePerNight(
                             rs.getBigDecimal(
                                     "PricePerNight"
                             )
                     );
- 
+
                     detail.setGuestCount(
                             rs.getInt(
                                     "GuestCount"
                             )
                     );
- 
+
                     detail.setSpecialRequest(
                             rs.getString(
                                     "SpecialRequest"
                             )
                     );
- 
+
                     details.add(detail);
                 }
             }
         }
- 
+
         return details;
     }
- 
+
     /*
      * =========================================================
      * 5. GET BOOKING BY ID
@@ -505,7 +536,7 @@ public class BookingDAO extends DBContext {
      */
     public Booking getBookingById(
             int bookingId) {
- 
+
         String sql
                 = "SELECT "
                 + "b.BookingID, "
@@ -535,30 +566,30 @@ public class BookingDAO extends DBContext {
                 + "JOIN [User] u "
                 + "ON c.UserID = u.UserID "
                 + "WHERE b.BookingID = ?";
- 
+
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
- 
+
             ps.setInt(1, bookingId);
- 
+
             try (ResultSet rs
                     = ps.executeQuery()) {
- 
+
                 if (!rs.next()) {
                     return null;
                 }
- 
+
                 User user = new User(
                         rs.getInt("UserID"),
                         rs.getString("Username"),
                         rs.getString("Password"),
                         rs.getString("Role")
                 );
- 
+
                 user.setDisplayName(
                         rs.getString("DisplayName")
                 );
- 
+
                 Customer customer = new Customer(
                         rs.getInt("CustomerID"),
                         rs.getString("FirstName"),
@@ -571,31 +602,31 @@ public class BookingDAO extends DBContext {
                         rs.getString("Avatar"),
                         user
                 );
- 
+
                 Booking booking = mapBooking(rs);
- 
+
                 booking.setCustomer(customer);
- 
+
                 booking.setDetails(
                         getBookingDetails(
                                 conn,
                                 bookingId
                         )
                 );
- 
+
                 return booking;
             }
- 
+
         } catch (SQLException ex) {
- 
+
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(Level.SEVERE, "Operation failed", ex);
         }
- 
+
         return null;
     }
- 
+
     /*
      * =========================================================
      * 6. GET BOOKINGS OF ONE CUSTOMER
@@ -603,10 +634,10 @@ public class BookingDAO extends DBContext {
      */
     public List<Booking> getBookingsByCustomerID(
             int customerId) {
- 
+
         List<Booking> bookings
                 = new ArrayList<>();
- 
+
         String sql
                 = "SELECT "
                 + "BookingID, "
@@ -620,41 +651,41 @@ public class BookingDAO extends DBContext {
                 + "WHERE CustomerID = ? "
                 + "ORDER BY BookingDate DESC, "
                 + "BookingID DESC";
- 
+
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
- 
+
             ps.setInt(1, customerId);
- 
+
             try (ResultSet rs
                     = ps.executeQuery()) {
- 
+
                 while (rs.next()) {
- 
+
                     Booking booking
                             = mapBooking(rs);
- 
+
                     booking.setDetails(
                             getBookingDetails(
                                     conn,
                                     booking.getId()
                             )
                     );
- 
+
                     bookings.add(booking);
                 }
             }
- 
+
         } catch (SQLException ex) {
- 
+
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(Level.SEVERE, "Operation failed", ex);
         }
- 
+
         return bookings;
     }
- 
+
     /*
      * =========================================================
      * 7. PAGINATED CUSTOMER BOOKING HISTORY
@@ -664,18 +695,18 @@ public class BookingDAO extends DBContext {
             int customerId,
             int page,
             int pageSize) {
- 
+
         List<Booking> bookings
                 = new ArrayList<>();
- 
+
         if (page < 1) {
             page = 1;
         }
- 
+
         if (pageSize <= 0) {
             pageSize = 5;
         }
- 
+
         String sql
                 = "SELECT "
                 + "BookingID, "
@@ -691,46 +722,46 @@ public class BookingDAO extends DBContext {
                 + "BookingID DESC "
                 + "OFFSET ? ROWS "
                 + "FETCH NEXT ? ROWS ONLY";
- 
+
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
- 
+
             ps.setInt(1, customerId);
             ps.setInt(
                     2,
                     (page - 1) * pageSize
             );
             ps.setInt(3, pageSize);
- 
+
             try (ResultSet rs
                     = ps.executeQuery()) {
- 
+
                 while (rs.next()) {
- 
+
                     Booking booking
                             = mapBooking(rs);
- 
+
                     booking.setDetails(
                             getBookingDetails(
                                     conn,
                                     booking.getId()
                             )
                     );
- 
+
                     bookings.add(booking);
                 }
             }
- 
+
         } catch (SQLException ex) {
- 
+
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(Level.SEVERE, "Operation failed", ex);
         }
- 
+
         return bookings;
     }
- 
+
     /*
      * =========================================================
      * 8. COUNT CUSTOMER BOOKINGS
@@ -738,35 +769,35 @@ public class BookingDAO extends DBContext {
      */
     public int countBookingsByCustomerID(
             int customerId) {
- 
+
         String sql
                 = "SELECT COUNT(*) AS Total "
                 + "FROM Booking "
                 + "WHERE CustomerID = ?";
- 
+
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
- 
+
             ps.setInt(1, customerId);
- 
+
             try (ResultSet rs
                     = ps.executeQuery()) {
- 
+
                 if (rs.next()) {
                     return rs.getInt("Total");
                 }
             }
- 
+
         } catch (SQLException ex) {
- 
+
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(Level.SEVERE, "Operation failed", ex);
         }
- 
+
         return 0;
     }
- 
+
     /*
      * =========================================================
      * 9. CANCEL BOOKING
@@ -779,7 +810,7 @@ public class BookingDAO extends DBContext {
     public boolean cancelBooking(int bookingId, int customerId, String reason) {
         return cancelBookingInternal(bookingId, customerId, reason);
     }
- 
+
     // A cancelled booking stays in history. Refund all actually paid amounts
     // to the customer wallet, regardless of hours before check-in.
     // The booking and payment changes commit or roll back together.
@@ -798,13 +829,19 @@ public class BookingDAO extends DBContext {
             conn.setAutoCommit(false);
             try (PreparedStatement ps = conn.prepareStatement(lockSql)) {
                 ps.setInt(1, bookingId);
-                if (customerId != null) ps.setInt(2, customerId);
+                if (customerId != null) {
+                    ps.setInt(2, customerId);
+                }
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (!rs.next()) { conn.rollback(); return false; }
+                    if (!rs.next()) {
+                        conn.rollback();
+                        return false;
+                    }
                     String status = rs.getString(1);
                     if (!"pending".equalsIgnoreCase(status)
                             && !"confirmed".equalsIgnoreCase(status)) {
-                        conn.rollback(); return false;
+                        conn.rollback();
+                        return false;
                     }
                 }
             }
@@ -813,7 +850,8 @@ public class BookingDAO extends DBContext {
                 ps.setInt(1, bookingId);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (!rs.next() || (firstCheckIn = rs.getDate(1)) == null) {
-                        conn.rollback(); return false;
+                        conn.rollback();
+                        return false;
                     }
                 }
             }
@@ -823,13 +861,19 @@ public class BookingDAO extends DBContext {
                 ps.setDate(1, firstCheckIn);
                 try (ResultSet rs = ps.executeQuery()) {
                     rs.next();
-                    if (rs.getInt(1) != 1) { conn.rollback(); return false; }
+                    if (rs.getInt(1) != 1) {
+                        conn.rollback();
+                        return false;
+                    }
                 }
             }
             try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
                 ps.setString(1, reason);
                 ps.setInt(2, bookingId);
-                if (ps.executeUpdate() != 1) { conn.rollback(); return false; }
+                if (ps.executeUpdate() != 1) {
+                    conn.rollback();
+                    return false;
+                }
             }
             {
                 // Credit all received deposits into the customer's wallet atomically.
@@ -840,7 +884,9 @@ public class BookingDAO extends DBContext {
                 try (PreparedStatement ps = conn.prepareStatement(amountSql)) {
                     ps.setInt(1, bookingId);
                     try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) amount = rs.getBigDecimal(1);
+                        if (rs.next()) {
+                            amount = rs.getBigDecimal(1);
+                        }
                     }
                 }
                 if (amount != null && amount.signum() > 0) {
@@ -851,7 +897,10 @@ public class BookingDAO extends DBContext {
                             + "WHERE BookingID=? AND TransactionType='refund'")) {
                         ps.setInt(1, bookingId);
                         try (ResultSet rs = ps.executeQuery()) {
-                            if (rs.next()) { conn.rollback(); return false; }
+                            if (rs.next()) {
+                                conn.rollback();
+                                return false;
+                            }
                         }
                     }
                     String customerSql = "SELECT CustomerID FROM Booking WHERE BookingID = ?";
@@ -859,7 +908,10 @@ public class BookingDAO extends DBContext {
                     try (PreparedStatement ps = conn.prepareStatement(customerSql)) {
                         ps.setInt(1, bookingId);
                         try (ResultSet rs = ps.executeQuery()) {
-                            if (!rs.next()) { conn.rollback(); return false; }
+                            if (!rs.next()) {
+                                conn.rollback();
+                                return false;
+                            }
                             walletCustomerId = rs.getInt(1);
                         }
                     }
@@ -896,7 +948,10 @@ public class BookingDAO extends DBContext {
                             "SELECT WalletID FROM Wallet WITH (UPDLOCK, HOLDLOCK) WHERE CustomerID = ?")) {
                         ps.setInt(1, walletCustomerId);
                         try (ResultSet rs = ps.executeQuery()) {
-                            if (!rs.next()) { conn.rollback(); return false; }
+                            if (!rs.next()) {
+                                conn.rollback();
+                                return false;
+                            }
                             walletId = rs.getInt(1);
                         }
                     }
@@ -923,27 +978,39 @@ public class BookingDAO extends DBContext {
             conn.commit();
             return true;
         } catch (SQLException ex) {
-            if (conn != null) try { conn.rollback(); } catch (SQLException ignored) { }
+            if (conn != null) try {
+                conn.rollback();
+            } catch (SQLException ignored) {
+            }
             Logger.getLogger(BookingDAO.class.getName()).log(Level.SEVERE, "Cancellation failed", ex);
             return false;
         } finally {
-            if (conn != null) try { conn.close(); } catch (SQLException ignored) { }
+            if (conn != null) try {
+                conn.close();
+            } catch (SQLException ignored) {
+            }
         }
     }
- 
-    /** True only when an actual payment was marked refunded (not merely when booking was cancelled). */
+
+    /**
+     * True only when an actual payment was marked refunded (not merely when
+     * booking was cancelled).
+     */
     public boolean hasRefundedPayment(int bookingId, int customerId) {
         String sql = "SELECT 1 FROM Payment p JOIN Booking b ON b.BookingID=p.BookingID "
                 + "WHERE p.BookingID=? AND b.CustomerID=? AND p.PaymentStatus='refunded'";
-        try (Connection conn=getConnection(); PreparedStatement ps=conn.prepareStatement(sql)) {
-            ps.setInt(1, bookingId); ps.setInt(2, customerId);
-            try (ResultSet rs=ps.executeQuery()) { return rs.next(); }
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, bookingId);
+            ps.setInt(2, customerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         } catch (SQLException ex) {
-            Logger.getLogger(BookingDAO.class.getName()).log(Level.SEVERE,"Refund status query failed",ex);
+            Logger.getLogger(BookingDAO.class.getName()).log(Level.SEVERE, "Refund status query failed", ex);
             return false;
         }
     }
- 
+
     public boolean canCustomerCancelBooking(int bookingId, int customerId) {
         String sql = "SELECT 1 FROM Booking b WHERE b.BookingID = ? AND b.CustomerID = ? "
                 + "AND b.Status IN ('pending', 'confirmed') "
@@ -952,25 +1019,29 @@ public class BookingDAO extends DBContext {
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, bookingId);
             ps.setInt(2, customerId);
-            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         } catch (SQLException ex) {
             Logger.getLogger(BookingDAO.class.getName()).log(Level.SEVERE, "Operation failed", ex);
             return false;
         }
     }
- 
+
     public boolean isRefundEligible(int bookingId) {
         String sql = "SELECT 1 FROM BookingDetail WHERE BookingID = ? "
                 + "GROUP BY BookingID HAVING CAST(MIN(CheckInDate) AS DATETIME2) > SYSDATETIME()";
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, bookingId);
-            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         } catch (SQLException ex) {
             Logger.getLogger(BookingDAO.class.getName()).log(Level.SEVERE, "Operation failed", ex);
             return false;
         }
     }
- 
+
     /*
      * =========================================================
      * 10. STAFF / ADMIN BOOKING STATUS UPDATE
@@ -980,35 +1051,35 @@ public class BookingDAO extends DBContext {
     public boolean updateBookingStatus(
             int bookingId,
             String newStatus) {
- 
+
         /*
          * These are the statuses defined by HotelDB.
          */
         if (!isValidBookingStatus(newStatus)) {
             return false;
         }
- 
+
         /*
          * Prevent arbitrary transitions.
          */
         Booking booking
                 = getBookingById(bookingId);
- 
+
         if (booking == null) {
             return false;
         }
- 
+
         if (!isValidStatusTransition(
                 booking.getStatus(),
                 newStatus)) {
- 
+
             return false;
         }
- 
+
         if ("cancelled".equals(newStatus)) {
             return cancelBookingInternal(bookingId, null, "Cancelled by Staff/Admin");
         }
- 
+
         String sql
                 = "UPDATE Booking "
                 + "SET Status = ?, "
@@ -1027,27 +1098,27 @@ public class BookingDAO extends DBContext {
                 + "ELSE NULL "
                 + "END "
                 + "WHERE BookingID = ?";
- 
+
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
- 
+
             ps.setString(1, newStatus);
             ps.setString(2, newStatus);
             ps.setString(3, newStatus);
             ps.setInt(4, bookingId);
- 
+
             return ps.executeUpdate() > 0;
- 
+
         } catch (SQLException ex) {
- 
+
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(Level.SEVERE, "Operation failed", ex);
- 
+
             return false;
         }
     }
- 
+
     /*
      * =========================================================
      * 11. CONFIRM BOOKING AFTER SUCCESSFUL PAYMENT
@@ -1056,30 +1127,30 @@ public class BookingDAO extends DBContext {
      */
     public boolean confirmBooking(
             int bookingId) {
- 
+
         String sql
                 = "UPDATE Booking "
                 + "SET Status = 'confirmed' "
                 + "WHERE BookingID = ? "
                 + "AND Status = 'pending'";
- 
+
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
- 
+
             ps.setInt(1, bookingId);
- 
+
             return ps.executeUpdate() > 0;
- 
+
         } catch (SQLException ex) {
- 
+
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(Level.SEVERE, "Operation failed", ex);
- 
+
             return false;
         }
     }
- 
+
     /*
      * =========================================================
      * 12. EXPIRE UNPAID PENDING BOOKINGS
@@ -1091,7 +1162,7 @@ public class BookingDAO extends DBContext {
      * =========================================================
      */
     public int expirePendingBookings() {
- 
+
         String sql
                 = "UPDATE Booking "
                 + "SET Status = 'cancelled', "
@@ -1102,22 +1173,22 @@ public class BookingDAO extends DBContext {
                 + "AND BookingDate < "
                 + "DATEADD(MINUTE, -30, "
                 + "SYSDATETIME())";
- 
+
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
- 
+
             return ps.executeUpdate();
- 
+
         } catch (SQLException ex) {
- 
+
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(Level.SEVERE, "Operation failed", ex);
- 
+
             return 0;
         }
     }
- 
+
     /*
      * =========================================================
      * 13. GET LATEST COMPLETED BOOKING FOR REVIEW
@@ -1126,7 +1197,7 @@ public class BookingDAO extends DBContext {
     public Integer getLatestCompletedBookingId(
             int customerId,
             int roomNumber) {
- 
+
         String sql
                 = "SELECT TOP 1 "
                 + "b.BookingID "
@@ -1142,33 +1213,33 @@ public class BookingDAO extends DBContext {
                 + "    WHERE r.BookingID = b.BookingID "
                 + ") "
                 + "ORDER BY bd.CheckOutDate DESC";
- 
+
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
- 
+
             ps.setInt(1, customerId);
             ps.setInt(2, roomNumber);
- 
+
             try (ResultSet rs
                     = ps.executeQuery()) {
- 
+
                 if (rs.next()) {
                     return rs.getInt(
                             "BookingID"
                     );
                 }
             }
- 
+
         } catch (SQLException ex) {
- 
+
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(Level.SEVERE, "Operation failed", ex);
         }
- 
+
         return null;
     }
- 
+
     /*
      * =========================================================
      * 14. CHECK IF BOOKING BELONGS TO CUSTOMER
@@ -1178,35 +1249,35 @@ public class BookingDAO extends DBContext {
     public boolean isBookingOwnedByCustomer(
             int bookingId,
             int customerId) {
- 
+
         String sql
                 = "SELECT 1 "
                 + "FROM Booking "
                 + "WHERE BookingID = ? "
                 + "AND CustomerID = ?";
- 
+
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
- 
+
             ps.setInt(1, bookingId);
             ps.setInt(2, customerId);
- 
+
             try (ResultSet rs
                     = ps.executeQuery()) {
- 
+
                 return rs.next();
             }
- 
+
         } catch (SQLException ex) {
- 
+
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(Level.SEVERE, "Operation failed", ex);
- 
+
             return false;
         }
     }
- 
+
     /*
  * =========================================================
  * SEARCH BOOKINGS FOR STAFF / ADMIN
@@ -1230,21 +1301,21 @@ public class BookingDAO extends DBContext {
             LocalDate toDate,
             int page,
             int pageSize) {
- 
+
         List<Booking> bookings
                 = new ArrayList<>();
- 
+
         if (page < 1) {
             page = 1;
         }
- 
+
         if (pageSize <= 0) {
             pageSize = 10;
         }
- 
+
         StringBuilder sql
                 = new StringBuilder();
- 
+
         sql.append(
                 "SELECT "
                 + "b.BookingID, "
@@ -1277,18 +1348,18 @@ public class BookingDAO extends DBContext {
                 + "ON u.UserID = c.UserID "
                 + "WHERE 1 = 1 "
         );
- 
+
         boolean hasKeyword
                 = keyword != null
                 && !keyword.trim().isEmpty();
- 
+
         boolean hasStatus
                 = status != null
                 && !status.trim().isEmpty()
                 && isValidBookingStatus(status);
- 
+
         if (hasKeyword) {
- 
+
             sql.append(
                     "AND ( "
                     + "CAST(b.BookingID AS VARCHAR(20)) LIKE ? "
@@ -1304,34 +1375,34 @@ public class BookingDAO extends DBContext {
                     + ") "
             );
         }
- 
+
         if (hasStatus) {
- 
+
             sql.append(
                     "AND b.Status = ? "
             );
         }
- 
+
         /*
      * BookingDate >= fromDate
          */
         if (fromDate != null) {
- 
+
             sql.append(
                     "AND CAST(b.BookingDate AS DATE) >= ? "
             );
         }
- 
+
         /*
      * BookingDate <= toDate
          */
         if (toDate != null) {
- 
+
             sql.append(
                     "AND CAST(b.BookingDate AS DATE) <= ? "
             );
         }
- 
+
         sql.append(
                 "ORDER BY "
                 + "b.BookingDate DESC, "
@@ -1339,74 +1410,74 @@ public class BookingDAO extends DBContext {
                 + "OFFSET ? ROWS "
                 + "FETCH NEXT ? ROWS ONLY"
         );
- 
+
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(
                         sql.toString()
                 )) {
- 
+
             int index = 1;
- 
+
             /*
          * Keyword appears 7 times.
              */
             if (hasKeyword) {
- 
+
                 String search
                         = "%"
                         + keyword.trim()
                         + "%";
- 
+
                 for (int i = 0;
                         i < 7;
                         i++) {
- 
+
                     ps.setString(
                             index++,
                             search
                     );
                 }
             }
- 
+
             if (hasStatus) {
- 
+
                 ps.setString(
                         index++,
                         status
                 );
             }
- 
+
             if (fromDate != null) {
- 
+
                 ps.setObject(
                         index++,
                         fromDate
                 );
             }
- 
+
             if (toDate != null) {
- 
+
                 ps.setObject(
                         index++,
                         toDate
                 );
             }
- 
+
             ps.setInt(
                     index++,
                     (page - 1) * pageSize
             );
- 
+
             ps.setInt(
                     index,
                     pageSize
             );
- 
+
             try (ResultSet rs
                     = ps.executeQuery()) {
- 
+
                 while (rs.next()) {
- 
+
                     User user
                             = new User(
                                     rs.getInt(
@@ -1422,29 +1493,29 @@ public class BookingDAO extends DBContext {
                                             "Role"
                                     )
                             );
- 
+
                     user.setDisplayName(
                             rs.getString(
                                     "DisplayName"
                             )
                     );
- 
+
                     user.setAccountStatus(
                             rs.getString(
                                     "AccountStatus"
                             )
                     );
- 
+
                     if (rs.getTimestamp(
                             "CreatedAt") != null) {
- 
+
                         user.setCreatedAt(
                                 rs.getTimestamp(
                                         "CreatedAt"
                                 ).toLocalDateTime()
                         );
                     }
- 
+
                     Customer customer
                             = new Customer(
                                     rs.getInt(
@@ -1476,29 +1547,29 @@ public class BookingDAO extends DBContext {
                                     ),
                                     user
                             );
- 
+
                     Booking booking
                             = mapBooking(rs);
- 
+
                     booking.setCustomer(
                             customer
                     );
- 
+
                     booking.setDetails(
                             getBookingDetails(
                                     conn,
                                     booking.getId()
                             )
                     );
- 
+
                     bookings.add(
                             booking
                     );
                 }
             }
- 
+
         } catch (SQLException ex) {
- 
+
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(
@@ -1507,11 +1578,10 @@ public class BookingDAO extends DBContext {
                     ex
             );
         }
- 
+
         return bookings;
     }
- 
- 
+
     /*
  * =========================================================
  * COUNT SEARCHED BOOKINGS
@@ -1522,10 +1592,10 @@ public class BookingDAO extends DBContext {
             String status,
             LocalDate fromDate,
             LocalDate toDate) {
- 
+
         StringBuilder sql
                 = new StringBuilder();
- 
+
         sql.append(
                 "SELECT COUNT(*) AS Total "
                 + "FROM Booking b "
@@ -1535,18 +1605,18 @@ public class BookingDAO extends DBContext {
                 + "ON u.UserID = c.UserID "
                 + "WHERE 1 = 1 "
         );
- 
+
         boolean hasKeyword
                 = keyword != null
                 && !keyword.trim().isEmpty();
- 
+
         boolean hasStatus
                 = status != null
                 && !status.trim().isEmpty()
                 && isValidBookingStatus(status);
- 
+
         if (hasKeyword) {
- 
+
             sql.append(
                     "AND ( "
                     + "CAST(b.BookingID AS VARCHAR(20)) LIKE ? "
@@ -1562,90 +1632,90 @@ public class BookingDAO extends DBContext {
                     + ") "
             );
         }
- 
+
         if (hasStatus) {
- 
+
             sql.append(
                     "AND b.Status = ? "
             );
         }
- 
+
         if (fromDate != null) {
- 
+
             sql.append(
                     "AND CAST(b.BookingDate AS DATE) >= ? "
             );
         }
- 
+
         if (toDate != null) {
- 
+
             sql.append(
                     "AND CAST(b.BookingDate AS DATE) <= ? "
             );
         }
- 
+
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(
                         sql.toString()
                 )) {
- 
+
             int index = 1;
- 
+
             if (hasKeyword) {
- 
+
                 String search
                         = "%"
                         + keyword.trim()
                         + "%";
- 
+
                 for (int i = 0;
                         i < 7;
                         i++) {
- 
+
                     ps.setString(
                             index++,
                             search
                     );
                 }
             }
- 
+
             if (hasStatus) {
- 
+
                 ps.setString(
                         index++,
                         status
                 );
             }
- 
+
             if (fromDate != null) {
- 
+
                 ps.setObject(
                         index++,
                         fromDate
                 );
             }
- 
+
             if (toDate != null) {
- 
+
                 ps.setObject(
                         index,
                         toDate
                 );
             }
- 
+
             try (ResultSet rs
                     = ps.executeQuery()) {
- 
+
                 if (rs.next()) {
- 
+
                     return rs.getInt(
                             "Total"
                     );
                 }
             }
- 
+
         } catch (SQLException ex) {
- 
+
             Logger.getLogger(
                     BookingDAO.class.getName()
             ).log(
@@ -1654,10 +1724,10 @@ public class BookingDAO extends DBContext {
                     ex
             );
         }
- 
+
         return 0;
     }
- 
+
     /*
      * =========================================================
      * 15. MAP COMMON BOOKING FIELDS
@@ -1666,59 +1736,59 @@ public class BookingDAO extends DBContext {
     private Booking mapBooking(
             ResultSet rs)
             throws SQLException {
- 
+
         Booking booking
                 = new Booking();
- 
+
         booking.setId(
                 rs.getInt("BookingID")
         );
- 
+
         if (rs.getTimestamp(
                 "BookingDate") != null) {
- 
+
             booking.setBookingDate(
                     rs.getTimestamp(
                             "BookingDate"
                     ).toLocalDateTime()
             );
         }
- 
+
         booking.setStatus(
                 rs.getString("Status")
         );
- 
+
         booking.setTotalPrice(
                 rs.getBigDecimal(
                         "TotalPrice"
                 )
         );
- 
+
         booking.setSpecialRequest(
                 rs.getString(
                         "SpecialRequest"
                 )
         );
- 
+
         if (rs.getTimestamp(
                 "CancellationDate") != null) {
- 
+
             booking.setCancellationDate(
                     rs.getTimestamp(
                             "CancellationDate"
                     ).toLocalDateTime()
             );
         }
- 
+
         booking.setCancellationReason(
                 rs.getString(
                         "CancellationReason"
                 )
         );
- 
+
         return booking;
     }
- 
+
     /*
      * =========================================================
      * 16. VALID BOOKING STATUS
@@ -1727,11 +1797,11 @@ public class BookingDAO extends DBContext {
      */
     private boolean isValidBookingStatus(
             String status) {
- 
+
         if (status == null) {
             return false;
         }
- 
+
         return status.equals("pending")
                 || status.equals("confirmed")
                 || status.equals("cancelled")
@@ -1739,7 +1809,7 @@ public class BookingDAO extends DBContext {
                 || status.equals("checked_out")
                 || status.equals("completed");
     }
- 
+
     /*
      * =========================================================
      * 17. BOOKING STATUS TRANSITIONS
@@ -1751,53 +1821,42 @@ public class BookingDAO extends DBContext {
     private boolean isValidStatusTransition(
             String currentStatus,
             String newStatus) {
- 
+
         if (currentStatus == null
                 || newStatus == null) {
- 
+
             return false;
         }
- 
+
         if (currentStatus.equals(newStatus)) {
             return true;
         }
- 
+
         switch (currentStatus) {
- 
+
             case "pending":
                 return newStatus.equals("confirmed")
                         || newStatus.equals("cancelled");
- 
+
             case "confirmed":
                 return newStatus.equals("checked_in")
                         || newStatus.equals("cancelled");
- 
+
             case "checked_in":
                 return newStatus.equals("checked_out");
- 
+
             case "checked_out":
                 return newStatus.equals("completed");
- 
+
             /*
              * Final states.
              */
             case "completed":
             case "cancelled":
                 return false;
- 
+
             default:
                 return false;
         }
     }
 }
- 
-
-
-
-
-
-
-
-
-
-
