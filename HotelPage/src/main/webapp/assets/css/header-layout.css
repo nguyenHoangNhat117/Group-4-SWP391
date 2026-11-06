@@ -1,0 +1,231 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : Nov 6, 2026, 1:03:38 PM
+    Author     : Nguyen Hoang Nhat
+*/
+/* Keep logo, navigation and account actions on the same row. */
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 {
+    width: 100%;
+    overflow: visible !important;
+}
+
+/* Three independent areas:
+   logo | bounded navigation | language + account
+*/
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 > nav {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    column-gap: clamp(12px, 1.4vw, 26px) !important;
+    row-gap: 0 !important;
+
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1920px;
+    min-height: 80px;
+
+    margin: 0 auto !important;
+    padding: 12px clamp(14px, 1.6vw, 30px) !important;
+}
+
+/* Logo */
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #nav-heading {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    min-width: 0;
+    margin: 0 !important;
+}
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #nav-heading > a {
+    display: inline-flex;
+    align-items: center;
+
+    font-size: clamp(21px, 1.6vw, 28px);
+    line-height: 1.2;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+/* Navigation always stays in the first row.
+   min-width: 0 allows this area to shrink without pushing
+   the language/account group outside the header.
+*/
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+
+    position: static !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    justify-self: stretch !important;
+    flex-wrap: nowrap !important;
+
+    gap: clamp(10px, 1.1vw, 20px) !important;
+
+    box-sizing: border-box;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+
+    margin: 0 !important;
+    padding: 4px 2px !important;
+    border: 0 !important;
+
+    list-style: none;
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #cbb393 transparent;
+}
+
+/* Center short menus without clipping the beginning
+   of a long, scrollable menu.
+*/
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar > li:first-child {
+    margin-inline-start: auto !important;
+}
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar > li:last-child {
+    margin-inline-end: auto !important;
+}
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar > li {
+    flex: 0 0 auto !important;
+    margin-block: 0 !important;
+    padding: 0 !important;
+}
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar > li > a {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 10px 0 !important;
+
+    font-size: clamp(12px, 0.85vw, 14px);
+    font-weight: 650;
+    line-height: 1.4;
+
+    white-space: nowrap !important;
+    text-decoration: none;
+}
+
+/* A discreet scrollbar appears only when needed. */
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar::-webkit-scrollbar {
+    height: 4px;
+}
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background: #cbb393;
+}
+
+/* Language and account remain outside the scrolling menu. */
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-header-actions {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: nowrap !important;
+
+    gap: 10px;
+    min-width: 0;
+    margin: 0 !important;
+}
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-header-actions > .hotel-language,
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-header-actions > .auth-nav {
+    flex: 0 0 auto;
+    margin: 0 !important;
+}
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-nav-trigger {
+    display: none !important;
+}
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-account-text strong {
+    max-width: 115px;
+}
+
+/* Reduce account width before reducing navigation space. */
+
+@media (max-width: 1350px) {
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-account-text {
+        display: none !important;
+    }
+
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-account-trigger {
+        gap: 4px;
+        min-height: 44px;
+        padding: 3px 6px 3px 3px;
+    }
+
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-header-actions {
+        gap: 8px;
+    }
+}
+
+@media (max-width: 900px) {
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 > nav {
+        column-gap: 12px !important;
+        padding: 10px 14px !important;
+    }
+
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar {
+        gap: 12px !important;
+    }
+
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .hotel-language summary {
+        min-height: 40px;
+        padding: 7px 8px;
+    }
+
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-account-chevron {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 > nav {
+        min-height: 68px;
+        column-gap: 8px !important;
+        padding: 10px !important;
+    }
+
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-brand-full {
+        display: none;
+    }
+
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-brand-short {
+        display: inline;
+    }
+
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-header-actions {
+        gap: 6px;
+    }
+
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .auth-nav .luxe-auth-button {
+        min-width: 0;
+        padding: 8px;
+        font-size: 12px;
+    }
+}

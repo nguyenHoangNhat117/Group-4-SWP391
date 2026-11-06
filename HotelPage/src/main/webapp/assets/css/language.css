@@ -1,0 +1,129 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : Nov 6, 2026, 12:45:34 PM
+    Author     : Nguyen Hoang Nhat
+*/
+.hotel-language {
+    position: relative;
+    flex-shrink: 0;
+    margin-inline: 12px;
+    color: inherit;
+    font-size: 14px;
+}
+
+.hotel-language details {
+    position: relative;
+}
+
+.hotel-language summary {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 12px;
+    border: 1px solid #a9854f;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    list-style: none;
+    white-space: nowrap;
+}
+
+.hotel-language summary::-webkit-details-marker {
+    display: none;
+}
+
+.hotel-language summary:focus-visible,
+.hotel-language button:focus-visible {
+    outline: 3px solid #cda766;
+    outline-offset: 3px;
+}
+
+.hotel-language__panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    inset-inline-end: 0;
+    z-index: 2000;
+    width: 210px;
+    padding: 8px;
+    border: 1px solid #e4dacb;
+    border-radius: 10px;
+    background: #fff;
+    color: #242424;
+    box-shadow: 0 10px 30px #0002;
+}
+
+.hotel-language__heading {
+    display: block;
+    margin: 6px 10px 9px;
+    color: #666;
+    font-size: 12px;
+}
+
+.hotel-language button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 11px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+
+.hotel-language button:hover,
+.hotel-language button[aria-pressed="true"] {
+    background: #f5eee4;
+}
+
+.hotel-language button[aria-pressed="true"]::after {
+    content: "✓";
+    color: #896326;
+    font-weight: bold;
+}
+
+.hotel-language button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.hotel-language__status {
+    position: absolute;
+    top: calc(100% + 6px);
+    inset-inline-end: 0;
+    z-index: 1999;
+    min-width: 220px;
+    max-width: 280px;
+    padding: 5px 8px;
+    border-radius: 5px;
+    background: #fff;
+    color: #333;
+    font-size: 12px;
+}
+
+.hotel-language__status:empty {
+    display: none;
+}
+
+.hotel-language noscript {
+    display: block;
+    max-width: 220px;
+    font-size: 12px;
+}
+
+@media (max-width: 600px) {
+    .hotel-language {
+        margin-inline: 5px;
+    }
+
+    .hotel-language summary {
+        padding: 8px;
+    }
+}

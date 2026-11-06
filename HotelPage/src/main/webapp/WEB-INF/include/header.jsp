@@ -1,347 +1,413 @@
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ page pageEncoding="UTF-8" %>
 <%@ page import="util.AuthSupport" %>
 
-<link rel="stylesheet"
-      href="${pageContext.request.contextPath}/assets/css/luxe-account-menu.css?v=account-dropdown-v4">
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 
-<header class="luxe-shared-header luxe-header-v4" data-luxe-header>
+<link rel="stylesheet"
+      href="${pageContext.request.contextPath}/assets/css/luxe-account-menu.css?v=header-v5">
+<link rel="stylesheet"
+      href="${pageContext.request.contextPath}/assets/css/luxe-account-menu.css?v=header-v5">
+
+<link rel="stylesheet"
+      href="${pageContext.request.contextPath}/assets/css/header-layout.css?v=header-row-1">
+<header class="luxe-shared-header luxe-header-v4 luxe-header-v5"
+        data-luxe-header
+        data-context-path="${pageContext.request.contextPath}">
+
     <nav>
         <span id="nav-heading">
-            <a href="${pageContext.request.contextPath}/">
-                Luxe Escape
+            <a href="${pageContext.request.contextPath}/"
+               aria-label="Luxe Escape">
+
+                <span class="luxe-brand-full">
+                    Luxe Escape
+                </span>
+
+                <span class="luxe-brand-short"
+                      aria-hidden="true">
+                    Luxe
+                </span>
             </a>
         </span>
 
-        <button type="button"
-                class="luxe-nav-trigger"
-                data-luxe-nav-toggle
-                aria-controls="navbar"
-                aria-expanded="false"
-                aria-label="Toggle navigation">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 6h16M4 12h16M4 18h16"/>
-            </svg>
-        </button>
-
         <ul id="navbar">
             <c:choose>
-                <%-- Administrator --%>
                 <c:when test="${sessionScope.loggedUser.role == 'admin'}">
                     <li>
                         <a href="${pageContext.request.contextPath}/admin/users">
-                            Accounts
+                            <ui:text key="nav.accounts"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/room">
-                            Rooms
+                            <ui:text key="nav.rooms"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/room-type">
-                            Room Types
+                            <ui:text key="nav.roomTypes"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/booking-management">
-                            Bookings
+                            <ui:text key="nav.bookings"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/offline-booking">
-                            Offline Booking
+                            <ui:text key="nav.offline"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/customers">
-                            Customers
+                            <ui:text key="nav.customers"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/discounts">
-                            Discounts
+                            <ui:text key="nav.discounts"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/admin/reviews">
-                            Reviews
+                            <ui:text key="nav.reviews"/>
                         </a>
                     </li>
                 </c:when>
 
-                <%-- Staff --%>
                 <c:when test="${sessionScope.loggedUser.role == 'staff'}">
                     <li>
                         <a href="${pageContext.request.contextPath}/booking">
-                            Search Rooms
+                            <ui:text key="nav.search"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/booking-management">
-                            Bookings
+                            <ui:text key="nav.bookings"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/offline-booking">
-                            Offline Booking
+                            <ui:text key="nav.offline"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/customers">
-                            Customers
+                            <ui:text key="nav.customers"/>
                         </a>
                     </li>
                 </c:when>
 
-                <%-- Manager --%>
                 <c:when test="${sessionScope.loggedUser.role == 'manager'}">
                     <li>
                         <a href="${pageContext.request.contextPath}/dashboard">
-                            Dashboard
+                            <ui:text key="nav.dashboard"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/reports?view=bookings&amp;page-index=1">
-                            Reports
+                            <ui:text key="nav.reports"/>
                         </a>
                     </li>
                 </c:when>
 
-                <%-- Customer / Guest --%>
                 <c:otherwise>
                     <li>
                         <a href="${pageContext.request.contextPath}/#rooms">
-                            Rooms
+                            <ui:text key="nav.rooms"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/#restaurant">
-                            Restaurant
+                            <ui:text key="nav.restaurant"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/booking">
-                            Booking
+                            <ui:text key="nav.booking"/>
                         </a>
                     </li>
+
                     <li>
                         <a href="${pageContext.request.contextPath}/promotions">
-                            Promotions
+                            <ui:text key="nav.promotions"/>
                         </a>
                     </li>
                 </c:otherwise>
             </c:choose>
         </ul>
 
-        <c:choose>
-            <%-- Guest --%>
-            <c:when test="${empty sessionScope.loggedUser}">
-                <div class="auth-nav">
-                    <a href="${pageContext.request.contextPath}/login"
-                       id="login"
-                       class="luxe-auth-button">
-                        Login
-                    </a>
-                </div>
-            </c:when>
+        <%-- One group containing navigation toggle, language and account. --%>
+        <div class="luxe-header-actions">
 
-            <%-- Customer account dropdown --%>
-            <c:when test="${sessionScope.loggedUser.role == 'customer'}">
-                <div class="auth-nav luxe-auth-customer">
-                    <div class="dropdown">
-                        <a class="user-dropdown"
-                           href="#"
-                           role="button"
-                           id="customerDropdown"
-                           data-bs-toggle="dropdown"
-                           aria-haspopup="true"
-                           aria-expanded="false">
+            <button type="button"
+                    class="luxe-nav-trigger"
+                    data-luxe-nav-toggle
+                    aria-controls="navbar"
+                    aria-expanded="false"
+                    data-i18n-aria-label="nav.toggle"
+                    aria-label="${requestScope.i18n['nav.toggle']}">
 
-                            <img width="40"
-                                 height="40"
-                                 class="rounded-circle border border-3 user-avatar object-fit-cover"
-                                 src="${pageContext.request.contextPath}/assets/img/${not empty sessionScope.customer.avatar ? fn:escapeXml(sessionScope.customer.avatar) : 'avatar.jpg'}"
-                                 alt="Customer avatar">
+                <svg viewBox="0 0 24 24"
+                     aria-hidden="true">
+                <path d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+
+            <jsp:include page="/WEB-INF/include/language-switcher.jsp"/>
+
+            <c:choose>
+                <c:when test="${empty sessionScope.loggedUser}">
+                    <div class="auth-nav">
+                        <a href="${pageContext.request.contextPath}/login"
+                           id="login"
+                           class="luxe-auth-button">
+
+                            <ui:text key="auth.login"/>
                         </a>
-
-                        <div class="dropdown-menu"
-                             aria-labelledby="customerDropdown">
-
-                            <a class="dropdown-item"
-                               href="${pageContext.request.contextPath}/profile?id=${sessionScope.loggedUser.id}">
-                                Profile
-                            </a>
-
-                            <a class="dropdown-item"
-                               href="${pageContext.request.contextPath}/change-password">
-                                Change Password
-                            </a>
-
-                            <a class="dropdown-item"
-                               href="${pageContext.request.contextPath}/history?view=bookings">
-                                Booking History
-                            </a>
-
-                            <a class="dropdown-item"
-                               href="${pageContext.request.contextPath}/history?view=payments">
-                                Payment History
-                            </a>
-
-                            <a class="dropdown-item"
-                               href="${pageContext.request.contextPath}/wallet">
-                                My Wallet
-                            </a>
-
-                            <div class="dropdown-divider"></div>
-
-                            <form method="post"
-                                  action="${pageContext.request.contextPath}/logout"
-                                  class="luxe-logout-form luxe-dropdown-logout">
-
-                                <input type="hidden"
-                                       name="csrfToken"
-                                       value="<%= AuthSupport.token(session)%>">
-
-                                <button class="dropdown-item" type="submit">
-                                    Logout
-                                </button>
-                            </form>
-                        </div>
                     </div>
-                </div>
-            </c:when>
+                </c:when>
 
-            <%-- Staff / Admin / Manager account menu --%>
-            <c:otherwise>
-                <c:set var="luxeHeaderName"
-                       value="${not empty sessionScope.loggedUser.displayName
-                                ? sessionScope.loggedUser.displayName
-                                : sessionScope.loggedUser.username}"/>
+                <c:otherwise>
+                    <c:set var="luxeHeaderName"
+                           value="${not empty sessionScope.loggedUser.displayName
+                                    ? sessionScope.loggedUser.displayName
+                                    : sessionScope.loggedUser.username}"/>
 
-                <div class="auth-nav luxe-staff-auth">
-                    <details class="luxe-account-details" data-luxe-account>
-                        <summary class="luxe-account-trigger"
-                                 aria-label="Account options">
+                    <c:choose>
+                        <c:when test="${sessionScope.loggedUser.role == 'admin'}">
+                            <c:set var="luxeRoleKey"
+                                   value="role.admin"/>
+                        </c:when>
 
-                            <span class="luxe-account-avatar" aria-hidden="true">
-                                <c:out value="${fn:substring(luxeHeaderName, 0, 1)}"/>
-                            </span>
+                        <c:when test="${sessionScope.loggedUser.role == 'staff'}">
+                            <c:set var="luxeRoleKey"
+                                   value="role.staff"/>
+                        </c:when>
 
-                            <span class="luxe-account-text">
-                                <strong>
-                                    <c:out value="${luxeHeaderName}"/>
-                                </strong>
+                        <c:when test="${sessionScope.loggedUser.role == 'manager'}">
+                            <c:set var="luxeRoleKey"
+                                   value="role.manager"/>
+                        </c:when>
 
-                                <small>
-                                    <c:choose>
-                                        <c:when test="${sessionScope.loggedUser.role == 'admin'}">
-                                            Administrator
-                                        </c:when>
-                                        <c:when test="${sessionScope.loggedUser.role == 'staff'}">
-                                            Hotel Staff
-                                        </c:when>
-                                        <c:when test="${sessionScope.loggedUser.role == 'manager'}">
-                                            Hotel Manager
-                                        </c:when>
-                                        <c:otherwise>
-                                            Account
-                                        </c:otherwise>
-                                    </c:choose>
-                                </small>
-                            </span>
+                        <c:when test="${sessionScope.loggedUser.role == 'customer'}">
+                            <c:set var="luxeRoleKey"
+                                   value="role.customer"/>
+                        </c:when>
 
-                            <svg class="luxe-account-chevron"
-                                 viewBox="0 0 24 24"
-                                 aria-hidden="true">
-                            <path d="m7 10 5 5 5-5"/>
-                            </svg>
-                        </summary>
+                        <c:otherwise>
+                            <c:set var="luxeRoleKey"
+                                   value="role.account"/>
+                        </c:otherwise>
+                    </c:choose>
 
-                        <div class="luxe-account-panel"
-                             role="group"
-                             aria-label="Account actions">
+                    <%-- The same account component is used for all roles. --%>
+                    <div class="auth-nav luxe-unified-auth">
+                        <details class="luxe-account-details"
+                                 data-luxe-account>
 
-                            <div class="luxe-account-panel-heading">
-                                <strong>
-                                    <c:out value="${luxeHeaderName}"/>
-                                </strong>
-                                <span>
-                                    @<c:out value="${sessionScope.loggedUser.username}"/>
+                            <summary class="luxe-account-trigger"
+                                     data-i18n-aria-label="account.options"
+                                     aria-label="${requestScope.i18n['account.options']}">
+
+                                <span class="luxe-account-avatar"
+                                      aria-hidden="true">
+
+                                    <c:out value="${fn:substring(luxeHeaderName, 0, 1)}"/>
                                 </span>
-                            </div>
 
-                            <c:if test="${sessionScope.loggedUser.role == 'staff'
-                                          or sessionScope.loggedUser.role == 'admin'
-                                          or sessionScope.loggedUser.role == 'manager'}">
+                                <span class="luxe-account-text">
+                                    <strong>
+                                        <c:out value="${luxeHeaderName}"/>
+                                    </strong>
 
-                                  <a class="luxe-account-item"
-                                     href="${pageContext.request.contextPath}/change-password">
-                                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                                      <circle cx="8" cy="15" r="5"/>
-                                      <path d="m12 11 8-8m-3 3 3 3m-6 0 3 3"/>
-                                      </svg>
-                                      <span>Change Password</span>
-                                  </a>
+                                    <small>
+                                        <ui:text key="${luxeRoleKey}"/>
+                                    </small>
+                                </span>
 
-                                  <form method="post"
-                                        action="${pageContext.request.contextPath}/toggle-animation"
-                                        class="luxe-account-form">
+                                <svg class="luxe-account-chevron"
+                                     viewBox="0 0 24 24"
+                                     aria-hidden="true">
 
-                                      <input type="hidden"
-                                             name="csrfToken"
-                                             value="<%= AuthSupport.token(session)%>">
+                                <path d="m7 10 5 5 5-5"/>
+                                </svg>
+                            </summary>
 
-                                      <input type="hidden"
-                                             name="toggleAnimation"
-                                             value="${cookie.animation.value == 'disable'
-                                                      ? 'enable' : 'disable'}">
+                            <div class="luxe-account-panel"
+                                 role="group"
+                                 data-i18n-aria-label="account.actions"
+                                 aria-label="${requestScope.i18n['account.actions']}">
 
-                                      <button type="submit"
-                                              class="luxe-account-item">
-                                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                                          <path d="m13 2-8 12h6l-1 8 9-13h-6l1-7Z"/>
-                                          </svg>
+                                <div class="luxe-account-panel-heading">
+                                    <strong>
+                                        <c:out value="${luxeHeaderName}"/>
+                                    </strong>
 
-                                          <span>
-                                              ${cookie.animation.value == 'disable'
-                                                ? 'Enable Animations'
-                                                : 'Disable Animations'}
-                                          </span>
+                                    <span>
+                                        @<c:out value="${sessionScope.loggedUser.username}"/>
+                                    </span>
+                                </div>
 
-                                          <span class="luxe-animation-dot ${cookie.animation.value == 'disable' ? 'is-off' : 'is-on'}"
-                                                aria-hidden="true"></span>
-                                      </button>
-                                  </form>
-                            </c:if>
+                                <c:if test="${sessionScope.loggedUser.role == 'customer'}">
+                                    <a class="luxe-account-item"
+                                       href="${pageContext.request.contextPath}/profile?id=${sessionScope.loggedUser.id}">
 
-                            <div class="luxe-account-separator"
-                                 aria-hidden="true"></div>
+                                        <svg viewBox="0 0 24 24"
+                                             aria-hidden="true">
 
-                            <form method="post"
-                                  action="${pageContext.request.contextPath}/logout"
-                                  class="luxe-account-form">
+                                        <circle cx="12" cy="8" r="4"/>
+                                        <path d="M4 21v-2a8 8 0 0 1 16 0v2"/>
+                                        </svg>
 
-                                <input type="hidden"
-                                       name="csrfToken"
-                                       value="<%= AuthSupport.token(session)%>">
+                                        <ui:text key="account.profile"/>
+                                    </a>
 
-                                <button type="submit"
-                                        class="luxe-account-item luxe-account-logout">
-                                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M9 4H4v16h5m5-12 4 4-4 4m-6-4h13"/>
+                                    <a class="luxe-account-item"
+                                       href="${pageContext.request.contextPath}/history?view=bookings">
+
+                                        <svg viewBox="0 0 24 24"
+                                             aria-hidden="true">
+
+                                        <rect x="4" y="5" width="16"
+                                              height="16" rx="2"/>
+
+                                        <path d="M8 3v4m8-4v4M4 11h16"/>
+                                        </svg>
+
+                                        <ui:text key="account.bookingHistory"/>
+                                    </a>
+
+                                    <a class="luxe-account-item"
+                                       href="${pageContext.request.contextPath}/history?view=payments">
+
+                                        <svg viewBox="0 0 24 24"
+                                             aria-hidden="true">
+
+                                        <rect x="3" y="5" width="18"
+                                              height="14" rx="2"/>
+
+                                        <path d="M3 10h18M7 15h3"/>
+                                        </svg>
+
+                                        <ui:text key="account.paymentHistory"/>
+                                    </a>
+
+                                    <a class="luxe-account-item"
+                                       href="${pageContext.request.contextPath}/wallet">
+
+                                        <svg viewBox="0 0 24 24"
+                                             aria-hidden="true">
+
+                                        <path d="M20 8V5H5a2 2 0 0 0 0 4h15v11H5a2 2 0 0 1-2-2V7"/>
+                                        <path d="M20 12h-5v4h5"/>
+                                        </svg>
+
+                                        <ui:text key="account.wallet"/>
+                                    </a>
+                                </c:if>
+
+                                <a class="luxe-account-item"
+                                   href="${pageContext.request.contextPath}/change-password">
+
+                                    <svg viewBox="0 0 24 24"
+                                         aria-hidden="true">
+
+                                    <circle cx="8" cy="15" r="5"/>
+                                    <path d="m12 11 8-8m-3 3 3 3m-6 0 3 3"/>
                                     </svg>
-                                    <span>Log out</span>
-                                </button>
-                            </form>
-                        </div>
-                    </details>
-                </div>
-            </c:otherwise>
-        </c:choose>
-    </nav>
 
-    <hr>
+                                    <ui:text key="auth.changePassword"/>
+                                </a>
+
+                                <c:if test="${sessionScope.loggedUser.role == 'staff'
+                                              or sessionScope.loggedUser.role == 'admin'
+                                              or sessionScope.loggedUser.role == 'manager'}">
+
+                                      <form method="post"
+                                            action="${pageContext.request.contextPath}/toggle-animation"
+                                            class="luxe-account-form">
+
+                                          <input type="hidden"
+                                                 name="csrfToken"
+                                                 value="<%= AuthSupport.token(session)%>">
+
+                                          <input type="hidden"
+                                                 name="toggleAnimation"
+                                                 value="${cookie.animation.value == 'disable'
+                                                          ? 'enable'
+                                                          : 'disable'}">
+
+                                          <button type="submit"
+                                                  class="luxe-account-item">
+
+                                              <svg viewBox="0 0 24 24"
+                                                   aria-hidden="true">
+
+                                              <path d="m13 2-8 12h6l-1 8 9-13h-6l1-7Z"/>
+                                              </svg>
+
+                                              <c:choose>
+                                                  <c:when test="${cookie.animation.value == 'disable'}">
+                                                      <ui:text key="account.enableAnimations"/>
+                                                  </c:when>
+
+                                                  <c:otherwise>
+                                                      <ui:text key="account.disableAnimations"/>
+                                                  </c:otherwise>
+                                              </c:choose>
+
+                                              <span class="luxe-animation-dot ${cookie.animation.value == 'disable' ? 'is-off' : 'is-on'}"
+                                                    aria-hidden="true"></span>
+                                          </button>
+                                      </form>
+                                </c:if>
+
+                                <div class="luxe-account-separator"
+                                     aria-hidden="true"></div>
+
+                                <form method="post"
+                                      action="${pageContext.request.contextPath}/logout"
+                                      class="luxe-account-form">
+
+                                    <input type="hidden"
+                                           name="csrfToken"
+                                           value="<%= AuthSupport.token(session)%>">
+
+                                    <button type="submit"
+                                            class="luxe-account-item luxe-account-logout">
+
+                                        <svg viewBox="0 0 24 24"
+                                             aria-hidden="true">
+
+                                        <path d="M9 4H4v16h5m5-12 4 4-4 4m-6-4h13"/>
+                                        </svg>
+
+                                        <ui:text key="auth.logout"/>
+                                    </button>
+                                </form>
+                            </div>
+                        </details>
+                    </div>
+                </c:otherwise>
+            </c:choose>
+        </div>
+    </nav>
 </header>
 
 <script type="module"
@@ -352,19 +418,6 @@
         src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js">
 </script>
 
-<script>
-    (() => {
-        if (!document.querySelector('link[rel="icon"]')) {
-            const favicon = document.createElement("link");
-            favicon.rel = "icon";
-            favicon.type = "image/png";
-            favicon.href =
-                    "${pageContext.request.contextPath}/assets/img/favicon.png";
-            document.head.appendChild(favicon);
-        }
-    })();
-</script>
-
 <script defer
-        src="${pageContext.request.contextPath}/assets/js/luxe-account-menu.js?v=account-dropdown-v4">
+        src="${pageContext.request.contextPath}/assets/js/luxe-account-menu.js?v=header-v5">
 </script>
