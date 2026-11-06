@@ -44,8 +44,8 @@ public class BookingManagementServlet
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        User user =
-                getAuthorizedUser(
+        User user
+                = getAuthorizedUser(
                         request
                 );
 
@@ -61,8 +61,8 @@ public class BookingManagementServlet
             return;
         }
 
-        String view =
-                request.getParameter(
+        String view
+                = request.getParameter(
                         "view"
                 );
 
@@ -107,29 +107,29 @@ public class BookingManagementServlet
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        BookingDAO bookingDAO =
-                new BookingDAO();
+        BookingDAO bookingDAO
+                = new BookingDAO();
 
-        String keyword =
-                request.getParameter(
+        String keyword
+                = request.getParameter(
                         "keyword"
                 );
 
         if (keyword != null) {
 
-            keyword =
-                    keyword.trim();
+            keyword
+                    = keyword.trim();
         }
 
-        String status =
-                request.getParameter(
+        String status
+                = request.getParameter(
                         "status"
                 );
 
         if (status != null) {
 
-            status =
-                    status.trim();
+            status
+                    = status.trim();
         }
 
         /*
@@ -141,15 +141,15 @@ public class BookingManagementServlet
             status = null;
         }
 
-        LocalDate fromDate =
-                parseDate(
+        LocalDate fromDate
+                = parseDate(
                         request.getParameter(
                                 "from-date"
                         )
                 );
 
-        LocalDate toDate =
-                parseDate(
+        LocalDate toDate
+                = parseDate(
                         request.getParameter(
                                 "to-date"
                         )
@@ -172,24 +172,24 @@ public class BookingManagementServlet
             toDate = null;
         }
 
-        int currentPage =
-                parsePositiveInt(
+        int currentPage
+                = parsePositiveInt(
                         request.getParameter(
                                 "page"
                         ),
                         1
                 );
 
-        int totalBookings =
-                bookingDAO.countBookings(
+        int totalBookings
+                = bookingDAO.countBookings(
                         keyword,
                         status,
                         fromDate,
                         toDate
                 );
 
-        int totalPages =
-                totalBookings == 0
+        int totalPages
+                = totalBookings == 0
                         ? 0
                         : (int) Math.ceil(
                                 totalBookings
@@ -199,12 +199,12 @@ public class BookingManagementServlet
         if (totalPages > 0
                 && currentPage > totalPages) {
 
-            currentPage =
-                    totalPages;
+            currentPage
+                    = totalPages;
         }
 
-        List<Booking> bookings =
-                bookingDAO.searchBookings(
+        List<Booking> bookings
+                = bookingDAO.searchBookings(
                         keyword,
                         status,
                         fromDate,
@@ -272,8 +272,8 @@ public class BookingManagementServlet
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        Integer bookingId =
-                parseId(
+        Integer bookingId
+                = parseId(
                         request.getParameter(
                                 "id"
                         )
@@ -288,11 +288,11 @@ public class BookingManagementServlet
             return;
         }
 
-        BookingDAO bookingDAO =
-                new BookingDAO();
+        BookingDAO bookingDAO
+                = new BookingDAO();
 
-        Booking booking =
-                bookingDAO.getBookingById(
+        Booking booking
+                = bookingDAO.getBookingById(
                         bookingId
                 );
 
@@ -305,16 +305,16 @@ public class BookingManagementServlet
             return;
         }
 
-        PaymentDAO paymentDAO =
-                new PaymentDAO();
+        PaymentDAO paymentDAO
+                = new PaymentDAO();
 
-        boolean paid =
-                paymentDAO.isBookingPaid(
+        boolean paid
+                = paymentDAO.isBookingPaid(
                         bookingId
                 );
 
-        List<model.Payment> payments =
-                paymentDAO.getPaymentsByBookingId(
+        List<model.Payment> payments
+                = paymentDAO.getPaymentsByBookingId(
                         bookingId
                 );
 
@@ -322,6 +322,18 @@ public class BookingManagementServlet
                 "booking",
                 booking
         );
+
+        try {
+            request.setAttribute(
+                    "offlineCreator",
+                    new dao.OfflineBookingDAO().creator(bookingId)
+            );
+        } catch (java.sql.SQLException e) {
+            log(
+                    "Offline booking audit unavailable; check UC09 migration",
+                    e
+            );
+        }
 
         request.setAttribute(
                 "paid",
@@ -370,8 +382,8 @@ public class BookingManagementServlet
                 "UTF-8"
         );
 
-        User user =
-                getAuthorizedUser(
+        User user
+                = getAuthorizedUser(
                         request
                 );
 
@@ -384,8 +396,8 @@ public class BookingManagementServlet
             return;
         }
 
-        String action =
-                request.getParameter(
+        String action
+                = request.getParameter(
                         "action"
                 );
 
@@ -399,15 +411,15 @@ public class BookingManagementServlet
             return;
         }
 
-        Integer bookingId =
-                parseId(
+        Integer bookingId
+                = parseId(
                         request.getParameter(
                                 "booking-id"
                         )
                 );
 
-        String newStatus =
-                request.getParameter(
+        String newStatus
+                = request.getParameter(
                         "status"
                 );
 
@@ -424,11 +436,11 @@ public class BookingManagementServlet
             return;
         }
 
-        BookingDAO bookingDAO =
-                new BookingDAO();
+        BookingDAO bookingDAO
+                = new BookingDAO();
 
-        Booking booking =
-                bookingDAO.getBookingById(
+        Booking booking
+                = bookingDAO.getBookingById(
                         bookingId
                 );
 
@@ -453,12 +465,12 @@ public class BookingManagementServlet
          * confirm an unpaid booking.
          */
         if ("pending".equals(
-                    booking.getStatus())
+                booking.getStatus())
                 && "confirmed".equals(
-                    newStatus)) {
+                        newStatus)) {
 
-            PaymentDAO paymentDAO =
-                    new PaymentDAO();
+            PaymentDAO paymentDAO
+                    = new PaymentDAO();
 
             if (!paymentDAO.isBookingPaid(
                     bookingId)) {
@@ -484,8 +496,8 @@ public class BookingManagementServlet
          * checked_in -> checked_out
          * checked_out -> completed
          */
-        boolean updated =
-                bookingDAO.updateBookingStatus(
+        boolean updated
+                = bookingDAO.updateBookingStatus(
                         bookingId,
                         newStatus
                 );
@@ -526,16 +538,16 @@ public class BookingManagementServlet
     private User getAuthorizedUser(
             HttpServletRequest request) {
 
-        HttpSession session =
-                request.getSession(false);
+        HttpSession session
+                = request.getSession(false);
 
         if (session == null) {
 
             return null;
         }
 
-        User user =
-                (User) session.getAttribute(
+        User user
+                = (User) session.getAttribute(
                         "loggedUser"
                 );
 
@@ -545,9 +557,9 @@ public class BookingManagementServlet
         }
 
         if (!"staff".equalsIgnoreCase(
-                    user.getRole())
+                user.getRole())
                 && !"admin".equalsIgnoreCase(
-                    user.getRole())) {
+                        user.getRole())) {
 
             return null;
         }
@@ -676,8 +688,8 @@ public class BookingManagementServlet
 
         try {
 
-            int id =
-                    Integer.parseInt(
+            int id
+                    = Integer.parseInt(
                             raw.trim()
                     );
 
@@ -709,8 +721,8 @@ public class BookingManagementServlet
 
         try {
 
-            int value =
-                    Integer.parseInt(
+            int value
+                    = Integer.parseInt(
                             raw.trim()
                     );
 

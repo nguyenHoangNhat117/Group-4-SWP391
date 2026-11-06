@@ -163,5 +163,15 @@ footer p {
     --bs-pagination-color: black !important;
 }
 
+/* Cho các trang UC09 cuộn tự do */
+html.uc09-page {
+    scroll-snap-type: none;
+}
+
+html.uc09-page main section {
+    scroll-snap-align: none;
+    scroll-margin-top: 0;
+}
+
 
 
