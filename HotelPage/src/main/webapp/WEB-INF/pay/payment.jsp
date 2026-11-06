@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="c"
            uri="jakarta.tags.core" %>
@@ -16,7 +17,7 @@
         http-equiv="Content-Type"
         content="text/html; charset=UTF-8">
 
-    <title>Payment</title>
+    <title data-i18n="screen.7048f38b33f135df">${requestScope.i18n['screen.7048f38b33f135df']}</title>
 
     <link
         href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
@@ -56,7 +57,7 @@
 
             <h2 class="text-center mb-4">
 
-                Confirm Your Payment
+                <ui:text key="screen.ed291f171aa86115"/>
 
             </h2>
 
@@ -72,10 +73,7 @@
                            alert-danger
                            text-center">
 
-                    Discount code is invalid,
-                    expired, inactive, exhausted,
-                    or does not satisfy the
-                    minimum booking amount.
+                    <ui:text key="screen.977c66234640a8b2"/>
 
                 </div>
 
@@ -89,8 +87,7 @@
                            alert-danger
                            text-center">
 
-                    Please select a valid
-                    payment method.
+                    <ui:text key="screen.771f01602f932fba"/>
 
                 </div>
 
@@ -104,8 +101,7 @@
                            alert-danger
                            text-center">
 
-                    Payment could not be completed.
-                    Please try again.
+                    <ui:text key="screen.f0bb321462d05aa0"/>
 
                 </div>
 
@@ -115,7 +111,7 @@
             <c:if test="${param.error == 'invalid-payment-percent'}">
 
                 <div class="alert alert-danger text-center">
-                    Please select 10%, 20%, or 100% for the first payment.
+                    <ui:text key="screen.5269fce2b442cd48"/>
                 </div>
 
             </c:if>
@@ -128,22 +124,22 @@
             <div class="mb-4">
 
                 <h5>
-                    Booking #${booking.id}
+                    <ui:text key="screen.8e9d3e1467f7cc3f"/>${booking.id}
                 </h5>
 
 
                 <p class="mb-1">
 
-                    <strong>Status:</strong>
+                    <strong><ui:text key="screen.755c8b2a9fb11446"/></strong>
 
-                    ${booking.status}
+                    <ui:message text="${booking.status}"/>
 
                 </p>
 
 
                 <p class="mb-0">
 
-                    <strong>Booking Total:</strong>
+                    <strong><ui:text key="screen.f981e52aa5f5e667"/></strong>
 
                     <span
                         class="text-primary
@@ -155,8 +151,8 @@
 
                 </p>
 
-                <p class="mb-1 mt-2"><strong>Already paid:</strong> $${paidAmount}</p>
-                <p class="mb-0"><strong>Remaining:</strong> <span class="text-danger fw-bold">$${remainingAmount}</span></p>
+                <p class="mb-1 mt-2"><strong><ui:text key="screen.a2e1944f944f0e3b"/></strong> $${paidAmount}</p>
+                <p class="mb-0"><strong><ui:text key="screen.b7adb0e79057b084"/></strong> <span class="text-danger fw-bold">$${remainingAmount}</span></p>
 
             </div>
 
@@ -166,7 +162,7 @@
             <!-- ========================================= -->
 
             <h5 class="mb-3">
-                Room Details
+                <ui:text key="screen.6816c8a3445d0f73"/>
             </h5>
 
 
@@ -190,7 +186,7 @@
                         <div class="col-md-6">
 
                             <strong>
-                                Room:
+                                <ui:text key="screen.93853234d7ebd9b2"/>
                             </strong>
 
                             #${detail.roomNumber}
@@ -201,7 +197,7 @@
                         <div class="col-md-6">
 
                             <strong>
-                                Guests:
+                                <ui:text key="screen.1ac580f9fde7374f"/>
                             </strong>
 
                             ${detail.guestCount}
@@ -212,7 +208,7 @@
                         <div class="col-md-6">
 
                             <strong>
-                                Check-in:
+                                <ui:text key="screen.a44e12f354688caf"/>
                             </strong>
 
                             ${fn:substring(detail.checkInDate, 8, 10)}/${fn:substring(detail.checkInDate, 5, 7)}/${fn:substring(detail.checkInDate, 0, 4)}
@@ -223,7 +219,7 @@
                         <div class="col-md-6">
 
                             <strong>
-                                Check-out:
+                                <ui:text key="screen.865998541ea4eba7"/>
                             </strong>
 
                             ${fn:substring(detail.checkOutDate, 8, 10)}/${fn:substring(detail.checkOutDate, 5, 7)}/${fn:substring(detail.checkOutDate, 0, 4)}
@@ -234,7 +230,7 @@
                         <div class="col-md-12">
 
                             <strong>
-                                Price per night:
+                                <ui:text key="screen.89ae1c4ac3ed0966"/>
                             </strong>
 
                             $${detail.pricePerNight}
@@ -266,7 +262,7 @@
 
                 <c:if test="${firstPayment}">
                     <div class="mb-4">
-                        <label for="payment-percent" class="form-label fw-semibold">Initial payment percentage</label>
+                        <label for="payment-percent" class="form-label fw-semibold"><ui:text key="screen.8312d6d815743896"/></label>
                         <select id="payment-percent" name="payment-percent" class="form-select form-select-lg" required ${selectedPercent != null ? 'disabled' : ''}>
                             <option value="10" ${selectedPercent == 10 ? 'selected' : ''}>10%</option>
                             <option value="20" ${selectedPercent == 20 ? 'selected' : ''}>20%</option>
@@ -281,7 +277,7 @@
 
                 <c:if test="${!firstPayment}">
                     <div class="alert alert-info">
-                        This payment will settle the full remaining balance of <strong>$${remainingAmount}</strong>.
+                        <ui:text key="screen.fbd43a17fae70f8c"/> <strong>$${remainingAmount}</strong>.
                     </div>
                 </c:if>
 
@@ -294,7 +290,7 @@
                         class="form-label
                                fw-semibold">
 
-                        Payment Method
+                        <ui:text key="screen.f89a4e17557766ec"/>
 
                     </label>
 
@@ -307,28 +303,28 @@
                         required>
 
 
-                        <option value="">
-                            -- Select payment method --
+                        <option value="" data-i18n="screen.f9b3d69c6c703742">
+                            ${requestScope.i18n['screen.f9b3d69c6c703742']}
                         </option>
 
 
-                        <option value="cash">
-                            Cash
+                        <option value="cash" data-i18n="screen.e2da108f63008e44">
+                            ${requestScope.i18n['screen.e2da108f63008e44']}
                         </option>
 
 
-                        <option value="bank_transfer">
-                            Bank Transfer
+                        <option value="bank_transfer" data-i18n="screen.ee82ae2801cf9097">
+                            ${requestScope.i18n['screen.ee82ae2801cf9097']}
                         </option>
 
 
-                        <option value="credit_card">
-                            Credit Card
+                        <option value="credit_card" data-i18n="screen.9f629f57b7d02936">
+                            ${requestScope.i18n['screen.9f629f57b7d02936']}
                         </option>
 
 
-                        <option value="e_wallet">
-                            E-Wallet
+                        <option value="e_wallet" data-i18n="screen.f7bb9a1dcdb515df">
+                            ${requestScope.i18n['screen.f7bb9a1dcdb515df']}
                         </option>
 
 
@@ -348,9 +344,9 @@
                         class="form-label
                                fw-semibold">
 
-                        Promotion Code
+                        <ui:text key="screen.fd947a841a798fb7"/>
                         <span class="text-muted">
-                            (optional)
+                            <ui:text key="screen.0059798b7f7023e4"/>
                         </span>
 
                     </label>
@@ -363,7 +359,7 @@
                         class="form-control
                                form-control-lg"
                         maxlength="50"
-                        placeholder="Enter promotion code">
+                        placeholder="${requestScope.i18n['screen.b7ee37d374ce6a5c']}" data-i18n-placeholder="screen.b7ee37d374ce6a5c">
 
                 </div>
 
@@ -381,7 +377,7 @@
 
                         <h6 class="fw-bold mb-3">
 
-                            Available Promotions
+                            <ui:text key="screen.6a85de18585c99f5"/>
 
                         </h6>
 
@@ -398,23 +394,19 @@
                                 </strong>
 
                                 -
-                                ${promotion.saleOff}% off
+                                ${promotion.saleOff}<ui:text key="screen.5e0aa53f41a26fe8"/>
 
 
                                 <c:if test="${promotion.minimumAmount != null}">
 
-                                    |
-                                    Minimum:
-                                    $${promotion.minimumAmount}
+                                    <ui:text key="screen.97953ebdb79279c3"/>${promotion.minimumAmount}
 
                                 </c:if>
 
 
                                 <c:if test="${promotion.maximumDiscount != null}">
 
-                                    |
-                                    Maximum discount:
-                                    $${promotion.maximumDiscount}
+                                    <ui:text key="screen.f2f07057ca60ce74"/>${promotion.maximumDiscount}
 
                                 </c:if>
 
@@ -435,8 +427,7 @@
                     class="alert
                            alert-info">
 
-                    The payable amount is calculated on the server.
-                    A promotion code can only be used on the first payment.
+                    <ui:text key="screen.58cd661919761e50"/>
 
                 </div>
 
@@ -449,7 +440,7 @@
                            text-white"
                     style="background-color: #b29575;">
 
-                    <c:choose><c:when test="${firstPayment}">Confirm Initial Payment</c:when><c:otherwise>Pay Remaining Balance</c:otherwise></c:choose>
+                    <c:choose><c:when test="${firstPayment}"><ui:text key="screen.8c907a591a8e3612"/></c:when><c:otherwise><ui:text key="screen.cb8be35a87c097ab"/></c:otherwise></c:choose>
 
                 </button>
 

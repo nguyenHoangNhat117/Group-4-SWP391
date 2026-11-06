@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%-- 
     Document   : counter-payment
     Created on : Nov 5, 2026, 9:48:52 PM
@@ -9,13 +10,13 @@
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt"%>
 
 <!DOCTYPE html>
-<html lang="vi" class="uc09-page">
+<html lang="${requestScope.uiLanguage}" class="uc09-page">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1">
 
-        <title>Thu tiền tại quầy | Luxe Escape</title>
+        <title data-i18n="screen.d3467e46e9a97bd4">${requestScope.i18n['screen.d3467e46e9a97bd4']}</title>
 
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -44,80 +45,78 @@
 
             <main class="container py-5" style="max-width:850px">
                 <h1 class="h2 mb-4">
-                    Thu tiền tại quầy · Booking #${summary.bookingId}
+                    <ui:text key="screen.241ad153b1e25a2e"/>${summary.bookingId}
                 </h1>
 
                 <c:if test="${param.created == '1'}">
                     <div class="alert alert-success">
-                        Đã tạo đặt phòng. Chưa ghi nhận thanh toán.
+                        <ui:text key="screen.b9b79b3b0a788fbf"/>
                     </div>
                 </c:if>
 
                 <c:if test="${param.paid == '1'}">
                     <div class="alert alert-success">
-                        Đã ghi nhận thanh toán thành công.
+                        <ui:text key="screen.559a41740d6b430c"/>
                     </div>
                 </c:if>
 
                 <c:if test="${not empty param.error}">
                     <div class="alert alert-danger">
-                        Thao tác chưa hoàn tất: số dư, trạng thái
-                        hoặc khuyến mãi có thể đã thay đổi.
-                        Kiểm tra thông tin mới bên dưới trước khi thử lại.
+                        <ui:text key="screen.deeae93b18fd2ab5"/>
                     </div>
                 </c:if>
 
                 <section class="card shadow-sm">
                     <div class="card-body p-4">
                         <dl class="row">
-                            <dt class="col-sm-5">Khách hàng</dt>
+                            <dt class="col-sm-5"><ui:text key="screen.bf3763383aaf4306"/></dt>
                             <dd class="col-sm-7">
                                 <c:out value="${summary.customerName}"/>
                             </dd>
 
-                            <dt class="col-sm-5">Người tạo đặt phòng</dt>
+                            <dt class="col-sm-5"><ui:text key="screen.7bd668ac984ebb95"/></dt>
                             <dd class="col-sm-7">
                                 <c:out value="${summary.creator}"/>
                             </dd>
 
-                            <dt class="col-sm-5">Trạng thái</dt>
+                            <dt class="col-sm-5"><ui:text key="screen.920e413c7d411b61"/></dt>
                             <dd class="col-sm-7">
-                                <c:out value="${summary.status}"/>
+                                <ui:message text="${summary.status}"/>
                             </dd>
 
                             <dt class="col-sm-5">
-                                Hạn giữ phòng — giờ Việt Nam
+                                <ui:text key="screen.cbd058252b370686"/>
                             </dt>
                             <dd class="col-sm-7">
                                 <c:out value="${summary.holdExpiresAt}"/>
                             </dd>
 
-                            <dt class="col-sm-5">Tổng tiền hiện lưu</dt>
+                            <dt class="col-sm-5"><ui:text key="screen.aa23d755f5aa07c7"/></dt>
                             <dd class="col-sm-7">
                                 <fmt:formatNumber value="${summary.total}"/>
                                 VND
                             </dd>
 
-                            <dt class="col-sm-5">Mã khuyến mãi đã chọn</dt>
+                            <dt class="col-sm-5"><ui:text key="screen.7732ed675821a21e"/></dt>
                             <dd class="col-sm-7">
                                 <c:out value="${empty summary.promotionCode
                                                 ? 'Không áp dụng'
                                                 : summary.promotionCode}"/>
                             </dd>
 
-                            <dt class="col-sm-5">Tổng sau khuyến mãi</dt>
+                            <dt class="col-sm-5"><ui:text key="screen.dfa94d35a251a95c"/></dt>
                             <dd class="col-sm-7">
                                 <fmt:formatNumber value="${summary.payable}"/>
                                 VND
                             </dd>
 
-                            <dt class="col-sm-5">Đã thu</dt>
+                            <dt class="col-sm-5"><ui:text key="screen.1533d367e933e4c2"/></dt>
                             <dd class="col-sm-7">
                                 <fmt:formatNumber value="${summary.paid}"/>
                                 VND
                             </dd>
 
-                            <dt class="col-sm-5">Còn phải thu</dt>
+                            <dt class="col-sm-5"><ui:text key="screen.e805adf0ab02e3cb"/></dt>
                             <dd class="col-sm-7 fw-bold">
                                 <fmt:formatNumber value="${summary.remaining}"/>
                                 VND
@@ -127,8 +126,7 @@
                         <c:if test="${not empty summary.promotionError}">
                             <div class="alert alert-warning">
                                 <c:out value="${summary.promotionError}"/>
-                                Sửa mã hoặc để trống để bỏ mã,
-                                sau đó kiểm tra lại số tiền trước khi thu.
+                                <ui:text key="screen.77f33d7c53495490"/>
                             </div>
                         </c:if>
 
@@ -149,17 +147,17 @@
                                         <div class="col-md-6">
                                             <label for="method"
                                                    class="form-label">
-                                                Phương thức đã nhận tiền
+                                                <ui:text key="screen.4da75359eda269d9"/>
                                             </label>
 
                                             <select class="form-select"
                                                     name="method"
                                                     id="method">
-                                                <option value="cash">
-                                                    Tiền mặt
+                                                <option value="cash" data-i18n="screen.e2da108f63008e44">
+                                                    ${requestScope.i18n['screen.e2da108f63008e44']}
                                                 </option>
-                                                <option value="bank_transfer">
-                                                    Chuyển khoản đã xác nhận
+                                                <option value="bank_transfer" data-i18n="screen.06be7dfc4d661339">
+                                                    ${requestScope.i18n['screen.06be7dfc4d661339']}
                                                 </option>
                                             </select>
                                         </div>
@@ -167,7 +165,7 @@
                                         <div class="col-md-6">
                                             <label for="percent"
                                                    class="form-label">
-                                                Khoản thu
+                                                <ui:text key="screen.11cffcafb9f952f8"/>
                                             </label>
 
                                             <select class="form-select"
@@ -176,39 +174,33 @@
 
                                                 <c:if test="${summary.firstPayment
                                                               and summary.depositPercent < 100}">
-                                                      <option value="${summary.depositPercent}">
-                                                          Đặt cọc
-                                                          ${summary.depositPercent}%
-                                                          tổng sau khuyến mãi
+                                                      <option value="${summary.depositPercent}" data-i18n="screen.0da00b600a2df498">
+                                                          ${requestScope.i18n['screen.0da00b600a2df498']}
+                                                          ${summary.depositPercent}${requestScope.i18n['screen.9c779a155ed57864']}
                                                       </option>
                                                 </c:if>
 
-                                                <option value="100" selected>
-                                                    Toàn bộ số tiền còn lại
+                                                <option value="100" selected data-i18n="screen.eab6371cd10e3590">
+                                                    ${requestScope.i18n['screen.eab6371cd10e3590']}
                                                 </option>
                                             </select>
                                         </div>
                                     </div>
 
                                     <p class="text-muted small mt-3">
-                                        Chỉ xác nhận sau khi đã thực nhận tiền.
-                                        Thanh toán thành công xác nhận
-                                        booking pending; không tự check-in.
-                                        Khuyến mãi chỉ trừ lượt trong
-                                        giao dịch thanh toán đầu tiên.
+                                        <ui:text key="screen.bff9d6128aa12d8e"/>
                                     </p>
 
                                     <button class="btn btn-primary"
                                             type="submit">
-                                        Xác nhận đã nhận tiền
+                                        <ui:text key="screen.3e09dddeb9226b5f"/>
                                     </button>
                                 </form>
                             </c:when>
 
                             <c:otherwise>
                                 <p class="alert alert-info">
-                                    Không còn khoản phải thu hoặc trạng thái/
-                                    khuyến mãi hiện tại chưa cho phép thu tiền.
+                                    <ui:text key="screen.7ab8d3a0c636246f"/>
                                 </p>
                             </c:otherwise>
                         </c:choose>
@@ -229,8 +221,7 @@
                                        value="${paymentKey}">
 
                                 <label for="promotionCode" class="form-label">
-                                    Đổi hoặc bỏ mã khuyến mãi
-                                    trước thanh toán
+                                    <ui:text key="screen.437c912b3cd38038"/>
                                 </label>
 
                                 <div class="input-group">
@@ -243,7 +234,7 @@
                                     <button class="btn btn-outline-secondary"
                                             name="action"
                                             value="promotion">
-                                        Tính lại
+                                        <ui:text key="screen.071b975857775907"/>
                                     </button>
                                 </div>
                             </form>
@@ -263,14 +254,12 @@
                                         name="action"
                                         value="cancel"
                                         onclick="return confirm('Hủy đặt phòng chưa thanh toán này?')">
-                                    Hủy theo yêu cầu khách
+                                    <ui:text key="screen.dad77baab3bc168a"/>
                                 </button>
                             </form>
 
                             <p class="small text-muted mt-2">
-                                Chờ thanh toán không kéo dài thời hạn
-                                giữ phòng. Có thể mở lại màn này
-                                từ chi tiết booking.
+                                <ui:text key="screen.026cacc1ee0aac84"/>
                             </p>
                         </c:if>
                     </div>
@@ -281,12 +270,12 @@
                        href="${pageContext.request.contextPath}/booking-management?view=detail&amp;id=${summary.bookingId}">
                         ${summary.canChange
                           ? 'Để thanh toán sau / xem chi tiết'
-                          : 'Chi tiết đặt phòng'}
+                          : requestScope.i18n['screen.a55a969205588064']}
                     </a>
 
                     <a class="btn btn-outline-primary"
                        href="${pageContext.request.contextPath}/offline-booking">
-                        Tạo đặt phòng khác
+                        <ui:text key="screen.0187afebeb67c5a6"/>
                     </a>
                 </div>
             </main>

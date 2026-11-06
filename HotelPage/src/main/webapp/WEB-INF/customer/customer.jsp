@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="c"
            uri="jakarta.tags.core" %>
 
@@ -14,7 +15,7 @@
         http-equiv="Content-Type"
         content="text/html; charset=UTF-8">
 
-    <title>Customer Management</title>
+    <title data-i18n="screen.a44778c56e36d86e">${requestScope.i18n['screen.a44778c56e36d86e']}</title>
 
     <link
         href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
@@ -38,9 +39,9 @@
 
 
     <main>
-        <div class="luxe-admin-banner" aria-label="Guest directory">
-          <span class="luxe-admin-banner-eyebrow">LUXE ESCAPE <span aria-hidden="true">/</span> GUEST RELATIONSHIPS</span>
-          <span class="luxe-admin-banner-title">Guest directory</span>
+        <div class="luxe-admin-banner" aria-label="${requestScope.i18n['screen.0e2eadf8f0d866a1']}" data-i18n-aria-label="screen.0e2eadf8f0d866a1">
+          <span class="luxe-admin-banner-eyebrow">LUXE ESCAPE <span aria-hidden="true">/</span> <ui:text key="screen.7c431e4de4562299"/></span>
+          <span class="luxe-admin-banner-title"><ui:text key="screen.0e2eadf8f0d866a1"/></span>
           <span class="luxe-admin-banner-art" aria-hidden="true"></span>
         </div>
 
@@ -50,7 +51,7 @@
 
             <h2 class="fw-bold text-center mb-4">
 
-                Customer Management
+                <ui:text key="screen.a44778c56e36d86e"/>
 
             </h2>
 
@@ -63,7 +64,7 @@
 
                 <div class="alert alert-danger text-center">
 
-                    Invalid customer information.
+                    <ui:text key="screen.5ac5e9b89eeea9ce"/>
 
                 </div>
 
@@ -74,7 +75,7 @@
 
                 <div class="alert alert-danger text-center">
 
-                    Customer not found.
+                    <ui:text key="screen.9fe4ec40d1dfeb7b"/>
 
                 </div>
 
@@ -105,7 +106,7 @@
                         for="keyword"
                         class="form-label fw-semibold">
 
-                        Search Customer
+                        <ui:text key="screen.91caf622ea92e81b"/>
 
                     </label>
 
@@ -116,7 +117,7 @@
                         name="keyword"
                         class="form-control"
                         value="${keyword}"
-                        placeholder="ID, name, email, phone or username">
+                        placeholder="${requestScope.i18n['screen.54738f70a52dbbf3']}" data-i18n-placeholder="screen.54738f70a52dbbf3">
 
                 </div>
 
@@ -129,7 +130,7 @@
                         for="status"
                         class="form-label fw-semibold">
 
-                        Account Status
+                        <ui:text key="screen.dafb01abaf3dd0c7"/>
 
                     </label>
 
@@ -140,8 +141,8 @@
                         class="form-select">
 
 
-                        <option value="">
-                            All Statuses
+                        <option value="" data-i18n="screen.05f567125eb09680">
+                            ${requestScope.i18n['screen.05f567125eb09680']}
                         </option>
 
 
@@ -149,9 +150,9 @@
                             value="active"
                             ${selectedStatus == 'active'
                               ? 'selected'
-                              : ''}>
+                              : ''} data-i18n="screen.92340695899bd2d8">
 
-                            Active
+                            ${requestScope.i18n['screen.92340695899bd2d8']}
 
                         </option>
 
@@ -160,9 +161,9 @@
                             value="locked"
                             ${selectedStatus == 'locked'
                               ? 'selected'
-                              : ''}>
+                              : ''} data-i18n="screen.a424e33d90931d1e">
 
-                            Locked
+                            ${requestScope.i18n['screen.a424e33d90931d1e']}
 
                         </option>
 
@@ -171,9 +172,9 @@
                             value="inactive"
                             ${selectedStatus == 'inactive'
                               ? 'selected'
-                              : ''}>
+                              : ''} data-i18n="screen.ac7c949f1211b781">
 
-                            Inactive
+                            ${requestScope.i18n['screen.ac7c949f1211b781']}
 
                         </option>
 
@@ -193,7 +194,7 @@
                         type="submit"
                         class="btn btn-primary w-100">
 
-                        Search
+                        <ui:text key="screen.49c266baaaa70981"/>
 
                     </button>
 
@@ -213,9 +214,9 @@
 
                 <span class="text-muted">
 
-                    Total:
+                    <ui:text key="screen.18e872be2359d76e"/>
                     ${totalCustomers}
-                    customer(s)
+                    <ui:text key="screen.1512f1021c59c4bf"/>
 
                 </span>
 
@@ -227,7 +228,7 @@
                         href="${pageContext.request.contextPath}/customers"
                         class="btn btn-outline-secondary btn-sm">
 
-                        Clear Filter
+                        <ui:text key="screen.910bda6aed78b23e"/>
 
                     </a>
 
@@ -263,31 +264,31 @@
                                 <tr>
 
                                     <th class="text-center">
-                                        ID
+                                        <ui:text key="screen.3843971dcfdee508"/>
                                     </th>
 
                                     <th>
-                                        Customer
+                                        <ui:text key="screen.bf3763383aaf4306"/>
                                     </th>
 
                                     <th>
-                                        Email
+                                        <ui:text key="screen.969ccbd3cf6300ec"/>
                                     </th>
 
                                     <th>
-                                        Phone
+                                        <ui:text key="screen.63dceb8800b2dd4a"/>
                                     </th>
 
                                     <th>
-                                        Username
+                                        <ui:text key="screen.e3b89e9d33f88e52"/>
                                     </th>
 
                                     <th>
-                                        Status
+                                        <ui:text key="screen.920e413c7d411b61"/>
                                     </th>
 
                                     <th class="text-center">
-                                        Actions
+                                        <ui:text key="screen.ff8059dc6752afdd"/>
                                     </th>
 
                                 </tr>
@@ -332,7 +333,7 @@
 
                                                     <span class="text-muted">
 
-                                                        Not provided
+                                                        <ui:text key="screen.d83b9ff3c07a8390"/>
 
                                                     </span>
 
@@ -405,7 +406,7 @@
                                                     <span
                                                         class="badge bg-success">
 
-                                                        Active
+                                                        <ui:text key="screen.92340695899bd2d8"/>
 
                                                     </span>
 
@@ -417,7 +418,7 @@
                                                     <span
                                                         class="badge bg-danger">
 
-                                                        Locked
+                                                        <ui:text key="screen.a424e33d90931d1e"/>
 
                                                     </span>
 
@@ -429,7 +430,7 @@
                                                     <span
                                                         class="badge bg-secondary">
 
-                                                        Inactive
+                                                        <ui:text key="screen.ac7c949f1211b781"/>
 
                                                     </span>
 
@@ -462,7 +463,7 @@
                                                            btn-outline-primary
                                                            btn-sm">
 
-                                                    Details
+                                                    <ui:text key="screen.45989de49fb7f66d"/>
 
                                                 </a>
 
@@ -475,7 +476,7 @@
                                                            btn-outline-success
                                                            btn-sm">
 
-                                                    Bookings
+                                                    <ui:text key="screen.4e5f81ada70c344e"/>
 
                                                 </a>
 
@@ -488,7 +489,7 @@
                                                            btn-outline-secondary
                                                            btn-sm">
 
-                                                    Payments
+                                                    <ui:text key="screen.632e1c5839411a10"/>
 
                                                 </a>
 
@@ -522,10 +523,10 @@
 
 
                         <nav
-                            aria-label="Customer pagination"
+                            aria-label="${requestScope.i18n['screen.26cafe6bad420ca0']}"
                             class="d-flex
                                    justify-content-center
-                                   mt-4">
+                                   mt-4" data-i18n-aria-label="screen.26cafe6bad420ca0">
 
 
                             <ul class="pagination">
@@ -542,7 +543,7 @@
                                         class="page-link"
                                         href="${pageContext.request.contextPath}/customers?view=list&page-index=${currentPage - 1}&keyword=${keyword}&status=${selectedStatus}">
 
-                                        Previous
+                                        <ui:text key="screen.a57b08a480b822a0"/>
 
                                     </a>
 
@@ -589,7 +590,7 @@
                                         class="page-link"
                                         href="${pageContext.request.contextPath}/customers?view=list&page-index=${currentPage + 1}&keyword=${keyword}&status=${selectedStatus}">
 
-                                        Next
+                                        <ui:text key="screen.1ff57a29d7c9d11b"/>
 
                                     </a>
 
@@ -618,7 +619,7 @@
                                text-center">
 
 
-                        No customers found.
+                        <ui:text key="screen.1538ef0040c700d1"/>
 
                     </div>
 

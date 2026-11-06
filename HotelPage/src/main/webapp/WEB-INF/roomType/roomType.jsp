@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
@@ -6,7 +7,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Room Type Management</title>
+        <title data-i18n="screen.c797cf9b6771ad9e">${requestScope.i18n['screen.c797cf9b6771ad9e']}</title>
 
         <link href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css"
               rel="stylesheet">
@@ -25,23 +26,23 @@
             <%@include file="../include/header.jsp" %>
 
             <main class="admin-list">
-        <div class="luxe-admin-banner" aria-label="Room collections">
-          <span class="luxe-admin-banner-eyebrow">LUXE ESCAPE <span aria-hidden="true">/</span> ROOM CATEGORIES</span>
-          <span class="luxe-admin-banner-title">Room collections</span>
+        <div class="luxe-admin-banner" aria-label="${requestScope.i18n['screen.15bb8d1ae99d691e']}" data-i18n-aria-label="screen.15bb8d1ae99d691e">
+          <span class="luxe-admin-banner-eyebrow">LUXE ESCAPE <span aria-hidden="true">/</span> <ui:text key="screen.4b39ac62e788aec4"/></span>
+          <span class="luxe-admin-banner-title"><ui:text key="screen.15bb8d1ae99d691e"/></span>
           <span class="luxe-admin-banner-art" aria-hidden="true"></span>
         </div>
 
                 <div class="list-heading">
                     <div>
-                        <h1>Room Type Management</h1>
+                        <h1><ui:text key="screen.c797cf9b6771ad9e"/></h1>
                         <p class="text-muted mb-0">
-                            Manage room categories, nightly rates and guest capacity.
+                            <ui:text key="screen.189f9b42d65eb4f1"/>
                         </p>
                     </div>
 
                     <a class="btn btn-primary"
                        href="${pageContext.request.contextPath}/room-type?view=create">
-                        + Add Room Type
+                        <ui:text key="screen.dd593edcde22d368"/>
                     </a>
                 </div>
 
@@ -49,19 +50,19 @@
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
                             <caption class="visually-hidden">
-                                Room types on the current page
+                                <ui:text key="screen.b1f907e35229d4b8"/>
                             </caption>
 
                             <thead>
                                 <tr>
-                                    <th scope="col">ID</th>
-                                    <th scope="col">Image</th>
-                                    <th scope="col">Name</th>
-                                    <th scope="col">Description</th>
-                                    <th scope="col">Price / Night</th>
-                                    <th scope="col">Beds</th>
-                                    <th scope="col">Capacity</th>
-                                    <th scope="col">Actions</th>
+                                    <th scope="col"><ui:text key="screen.3843971dcfdee508"/></th>
+                                    <th scope="col"><ui:text key="screen.1aa4cb0bcca76e92"/></th>
+                                    <th scope="col"><ui:text key="screen.dcd1d5223f73b3a9"/></th>
+                                    <th scope="col"><ui:text key="screen.526e0087cc3f254d"/></th>
+                                    <th scope="col"><ui:text key="screen.2de469ee4cd7c680"/></th>
+                                    <th scope="col"><ui:text key="screen.2e2a3cd1a00809d3"/></th>
+                                    <th scope="col"><ui:text key="screen.ae65d096550ff4eb"/></th>
+                                    <th scope="col"><ui:text key="screen.ff8059dc6752afdd"/></th>
                                 </tr>
                             </thead>
 
@@ -83,8 +84,8 @@
                                         <td>
                                             <img class="room-thumbnail"
                                                  src="<c:out value='${pictureUrl}'/>"
-                                                 alt="Room type thumbnail"
-                                                 loading="lazy">
+                                                 alt="${requestScope.i18n['screen.800a7c505ba7c476']}"
+                                                 loading="lazy" data-i18n-alt="screen.800a7c505ba7c476">
                                         </td>
 
                                         <td class="fw-semibold">
@@ -104,13 +105,13 @@
                                                 <a class="btn btn-outline-primary btn-sm"
                                                    href="${pageContext.request.contextPath}/room-type?view=update&id=${roomType.id}"
                                                    aria-label="Edit room type ${roomType.id}">
-                                                    Edit
+                                                    <ui:text key="screen.464c4ffd019e1e96"/>
                                                 </a>
 
                                                 <a class="btn btn-outline-danger btn-sm"
                                                    href="<c:out value='${deleteUrl}'/>"
                                                    aria-label="Delete room type ${roomType.id}">
-                                                    Delete
+                                                    <ui:text key="screen.e2d0a54968ead24e"/>
                                                 </a>
                                             </div>
                                         </td>
@@ -120,8 +121,7 @@
                                 <c:if test="${empty roomTypes}">
                                     <tr>
                                         <td colspan="8" class="empty-list">
-                                            No room types found.
-                                            Add a room type to get started.
+                                            <ui:text key="screen.072ba368d69fd3d8"/>
                                         </td>
                                     </tr>
                                 </c:if>
@@ -131,18 +131,18 @@
                 </div>
 
                 <c:if test="${totalPages > 1}">
-                    <nav class="list-pagination" aria-label="Pagination">
+                    <nav class="list-pagination" aria-label="${requestScope.i18n['screen.7b3f674b625e7226']}" data-i18n-aria-label="screen.7b3f674b625e7226">
                         <ul class="pagination mb-0">
                             <li class="page-item ${pageIndex <= 1 ? 'disabled' : ''}">
                                 <c:choose>
                                     <c:when test="${pageIndex > 1}">
                                         <a class="page-link"
                                            href="${pageContext.request.contextPath}/room-type?page-index=${pageIndex - 1}">
-                                            Previous
+                                            <ui:text key="screen.a57b08a480b822a0"/>
                                         </a>
                                     </c:when>
                                     <c:otherwise>
-                                        <span class="page-link">Previous</span>
+                                        <span class="page-link"><ui:text key="screen.a57b08a480b822a0"/></span>
                                     </c:otherwise>
                                 </c:choose>
                             </li>
@@ -170,11 +170,11 @@
                                     <c:when test="${pageIndex < totalPages}">
                                         <a class="page-link"
                                            href="${pageContext.request.contextPath}/room-type?page-index=${pageIndex + 1}">
-                                            Next
+                                            <ui:text key="screen.1ff57a29d7c9d11b"/>
                                         </a>
                                     </c:when>
                                     <c:otherwise>
-                                        <span class="page-link">Next</span>
+                                        <span class="page-link"><ui:text key="screen.1ff57a29d7c9d11b"/></span>
                                     </c:otherwise>
                                 </c:choose>
                             </li>

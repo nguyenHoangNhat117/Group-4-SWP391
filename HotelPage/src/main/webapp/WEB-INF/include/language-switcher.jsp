@@ -66,3 +66,4 @@
 <script defer
         src="${pageContext.request.contextPath}/assets/js/language.js?v=uc24-2">
 </script>
+<script defer src="${pageContext.request.contextPath}/assets/js/language-ui.js?v=site-1"></script>

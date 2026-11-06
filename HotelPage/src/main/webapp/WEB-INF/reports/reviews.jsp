@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
@@ -23,13 +24,13 @@
 </c:choose>
 
 <!DOCTYPE html>
-<html lang="en" class="hotel-reports-page">
+<html lang="${requestScope.uiLanguage}" class="hotel-reports-page">
 
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <title>Guest Reviews | Luxe Escape</title>
+        <title data-i18n="screen.d0315fc960e50004">${requestScope.i18n['screen.d0315fc960e50004']}</title>
 
         <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
         <link rel="stylesheet" href="${ctx}/assets/css/general.css">
@@ -62,16 +63,16 @@
                     <c:when test="${review.reviewStatus == 'rejected'}"><c:set var="rejectedCount" value="${rejectedCount + 1}" /></c:when>
                 </c:choose>
             </c:forEach>
-            <section class="container my-4" aria-label="Review summary">
-                <h2>Review summary</h2>
+            <section class="container my-4" aria-label="${requestScope.i18n['screen.d796c3f47a2c5009']}" data-i18n-aria-label="screen.d796c3f47a2c5009">
+                <h2><ui:text key="screen.d796c3f47a2c5009"/></h2>
                 <div class="row g-3">
-                    <div class="col-md-3"><div class="card p-3"><strong>Total reviews</strong><h3>${fn:length(reviews)}</h3></div></div>
-                    <div class="col-md-3"><div class="card p-3"><strong>Approved</strong><h3>${approvedCount}</h3></div></div>
-                    <div class="col-md-3"><div class="card p-3"><strong>Pending / Rejected</strong><h3>${pendingCount} / ${rejectedCount}</h3></div></div>
-                    <div class="col-md-3"><div class="card p-3"><strong>Average approved rating</strong><h3><c:choose><c:when test="${approvedCount > 0}"><fmt:formatNumber value="${starTotal / approvedCount}" maxFractionDigits="1" minFractionDigits="1"/> / 5</c:when><c:otherwise>N/A</c:otherwise></c:choose></h3></div></div>
+                    <div class="col-md-3"><div class="card p-3"><strong><ui:text key="screen.980777020186b784"/></strong><h3>${fn:length(reviews)}</h3></div></div>
+                    <div class="col-md-3"><div class="card p-3"><strong><ui:text key="screen.87b42e40c2a290e0"/></strong><h3>${approvedCount}</h3></div></div>
+                    <div class="col-md-3"><div class="card p-3"><strong><ui:text key="screen.0bcdff77493ef760"/></strong><h3>${pendingCount} / ${rejectedCount}</h3></div></div>
+                    <div class="col-md-3"><div class="card p-3"><strong><ui:text key="screen.a3ee576b0504de9f"/></strong><h3><c:choose><c:when test="${approvedCount > 0}"><fmt:formatNumber value="${starTotal / approvedCount}" maxFractionDigits="1" minFractionDigits="1"/> / 5</c:when><c:otherwise><ui:text key="screen.e2f79e5b60330bba"/></c:otherwise></c:choose></h3></div></div>
                 </div>
                 <div class="mt-3">
-    <strong>Approved ratings:</strong>
+    <strong><ui:text key="screen.0f6484cf8b5d3961"/></strong>
 
     5★ ${approvedRatingCounts[5]} ·
     4★ ${approvedRatingCounts[4]} ·
@@ -79,43 +80,43 @@
     2★ ${approvedRatingCounts[2]} ·
     1★ ${approvedRatingCounts[1]}
 </div>
-                <c:if test="${not reportIsAdmin}"><small>Summary reflects the reviews loaded on this page, not all filtered records.</small></c:if>
+                <c:if test="${not reportIsAdmin}"><small><ui:text key="screen.4bfc5c616de51c80"/></small></c:if>
             </section>
             <c:choose>
                 <c:when test="${reportIsAdmin}">
             <div class="report-heading">
                 <div>
                     <p class="report-eyebrow">
-                        Luxe Escape / Guest feedback
+                        <ui:text key="screen.b11fef0048e7eff8"/>
                     </p>
 
                     <h1>
                         <c:choose>
                             <c:when test="${reportIsAdmin}">
-                                Review management
+                                <ui:text key="screen.47bf4e92fa8a67be"/>
                             </c:when>
 
                             <c:otherwise>
-                                Review report
+                                <ui:text key="screen.d515fdd22c1437ff"/>
                             </c:otherwise>
                         </c:choose>
                     </h1>
 
                     <p class="report-description">
-                        Guest ratings, comments and review moderation statuses.
+                        <ui:text key="screen.326be3a3dda19299"/>
                     </p>
                 </div>
 
                 <c:choose>
                     <c:when test="${reportIsAdmin}">
                         <a class="report-button" href="${ctx}/">
-                            Back to home ↗
+                            <ui:text key="screen.74fcd10c9e772c3e"/>
                         </a>
                     </c:when>
 
                     <c:otherwise>
                         <a class="report-button" href="${ctx}/dashboard">
-                            Back to dashboard ↗
+                            <ui:text key="screen.a7750c2b09f60f0b"/>
                         </a>
                     </c:otherwise>
                 </c:choose>
@@ -123,23 +124,23 @@
 
             <%-- Manager report navigation. --%>
             <c:if test="${not reportIsAdmin}">
-                <div class="report-tabs" aria-label="Report navigation">
+                <div class="report-tabs" aria-label="${requestScope.i18n['screen.19025f8911e31c54']}" data-i18n-aria-label="screen.19025f8911e31c54">
 
                     <a href="${ctx}/reports?view=bookings&amp;page-index=1">
-                        Bookings
+                        <ui:text key="screen.4e5f81ada70c344e"/>
                     </a>
 
                     <a href="${ctx}/reports?view=payments&amp;page-index=1">
-                        Payments
+                        <ui:text key="screen.632e1c5839411a10"/>
                     </a>
 
                     <a href="${ctx}/reports?view=reviews"
                        aria-current="page">
-                        Reviews
+                        <ui:text key="screen.84cb7871b741c32e"/>
                     </a>
 
                     <a href="${ctx}/reports?view=month">
-                        Revenue
+                        <ui:text key="screen.c4b7330bd91e0c97"/>
                     </a>
 
                 </div>
@@ -159,7 +160,7 @@
                     <section class="report-panel">
 
                         <div class="report-panel-heading">
-                            <h2>Review data unavailable</h2>
+                            <h2><ui:text key="screen.b4aef2f0b115f5bb"/></h2>
                         </div>
 
                         <div class="report-empty" role="alert">
@@ -172,7 +173,7 @@
 
                             <a class="report-button primary"
                                href="<c:out value='${reviewRetryUrl}' />">
-                                Try again
+                                <ui:text key="screen.d8b8392e2c542950"/>
                             </a>
 
                         </div>
@@ -189,25 +190,25 @@
 
                             <c:when test="${param.message == 'approved'}">
                                 <div class="report-note" role="status">
-                                    Review approved successfully.
+                                    <ui:text key="screen.61346df63f9b47f3"/>
                                 </div>
                             </c:when>
 
                             <c:when test="${param.message == 'rejected'}">
                                 <div class="report-note" role="status">
-                                    Review rejected successfully.
+                                    <ui:text key="screen.ad3c9f5b35ae0bed"/>
                                 </div>
                             </c:when>
 
                             <c:when test="${param.message == 'update-failed'}">
                                 <div class="report-note" role="alert">
-                                    The review could not be updated.
+                                    <ui:text key="screen.d08ffcf9874a378b"/>
                                 </div>
                             </c:when>
 
                             <c:when test="${param.message == 'invalid-review'}">
                                 <div class="report-note" role="alert">
-                                    Invalid review request.
+                                    <ui:text key="screen.1ecdd4240beb3569"/>
                                 </div>
                             </c:when>
 
@@ -219,12 +220,12 @@
                     <section class="report-panel">
 
                         <div class="report-panel-heading">
-                            <h2>Guest feedback records</h2>
+                            <h2><ui:text key="screen.ed9ee489ce7cc90d"/></h2>
 
                             <span class="report-meta">
                                 <c:choose>
-                                    <c:when test="${reportIsAdmin}">${fn:length(reviews)} reviews</c:when>
-                                    <c:otherwise>${totalRecords} matching reviews · ${fn:length(reviews)} on this page</c:otherwise>
+                                    <c:when test="${reportIsAdmin}">${fn:length(reviews)} <ui:text key="screen.5464105120381493"/></c:when>
+                                    <c:otherwise>${totalRecords} <ui:text key="screen.1a5d1077e5a88835"/> ${fn:length(reviews)} <ui:text key="screen.c36ee348ff2d354a"/></c:otherwise>
                                 </c:choose>
                             </span>
                         </div>
@@ -239,17 +240,17 @@
 
                                         <thead>
                                             <tr>
-                                                <th scope="col">Review</th>
-                                                <th scope="col">Booking</th>
-                                                <th scope="col">Room / Stay</th>
-                                                <th scope="col">Customer</th>
-                                                <th scope="col">Rating</th>
-                                                <th scope="col">Comment</th>
-                                                <th scope="col">Review date</th>
-                                                <th scope="col">Status</th>
+                                                <th scope="col"><ui:text key="screen.aff0766a5290e117"/></th>
+                                                <th scope="col"><ui:text key="screen.948e03e7054b919e"/></th>
+                                                <th scope="col"><ui:text key="screen.fe43f0a1373a3d68"/></th>
+                                                <th scope="col"><ui:text key="screen.bf3763383aaf4306"/></th>
+                                                <th scope="col"><ui:text key="screen.9f29530464f730bd"/></th>
+                                                <th scope="col"><ui:text key="screen.44f5e3fbec57be75"/></th>
+                                                <th scope="col"><ui:text key="screen.1c205cbb90e19abd"/></th>
+                                                <th scope="col"><ui:text key="screen.920e413c7d411b61"/></th>
 
                                                 <c:if test="${reportIsAdmin}">
-                                                    <th scope="col">Actions</th>
+                                                    <th scope="col"><ui:text key="screen.ff8059dc6752afdd"/></th>
                                                     </c:if>
                                             </tr>
                                         </thead>
@@ -284,7 +285,7 @@
 
                                                                         <strong>
                                                                             <a href="${ctx}/details?roomNumber=${detail.roomNumber}">
-                                                                                Room #${detail.roomNumber}
+                                                                                <ui:text key="screen.6c8c6af24c9b021c"/>${detail.roomNumber}
                                                                             </a>
                                                                         </strong>
 
@@ -301,7 +302,7 @@
 
                                                             <c:otherwise>
                                                                 <span class="report-muted">
-                                                                    No room information
+                                                                    <ui:text key="screen.448d8aa4cbfe963c"/>
                                                                 </span>
                                                             </c:otherwise>
 
@@ -322,7 +323,7 @@
                                                             </c:when>
 
                                                             <c:otherwise>
-                                                                Customer #${r.booking.customer.customerID}
+                                                                <ui:text key="screen.641d305570b93564"/>${r.booking.customer.customerID}
                                                             </c:otherwise>
 
                                                         </c:choose>
@@ -376,7 +377,7 @@
                                                                         <button type="submit"
                                                                                 class="report-button approve"
                                                                                 onclick="return confirm('Approve this review?');">
-                                                                            Approve
+                                                                            <ui:text key="screen.6007acbe30b2cd98"/>
                                                                         </button>
 
                                                                     </form>
@@ -399,7 +400,7 @@
                                                                         <button type="submit"
                                                                                 class="report-button reject"
                                                                                 onclick="return confirm('Reject this review?');">
-                                                                            Reject
+                                                                            <ui:text key="screen.ab604a360777735f"/>
                                                                         </button>
 
                                                                     </form>
@@ -424,7 +425,7 @@
 
                             <c:otherwise>
                                 <div class="report-empty">
-                                    No review records found.
+                                    <ui:text key="screen.b6b9cb7b06b6fef0"/>
                                 </div>
                             </c:otherwise>
 

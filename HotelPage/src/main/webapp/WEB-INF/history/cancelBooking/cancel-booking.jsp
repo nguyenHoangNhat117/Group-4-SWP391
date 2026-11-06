@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="c"
            uri="jakarta.tags.core" %>
@@ -16,7 +17,7 @@
         http-equiv="Content-Type"
         content="text/html; charset=UTF-8">
 
-    <title>Cancel Booking</title>
+    <title data-i18n="screen.dcd0884db34dcece">${requestScope.i18n['screen.dcd0884db34dcece']}</title>
 
     <link
         href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
@@ -58,7 +59,7 @@
 
                 <h2 class="mb-4 text-center">
 
-                    Cancel Booking
+                    <ui:text key="screen.dcd0884db34dcece"/>
 
                 </h2>
 
@@ -69,12 +70,10 @@
                 <div class="alert ${requestScope.refundEligible ? 'alert-success' : 'alert-info'}">
                     <c:choose>
                         <c:when test="${requestScope.refundEligible}">
-                            Cancellation is more than 24 hours before check-in.
-                            Any paid deposit is eligible for a refund (recorded in payment history).
+                            <ui:text key="screen.146aeb6d6e108f5e"/>
                         </c:when>
                         <c:otherwise>
-                            Cancellation is within 24 hours of check-in.
-                            You may cancel, but any paid deposit is non-refundable.
+                            <ui:text key="screen.06e02fec35b2eb5e"/>
                         </c:otherwise>
                     </c:choose>
                 </div>
@@ -83,7 +82,7 @@
 
                     <p class="fs-5 mb-2">
 
-                        <strong>Booking ID:</strong>
+                        <strong><ui:text key="screen.534de687fcf21d03"/></strong>
 
                         ${requestScope.booking.id}
 
@@ -92,16 +91,16 @@
 
                     <p class="mb-2">
 
-                        <strong>Status:</strong>
+                        <strong><ui:text key="screen.755c8b2a9fb11446"/></strong>
 
-                        ${requestScope.booking.status}
+                        <ui:message text="${requestScope.booking.status}"/>
 
                     </p>
 
 
                     <p class="mb-2">
 
-                        <strong>Total Price:</strong>
+                        <strong><ui:text key="screen.d104a659abae9ebc"/></strong>
 
                         $${requestScope.booking.totalPrice}
 
@@ -117,7 +116,7 @@
                 <c:if test="${not empty requestScope.booking.details}">
 
                     <h5 class="mb-3">
-                        Stay Details
+                        <ui:text key="screen.b299518a2a1cdf5b"/>
                     </h5>
 
 
@@ -133,7 +132,7 @@
 
                             <p class="mb-1">
 
-                                <strong>Room:</strong>
+                                <strong><ui:text key="screen.93853234d7ebd9b2"/></strong>
 
                                 #${detail.roomNumber}
 
@@ -143,7 +142,7 @@
                             <p class="mb-1">
 
                                 <strong>
-                                    Check-in:
+                                    <ui:text key="screen.a44e12f354688caf"/>
                                 </strong>
 
                                 ${fn:substring(detail.checkInDate, 8, 10)}/${fn:substring(detail.checkInDate, 5, 7)}/${fn:substring(detail.checkInDate, 0, 4)}
@@ -154,7 +153,7 @@
                             <p class="mb-1">
 
                                 <strong>
-                                    Check-out:
+                                    <ui:text key="screen.865998541ea4eba7"/>
                                 </strong>
 
                                 ${fn:substring(detail.checkOutDate, 8, 10)}/${fn:substring(detail.checkOutDate, 5, 7)}/${fn:substring(detail.checkOutDate, 0, 4)}
@@ -165,7 +164,7 @@
                             <p class="mb-0">
 
                                 <strong>
-                                    Guests:
+                                    <ui:text key="screen.1ac580f9fde7374f"/>
                                 </strong>
 
                                 ${detail.guestCount}
@@ -190,9 +189,9 @@
                         for="reason"
                         class="form-label fw-semibold">
 
-                        Cancellation Reason
+                        <ui:text key="screen.052aafb8ebd693e9"/>
                         <span class="text-muted">
-                            (optional)
+                            <ui:text key="screen.0059798b7f7023e4"/>
                         </span>
 
                     </label>
@@ -204,7 +203,7 @@
                         class="form-control"
                         rows="4"
                         maxlength="500"
-                        placeholder="Please tell us why you want to cancel..."></textarea>
+                        placeholder="${requestScope.i18n['screen.4e158e9f92517c1a']}" data-i18n-placeholder="screen.4e158e9f92517c1a"></textarea>
 
                 </div>
 
@@ -230,7 +229,7 @@
                         class="btn btn-danger
                                btn-lg px-4">
 
-                        Confirm Cancellation
+                        <ui:text key="screen.79442059c04c095a"/>
 
                     </button>
 
@@ -240,7 +239,7 @@
                         class="btn btn-secondary
                                btn-lg px-4">
 
-                        Back
+                        <ui:text key="screen.76900f1bfd16c8d4"/>
 
                     </a>
 

@@ -1,16 +1,17 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core"%>
 <%@taglib prefix="fn" uri="jakarta.tags.functions"%>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt"%>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${requestScope.uiLanguage}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1">
 
-        <title>Booking Management</title>
+        <title data-i18n="screen.60bbdeefb7640eb4">${requestScope.i18n['screen.60bbdeefb7640eb4']}</title>
 
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -29,15 +30,15 @@
             <%@include file="/WEB-INF/include/header.jsp"%>
 
             <main>
-                <div class="luxe-admin-banner" aria-label="Booking operations">
+                <div class="luxe-admin-banner" aria-label="${requestScope.i18n['screen.687cac03f6dbbfad']}" data-i18n-aria-label="screen.687cac03f6dbbfad">
                     <span class="luxe-admin-banner-eyebrow">
                         LUXE ESCAPE
                         <span aria-hidden="true">/</span>
-                        RESERVATIONS &amp; STAYS
+                        <ui:text key="screen.fdf811baf35bc1f1"/>
                     </span>
 
                     <span class="luxe-admin-banner-title">
-                        Booking operations
+                        <ui:text key="screen.687cac03f6dbbfad"/>
                     </span>
 
                     <span class="luxe-admin-banner-art" aria-hidden="true"></span>
@@ -46,27 +47,27 @@
                 <div class="container py-5">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                         <div>
-                            <h2 class="fw-bold mb-1">Booking Management</h2>
+                            <h2 class="fw-bold mb-1"><ui:text key="screen.60bbdeefb7640eb4"/></h2>
                             <span class="text-muted">
-                                Total: ${totalBookings} booking(s)
+                                <ui:text key="screen.18e872be2359d76e"/> ${totalBookings} <ui:text key="screen.1576870e601b1e12"/>
                             </span>
                         </div>
 
                         <a class="btn btn-primary"
                            href="${pageContext.request.contextPath}/offline-booking">
-                            Create Offline Booking
+                            <ui:text key="screen.afe42350b046a3d9"/>
                         </a>
                     </div>
 
                     <c:if test="${param.message == 'invalid-data'}">
                         <div class="alert alert-danger">
-                            Invalid booking information.
+                            <ui:text key="screen.05b9746d136b68f2"/>
                         </div>
                     </c:if>
 
                     <c:if test="${param.message == 'booking-not-found'}">
                         <div class="alert alert-danger">
-                            Booking not found.
+                            <ui:text key="screen.8c3d35a16594da92"/>
                         </div>
                     </c:if>
 
@@ -87,7 +88,7 @@
                                 <div class="col-lg-4 col-md-6">
                                     <label for="keyword"
                                            class="form-label fw-semibold">
-                                        Search
+                                        <ui:text key="screen.49c266baaaa70981"/>
                                     </label>
 
                                     <input type="text"
@@ -95,48 +96,48 @@
                                            name="keyword"
                                            class="form-control"
                                            value="${fn:escapeXml(keyword)}"
-                                           placeholder="Booking ID, customer, email...">
+                                           placeholder="${requestScope.i18n['screen.47077267c183fca4']}" data-i18n-placeholder="screen.47077267c183fca4">
                                 </div>
 
                                 <div class="col-lg-2 col-md-6">
                                     <label for="status"
                                            class="form-label fw-semibold">
-                                        Status
+                                        <ui:text key="screen.920e413c7d411b61"/>
                                     </label>
 
                                     <select id="status"
                                             name="status"
                                             class="form-select">
-                                        <option value="">All</option>
+                                        <option value="" data-i18n="screen.a52ace420f2175d0">${requestScope.i18n['screen.a52ace420f2175d0']}</option>
 
                                         <option value="pending"
-                                                ${selectedStatus == 'pending' ? 'selected' : ''}>
-                                            Pending
+                                                ${selectedStatus == 'pending' ? 'selected' : ''} data-i18n="screen.331551b0de4157c9">
+                                            ${requestScope.i18n['screen.331551b0de4157c9']}
                                         </option>
 
                                         <option value="confirmed"
-                                                ${selectedStatus == 'confirmed' ? 'selected' : ''}>
-                                            Confirmed
+                                                ${selectedStatus == 'confirmed' ? 'selected' : ''} data-i18n="screen.fe00b67b6dd1143f">
+                                            ${requestScope.i18n['screen.fe00b67b6dd1143f']}
                                         </option>
 
                                         <option value="checked_in"
-                                                ${selectedStatus == 'checked_in' ? 'selected' : ''}>
-                                            Checked In
+                                                ${selectedStatus == 'checked_in' ? 'selected' : ''} data-i18n="screen.17c05c08a9ac3e5a">
+                                            ${requestScope.i18n['screen.17c05c08a9ac3e5a']}
                                         </option>
 
                                         <option value="checked_out"
-                                                ${selectedStatus == 'checked_out' ? 'selected' : ''}>
-                                            Checked Out
+                                                ${selectedStatus == 'checked_out' ? 'selected' : ''} data-i18n="screen.cbe2b33735c6335c">
+                                            ${requestScope.i18n['screen.cbe2b33735c6335c']}
                                         </option>
 
                                         <option value="completed"
-                                                ${selectedStatus == 'completed' ? 'selected' : ''}>
-                                            Completed
+                                                ${selectedStatus == 'completed' ? 'selected' : ''} data-i18n="screen.22a970d2e5b1cc23">
+                                            ${requestScope.i18n['screen.22a970d2e5b1cc23']}
                                         </option>
 
                                         <option value="cancelled"
-                                                ${selectedStatus == 'cancelled' ? 'selected' : ''}>
-                                            Cancelled
+                                                ${selectedStatus == 'cancelled' ? 'selected' : ''} data-i18n="screen.d353a99eb4556847">
+                                            ${requestScope.i18n['screen.d353a99eb4556847']}
                                         </option>
                                     </select>
                                 </div>
@@ -144,7 +145,7 @@
                                 <div class="col-lg-2 col-md-6">
                                     <label for="from-date"
                                            class="form-label fw-semibold">
-                                        From Date
+                                        <ui:text key="screen.61288e82a1ba695d"/>
                                     </label>
 
                                     <input type="date"
@@ -157,7 +158,7 @@
                                 <div class="col-lg-2 col-md-6">
                                     <label for="to-date"
                                            class="form-label fw-semibold">
-                                        To Date
+                                        <ui:text key="screen.8f44d1ea3ccaa10c"/>
                                     </label>
 
                                     <input type="date"
@@ -170,7 +171,7 @@
                                 <div class="col-lg-2 d-flex align-items-end">
                                     <button type="submit"
                                             class="btn btn-primary w-100">
-                                        Search
+                                        <ui:text key="screen.49c266baaaa70981"/>
                                     </button>
                                 </div>
                             </form>
@@ -182,7 +183,7 @@
                                   <div class="mt-3">
                                       <a href="${pageContext.request.contextPath}/booking-management"
                                          class="btn btn-outline-secondary btn-sm">
-                                          Clear Filters
+                                          <ui:text key="screen.5776503c1a52f4fa"/>
                                       </a>
                                   </div>
                             </c:if>
@@ -195,13 +196,13 @@
                                 <table class="table table-bordered table-hover align-middle">
                                     <thead class="table-dark">
                                         <tr>
-                                            <th>Booking ID</th>
-                                            <th>Customer</th>
-                                            <th>Booking Date</th>
-                                            <th>Room / Stay</th>
-                                            <th>Total Price</th>
-                                            <th>Status</th>
-                                            <th class="text-center">Action</th>
+                                            <th><ui:text key="screen.a85aca2f532a24ab"/></th>
+                                            <th><ui:text key="screen.bf3763383aaf4306"/></th>
+                                            <th><ui:text key="screen.011519b48fd7ae0a"/></th>
+                                            <th><ui:text key="screen.fe43f0a1373a3d68"/></th>
+                                            <th><ui:text key="screen.3cb3f0517ef0da8b"/></th>
+                                            <th><ui:text key="screen.920e413c7d411b61"/></th>
+                                            <th class="text-center"><ui:text key="screen.64cff1319d2fd2cb"/></th>
                                         </tr>
                                     </thead>
 
@@ -218,7 +219,7 @@
                                                             <c:out value="${booking.customer.firstName}"/>
                                                         </c:when>
                                                         <c:otherwise>
-                                                            Customer #${booking.customer.customerID}
+                                                            <ui:text key="screen.641d305570b93564"/>${booking.customer.customerID}
                                                         </c:otherwise>
                                                     </c:choose>
 
@@ -240,7 +241,7 @@
                                                                        items="${booking.details}">
                                                                 <div class="mb-2">
                                                                     <strong>
-                                                                        Room #${detail.roomNumber}
+                                                                        <ui:text key="screen.6c8c6af24c9b021c"/>${detail.roomNumber}
                                                                     </strong>
                                                                     <br>
                                                                     <small class="text-muted">
@@ -250,14 +251,14 @@
                                                                     </small>
                                                                     <br>
                                                                     <small>
-                                                                        Guests: ${detail.guestCount}
+                                                                        <ui:text key="screen.1ac580f9fde7374f"/> ${detail.guestCount}
                                                                     </small>
                                                                 </div>
                                                             </c:forEach>
                                                         </c:when>
                                                         <c:otherwise>
                                                             <span class="text-muted">
-                                                                No detail
+                                                                <ui:text key="screen.7184c1650cd25a38"/>
                                                             </span>
                                                         </c:otherwise>
                                                     </c:choose>
@@ -274,43 +275,43 @@
                                             <c:choose>
                                                 <c:when test="${booking.status == 'pending'}">
                                                     <span class="badge bg-warning text-dark">
-                                                        Pending
+                                                        <ui:text key="screen.331551b0de4157c9"/>
                                                     </span>
                                                 </c:when>
 
                                                 <c:when test="${booking.status == 'confirmed'}">
                                                     <span class="badge bg-primary">
-                                                        Confirmed
+                                                        <ui:text key="screen.fe00b67b6dd1143f"/>
                                                     </span>
                                                 </c:when>
 
                                                 <c:when test="${booking.status == 'checked_in'}">
                                                     <span class="badge bg-info text-dark">
-                                                        Checked In
+                                                        <ui:text key="screen.17c05c08a9ac3e5a"/>
                                                     </span>
                                                 </c:when>
 
                                                 <c:when test="${booking.status == 'checked_out'}">
                                                     <span class="badge bg-secondary">
-                                                        Checked Out
+                                                        <ui:text key="screen.cbe2b33735c6335c"/>
                                                     </span>
                                                 </c:when>
 
                                                 <c:when test="${booking.status == 'completed'}">
                                                     <span class="badge bg-success">
-                                                        Completed
+                                                        <ui:text key="screen.22a970d2e5b1cc23"/>
                                                     </span>
                                                 </c:when>
 
                                                 <c:when test="${booking.status == 'cancelled'}">
                                                     <span class="badge bg-danger">
-                                                        Cancelled
+                                                        <ui:text key="screen.d353a99eb4556847"/>
                                                     </span>
                                                 </c:when>
 
                                                 <c:otherwise>
                                                     <span class="badge bg-dark">
-                                                        <c:out value="${booking.status}"/>
+                                                        <ui:message text="${booking.status}"/>
                                                     </span>
                                                 </c:otherwise>
                                             </c:choose>
@@ -319,7 +320,7 @@
                                         <td class="text-center">
                                             <a href="${pageContext.request.contextPath}/booking-management?view=detail&amp;id=${booking.id}"
                                                class="btn btn-outline-primary btn-sm">
-                                                Details
+                                                <ui:text key="screen.45989de49fb7f66d"/>
                                             </a>
                                         </td>
                                         </tr>
@@ -331,7 +332,7 @@
 
                         <c:otherwise>
                             <div class="alert alert-info text-center">
-                                No bookings found.
+                                <ui:text key="screen.07b38d42ae8d6405"/>
                             </div>
                         </c:otherwise>
                     </c:choose>
@@ -355,12 +356,12 @@
                             <c:param name="to-date" value="${toDate}"/>
                         </c:url>
 
-                        <nav class="mt-4" aria-label="Booking pages">
+                        <nav class="mt-4" aria-label="${requestScope.i18n['screen.15fced987e317bf7']}" data-i18n-aria-label="screen.15fced987e317bf7">
                             <ul class="pagination justify-content-center flex-wrap">
                                 <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
                                     <a class="page-link"
                                        href="${fn:escapeXml(previousPageUrl)}">
-                                        Previous
+                                        <ui:text key="screen.a57b08a480b822a0"/>
                                     </a>
                                 </li>
 
@@ -385,7 +386,7 @@
                                 <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
                                     <a class="page-link"
                                        href="${fn:escapeXml(nextPageUrl)}">
-                                        Next
+                                        <ui:text key="screen.1ff57a29d7c9d11b"/>
                                     </a>
                                 </li>
                             </ul>

@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@page import="util.AuthSupport"%>
 <%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%-- Updated by Nguyen Hoang Nhat --%>
@@ -24,13 +25,13 @@
             = (String) request.getAttribute("enteredPhone");
 %>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${requestScope.uiLanguage}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0">
 
-        <title>Register | Luxe Escape</title>
+        <title data-i18n="screen.569a24b2de3553fb">${requestScope.i18n['screen.569a24b2de3553fb']}</title>
 
         <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
               rel="stylesheet">
@@ -67,11 +68,11 @@
             </span>
 
             <nav class="navigation">
-                <a href="<%= contextPath%>/#rooms">Rooms</a>
+                <a href="<%= contextPath%>/#rooms"><ui:text key="screen.bd32f6cedb5fb7ae"/></a>
                 <a href="<%= contextPath%>/#restaurant-leap">
-                    Restaurant
+                    <ui:text key="screen.1212ea9e20949ffc"/>
                 </a>
-                <a href="<%= contextPath%>/booking">Booking</a>
+                <a href="<%= contextPath%>/booking"><ui:text key="screen.948e03e7054b919e"/></a>
             </nav>
         </header>
 
@@ -79,16 +80,16 @@
             <div class="form-box">
 
                 <% if (success != null) {%>
-                <h1 class="text-center">Account Created</h1>
+                <h1 class="text-center"><ui:text key="screen.9966be402136ee5e"/></h1>
 
                 <div class="alert alert-success mt-3 auth-message"
                      role="status">
-                    <%= AuthSupport.html(success)%>
+                    <ui:message text="<%= success %>"/>
                 </div>
 
                 <a class="btn btn-primary"
                    href="<%= contextPath%>/login">
-                    Sign in
+                    <ui:text key="screen.bfd402b2f6f38125"/>
                 </a>
 
                 <% } else {%>
@@ -101,12 +102,12 @@
                            name="csrfToken"
                            value="<%= AuthSupport.token(session)%>">
 
-                    <h1 class="text-center">Register</h1>
+                    <h1 class="text-center"><ui:text key="screen.bb7234ec12451361"/></h1>
 
                     <% if (error != null) {%>
                     <div class="alert alert-danger mt-3 auth-message"
                          role="alert">
-                        <%= AuthSupport.html(error)%>
+                        <ui:message text="<%= error %>"/>
                     </div>
                     <% }%>
 
@@ -120,7 +121,7 @@
                                autocomplete="username"
                                placeholder=" "
                                required>
-                        <label for="username">Username</label>
+                        <label for="username"><ui:text key="screen.e3b89e9d33f88e52"/></label>
                     </div>
 
                     <div class="input-box">
@@ -132,7 +133,7 @@
                                autocomplete="family-name"
                                placeholder=" "
                                required>
-                        <label for="lastName">Last name</label>
+                        <label for="lastName"><ui:text key="screen.7b4888049459f04a"/></label>
                     </div>
 
                     <div class="input-box">
@@ -144,7 +145,7 @@
                                autocomplete="given-name"
                                placeholder=" "
                                required>
-                        <label for="firstName">First name</label>
+                        <label for="firstName"><ui:text key="screen.702ef921ed1d89bf"/></label>
                     </div>
 
                     <div class="input-box">
@@ -156,7 +157,7 @@
                                autocomplete="email"
                                placeholder=" "
                                required>
-                        <label for="email">Email</label>
+                        <label for="email"><ui:text key="screen.969ccbd3cf6300ec"/></label>
                     </div>
 
                     <div class="input-box">
@@ -169,10 +170,10 @@
                                pattern="[0-9]{10,11}"
                                inputmode="numeric"
                                autocomplete="tel"
-                               title="Enter 10 or 11 digits."
+                               title="${requestScope.i18n['screen.44a29b20510265e4']}"
                                placeholder=" "
-                               required>
-                        <label for="phone">Phone number</label>
+                               required data-i18n-title="screen.44a29b20510265e4">
+                        <label for="phone"><ui:text key="screen.306f1bb20677a622"/></label>
                     </div>
 
                     <%-- Password fields remain empty after errors. --%>
@@ -185,7 +186,7 @@
                                autocomplete="new-password"
                                placeholder=" "
                                required>
-                        <label for="password">Password</label>
+                        <label for="password"><ui:text key="screen.e7cf3ef4f17c3999"/></label>
                     </div>
 
                     <div class="input-box">
@@ -198,19 +199,19 @@
                                placeholder=" "
                                required>
                         <label for="confirmPassword">
-                            Confirm password
+                            <ui:text key="screen.5ac265f396a2c586"/>
                         </label>
                     </div>
 
                     <button class="btn btn-primary" type="submit">
-                        Register
+                        <ui:text key="screen.bb7234ec12451361"/>
                     </button>
 
                     <div class="mt-3 login-register">
                         <span>
-                            Already have an account?
+                            <ui:text key="screen.e77fea936d3e0118"/>
                             <a href="<%= contextPath%>/login">
-                                Sign in
+                                <ui:text key="screen.bfd402b2f6f38125"/>
                             </a>
                         </span>
                     </div>
@@ -220,8 +221,7 @@
         </main>
 
         <footer>
-            &copy; 2026 FPT University SE2001 Group 4.
-            All rights reserved.
+            <ui:text key="screen.e054863fe5b390e5"/>
         </footer>
 
         <script src="<%= contextPath%>/assets/js/bootstrap.bundle.min.js">

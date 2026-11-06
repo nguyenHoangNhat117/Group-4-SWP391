@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%-- 
     Document   : delete.jsp
     Created on : Jun 23, 2025, 4:28:15 PM
@@ -9,7 +10,7 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>Delete Discount</title>
+        <title data-i18n="screen.0458f77d073bf80c">${requestScope.i18n['screen.0458f77d073bf80c']}</title>
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">     
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
@@ -21,16 +22,16 @@
             <main class="min-vh-50 d-flex justify-content-center align-items-center">
                 <div class="bg-white shadow rounded-4 p-5 w-100" style="max-width: 600px;">
                     <form action="./discounts?action=delete" method="post" class="text-center">
-                        <h2 class="mb-4 text-dark">Discount Deletion</h2>
+                        <h2 class="mb-4 text-dark"><ui:text key="screen.ef910e5104003a24"/></h2>
                         <p class="fs-5 fw-semibold mb-4">
-                            Do you really want to Discount with the ID of <strong>${param.id}</strong>?
+                            <ui:text key="screen.39e0f578aa203bf2"/> <strong>${param.id}</strong>?
                         </p>
 
                         <input type="hidden" name="id" value="${param.id}" />
 
                         <div class="d-flex justify-content-center gap-3">
-                            <button type="submit" class="btn btn-danger btn-lg px-5 py-2 rounded-3">Yes</button>
-                            <a href="./discounts" class="btn btn-secondary btn-lg px-5 py-2 rounded-3">No</a>
+                            <button type="submit" class="btn btn-danger btn-lg px-5 py-2 rounded-3"><ui:text key="screen.85a39ab345d672ff"/></button>
+                            <a href="./discounts" class="btn btn-secondary btn-lg px-5 py-2 rounded-3"><ui:text key="screen.1ea442a134b2a184"/></a>
                         </div>
                     </form>
                 </div>

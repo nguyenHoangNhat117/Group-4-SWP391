@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
@@ -7,13 +8,13 @@
 <c:set var="ctx" value="${pageContext.request.contextPath}" />
 
 <!DOCTYPE html>
-<html lang="en" class="hotel-reports-page">
+<html lang="${requestScope.uiLanguage}" class="hotel-reports-page">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Booking Report | Luxe Escape</title>
+    <title data-i18n="screen.d087fa13cc38edb1">${requestScope.i18n['screen.d087fa13cc38edb1']}</title>
 
     <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="${ctx}/assets/css/general.css">
@@ -38,11 +39,10 @@
         <section class="report-panel">
 
             <div class="report-panel-heading">
-                <h2>Reservation records</h2>
+                <h2><ui:text key="screen.a47bf2af83d478c2"/></h2>
 
                 <span class="report-meta">
-                    ${totalRecords} matching bookings
-                    · ${fn:length(bookings)} on this page
+                    ${totalRecords} <ui:text key="screen.804486f0fad7fd3f"/> ${fn:length(bookings)} <ui:text key="screen.c36ee348ff2d354a"/>
                 </span>
             </div>
 
@@ -56,13 +56,13 @@
 
                             <thead>
                             <tr>
-                                <th scope="col">Booking</th>
-                                <th scope="col">Customer</th>
-                                <th scope="col">Created at</th>
-                                <th scope="col">Room / Stay</th>
-                                <th scope="col">Status</th>
+                                <th scope="col"><ui:text key="screen.948e03e7054b919e"/></th>
+                                <th scope="col"><ui:text key="screen.bf3763383aaf4306"/></th>
+                                <th scope="col"><ui:text key="screen.775b5bf9646856d5"/></th>
+                                <th scope="col"><ui:text key="screen.fe43f0a1373a3d68"/></th>
+                                <th scope="col"><ui:text key="screen.920e413c7d411b61"/></th>
                                 <th scope="col" class="numeric">
-                                    Booking total
+                                    <ui:text key="screen.dac7b8fa08bd5f4e"/>
                                 </th>
                             </tr>
                             </thead>
@@ -93,7 +93,7 @@
                                             </c:when>
 
                                             <c:otherwise>
-                                                Customer #${booking.customer.customerID}
+                                                <ui:text key="screen.641d305570b93564"/>${booking.customer.customerID}
                                             </c:otherwise>
 
                                         </c:choose>
@@ -119,7 +119,7 @@
 
                                                         <strong>
                                                             <a href="${ctx}/details?roomNumber=${detail.roomNumber}">
-                                                                Room #${detail.roomNumber}
+                                                                <ui:text key="screen.6c8c6af24c9b021c"/>${detail.roomNumber}
                                                             </a>
                                                         </strong>
 
@@ -129,12 +129,11 @@
                                                         </span>
 
                                                         <span class="report-muted">
-                                                            ${detail.guestCount} guests
-                                                            ·
+                                                            ${detail.guestCount} <ui:text key="screen.45f69c6d7bebdee3"/>
                                                             <fmt:formatNumber
                                                                     value="${detail.pricePerNight}"
                                                                     pattern="#,##0.##" />
-                                                            ₫ / night
+                                                            <ui:text key="screen.9504b0b5c7c215ef"/>
                                                         </span>
 
                                                         <c:if test="${not empty detail.specialRequest}">
@@ -151,7 +150,7 @@
 
                                             <c:otherwise>
                                                 <span class="report-muted">
-                                                    No room information
+                                                    <ui:text key="screen.448d8aa4cbfe963c"/>
                                                 </span>
                                             </c:otherwise>
 
@@ -203,7 +202,7 @@
 
                 <c:otherwise>
                     <div class="report-empty">
-                        No bookings match the selected period.
+                        <ui:text key="screen.3c63a71979d97ec7"/>
                     </div>
                 </c:otherwise>
 

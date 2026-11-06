@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
@@ -6,7 +7,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Delete Room Type</title>
+        <title data-i18n="screen.bec3590ecb65cee8">${requestScope.i18n['screen.bec3590ecb65cee8']}</title>
 
         <link href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css"
               rel="stylesheet">
@@ -29,15 +30,15 @@
                           class="text-center">
 
                         <h2 class="mb-4 text-dark">
-                            Room Type Deletion
+                            <ui:text key="screen.0d213f0f35f58ea3"/>
                         </h2>
 
                         <p class="fs-5 fw-semibold mb-4">
-                            Do you really want to delete
+                            <ui:text key="screen.2c1a6b28ded633cd"/>
                             <strong>
                                 <c:out value="${roomType.name}"/>
                             </strong>
-                            with the ID of
+                            <ui:text key="screen.91d8e3132e03ddff"/>
                             <strong>${roomType.id}</strong>?
                         </p>
 
@@ -48,12 +49,12 @@
                         <div class="d-flex justify-content-center gap-3">
                             <button type="submit"
                                     class="btn btn-danger btn-lg px-5 py-2 rounded-3">
-                                Yes
+                                <ui:text key="screen.85a39ab345d672ff"/>
                             </button>
 
                             <a href="${pageContext.request.contextPath}/room-type"
                                class="btn btn-secondary btn-lg px-5 py-2 rounded-3">
-                                No
+                                <ui:text key="screen.1ea442a134b2a184"/>
                             </a>
                         </div>
                     </form>

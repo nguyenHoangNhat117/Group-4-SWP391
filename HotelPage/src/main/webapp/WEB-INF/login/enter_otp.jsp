@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@page import="util.AuthSupport"%>
 <%-- 
     Document   : enter_otp
@@ -22,13 +23,13 @@
     String recoveryEmail = (String) session.getAttribute("email");
 %>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${requestScope.uiLanguage}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0">
 
-        <title>Verify OTP | Luxe Escape</title>
+        <title data-i18n="screen.23edc073bb72c0d2">${requestScope.i18n['screen.23edc073bb72c0d2']}</title>
 
         <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
               rel="stylesheet">
@@ -49,24 +50,23 @@
 
         <main class="form-signin wrapper show">
             <div class="form-box">
-                <h1 class="text-center">Verify OTP</h1>
+                <h1 class="text-center"><ui:text key="screen.9aa6fb054220c5b7"/></h1>
 
                 <% if (error != null) {%>
                 <div class="alert alert-danger mt-3" role="alert">
-                    <%= AuthSupport.html(error)%>
+                    <ui:message text="<%= error %>"/>
                 </div>
                 <% } %>
 
                 <% if (message != null) {%>
                 <div class="alert alert-success mt-3" role="status">
-                    <%= AuthSupport.html(message)%>
+                    <ui:message text="<%= message %>"/>
                 </div>
                 <% } %>
 
                 <% if (otpAvailable) {%>
                 <p class="mt-3" style="color: white;">
-                    Enter the 6-digit code from your email.
-                    Remaining attempts:
+                    <ui:text key="screen.047b45c910874492"/>
                     <strong><%= AuthSupport.html(remaining)%></strong>.
                 </p>
 
@@ -88,18 +88,17 @@
                                autocomplete="one-time-code"
                                placeholder=" "
                                required>
-                        <label for="otp">OTP</label>
+                        <label for="otp"><ui:text key="screen.6c0e6acd35694622"/></label>
                     </div>
 
                     <button class="btn" type="submit">
-                        Verify
+                        <ui:text key="screen.eea2745e2867a677"/>
                     </button>
                 </form>
 
                 <% } else { %>
                 <p class="mt-3" style="color: white;">
-                    This code is no longer available.
-                    Request a new code to continue.
+                    <ui:text key="screen.df5cc6f9df892087"/>
                 </p>
                 <% }%>
 
@@ -117,25 +116,24 @@
                            value="<%= AuthSupport.html(recoveryEmail)%>">
 
                     <button class="btn" type="submit">
-                        Resend OTP
+                        <ui:text key="screen.6747ac5ba6564a3e"/>
                     </button>
                 </form>
 
                 <div class="login-register mt-3">
                     <a href="<%= contextPath%>/forgot-password">
-                        Use another email
+                        <ui:text key="screen.687da8b89baf2c10"/>
                     </a>
                     <br>
                     <a href="<%= contextPath%>/login">
-                        Back to login
+                        <ui:text key="screen.3e3806ff17302cba"/>
                     </a>
                 </div>
             </div>
         </main>
 
         <footer>
-            &copy; 2026 FPT University SE2001 Group 4.
-            All rights reserved.
+            <ui:text key="screen.e054863fe5b390e5"/>
         </footer>
     </body>
 </html>

@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@page import="util.AuthSupport"%>
 <%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%-- Updated by Nguyen Hoang Nhat --%>
@@ -14,13 +15,13 @@
     );
 %>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${requestScope.uiLanguage}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0">
 
-        <title>Login | Luxe Escape</title>
+        <title data-i18n="screen.2b90f3ff0acd9fb4">${requestScope.i18n['screen.2b90f3ff0acd9fb4']}</title>
 
         <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
               rel="stylesheet">
@@ -41,11 +42,11 @@
             </span>
 
             <nav class="navigation">
-                <a href="<%= contextPath%>/#rooms">Rooms</a>
+                <a href="<%= contextPath%>/#rooms"><ui:text key="screen.bd32f6cedb5fb7ae"/></a>
                 <a href="<%= contextPath%>/#restaurant-leap">
-                    Restaurant
+                    <ui:text key="screen.1212ea9e20949ffc"/>
                 </a>
-                <a href="<%= contextPath%>/booking">Booking</a>
+                <a href="<%= contextPath%>/booking"><ui:text key="screen.948e03e7054b919e"/></a>
             </nav>
         </header>
 
@@ -59,19 +60,19 @@
                            name="csrfToken"
                            value="<%= AuthSupport.token(session)%>">
 
-                    <h1 class="text-center">Sign in</h1>
+                    <h1 class="text-center"><ui:text key="screen.bfd402b2f6f38125"/></h1>
 
                     <% if (error != null) {%>
                     <div class="alert alert-danger mt-3 auth-message"
                          role="alert">
-                        <%= AuthSupport.html(error)%>
+                        <ui:message text="<%= error %>"/>
                     </div>
                     <% } %>
 
                     <% if (message != null) {%>
                     <div class="alert alert-success mt-3 auth-message"
                          role="status">
-                        <%= AuthSupport.html(message)%>
+                        <ui:message text="<%= message %>"/>
                     </div>
                     <% }%>
 
@@ -86,7 +87,7 @@
                                value="<%= AuthSupport.html(enteredUsername)%>"
                                placeholder=" "
                                required>
-                        <label for="username">Username or Email</label>
+                        <label for="username"><ui:text key="screen.dd01f1017cbc1009"/></label>
                     </div>
 
                     <div class="input-box">
@@ -98,7 +99,7 @@
                                autocomplete="current-password"
                                placeholder=" "
                                required>
-                        <label for="password">Password</label>
+                        <label for="password"><ui:text key="screen.e7cf3ef4f17c3999"/></label>
                     </div>
 
                     <div class="remember-me">
@@ -109,23 +110,23 @@
                                    id="remember"
                                    value="on"
                                    <%= rememberChecked ? "checked" : ""%>>
-                            Remember username
+                            <ui:text key="screen.0f766c8cd8e7f250"/>
                         </label>
 
                         <a href="<%= contextPath%>/forgot-password">
-                            Forgot password?
+                            <ui:text key="screen.30c1d8d3e9128893"/>
                         </a>
                     </div>
 
                     <button class="btn" type="submit">
-                        Sign in
+                        <ui:text key="screen.bfd402b2f6f38125"/>
                     </button>
 
                     <div class="mt-3 login-register">
                         <span>
-                            Don't have an account?
+                            <ui:text key="screen.1b545b23fae3997a"/>
                             <a href="<%= contextPath%>/register">
-                                Sign up
+                                <ui:text key="screen.5e2b8e96503d722e"/>
                             </a>
                         </span>
                     </div>
@@ -134,8 +135,7 @@
         </main>
 
         <footer>
-            &copy; 2026 FPT University SE2001 Group 4.
-            All rights reserved.
+            <ui:text key="screen.e054863fe5b390e5"/>
         </footer>
 
         <script src="<%= contextPath%>/assets/js/bootstrap.bundle.min.js">

@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%-- 
     Document   : change_password
     Created on : Nov 2, 2026, 8:19:27 PM
@@ -12,13 +13,13 @@
     String error = (String) request.getAttribute("error");
 %>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${requestScope.uiLanguage}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0">
 
-        <title>Change Password | Luxe Escape</title>
+        <title data-i18n="screen.e454a1f447293281">${requestScope.i18n['screen.e454a1f447293281']}</title>
 
         <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
               rel="stylesheet">
@@ -50,12 +51,12 @@
                            name="csrfToken"
                            value="<%= AuthSupport.token(session)%>">
 
-                    <h1 class="text-center">Change Password</h1>
+                    <h1 class="text-center"><ui:text key="screen.a949f46230748d3f"/></h1>
 
                     <% if (error != null) {%>
                     <div class="alert alert-danger mt-3 auth-message"
                          role="alert">
-                        <%= AuthSupport.html(error)%>
+                        <ui:message text="<%= error %>"/>
                     </div>
                     <% }%>
 
@@ -68,7 +69,7 @@
                                placeholder=" "
                                required>
                         <label for="currentPassword">
-                            Current password
+                            <ui:text key="screen.72ed2bd767cef627"/>
                         </label>
                     </div>
 
@@ -82,7 +83,7 @@
                                placeholder=" "
                                required>
                         <label for="newPassword">
-                            New password
+                            <ui:text key="screen.3dd9df4441fb348f"/>
                         </label>
                     </div>
 
@@ -96,17 +97,17 @@
                                placeholder=" "
                                required>
                         <label for="confirmPassword">
-                            Confirm password
+                            <ui:text key="screen.5ac265f396a2c586"/>
                         </label>
                     </div>
 
                     <button class="btn" type="submit">
-                        Save password
+                        <ui:text key="screen.e86cf7b88cde4602"/>
                     </button>
 
                     <div class="login-register mt-3">
                         <a href="<%= contextPath%>/">
-                            Cancel
+                            <ui:text key="screen.19766ed6ccb2f4a3"/>
                         </a>
                     </div>
                 </form>
@@ -114,8 +115,7 @@
         </main>
 
         <footer>
-            &copy; 2026 FPT University SE2001 Group 4.
-            All rights reserved.
+            <ui:text key="screen.e054863fe5b390e5"/>
         </footer>
     </body>
 </html>

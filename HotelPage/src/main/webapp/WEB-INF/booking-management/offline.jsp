@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%-- 
     Document   : offline
     Created on : Nov 5, 2026, 9:48:13 PM
@@ -10,12 +11,12 @@
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt"%>
 
 <!DOCTYPE html>
-<html lang="vi" class="uc09-page">
+<html lang="${requestScope.uiLanguage}" class="uc09-page">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>Đặt phòng tại quầy | Luxe Escape</title>
+        <title data-i18n="screen.5a779d440195be98">${requestScope.i18n['screen.5a779d440195be98']}</title>
 
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -35,29 +36,29 @@
 
             <main class="ob-page">
                 <div class="ob-heading">
-                    <h1>Đặt phòng tại quầy</h1>
+                    <h1><ui:text key="screen.02c223c42181cf2b"/></h1>
 
                     <a class="ob-back"
                        href="${pageContext.request.contextPath}/booking-management">
-                        ← Danh sách đặt phòng
+                        <ui:text key="screen.c94d50d55899f838"/>
                     </a>
                 </div>
 
-                <ol class="ob-steps" aria-label="Các bước đặt phòng">
+                <ol class="ob-steps" aria-label="${requestScope.i18n['screen.9c39e2bcadf8ddf1']}" data-i18n-aria-label="screen.9c39e2bcadf8ddf1">
                     <li class="${empty quote ? 'is-current' : ''}">
-                        <span>01</span> Lưu trú
+                        <span>01</span> <ui:text key="screen.08fd1de4b04df4a2"/>
                     </li>
                     <li>
-                        <span>02</span> Khách hàng
+                        <span>02</span> <ui:text key="screen.bf3763383aaf4306"/>
                     </li>
                     <li class="${not empty quote ? 'is-current' : ''}">
-                        <span>03</span> Xác nhận
+                        <span>03</span> <ui:text key="screen.eebdd24a77d9ad32"/>
                     </li>
                 </ol>
 
                 <c:if test="${not empty error}">
                     <div class="alert alert-danger mb-4" role="alert">
-                        <c:out value="${error}"/>
+                        <ui:message text="${error}"/>
                     </div>
                 </c:if>
 
@@ -67,7 +68,7 @@
                         <div class="ob-grid">
                             <section class="ob-panel">
                                 <div class="ob-panel-top">
-                                    <h2>Xác nhận đặt phòng</h2>
+                                    <h2><ui:text key="screen.126850cb3c7e0489"/></h2>
                                     <span class="ob-number">03</span>
                                 </div>
 
@@ -80,35 +81,34 @@
 
                                     <div>
                                         <strong>
-                                            Phòng ${quote.draft.roomNumber}
+                                            <ui:text key="screen.911ea89c43d9dbb8"/> ${quote.draft.roomNumber}
                                         </strong>
                                         <span>
-                                            ${quote.draft.guests} khách
-                                            · ${quote.nights} đêm
+                                            ${quote.draft.guests} <ui:text key="screen.45f69c6d7bebdee3"/> ${quote.nights} <ui:text key="screen.de5c9050dc18c72f"/>
                                         </span>
                                     </div>
                                 </div>
 
                                 <dl class="ob-review-details">
                                     <div class="ob-full">
-                                        <dt>Khách hàng</dt>
+                                        <dt><ui:text key="screen.bf3763383aaf4306"/></dt>
                                         <dd>
                                             <c:out value="${quote.customerName}"/>
                                         </dd>
                                     </div>
 
                                     <div>
-                                        <dt>Ngày nhận phòng</dt>
+                                        <dt><ui:text key="screen.5d7b2d63203faae8"/></dt>
                                         <dd>${quote.draft.checkIn}</dd>
                                     </div>
 
                                     <div>
-                                        <dt>Ngày trả phòng</dt>
+                                        <dt><ui:text key="screen.1a51b94f713b1ee9"/></dt>
                                         <dd>${quote.draft.checkOut}</dd>
                                     </div>
 
                                     <div>
-                                        <dt>Đơn giá / đêm</dt>
+                                        <dt><ui:text key="screen.eba034a48e45899e"/></dt>
                                         <dd>
                                             <fmt:formatNumber value="${quote.nightly}"/>
                                             VND
@@ -116,7 +116,7 @@
                                     </div>
 
                                     <div>
-                                        <dt>Khuyến mãi</dt>
+                                        <dt><ui:text key="screen.8c6a0024dad9f069"/></dt>
                                         <dd>
                                             <c:out value="${empty quote.draft.promotionCode
                                                             ? 'Không áp dụng'
@@ -125,7 +125,7 @@
                                     </div>
 
                                     <div class="ob-full">
-                                        <dt>Yêu cầu đặc biệt</dt>
+                                        <dt><ui:text key="screen.8d40b90ad50b8351"/></dt>
                                         <dd>
                                             <c:out value="${empty quote.draft.specialRequest
                                                             ? 'Không có'
@@ -137,7 +137,7 @@
                                 <div class="ob-review-note">
                                     <a class="ob-back"
                                        href="${pageContext.request.contextPath}/offline-booking?edit=${quote.draft.requestKey}">
-                                        ← Chỉnh sửa thông tin
+                                        <ui:text key="screen.5526444a562e0046"/>
                                     </a>
                                 </div>
                             </section>
@@ -145,13 +145,13 @@
                             <aside class="ob-panel ob-summary">
                                 <div class="ob-summary-head">
                                     <small>LUXE ESCAPE</small>
-                                    <h2>Đặt phòng mới</h2>
+                                    <h2><ui:text key="screen.f439e95643ea7efa"/></h2>
                                 </div>
 
                                 <div class="ob-summary-body">
                                     <dl>
                                         <div class="ob-summary-row">
-                                            <dt>Tiền phòng</dt>
+                                            <dt><ui:text key="screen.e2c9b215945296ae"/></dt>
                                             <dd>
                                                 <fmt:formatNumber value="${quote.gross}"/>
                                                 VND
@@ -159,7 +159,7 @@
                                         </div>
 
                                         <div class="ob-summary-row">
-                                            <dt>Giảm dự kiến</dt>
+                                            <dt><ui:text key="screen.4c2ca6bb46ef5d52"/></dt>
                                             <dd>
                                                 − <fmt:formatNumber value="${quote.gross - quote.payable}"/>
                                                 VND
@@ -167,18 +167,18 @@
                                         </div>
 
                                         <div class="ob-summary-row">
-                                            <dt>Giữ phòng</dt>
-                                            <dd>${holdMinutes} phút</dd>
+                                            <dt><ui:text key="screen.3622756f73037b11"/></dt>
+                                            <dd>${holdMinutes} <ui:text key="screen.90e63d85fa1ab2c8"/></dd>
                                         </div>
 
                                         <div class="ob-summary-row">
-                                            <dt>Cọc tối thiểu</dt>
+                                            <dt><ui:text key="screen.157ed3242bd5a322"/></dt>
                                             <dd>${depositPercent}%</dd>
                                         </div>
                                     </dl>
 
                                     <div class="ob-total">
-                                        <span>Tổng dự kiến</span>
+                                        <span><ui:text key="screen.8019400caf0913fa"/></span>
                                         <strong class="ob-price">
                                             <fmt:formatNumber value="${quote.payable}"/>
                                             VND
@@ -202,14 +202,13 @@
 
                                         <button class="ob-button ob-primary"
                                                 type="submit">
-                                            Tạo đặt phòng
+                                            <ui:text key="screen.58982c7a6d7fdc02"/>
                                             <span aria-hidden="true">→</span>
                                         </button>
                                     </form>
 
                                     <p class="ob-note">
-                                        Chưa thu tiền ở bước này.
-                                        Khuyến mãi được kiểm tra lại khi thanh toán.
+                                        <ui:text key="screen.1a96043bb056ae9a"/>
                                     </p>
                                 </div>
                             </aside>
@@ -231,14 +230,14 @@
 
                                     <section class="ob-panel">
                                         <div class="ob-panel-top">
-                                            <h2>Lưu trú &amp; phòng</h2>
+                                            <h2><ui:text key="screen.8a25de2296303d74"/></h2>
                                             <span class="ob-number">01</span>
                                         </div>
 
                                         <div class="ob-fields">
                                             <div class="ob-field">
                                                 <label for="checkIn">
-                                                    Ngày nhận phòng
+                                                    <ui:text key="screen.5d7b2d63203faae8"/>
                                                 </label>
 
                                                 <input class="ob-input"
@@ -252,7 +251,7 @@
 
                                             <div class="ob-field">
                                                 <label for="checkOut">
-                                                    Ngày trả phòng
+                                                    <ui:text key="screen.1a51b94f713b1ee9"/>
                                                 </label>
 
                                                 <input class="ob-input"
@@ -267,7 +266,7 @@
                                             <div class="ob-search ob-full">
                                                 <div class="ob-field">
                                                     <label for="guests">
-                                                        Số khách
+                                                        <ui:text key="screen.3c8e0fde6fcc71e0"/>
                                                     </label>
 
                                                     <input class="ob-input"
@@ -285,7 +284,7 @@
                                                         name="action"
                                                         value="search"
                                                         formnovalidate>
-                                                    Tìm phòng trống
+                                                    <ui:text key="screen.40081e387cab1d5c"/>
                                                     <span aria-hidden="true">→</span>
                                                 </button>
                                             </div>
@@ -293,21 +292,20 @@
 
                                         <c:if test="${searched and empty rooms}">
                                             <p class="ob-empty" role="status">
-                                                Không có phòng phù hợp.
-                                                Thử đổi ngày hoặc số khách.
+                                                <ui:text key="screen.1066e476402ece31"/>
                                             </p>
                                         </c:if>
 
                                         <div class="ob-field ob-room-field">
-                                            <label for="roomNumber">Chọn phòng</label>
+                                            <label for="roomNumber"><ui:text key="screen.7c2d837276e934c7"/></label>
 
                                             <select class="ob-input"
                                                     id="roomNumber"
                                                     name="roomNumber"
                                                     required>
 
-                                                <option value="">
-                                                    — Chọn phòng —
+                                                <option value="" data-i18n="screen.2ccbf4a8c0509a35">
+                                                    ${requestScope.i18n['screen.2ccbf4a8c0509a35']}
                                                 </option>
 
                                                 <c:forEach items="${rooms}" var="room">
@@ -315,13 +313,12 @@
                                                             data-price="${room.roomType.pricePerNight}"
                                                             data-label="${fn:escapeXml(room.roomType.name)}"
                                                             ${form.roomNumber == room.roomNumber
-                                                              ? 'selected' : ''}>
+                                                              ? 'selected' : ''} data-i18n="screen.911ea89c43d9dbb8">
 
-                                                        Phòng ${room.roomNumber}
+                                                        ${requestScope.i18n['screen.911ea89c43d9dbb8']} ${room.roomNumber}
                                                         · <c:out value="${room.roomType.name}"/>
-                                                        · ${room.roomType.capacity} khách
-                                                        · <fmt:formatNumber value="${room.roomType.pricePerNight}"/>
-                                                        VND/đêm
+                                                        · ${room.roomType.capacity} ${requestScope.i18n['screen.45f69c6d7bebdee3']} <fmt:formatNumber value="${room.roomType.pricePerNight}"/>
+                                                        ${requestScope.i18n['screen.0d48d80c52b5c1ef']}
                                                     </option>
                                                 </c:forEach>
                                             </select>
@@ -330,13 +327,13 @@
 
                                     <section class="ob-panel">
                                         <div class="ob-panel-top">
-                                            <h2>Khách hàng</h2>
+                                            <h2><ui:text key="screen.bf3763383aaf4306"/></h2>
                                             <span class="ob-number">02</span>
                                         </div>
 
                                         <div class="ob-mode"
                                              role="group"
-                                             aria-label="Loại khách hàng">
+                                             aria-label="${requestScope.i18n['screen.4ac86ab4f546c113']}" data-i18n-aria-label="screen.4ac86ab4f546c113">
 
                                             <label>
                                                 <input type="radio"
@@ -344,7 +341,7 @@
                                                        value="existing"
                                                        ${form.customerMode != 'new'
                                                          ? 'checked' : ''}>
-                                                <span>Khách có sẵn</span>
+                                                <span><ui:text key="screen.b941d2696ce7958d"/></span>
                                             </label>
 
                                             <label>
@@ -353,7 +350,7 @@
                                                        value="new"
                                                        ${form.customerMode == 'new'
                                                          ? 'checked' : ''}>
-                                                <span>+ Khách mới</span>
+                                                <span><ui:text key="screen.855efa16ef338b26"/></span>
                                             </label>
                                         </div>
 
@@ -361,7 +358,7 @@
                                             <div class="ob-search">
                                                 <div class="ob-field">
                                                     <label for="q">
-                                                        Điện thoại, email hoặc username
+                                                        <ui:text key="screen.80ac476328a1a6ca"/>
                                                     </label>
 
                                                     <input class="ob-input"
@@ -370,7 +367,7 @@
                                                            name="q"
                                                            maxlength="100"
                                                            value="${fn:escapeXml(form.q)}"
-                                                           placeholder="Tìm khách hàng...">
+                                                           placeholder="${requestScope.i18n['screen.bd9ab9176cf69767']}" data-i18n-placeholder="screen.bd9ab9176cf69767">
                                                 </div>
 
                                                 <button class="ob-button ob-secondary"
@@ -378,28 +375,27 @@
                                                         name="action"
                                                         value="search"
                                                         formnovalidate>
-                                                    Tìm khách
+                                                    <ui:text key="screen.57805bd2d7e63e4d"/>
                                                 </button>
                                             </div>
 
                                             <c:if test="${not empty form.q and empty customers}">
                                                 <p class="ob-empty" role="status">
-                                                    Chưa tìm thấy khách.
-                                                    Chọn “Khách mới” để tạo hồ sơ.
+                                                    <ui:text key="screen.892733be5dbea18d"/>
                                                 </p>
                                             </c:if>
 
                                             <div class="ob-field" style="margin-top:18px">
                                                 <label for="customerId">
-                                                    Hồ sơ khách hàng
+                                                    <ui:text key="screen.71bc48dd14a2be24"/>
                                                 </label>
 
                                                 <select class="ob-input"
                                                         name="customerId"
                                                         id="customerId">
 
-                                                    <option value="">
-                                                        — Chọn khách —
+                                                    <option value="" data-i18n="screen.255c4597f3d79f5a">
+                                                        ${requestScope.i18n['screen.255c4597f3d79f5a']}
                                                     </option>
 
                                                     <c:forEach items="${customers}"
@@ -425,7 +421,7 @@
                                                 <div class="ob-fields">
                                                     <div class="ob-field">
                                                         <label for="lastName">
-                                                            Họ và tên đệm
+                                                            <ui:text key="screen.cecbf3ef59fef946"/>
                                                         </label>
 
                                                         <input class="ob-input"
@@ -438,7 +434,7 @@
                                                     </div>
 
                                                     <div class="ob-field">
-                                                        <label for="firstName">Tên</label>
+                                                        <label for="firstName"><ui:text key="screen.96ce6e6193a04726"/></label>
 
                                                         <input class="ob-input"
                                                                id="firstName"
@@ -450,7 +446,7 @@
                                                     </div>
 
                                                     <div class="ob-field">
-                                                        <label for="email">Email</label>
+                                                        <label for="email"><ui:text key="screen.969ccbd3cf6300ec"/></label>
 
                                                         <input class="ob-input"
                                                                type="email"
@@ -463,7 +459,7 @@
                                                     </div>
 
                                                     <div class="ob-field">
-                                                        <label for="phone">Điện thoại</label>
+                                                        <label for="phone"><ui:text key="screen.63dceb8800b2dd4a"/></label>
 
                                                         <input class="ob-input"
                                                                type="tel"
@@ -481,14 +477,14 @@
 
                                         <section class="ob-panel">
                                             <div class="ob-panel-top">
-                                                <h2>Thông tin thêm</h2>
+                                                <h2><ui:text key="screen.a42f24143514fb13"/></h2>
                                                 <span class="ob-number">03</span>
                                             </div>
 
                                             <div class="ob-fields">
                                                 <div class="ob-field ob-full">
                                                     <label for="promotionCode">
-                                                        Mã khuyến mãi
+                                                        <ui:text key="screen.fd947a841a798fb7"/>
                                                     </label>
 
                                                     <input class="ob-input"
@@ -496,12 +492,12 @@
                                                            id="promotionCode"
                                                            maxlength="50"
                                                            value="${fn:escapeXml(form.promotionCode)}"
-                                                           placeholder="Nhập mã nếu có">
+                                                           placeholder="${requestScope.i18n['screen.16be5a510aa9cbab']}" data-i18n-placeholder="screen.16be5a510aa9cbab">
                                                 </div>
 
                                                 <div class="ob-field ob-full">
                                                     <label for="specialRequest">
-                                                        Yêu cầu đặc biệt
+                                                        <ui:text key="screen.8d40b90ad50b8351"/>
                                                     </label>
 
                                                     <textarea class="ob-input"
@@ -509,53 +505,53 @@
                                                               id="specialRequest"
                                                               maxlength="500"
                                                               rows="3"
-                                                              placeholder="Giờ đến dự kiến, yêu cầu khác..."><c:out value="${form.specialRequest}"/></textarea>
+                                                              placeholder="${requestScope.i18n['screen.8ec7552bf0a4f249']}" data-i18n-placeholder="screen.8ec7552bf0a4f249"><c:out value="${form.specialRequest}"/></textarea>
                                                 </div>
                                             </div>
                                         </section>
                                     </div>
 
                                     <aside class="ob-panel ob-summary"
-                                           aria-label="Tóm tắt đặt phòng">
+                                           aria-label="${requestScope.i18n['screen.6b00218f389a7460']}" data-i18n-aria-label="screen.6b00218f389a7460">
 
                                         <div class="ob-summary-head">
                                             <small>LUXE ESCAPE</small>
-                                            <h2 id="obRoom">Chọn phòng</h2>
+                                            <h2 id="obRoom"><ui:text key="screen.7c2d837276e934c7"/></h2>
                                             <p id="obType" class="ob-note">
-                                                Thông tin đặt phòng
+                                                <ui:text key="screen.e3c166be8ed36aba"/>
                                             </p>
                                         </div>
 
                                         <div class="ob-summary-body">
                                             <dl>
                                                 <div class="ob-summary-row">
-                                                    <dt>Lưu trú</dt>
+                                                    <dt><ui:text key="screen.08fd1de4b04df4a2"/></dt>
                                                     <dd id="obDates">—</dd>
                                                 </div>
 
                                                 <div class="ob-summary-row">
-                                                    <dt>Số đêm</dt>
+                                                    <dt><ui:text key="screen.6a14a27a176f3d9a"/></dt>
                                                     <dd id="obNights">—</dd>
                                                 </div>
 
                                                 <div class="ob-summary-row">
-                                                    <dt>Số khách</dt>
+                                                    <dt><ui:text key="screen.3c8e0fde6fcc71e0"/></dt>
                                                     <dd id="obGuests">—</dd>
                                                 </div>
 
                                                 <div class="ob-summary-row">
-                                                    <dt>Giữ phòng</dt>
-                                                    <dd>${holdMinutes} phút</dd>
+                                                    <dt><ui:text key="screen.3622756f73037b11"/></dt>
+                                                    <dd>${holdMinutes} <ui:text key="screen.90e63d85fa1ab2c8"/></dd>
                                                 </div>
 
                                                 <div class="ob-summary-row">
-                                                    <dt>Cọc tối thiểu</dt>
+                                                    <dt><ui:text key="screen.157ed3242bd5a322"/></dt>
                                                     <dd>${depositPercent}%</dd>
                                                 </div>
                                             </dl>
 
                                             <div class="ob-total">
-                                                <span>Tiền phòng dự kiến</span>
+                                                <span><ui:text key="screen.544ddc571296b6b9"/></span>
                                                 <strong class="ob-price"
                                                         id="obAmount"
                                                         aria-live="polite">
@@ -568,17 +564,17 @@
                                                     value="preview"
                                                     class="ob-button ob-primary"
                                                     ${empty rooms ? 'disabled' : ''}>
-                                                Xem tóm tắt
+                                                <ui:text key="screen.6aff1ed4ee82bb55"/>
                                                 <span aria-hidden="true">→</span>
                                             </button>
 
                                             <p class="ob-note">
-                                                Khuyến mãi được tính ở bước tiếp theo.
+                                                <ui:text key="screen.a6cfe7eba9782ff9"/>
                                             </p>
 
                                             <a class="ob-cancel"
                                                href="${pageContext.request.contextPath}/booking-management">
-                                                Hủy thao tác
+                                                <ui:text key="screen.a9197554370f5880"/>
                                             </a>
                                         </div>
                                     </aside>
