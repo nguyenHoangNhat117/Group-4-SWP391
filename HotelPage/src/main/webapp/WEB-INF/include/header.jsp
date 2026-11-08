@@ -5,10 +5,32 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 
+
+<%
+    model.Customer headerCustomer = null;
+
+    model.User headerUser
+            = (model.User) session.getAttribute("loggedUser");
+
+    if (headerUser != null
+            && "customer".equals(headerUser.getRole())) {
+
+        dao.CustomerDAO headerDAO = new dao.CustomerDAO();
+
+        headerCustomer = headerDAO
+                .getCustomerByUserID(headerUser.getId());
+    }
+
+    boolean headerHasAvatar
+            = headerCustomer != null
+            && headerCustomer.getAvatar() != null
+            && !headerCustomer.getAvatar().trim().isEmpty();
+%>
+
+
 <link rel="stylesheet"
-      href="${pageContext.request.contextPath}/assets/css/luxe-account-menu.css?v=header-v5">
-<link rel="stylesheet"
-      href="${pageContext.request.contextPath}/assets/css/luxe-account-menu.css?v=header-v5">
+      href="${pageContext.request.contextPath}/assets/css/luxe-account-menu.css?v=header-v6">
+
 
 <link rel="stylesheet"
       href="${pageContext.request.contextPath}/assets/css/header-layout.css?v=header-row-1">
@@ -82,6 +104,13 @@
                             <ui:text key="nav.reviews"/>
                         </a>
                     </li>
+
+                    <li>
+                        <a href="${pageContext.request.contextPath}/hotel-wallet">
+                            Hotel Wallet
+                        </a>
+                    </li>
+
                 </c:when>
 
                 <c:when test="${sessionScope.loggedUser.role == 'staff'}">
@@ -108,6 +137,13 @@
                             <ui:text key="nav.customers"/>
                         </a>
                     </li>
+
+                    <li>
+                        <a href="${pageContext.request.contextPath}/hotel-wallet">
+                            Hotel Wallet
+                        </a>
+                    </li>
+
                 </c:when>
 
                 <c:when test="${sessionScope.loggedUser.role == 'manager'}">
@@ -225,11 +261,52 @@
                                      data-i18n-aria-label="account.options"
                                      aria-label="${requestScope.i18n['account.options']}">
 
-                                <span class="luxe-account-avatar"
-                                      aria-hidden="true">
 
+
+                                <span class="luxe-account-avatar"
+                                      aria-hidden="true"
+                                      style="
+                                      width: 44px !important;
+                                      height: 44px !important;
+                                      min-width: 44px !important;
+                                      min-height: 44px !important;
+                                      flex: 0 0 44px !important;
+                                      display: inline-flex !important;
+                                      align-items: center !important;
+                                      justify-content: center !important;
+                                      overflow: hidden !important;
+                                      border-radius: 50% !important;
+                                      padding: 0 !important;
+                                      box-sizing: border-box !important;
+                                      ">
+
+                                    <% if (headerHasAvatar) {%>
+                                    <img
+                                        src="<%= request.getContextPath()%>/avatar/image"
+                                        alt=""
+                                        width="44"
+                                        height="44"
+                                        style="
+                                        width: 44px !important;
+                                        height: 44px !important;
+                                        min-width: 44px !important;
+                                        min-height: 44px !important;
+                                        max-width: 44px !important;
+                                        max-height: 44px !important;
+                                        object-fit: cover !important;
+                                        border-radius: 50% !important;
+                                        display: block !important;
+                                        position: static !important;
+                                        margin: 0 !important;
+                                        padding: 0 !important;
+                                        "
+                                        >
+                                    <% } else { %>
                                     <c:out value="${fn:substring(luxeHeaderName, 0, 1)}"/>
+                                    <% }%>
                                 </span>
+
+
 
                                 <span class="luxe-account-text">
                                     <strong>
@@ -280,6 +357,9 @@
 
                                     <a class="luxe-account-item"
                                        href="${pageContext.request.contextPath}/history?view=bookings">
+
+
+
 
                                         <svg viewBox="0 0 24 24"
                                              aria-hidden="true">
@@ -338,6 +418,25 @@
                                 <c:if test="${sessionScope.loggedUser.role == 'staff'
                                               or sessionScope.loggedUser.role == 'admin'
                                               or sessionScope.loggedUser.role == 'manager'}">
+
+                                      <%-- Wallet Management for Admin and Staff --%>
+                                      <c:if test="${sessionScope.loggedUser.role == 'admin'
+                                                    or sessionScope.loggedUser.role == 'staff'}">
+
+                                            <a class="luxe-account-item"
+                                               href="${pageContext.request.contextPath}/wallet-management">
+
+                                                <svg viewBox="0 0 24 24"
+                                                     aria-hidden="true">
+                                                <path d="M20 8V5H5a2 2 0 0 0 0 4h15v11H5a2 2 0 0 1-2-2V7"/>
+                                                <path d="M20 12h-5v4h5"/>
+                                                </svg>
+
+                                                <span>Wallet Management</span>
+                                            </a>
+
+                                      </c:if>
+
 
                                       <form method="post"
                                             action="${pageContext.request.contextPath}/toggle-animation"

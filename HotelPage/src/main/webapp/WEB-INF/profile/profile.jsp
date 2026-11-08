@@ -1,9 +1,5 @@
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
-<%-- 
-    Document   : revenue_chart
-    Created on : Jul 11, 2025, 1:34:58 PM
-    Author     : Trần Nguyễn
---%>
+
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ page import="model.Customer" %>
 <%
@@ -27,10 +23,10 @@
 
         <!-- FontAwesome Icons -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-            <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
-</head>
+    </head>
 
     <body>
         <!-- Include common site header -->
@@ -41,8 +37,26 @@
             <div class="profile-sidebar glass-card">
                 <form action="<%= request.getContextPath()%>/avatar" method="post" enctype="multipart/form-data">
                     <!-- Display avatar or default image -->
-                         <img src="<%= request.getContextPath()%>/assets/img/<%=(customer.getAvatar() != null && !customer.getAvatar().isEmpty()) ? customer.getAvatar() + "?v=" + System.currentTimeMillis() : "avatar.jpg"%>"
-                         alt="${requestScope.i18n['screen.87bbe879c7a5f578']}" class="img-thumbnail" width="150" loading="lazy" data-i18n-alt="screen.87bbe879c7a5f578">
+
+                    <%
+                        String avatar = customer.getAvatar();
+
+                        boolean hasAvatar = avatar != null
+                                && !avatar.trim().isEmpty();
+                    %>
+
+                    <img
+                        src="<%= request.getContextPath()
+                                + (hasAvatar
+                                        ? "/avatar/image"
+                    : "/assets/img/avatar.jpg")%>"
+                        alt="Avatar"
+                        class="img-thumbnail"
+                        width="150"
+                        height="150"
+                        style="object-fit: cover; border-radius: 50%;"
+                        >
+
 
                     <!-- Upload avatar trigger -->
                     <label for="avatarFile" class="upload-label">

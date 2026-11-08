@@ -19,5 +19,9 @@
         <error-code>404</error-code>
         <location>/WEB-INF/error/error404.jsp</location>
     </error-page>
+    <context-param>
+    <param-name>avatarStoragePath</param-name>
+    <param-value>C:/HotelUploads/avatars</param-value>
+</context-param>
 
 </web-app>

@@ -916,4 +916,20 @@ public class CustomerDAO extends DBContext {
                 ? null
                 : value;
     }
+
+    public boolean updateAvatar(int customerId, String avatarPath) {
+        String sql = "UPDATE Customer SET Avatar = ? WHERE CustomerID = ?";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, avatarPath);
+            ps.setInt(2, customerId);
+
+            return ps.executeUpdate() == 1;
+
+        } catch (SQLException e) {
+            throw new IllegalStateException("Cannot update avatar", e);
+        }
+    }
+
 }
