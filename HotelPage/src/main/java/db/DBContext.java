@@ -30,6 +30,11 @@ public class DBContext {
         }
     }
 
+    private static String env(String key, String fallback) {
+        String value = System.getenv(key);
+        return value == null || value.trim().isEmpty() ? fallback : value.trim();
+    }
+
     public Connection getConnection() throws SQLException {
         return DriverManager.getConnection(DB_URL, DB_USER, DB_PWD);
     }

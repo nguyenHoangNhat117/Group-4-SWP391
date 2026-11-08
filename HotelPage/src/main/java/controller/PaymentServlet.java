@@ -18,6 +18,8 @@ import java.math.BigDecimal;
 import model.Booking;
 import model.Customer;
 import model.User;
+import util.OnlinePaymentConfig;
+import util.OnlinePaymentGateway;
 
 @WebServlet(
         name = "PaymentServlet",
@@ -331,6 +333,73 @@ public class PaymentServlet
             );
             return;
         }
+
+        // Online gateways create a pending payment first. Only a verified
+        // webhook/IPN is allowed to mark it as paid.
+        
+// Online payment through payOS only.
+if ("bank_transfer".equals(paymentMethod)) {
+
+    if (!OnlinePaymentConfig.callbacksConfigured()
+            || !OnlinePaymentConfig.payosConfigured()) {
+
+        response.sendRedirect(
+                request.getContextPath()
+                + "/payment?bookingId=" + bookingId
+                + "&error=online-not-configured"
+        );
+        return;
+    }
+
+    long paymentId = -1;
+
+    try {
+        paymentId = paymentDAO.createPendingOnlinePayment(
+                bookingId,
+                customer.getCustomerID(),
+                paymentMethod,
+                discountCode,
+                paymentPercent
+        );
+
+        BigDecimal pendingAmount =
+                paymentDAO.getPaymentAmountById(paymentId);
+
+        long gatewayAmount = pendingAmount
+                .setScale(0, java.math.RoundingMode.UNNECESSARY)
+                .longValueExact();
+
+        String checkoutUrl = OnlinePaymentGateway.createPayOSLink(
+                paymentId,
+                gatewayAmount,
+                OnlinePaymentConfig.publicBaseUrl()
+        );
+
+        response.sendRedirect(checkoutUrl);
+        return;
+
+    } catch (Exception ex) {
+        ex.printStackTrace();
+
+        if (paymentId > 0) {
+            try {
+                paymentDAO.markOnlinePaymentFailed(
+                        paymentDAO.getTransactionCodeByPaymentId(paymentId),
+                        paymentMethod
+                );
+            } catch (Exception ignored) {
+                // Keep the original payment error.
+            }
+        }
+
+        response.sendRedirect(
+                request.getContextPath()
+                + "/payment?bookingId=" + bookingId
+                + "&error=payment-failed"
+        );
+        return;
+    }
+}
 
         String result =
                 paymentDAO.processPayment(
