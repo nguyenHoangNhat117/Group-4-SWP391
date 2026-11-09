@@ -7,7 +7,7 @@
 
 <!DOCTYPE html>
 
-<html>
+<html class="stay-page" lang="${requestScope.uiLanguage}">
 
 <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -29,6 +29,7 @@
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/room-checkout.css" />
 </head>
 
 <body class="bg-light">
@@ -39,26 +40,18 @@
 
 
     <main
-        class="d-flex
-               justify-content-center
-               align-items-center
-               py-5"
-        style="min-height: 90vh;">
+        class="stay-content px-3 py-5">
 
 
         <div
-            class="bg-white
-                   shadow
-                   rounded-4
-                   p-5"
-            style="width: 100%; max-width: 720px;">
+            class="stay-panel mx-auto p-3 p-md-5"
+            style="max-width: 720px;">
 
 
-            <h2 class="text-center mb-4">
-
-                Confirm Your Payment
-
-            </h2>
+            <div class="stay-heading mt-0">
+                <div class="stay-brand">Luxe Escape</div>
+                <h1><ui:text key="room.checkout.title"/></h1>
+            </div>
 
 
             <!-- ========================================= -->
@@ -153,14 +146,14 @@
                         class="text-primary
                                fw-bold">
 
-                        ${booking.totalPrice} VND
+                        <ui:money amount="${booking.totalPrice}"/>
 
                     </span>
 
                 </p>
 
-                <p class="mb-1 mt-2"><strong>Already paid:</strong> ${paidAmount} VND</p>
-                <p class="mb-0"><strong>Remaining:</strong> <span class="text-danger fw-bold">${remainingAmount} VND</span></p>
+                <p class="mb-1 mt-2"><strong>Already paid:</strong> <ui:money amount="${paidAmount}"/></p>
+                <p class="mb-0"><strong>Remaining:</strong> <span class="text-danger fw-bold"><ui:money amount="${remainingAmount}"/></span></p>
 
             </div>
 
@@ -241,7 +234,7 @@
                                 Price per night:
                             </strong>
 
-                            ${detail.pricePerNight} VND
+                            <ui:money amount="${detail.pricePerNight}"/>
 
                         </div>
 
@@ -285,7 +278,7 @@
 
                 <c:if test="${!firstPayment}">
                     <div class="alert alert-info">
-                        This payment will settle the full remaining balance of <strong>${remainingAmount} VND</strong>.
+                        This payment will settle the full remaining balance of <strong><ui:money amount="${remainingAmount}"/></strong>.
                     </div>
                 </c:if>
 
@@ -398,7 +391,7 @@
 
                                     |
                                     Minimum:
-                                    ${promotion.minimumAmount} VND
+                                    <ui:money amount="${promotion.minimumAmount}"/>
 
                                 </c:if>
 
@@ -407,7 +400,7 @@
 
                                     |
                                     Maximum discount:
-                                    ${promotion.maximumDiscount} VND
+                                    <ui:money amount="${promotion.maximumDiscount}"/>
 
                                 </c:if>
 
@@ -436,11 +429,7 @@
 
                 <button
                     type="submit"
-                    class="btn
-                           btn-lg
-                           w-100
-                           text-white"
-                    style="background-color: #b29575;">
+                    class="btn stay-action w-100">
 
                     <c:choose><c:when test="${firstPayment}">Confirm Initial Payment</c:when><c:otherwise>Pay Remaining Balance</c:otherwise></c:choose>
 

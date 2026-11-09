@@ -39,6 +39,13 @@ public class OfflineHoldExpiryListener
                 15,
                 TimeUnit.SECONDS
         );
+        executor.scheduleWithFixedDelay(() -> {
+            try {
+                new dao.BookingDAO().expireOnlineNoShows();
+            } catch (Exception e) {
+                event.getServletContext().log("Online no-show processing failed", e);
+            }
+        }, 0, 30, TimeUnit.SECONDS);
     }
 
     @Override

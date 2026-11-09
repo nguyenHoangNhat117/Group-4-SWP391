@@ -77,7 +77,7 @@ public class Payment {
             this.amount = BigDecimal.ZERO;
         } else {
             this.amount = amount.setScale(
-                    2,
+                    0,
                     RoundingMode.HALF_UP
             );
         }

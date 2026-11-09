@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import util.OnlinePaymentGateway;
+import util.PayOSOrderCode;
 import java.io.IOException;
 
 @WebServlet("/payment/payos-webhook")
@@ -37,14 +38,24 @@ public class PayOSWebhookServlet extends HttpServlet {
                 resp.getWriter().write("{\"received\":true}");
                 return;
             }
-            long paymentId = data.path("orderCode").asLong(-1);
+            long orderCode = data.path("orderCode").asLong(-1);
             long amount = data.path("amount").asLong(-1);
-            if (paymentId <= 0 || amount <= 0) {
+            if (orderCode <= 0 || amount <= 0) {
                 resp.sendError(400, "Invalid payment data");
                 return;
             }
             PaymentDAO dao = new PaymentDAO();
-            String code = dao.getTransactionCodeByPaymentId(paymentId);
+            String code;
+            if (PayOSOrderCode.isNewOrder(orderCode)) {
+                code = PayOSOrderCode.transactionCode(orderCode);
+            } else if (orderCode <= Integer.MAX_VALUE) {
+                code = dao.getTransactionCodeByPaymentId(orderCode);
+                if (PayOSOrderCode.usesProviderCode(code)) {
+                    code = null;
+                }
+            } else {
+                code = null;
+            }
             if (code == null || !dao.completeOnlinePayment(code, amount, "bank_transfer")) {
                 resp.sendError(400, "Payment could not be reconciled");
                 return;

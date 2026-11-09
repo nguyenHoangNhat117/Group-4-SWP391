@@ -183,7 +183,7 @@
                                                 <!-- Original Booking Total -->
                                                 <td>
 
-                                                    $${payment.booking.totalPrice}
+                                                    <ui:money amount="${payment.booking.totalPrice}"/>
 
                                                 </td>
 
@@ -194,7 +194,7 @@
                                                     <strong
                                                         class="text-success">
 
-                                                        $${payment.amount}
+                                                        <ui:money amount="${payment.amount}"/>
 
                                                     </strong>
 

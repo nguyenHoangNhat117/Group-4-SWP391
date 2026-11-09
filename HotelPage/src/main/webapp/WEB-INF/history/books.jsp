@@ -152,7 +152,7 @@
                                                 <c:otherwise><span class="text-muted"><ui:text key="screen.67a926f7008e2b0e"/></span></c:otherwise>
                                             </c:choose>
                                         </td>
-                                        <td class="fw-bold text-success text-nowrap">$${booking.totalPrice}</td>
+                                        <td class="fw-bold text-success text-nowrap"><ui:money amount="${booking.totalPrice}"/></td>
                                         <td>
                                             <c:choose>
                                                 <c:when test="${booking.status == 'pending'}"><span class="badge bg-warning text-dark"><ui:text key="screen.331551b0de4157c9"/></span></c:when>
@@ -221,7 +221,7 @@
                                                         </div>
                                                         <div class="text-md-end">
                                                             <div class="text-muted small"><ui:text key="screen.9da7a94f088e6a33"/></div>
-                                                            <div class="fw-bold fs-5 text-success">$${booking.totalPrice}</div>
+                                                            <div class="fw-bold fs-5 text-success"><ui:money amount="${booking.totalPrice}"/></div>
                                                         </div>
                                                     </div>
 
@@ -239,7 +239,7 @@
                                                                     </div>
                                                                     <div class="col-12 col-md-6">
                                                                         <p class="mb-1"><strong><ui:text key="screen.fe89253ac2b97036"/></strong> ${detail.guestCount}</p>
-                                                                        <p class="mb-1"><strong><ui:text key="screen.5721f9a3c415ad9e"/></strong> $${detail.pricePerNight}</p>
+                                                                        <p class="mb-1"><strong><ui:text key="screen.5721f9a3c415ad9e"/></strong> <ui:money amount="${detail.pricePerNight}"/></p>
                                                                         <c:if test="${not empty detail.specialRequest}">
                                                                             <p class="mb-0"><strong><ui:text key="screen.d0a5e5a4c95e9e12"/></strong> ${detail.specialRequest}</p>
                                                                         </c:if>
@@ -252,7 +252,8 @@
                                                     <c:if test="${loggedUser.role == 'customer'}">
                                                         <div class="d-flex justify-content-end flex-wrap gap-2 mt-3">
                             <c:if test="${booking.status != 'cancelled'
-                                          && remainingAmountMap[booking.id] > 0}">
+                                          && ((booking.onlineDepositPolicy && booking.status == 'pending')
+                                          || (!booking.onlineDepositPolicy && remainingAmountMap[booking.id] > 0))}">
                                 <form action="${pageContext.request.contextPath}/payment" method="get" class="m-0">
                                     <input type="hidden" name="bookingId" value="${booking.id}">
                                     <button class="btn btn-success btn-sm" type="submit">
@@ -262,6 +263,11 @@
                                         </c:choose>
                                     </button>
                                 </form>
+                            </c:if>
+                            <c:if test="${booking.onlineDepositPolicy && booking.status == 'confirmed'
+                                          && remainingAmountMap[booking.id] > 0}">
+                                <span class="small text-muted"><ui:text key="room.checkout.hotel.balance"/>
+                                    <ui:money amount="${remainingAmountMap[booking.id]}"/></span>
                             </c:if>
                             <c:if test="${booking.status == 'pending' || booking.status == 'confirmed'
                                           || booking.status == 'checked_in'}">

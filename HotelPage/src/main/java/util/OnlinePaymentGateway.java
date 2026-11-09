@@ -21,15 +21,15 @@ public final class OnlinePaymentGateway {
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
     private OnlinePaymentGateway() { }
 
-    public static String createPayOSLink(long paymentId, long amount, String baseUrl) throws Exception {
+    public static String createPayOSLink(long paymentId, long orderCode, long amount, String baseUrl) throws Exception {
         if (!OnlinePaymentConfig.payosConfigured()) throw new IllegalStateException("payOS credentials are not configured");
         String returnUrl = baseUrl + "/payment/return?gateway=payos&paymentId=" + paymentId;
         String cancelUrl = baseUrl + "/payment/return?gateway=payos&cancel=1&paymentId=" + paymentId;
-        String description = ("HOTEL " + paymentId);
+        String description = "LE" + Long.toString(paymentId, 36).toUpperCase(java.util.Locale.ROOT);
         String signatureData = "amount=" + amount + "&cancelUrl=" + cancelUrl + "&description=" + description
-                + "&orderCode=" + paymentId + "&returnUrl=" + returnUrl;
+                + "&orderCode=" + orderCode + "&returnUrl=" + returnUrl;
         ObjectNode body = JSON.createObjectNode();
-        body.put("orderCode", paymentId);
+        body.put("orderCode", orderCode);
         body.put("amount", amount);
         body.put("description", description);
         body.put("cancelUrl", cancelUrl);
@@ -44,8 +44,15 @@ public final class OnlinePaymentGateway {
         if (response.statusCode() < 200 || response.statusCode() >= 300 || !"00".equals(root.path("code").asText())) {
             throw new IllegalStateException("payOS create link failed: HTTP " + response.statusCode() + " / " + root.path("desc").asText());
         }
-        String checkout = root.path("data").path("checkoutUrl").asText();
-        if (checkout.isEmpty()) throw new IllegalStateException("payOS did not return checkoutUrl");
+        JsonNode data = root.path("data");
+        if (data.path("orderCode").asLong(-1) != orderCode || data.path("amount").asLong(-1) != amount
+                || !"PENDING".equals(data.path("status").asText())) {
+            throw new IllegalStateException("payOS checkout response does not match the payment");
+        }
+        String checkout = data.path("checkoutUrl").asText();
+        if (!"https".equalsIgnoreCase(URI.create(checkout).getScheme())) {
+            throw new IllegalStateException("payOS did not return a secure checkout URL");
+        }
         return checkout;
     }
 
@@ -62,6 +69,23 @@ public final class OnlinePaymentGateway {
             canonical.append(e.getKey()).append('=').append(e.getValue());
         }
         return constantTimeEquals(received, hmacSha256(OnlinePaymentConfig.payosChecksumKey(), canonical.toString()));
+    }
+
+    public static boolean payOSLinkCancelled(long paymentId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(
+                OnlinePaymentConfig.payosBaseUrl() + "/v2/payment-requests/" + paymentId))
+                .timeout(Duration.ofSeconds(8))
+                .header("x-client-id", OnlinePaymentConfig.payosClientId())
+                .header("x-api-key", OnlinePaymentConfig.payosApiKey())
+                .GET().build();
+        HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
+        JsonNode root = JSON.readTree(response.body());
+        JsonNode data = root.path("data");
+        String status = data.path("status").asText();
+        return response.statusCode() == 200 && "00".equals(root.path("code").asText())
+                && data.path("orderCode").asLong(-1) == paymentId
+                && data.path("amountPaid").asLong(-1) == 0
+                && ("CANCELLED".equals(status) || "EXPIRED".equals(status));
     }
 
     public static JsonNode parse(String json) throws Exception { return JSON.readTree(json); }

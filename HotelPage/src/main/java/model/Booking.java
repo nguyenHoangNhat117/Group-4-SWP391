@@ -9,6 +9,16 @@ public class Booking {
 
     private int id;
     private Customer customer;
+    private BookingContact contact;
+    private boolean onlineDepositPolicy;
+
+    public boolean isOnlineDepositPolicy() {
+        return onlineDepositPolicy;
+    }
+
+    public void setOnlineDepositPolicy(boolean onlineDepositPolicy) {
+        this.onlineDepositPolicy = onlineDepositPolicy;
+    }
     private LocalDateTime bookingDate;
     private String status;
     private BigDecimal totalPrice;
@@ -52,6 +62,14 @@ public class Booking {
 
     public void setCustomer(Customer customer) {
         this.customer = customer;
+    }
+
+    public BookingContact getContact() {
+        return contact;
+    }
+
+    public void setContact(BookingContact contact) {
+        this.contact = contact;
     }
 
     public LocalDateTime getBookingDate() {

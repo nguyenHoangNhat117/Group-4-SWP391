@@ -92,7 +92,7 @@ CREATE TABLE RoomType (
     RoomTypeID INT IDENTITY(1,1) PRIMARY KEY,
     [Name] NVARCHAR(50) NOT NULL,
     [Description] NVARCHAR(500) NULL,
-    PricePerNight DECIMAL(18,2) NOT NULL,
+    PricePerNight DECIMAL(18,0) NOT NULL,
     Beds INT NOT NULL,
     Capacity INT NOT NULL,
     Picture NVARCHAR(255) NULL,
@@ -196,8 +196,8 @@ CREATE TABLE Discount (
     SaleOff DECIMAL(5,2) NOT NULL,
     StartDate DATE NULL,
     EndDate DATE NULL,
-    MinimumAmount DECIMAL(18,2) NULL,
-    MaximumDiscount DECIMAL(18,2) NULL,
+    MinimumAmount DECIMAL(18,0) NULL,
+    MaximumDiscount DECIMAL(18,0) NULL,
     IsActive BIT NOT NULL
         CONSTRAINT DF_Discount_IsActive DEFAULT 1,
 
@@ -245,7 +245,11 @@ CREATE TABLE Booking (
             'checked_out',
             'completed'
         )),
-    TotalPrice DECIMAL(18,2) NOT NULL
+    ContactName NVARCHAR(120) NULL,
+    ContactPhone NVARCHAR(32) NULL,
+    ContactEmail NVARCHAR(254) NULL,
+    ContactCountry NVARCHAR(80) NULL,
+    TotalPrice DECIMAL(18,0) NOT NULL
         CONSTRAINT DF_Booking_TotalPrice DEFAULT 0,
     SpecialRequest NVARCHAR(500) NULL,
     CancellationDate DATETIME2 NULL,
@@ -273,7 +277,7 @@ CREATE TABLE BookingDetail (
     RoomNumber INT NOT NULL,
     CheckInDate DATE NOT NULL,
     CheckOutDate DATE NOT NULL,
-    PricePerNight DECIMAL(18,2) NOT NULL,
+    PricePerNight DECIMAL(18,0) NOT NULL,
     GuestCount INT NOT NULL
         CONSTRAINT DF_BookingDetail_GuestCount DEFAULT 1,
     SpecialRequest NVARCHAR(500) NULL,
@@ -351,7 +355,8 @@ CREATE TABLE Payment (
     PaymentID INT IDENTITY(1,1) PRIMARY KEY,
     BookingID INT NOT NULL,
     PaymentDate DATETIME2 NULL,
-    Amount DECIMAL(18,2) NOT NULL,
+    DiscountAmount DECIMAL(18,0) NULL,
+    Amount DECIMAL(18,0) NOT NULL,
     PaymentMethod NVARCHAR(30) NOT NULL
         CONSTRAINT CK_Payment_Method
         CHECK (PaymentMethod IN (

@@ -20,6 +20,8 @@ import model.Customer;
 import model.User;
 import util.OnlinePaymentConfig;
 import util.OnlinePaymentGateway;
+import util.OnlineStayPolicy;
+import util.PayOSOrderCode;
 
 @WebServlet(
         name = "PaymentServlet",
@@ -152,6 +154,11 @@ public class PaymentServlet
 
         PaymentDAO paymentDAO =
                 new PaymentDAO();
+
+        if (booking.isOnlineDepositPolicy()) {
+            showStayCheckout(request, response, booking, paymentDAO);
+            return;
+        }
 
         /*
          * Avoid duplicate payment.
@@ -287,6 +294,15 @@ public class PaymentServlet
                 request.getParameter(
                         "payment-method"
                 );
+        if (!new BookingDAO().isBookingOwnedByCustomer(bookingId, customer.getCustomerID())) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+        Booking booking = new BookingDAO().getBookingById(bookingId);
+        if (booking == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
 
         String discountCode =
                 request.getParameter(
@@ -310,11 +326,20 @@ public class PaymentServlet
         PaymentDAO paymentDAO =
                 new PaymentDAO();
 
+        if (booking.isOnlineDepositPolicy()) {
+            paymentMethod = "bank_transfer";
+            paymentPercent = OnlineStayPolicy.percentage(request.getParameter("payment-plan"));
+            if (!"pending".equals(booking.getStatus()) || paymentPercent == null) {
+                response.sendRedirect(request.getContextPath() + "/payment?bookingId=" + bookingId);
+                return;
+            }
+        }
+
         BigDecimal alreadyPaid = paymentDAO.getTotalPaidAmount(bookingId);
         boolean firstPayment = alreadyPaid.compareTo(BigDecimal.ZERO) == 0;
 
         Integer initialChoice = getInitialChoice(session, bookingId);
-        if (firstPayment && initialChoice != null) {
+        if (!booking.isOnlineDepositPolicy() && firstPayment && initialChoice != null) {
             if (initialChoice == 0) {
                 // A no-deposit booking has no initial payment requirement;
                 // later payment from history can pay the full amount.
@@ -336,70 +361,94 @@ public class PaymentServlet
 
         // Online gateways create a pending payment first. Only a verified
         // webhook/IPN is allowed to mark it as paid.
-        
-// Online payment through payOS only.
-if ("bank_transfer".equals(paymentMethod)) {
 
-    if (!OnlinePaymentConfig.callbacksConfigured()
-            || !OnlinePaymentConfig.payosConfigured()) {
+        if ("bank_transfer".equals(paymentMethod)) {
 
-        response.sendRedirect(
-                request.getContextPath()
-                + "/payment?bookingId=" + bookingId
-                + "&error=online-not-configured"
-        );
-        return;
-    }
+            if (!OnlinePaymentConfig.callbacksConfigured()
+                    || !OnlinePaymentConfig.payosConfigured()) {
 
-    long paymentId = -1;
-
-    try {
-        paymentId = paymentDAO.createPendingOnlinePayment(
-                bookingId,
-                customer.getCustomerID(),
-                paymentMethod,
-                discountCode,
-                paymentPercent
-        );
-
-        BigDecimal pendingAmount =
-                paymentDAO.getPaymentAmountById(paymentId);
-
-        long gatewayAmount = pendingAmount
-                .setScale(0, java.math.RoundingMode.UNNECESSARY)
-                .longValueExact();
-
-        String checkoutUrl = OnlinePaymentGateway.createPayOSLink(
-                paymentId,
-                gatewayAmount,
-                OnlinePaymentConfig.publicBaseUrl()
-        );
-
-        response.sendRedirect(checkoutUrl);
-        return;
-
-    } catch (Exception ex) {
-        ex.printStackTrace();
-
-        if (paymentId > 0) {
-            try {
-                paymentDAO.markOnlinePaymentFailed(
-                        paymentDAO.getTransactionCodeByPaymentId(paymentId),
-                        paymentMethod
+                response.sendRedirect(
+                        request.getContextPath()
+                        + "/payment?bookingId=" + bookingId
+                        + "&error=online-not-configured"
                 );
-            } catch (Exception ignored) {
-                // Keep the original payment error.
+                return;
+            }
+
+            long paymentId = -1;
+            String transactionCode = null;
+
+            try {
+                if (booking.isOnlineDepositPolicy()) {
+                    PaymentDAO.PendingCheckout pending = paymentDAO.getPendingCheckout(bookingId);
+                    if (pending != null) {
+                        response.sendRedirect(pending.url == null
+                                ? request.getContextPath() + "/payment?bookingId=" + bookingId : pending.url);
+                        return;
+                    }
+                }
+                paymentId = paymentDAO.createPendingOnlinePayment(
+                        bookingId,
+                        customer.getCustomerID(),
+                        paymentMethod,
+                        discountCode,
+                        paymentPercent
+                );
+                if (paymentId == 0) {
+                    response.sendRedirect(request.getContextPath() + "/history?view=bookings&message=payment-success");
+                    return;
+                }
+
+                BigDecimal pendingAmount =
+                        paymentDAO.getPaymentAmountById(paymentId);
+
+                long gatewayAmount = pendingAmount
+                        .setScale(0, java.math.RoundingMode.UNNECESSARY)
+                        .longValueExact();
+
+                transactionCode = paymentDAO.getTransactionCodeByPaymentId(paymentId);
+                if (!PayOSOrderCode.usesProviderCode(transactionCode)) {
+                    throw new IllegalStateException("Missing payOS order code for new payment");
+                }
+                String checkoutUrl = OnlinePaymentGateway.createPayOSLink(
+                        paymentId,
+                        PayOSOrderCode.forPayment(paymentId, transactionCode),
+                        gatewayAmount,
+                        OnlinePaymentConfig.publicBaseUrl()
+                );
+                if (booking.isOnlineDepositPolicy()) {
+                    try {
+                        paymentDAO.saveCheckoutUrl(paymentId, checkoutUrl);
+                    } catch (java.sql.SQLException ex) {
+                        getServletContext().log("Could not save the existing payOS checkout URL", ex);
+                    }
+                }
+
+                response.sendRedirect(checkoutUrl);
+                return;
+
+            } catch (Exception ex) {
+                getServletContext().log("Could not start payOS payment for booking " + bookingId, ex);
+
+                if (paymentId > 0) {
+                    try {
+                        paymentDAO.markOnlinePaymentFailed(
+                                transactionCode == null ? paymentDAO.getTransactionCodeByPaymentId(paymentId) : transactionCode,
+                                paymentMethod
+                        );
+                    } catch (Exception ignored) {
+                        // Keep the original payment error.
+                    }
+                }
+
+                response.sendRedirect(
+                        request.getContextPath()
+                        + "/payment?bookingId=" + bookingId
+                        + "&error=payment-failed"
+                );
+                return;
             }
         }
-
-        response.sendRedirect(
-                request.getContextPath()
-                + "/payment?bookingId=" + bookingId
-                + "&error=payment-failed"
-        );
-        return;
-    }
-}
 
         String result =
                 paymentDAO.processPayment(
@@ -510,6 +559,36 @@ if ("bank_transfer".equals(paymentMethod)) {
                 + bookingId
                 + "&error=payment-failed"
         );
+    }
+
+    private void showStayCheckout(HttpServletRequest request, HttpServletResponse response,
+            Booking booking, PaymentDAO paymentDAO) throws ServletException, IOException {
+        boolean awaitingPayment = "pending".equals(booking.getStatus());
+        RoomStayServlet.setCheckoutSummary(request, booking.getTotalPrice(), awaitingPayment);
+        request.setAttribute("existingBooking", booking);
+        request.setAttribute("quantity", booking.getDetails().size());
+        request.setAttribute("guests", booking.getDetails().stream().mapToInt(model.BookingDetail::getGuestCount).sum());
+        if (!booking.getDetails().isEmpty()) {
+            request.setAttribute("checkIn", booking.getDetails().get(0).getCheckInDate());
+            request.setAttribute("checkOut", booking.getDetails().get(0).getCheckOutDate());
+        }
+        BigDecimal paid = paymentDAO.getTotalPaidAmount(booking.getId());
+        request.setAttribute("paidAmount", paid);
+        request.setAttribute("balanceAmount", booking.getTotalPrice().subtract(paid).max(BigDecimal.ZERO));
+        request.setAttribute("awaitingPayment", awaitingPayment);
+        try {
+            PaymentDAO.PendingCheckout pending = awaitingPayment ? paymentDAO.getPendingCheckout(booking.getId()) : null;
+            if (pending != null) {
+                request.setAttribute("total", pending.total);
+                request.setAttribute("pendingDue", pending.amount);
+                request.setAttribute("pendingBalance", pending.total.subtract(pending.amount));
+                request.setAttribute("pendingCheckoutUrl", pending.url);
+                request.setAttribute("paymentProcessing", pending.url == null);
+            }
+        } catch (java.sql.SQLException ex) {
+            throw new ServletException("Unable to load pending payment", ex);
+        }
+        request.getRequestDispatcher("/WEB-INF/booking/checkout.jsp").forward(request, response);
     }
 
     private Integer parseBookingId(

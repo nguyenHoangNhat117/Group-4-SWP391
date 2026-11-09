@@ -22,6 +22,7 @@ import java.util.Objects;
         filterName = "AuthenticationFilter",
         urlPatterns = {
             "/booking",
+            "/checkout",
             "/payment",
             "/review",
             "/profile",
@@ -62,7 +63,9 @@ public class AuthenticationFilter implements Filter {
 
         // Preserve public browsing and room search.
         if (isPublicBookingSearch(req, servletPath)
-                || isPublicRoomRequest(req, servletPath)) {
+                || isPublicRoomRequest(req, servletPath)
+                || ("/checkout".equals(servletPath) && ("GET".equalsIgnoreCase(req.getMethod())
+                || "review".equals(req.getParameter("action"))))) {
 
             chain.doFilter(request, response);
             return;
@@ -296,6 +299,7 @@ public class AuthenticationFilter implements Filter {
 
     private boolean isCustomerPath(String path) {
         return "/booking".equals(path)
+                || "/checkout".equals(path)
                 || "/payment".equals(path)
                 || "/review".equals(path)
                 || "/profile".equals(path)

@@ -472,7 +472,7 @@ public class OfflineBookingDAO extends DBContext {
                         .multiply(rs.getBigDecimal(1))
                         .divide(
                                 BigDecimal.valueOf(100),
-                                2,
+                                0,
                                 RoundingMode.HALF_UP
                         );
 

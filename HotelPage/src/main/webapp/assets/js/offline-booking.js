@@ -10,9 +10,7 @@
     const guests = form.elements.guests;
     const room = form.elements.roomNumber;
 
-    const money = new Intl.NumberFormat("vi-VN", {
-        maximumFractionDigits: 2
-    });
+    const money = new Intl.NumberFormat("vi-VN", {style: "currency", currency: "VND"});
 
     function show(id, value) {
         const element = document.getElementById(id);
@@ -72,7 +70,7 @@
         show(
                 "obAmount",
                 room.value && nights > 0 && Number.isFinite(price)
-                ? money.format(price * nights) + " VND"
+                ? money.format(price * nights)
                 : "—"
                 );
 

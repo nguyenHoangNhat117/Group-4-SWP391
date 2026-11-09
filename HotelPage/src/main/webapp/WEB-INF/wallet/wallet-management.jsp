@@ -131,7 +131,7 @@
                                         <fmt:formatNumber
                                             value="${w.balance}"
                                             type="number"
-                                            maxFractionDigits="2"/>
+                                            maxFractionDigits="0"/>
                                         VND
                                     </td>
 
@@ -204,7 +204,7 @@
                                             <fmt:formatNumber
                                                 value="${t.amount}"
                                                 type="number"
-                                                maxFractionDigits="2"/>
+                                                maxFractionDigits="0"/>
                                             VND
                                         </td>
 

@@ -249,7 +249,7 @@ public class DiscountServlet extends HttpServlet {
 
     private BigDecimal parseNullableBigDecimal(String value) {
         String trimmed = trimToNull(value);
-        return trimmed == null ? null : new BigDecimal(trimmed);
+        return trimmed == null ? null : new BigDecimal(trimmed).setScale(0, java.math.RoundingMode.UNNECESSARY);
     }
 
     private static class DiscountInput {

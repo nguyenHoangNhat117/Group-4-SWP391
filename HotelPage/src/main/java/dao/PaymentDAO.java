@@ -161,7 +161,7 @@ public class PaymentDAO extends DBContext {
 
                         BigDecimal discountAmount = bookingTotal
                                 .multiply(saleOff)
-                                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+                                .divide(new BigDecimal("100"), 0, RoundingMode.HALF_UP);
 
                         if (maximumDiscount != null
                                 && discountAmount.compareTo(maximumDiscount) > 0) {
@@ -206,7 +206,7 @@ public class PaymentDAO extends DBContext {
 
                 paymentAmount = bookingTotal
                         .multiply(BigDecimal.valueOf(paymentPercent))
-                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                        .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
             } else {
                 paymentAmount = remainingAmount;
             }
@@ -322,7 +322,8 @@ public class PaymentDAO extends DBContext {
             try {
                 BigDecimal total;
                 String status;
-                try (PreparedStatement ps = conn.prepareStatement("SELECT TotalPrice, Status FROM Booking WITH (UPDLOCK,HOLDLOCK) WHERE BookingID=? AND CustomerID=?")) {
+                boolean stayPolicy;
+                try (PreparedStatement ps = conn.prepareStatement("SELECT TotalPrice, Status, OnlineDepositPolicy FROM Booking WITH (UPDLOCK,HOLDLOCK) WHERE BookingID=? AND CustomerID=?")) {
                     ps.setInt(1, bookingId);
                     ps.setInt(2, customerId);
                     try (ResultSet rs = ps.executeQuery()) {
@@ -331,10 +332,15 @@ public class PaymentDAO extends DBContext {
                         }
                         total = rs.getBigDecimal(1);
                         status = rs.getString(2);
+                        stayPolicy = rs.getBoolean(3);
                     }
                 }
                 if ("cancelled".equalsIgnoreCase(status)) {
                     throw new SQLException("Booking is cancelled");
+                }
+                if (stayPolicy && (!"pending".equals(status) || !"bank_transfer".equals(method)
+                        || paymentPercent == null || (paymentPercent != 50 && paymentPercent != 100))) {
+                    throw new SQLException("Invalid online stay payment");
                 }
                 try (PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM Payment WITH (UPDLOCK,HOLDLOCK) WHERE BookingID=? AND PaymentStatus='pending'")) {
                     ps.setInt(1, bookingId);
@@ -369,33 +375,34 @@ public class PaymentDAO extends DBContext {
                                 throw new SQLException("Invalid discount");
                             }
                             discountId = rs.getInt(1);
-                            discountAmount = total.multiply(rs.getBigDecimal(2)).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-                            BigDecimal max = rs.getBigDecimal(3);
-                            if (max != null && discountAmount.compareTo(max) > 0) {
-                                discountAmount = max;
-                            }
+                            discountAmount = total.subtract(util.OnlineStayPolicy.discountedTotal(
+                                    total, rs.getBigDecimal(2), rs.getBigDecimal(3)));
                         }
                     }
                 }
                 BigDecimal discounted = total.subtract(discountAmount).max(BigDecimal.ZERO);
                 BigDecimal remaining = discounted.subtract(paid);
-                if (remaining.signum() <= 0) {
+                boolean freeStay = stayPolicy && discounted.signum() == 0;
+                if (remaining.signum() <= 0 && !freeStay) {
                     throw new SQLException("Booking already paid");
                 }
                 BigDecimal amount;
                 if (first) {
-                    if (paymentPercent == null || (paymentPercent != 10 && paymentPercent != 20 && paymentPercent != 100)) {
+                    if (!stayPolicy && (paymentPercent == null || (paymentPercent != 10 && paymentPercent != 20 && paymentPercent != 100))) {
                         throw new SQLException("Invalid payment percentage");
                     }
-                    amount = discounted.multiply(BigDecimal.valueOf(paymentPercent)).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                    amount = discounted.multiply(BigDecimal.valueOf(paymentPercent)).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
                 } else {
                     amount = remaining;
                 }
                 if (amount.compareTo(remaining) > 0) {
                     amount = remaining;
                 }
-                String code = "HP-" + UUID.randomUUID().toString().replace("-", "").toUpperCase();
-                String sql = "INSERT INTO Payment(BookingID,PaymentDate,Amount,PaymentMethod,PaymentStatus,TransactionCode,DiscountID,DiscountAmount) VALUES(?,NULL,?,?,'pending',?,?,?)";
+                String code = "bank_transfer".equals(method)
+                        ? util.PayOSOrderCode.newTransactionCode()
+                        : "HP-" + UUID.randomUUID().toString().replace("-", "").toUpperCase();
+                String sql = "INSERT INTO Payment(BookingID,PaymentDate,Amount,PaymentMethod,PaymentStatus,TransactionCode,DiscountID,DiscountAmount) "
+                        + (freeStay ? "VALUES(?,SYSDATETIME(),?,?,'paid',?,?,?)" : "VALUES(?,NULL,?,?,'pending',?,?,?)");
                 long id;
                 try (PreparedStatement ps = conn.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
                     ps.setInt(1, bookingId);
@@ -426,8 +433,14 @@ public class PaymentDAO extends DBContext {
                         }
                     }
                 }
+                if (freeStay) {
+                    try (PreparedStatement ps = conn.prepareStatement("UPDATE Booking SET TotalPrice=0, Status='confirmed' WHERE BookingID=?")) {
+                        ps.setInt(1, bookingId);
+                        ps.executeUpdate();
+                    }
+                }
                 conn.commit();
-                return id;
+                return freeStay ? 0 : id;
             } catch (Exception ex) {
                 conn.rollback();
                 if (ex instanceof SQLException) {
@@ -448,6 +461,29 @@ public class PaymentDAO extends DBContext {
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
             try {
+                int ownerId;
+                boolean cancelledStay;
+                int ownerBooking;
+                try (PreparedStatement ps = conn.prepareStatement("SELECT BookingID FROM Payment WHERE TransactionCode=?")) {
+                    ps.setString(1, transactionCode);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new SQLException("Payment not found");
+                        }
+                        ownerBooking = rs.getInt(1);
+                    }
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT CustomerID, Status, OnlineDepositPolicy FROM Booking WITH (UPDLOCK,HOLDLOCK) WHERE BookingID=?")) {
+                    ps.setInt(1, ownerBooking);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new SQLException("Booking not found");
+                        }
+                        ownerId = rs.getInt(1);
+                        cancelledStay = "cancelled".equals(rs.getString(2)) && rs.getBoolean(3);
+                    }
+                }
                 int paymentId, bookingId, discountId;
                 BigDecimal expected, discountAmount;
                 String status, storedMethod;
@@ -473,12 +509,28 @@ public class PaymentDAO extends DBContext {
                 if (!method.equals(storedMethod) || expected.compareTo(BigDecimal.valueOf(amount)) != 0) {
                     throw new SQLException("Payment callback mismatch");
                 }
-                if ("paid".equalsIgnoreCase(status)) {
+                if ("paid".equalsIgnoreCase(status) || "refunded".equalsIgnoreCase(status)) {
                     conn.commit();
                     return true;
                 }
                 if (!"pending".equalsIgnoreCase(status)) {
                     throw new SQLException("Payment is not pending");
+                }
+                if (cancelledStay) {
+                    BookingDAO.creditRefund(conn, bookingId, ownerId, expected);
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE Payment SET PaymentStatus='refunded',PaymentDate=SYSDATETIME() WHERE PaymentID=?")) {
+                        ps.setInt(1, paymentId);
+                        ps.executeUpdate();
+                    }
+                    if (discountId > 0) {
+                        try (PreparedStatement ps = conn.prepareStatement("UPDATE Discount SET Quantity=Quantity+1 WHERE DiscountID=?")) {
+                            ps.setInt(1, discountId);
+                            ps.executeUpdate();
+                        }
+                    }
+                    conn.commit();
+                    return true;
                 }
                 if (discountId > 0 && discountAmount.signum() > 0) {
                     try (PreparedStatement ps = conn.prepareStatement("UPDATE Booking SET TotalPrice=CASE WHEN TotalPrice>=? THEN TotalPrice-? ELSE 0 END, Status=CASE WHEN Status='pending' THEN 'confirmed' ELSE Status END WHERE BookingID=?")) {
@@ -566,6 +618,52 @@ public class PaymentDAO extends DBContext {
                 }
                 return rs.getBigDecimal(1);
             }
+        }
+    }
+
+    public void saveCheckoutUrl(long paymentId, String url) throws SQLException {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "UPDATE Payment SET CheckoutUrl=? WHERE PaymentID=? AND PaymentStatus='pending'")) {
+            ps.setNString(1, url);
+            ps.setLong(2, paymentId);
+            ps.executeUpdate();
+        }
+    }
+
+    public Integer getOnlineStayBookingForPayment(long paymentId, int customerId) throws SQLException {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "SELECT b.BookingID FROM Payment p JOIN Booking b ON b.BookingID=p.BookingID "
+                + "WHERE p.PaymentID=? AND b.CustomerID=? AND b.OnlineDepositPolicy=1 AND p.PaymentMethod='bank_transfer'")) {
+            ps.setLong(1, paymentId);
+            ps.setInt(2, customerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : null;
+            }
+        }
+    }
+
+    public PendingCheckout getPendingCheckout(int bookingId) throws SQLException {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "SELECT TOP (1) p.CheckoutUrl, p.Amount, b.TotalPrice-COALESCE(p.DiscountAmount,0) "
+                + "FROM Payment p JOIN Booking b ON b.BookingID=p.BookingID "
+                + "WHERE p.BookingID=? AND p.PaymentStatus='pending' "
+                + "AND p.PaymentMethod='bank_transfer' ORDER BY p.PaymentID DESC")) {
+            ps.setInt(1, bookingId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? new PendingCheckout(rs.getString(1), rs.getBigDecimal(2), rs.getBigDecimal(3)) : null;
+            }
+        }
+    }
+
+    public static final class PendingCheckout {
+        public final String url;
+        public final BigDecimal amount;
+        public final BigDecimal total;
+
+        private PendingCheckout(String url, BigDecimal amount, BigDecimal total) {
+            this.url = url;
+            this.amount = amount;
+            this.total = total;
         }
     }
 

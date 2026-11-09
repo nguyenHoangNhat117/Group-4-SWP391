@@ -52,7 +52,7 @@
                     <!-- Total Price Display -->
                     <div class="mb-3">
                         <p class="fs-5 fw-bold text-center text-dark border rounded py-2 bg-white">
-                            <ui:text key="screen.d104a659abae9ebc"/> <span class="text-primary" id="totalPrice"><ui:text key="screen.d5ad0a70d0af2aaa"/></span> USD
+                            <ui:text key="screen.d104a659abae9ebc"/> <span class="text-primary" id="totalPrice"><ui:text key="screen.d5ad0a70d0af2aaa"/></span>
                         </p>
                     </div>
 
@@ -69,8 +69,8 @@
                     </div>
 
                     <div class="border rounded-3 p-3 mb-4 bg-white">
-                        <div class="d-flex justify-content-between"><span><ui:text key="screen.bded39f26f017751"/></span><strong class="text-success">$<span id="payNowAmount">0.00</span></strong></div>
-                        <div class="d-flex justify-content-between"><span><ui:text key="screen.8d779b7e1ba93913"/></span><strong>$<span id="remainingAmount">0.00</span></strong></div>
+                        <div class="d-flex justify-content-between"><span><ui:text key="screen.bded39f26f017751"/></span><strong class="text-success"><span id="payNowAmount">0 ₫</span></strong></div>
+                        <div class="d-flex justify-content-between"><span><ui:text key="screen.8d779b7e1ba93913"/></span><strong><span id="remainingAmount">0 ₫</span></strong></div>
                     </div>
 
                     <button type="submit" class="btn btn-lg w-100 text-white" style="background-color: #b29575;">
@@ -87,6 +87,7 @@
                 const bookingDateInput = document.getElementById("booking-dates");
                 const pricePerNight = parseFloat(${room.roomType.pricePerNight}); // from hidden input
                 const totalPriceElement = document.getElementById("totalPrice");
+                const money = new Intl.NumberFormat("vi-VN", {style: "currency", currency: "VND"});
 
                 function calculateTotalPrice() {
                     const dateRange = bookingDateInput.value;
@@ -104,10 +105,8 @@
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
                     const totalPrice = diffDays * pricePerNight;
-                    console.log(totalPrice.toFixed(2));
-                    console.log("Element:", totalPriceElement);
 
-                    totalPriceElement.textContent = totalPrice.toFixed(2);
+                    totalPriceElement.textContent = money.format(totalPrice);
                     updatePaymentSplit(totalPrice);
                 }
 
@@ -117,18 +116,15 @@
                     if (!Number.isFinite(total)) {
                         total = 0;
                     }
-                    const payNow = total * Number(percentSelect.value) / 100;
-                    document.getElementById("payNowAmount").textContent = payNow.toFixed(2);
-                    document.getElementById("remainingAmount").textContent = Math.max(0, total - payNow).toFixed(2);
+                    const payNow = Math.round(total * Number(percentSelect.value) / 100);
+                    document.getElementById("payNowAmount").textContent = money.format(payNow);
+                    document.getElementById("remainingAmount").textContent = money.format(Math.max(0, total - payNow));
                     document.getElementById("booking-submit-text").textContent = Number(percentSelect.value) === 0
                         ? "Confirm Booking (No Payment Required)"
                         : "Confirm Booking & Continue to Payment";
                 }
 
-                percentSelect.addEventListener("change", function () {
-                    const t = parseFloat(totalPriceElement.textContent);
-                    updatePaymentSplit(t);
-                });
+                percentSelect.addEventListener("change", calculateTotalPrice);
 
                 bookingDateInput.addEventListener("change", calculateTotalPrice);
 
