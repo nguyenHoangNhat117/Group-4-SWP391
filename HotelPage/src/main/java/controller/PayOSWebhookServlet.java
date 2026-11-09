@@ -1,87 +1,59 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
 package controller;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import jakarta.servlet.ServletException;
+import com.fasterxml.jackson.databind.JsonNode;
+import dao.PaymentDAO;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import util.OnlinePaymentGateway;
+import java.io.IOException;
 
-/**
- *
- * @author MSI
- */
-@WebServlet(name = "PayOSWebhookServlet", urlPatterns = {"/payoswebhookservlet"})
+@WebServlet("/payment/payos-webhook")
 public class PayOSWebhookServlet extends HttpServlet {
 
-    /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
-     * methods.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet PayOSWebhookServlet</title>");
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet PayOSWebhookServlet at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        resp.setContentType("application/json;charset=UTF-8");
+        try {
+            StringBuilder body = new StringBuilder();
+            String line;
+            try (java.io.BufferedReader r = req.getReader()) {
+                while ((line = r.readLine()) != null) {
+                    body.append(line);
+                }
+            }
+            JsonNode root = OnlinePaymentGateway.parse(body.toString());
+            if (!OnlinePaymentGateway.verifyPayOSWebhook(root)) {
+                resp.sendError(400, "Invalid signature");
+                return;
+            }
+            JsonNode data = root.path("data");
+            if (!"00".equals(root.path("code").asText())
+                    || !root.path("success").asBoolean()) {
+                resp.setStatus(200);
+                resp.getWriter().write("{\"received\":true}");
+                return;
+            }
+            long paymentId = data.path("orderCode").asLong(-1);
+            long amount = data.path("amount").asLong(-1);
+            if (paymentId <= 0 || amount <= 0) {
+                resp.sendError(400, "Invalid payment data");
+                return;
+            }
+            PaymentDAO dao = new PaymentDAO();
+            String code = dao.getTransactionCodeByPaymentId(paymentId);
+            if (code == null || !dao.completeOnlinePayment(code, amount, "bank_transfer")) {
+                resp.sendError(400, "Payment could not be reconciled");
+                return;
+            }
+            resp.setStatus(200);
+            resp.getWriter().write("{\"received\":true}");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            resp.sendError(400, "Webhook processing failed");
         }
     }
-
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /**
-     * Handles the HTTP <code>GET</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
-    }
-
-    /**
-     * Handles the HTTP <code>POST</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
-    }
-
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String containing servlet description
-     */
-    @Override
-    public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
-
 }
