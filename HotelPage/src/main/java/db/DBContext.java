@@ -35,8 +35,13 @@ public class DBContext {
         return value == null || value.trim().isEmpty() ? fallback : value.trim();
     }
 
+    private static String setting(String key, String fallback) {
+        String property = System.getProperty(key);
+        return property == null || property.isBlank() ? env(key, fallback) : property;
+    }
+
     public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(DB_URL, DB_USER, DB_PWD);
+        return DriverManager.getConnection(setting("DB_URL", DB_URL), setting("DB_USER", DB_USER), setting("DB_PASSWORD", DB_PWD));
     }
 
     public ResultSet executeSelectionQuery(String query, Object[] params) throws SQLException {

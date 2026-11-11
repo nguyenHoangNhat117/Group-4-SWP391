@@ -60,3 +60,8 @@ HotelDB.sql
 - Filter: Handle authentication
 - JSP Views: Provide web pages
 - Assets: CSS, JavaScript, icons and images
+
+
+## Offline booking workflow update
+
+Read [OFFLINE_BOOKING_SETUP.md](OFFLINE_BOOKING_SETUP.md) for the database migration, configuration, full workflow, and deployment steps. Validation evidence is in [OFFLINE_BOOKING_VALIDATION.md](OFFLINE_BOOKING_VALIDATION.md).
