@@ -225,7 +225,8 @@ public class RoomTypeServlet extends HttpServlet {
                                 request.getParameter("capacity").trim()
                         );
 
-                        if (pricePerNight.compareTo(BigDecimal.ZERO) < 0
+                        if (pricePerNight.signum() < 0
+                                || pricePerNight.stripTrailingZeros().scale() > 0
                                 || beds <= 0
                                 || capacity <= 0) {
                             response.sendRedirect(
@@ -389,7 +390,8 @@ public class RoomTypeServlet extends HttpServlet {
                                 request.getParameter("capacity").trim()
                         );
 
-                        if (pricePerNight.compareTo(BigDecimal.ZERO) < 0
+                        if (pricePerNight.signum() < 0
+                                || pricePerNight.stripTrailingZeros().scale() > 0
                                 || beds <= 0
                                 || capacity <= 0) {
                             response.sendRedirect(

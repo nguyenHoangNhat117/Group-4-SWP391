@@ -52,7 +52,7 @@ public class ReportDAO extends DBContext {
 
         String sql =
                 "SELECT MONTH(PaymentDate) AS ReportMonth, "
-                + "SUM(Amount) AS Revenue "
+                + "SUM(Amount-RefundedAmount) AS Revenue "
                 + "FROM Payment "
                 + "WHERE PaymentStatus = 'paid' "
                 + "AND PaymentDate >= ? "
@@ -112,7 +112,7 @@ public class ReportDAO extends DBContext {
 
         String sql =
                 "SELECT YEAR(PaymentDate) AS ReportYear, "
-                + "SUM(Amount) AS Revenue "
+                + "SUM(Amount-RefundedAmount) AS Revenue "
                 + "FROM Payment "
                 + "WHERE PaymentStatus = 'paid' "
                 + "AND PaymentDate IS NOT NULL "
@@ -165,7 +165,7 @@ public class ReportDAO extends DBContext {
         Date[] dates = getPeriodBounds(fromDate, toDate);
 
         String sql =
-                "SELECT COALESCE(SUM(Amount), 0) AS Revenue "
+                "SELECT COALESCE(SUM(Amount-RefundedAmount), 0) AS Revenue "
                 + "FROM Payment "
                 + "WHERE PaymentStatus = 'paid' "
                 + "AND PaymentDate >= ? "
@@ -409,7 +409,7 @@ public class ReportDAO extends DBContext {
         String expression = "day".equals(group) ? "CAST(PaymentDate AS date)"
                 : "month".equals(group) ? "DATEFROMPARTS(YEAR(PaymentDate), MONTH(PaymentDate), 1)"
                 : "DATEFROMPARTS(YEAR(PaymentDate), 1, 1)";
-        String sql="SELECT " + expression + " AS Bucket, SUM(Amount) AS Revenue FROM Payment "
+        String sql="SELECT " + expression + " AS Bucket, SUM(Amount-RefundedAmount) AS Revenue FROM Payment "
                 + "WHERE PaymentStatus='paid' AND PaymentDate >= ? AND PaymentDate < ? "
                 + "GROUP BY " + expression + " ORDER BY Bucket";
         List<RevenueReport> rows=query(sql,

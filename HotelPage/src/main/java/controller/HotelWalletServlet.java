@@ -55,9 +55,8 @@ public class HotelWalletServlet extends HttpServlet {
                 + "COALESCE(SUM(CASE "
                 + "WHEN PaymentStatus IN ('paid', 'refunded') "
                 + "THEN Amount ELSE 0 END), 0) AS TotalPayments, "
-                + "COALESCE(SUM(CASE "
-                + "WHEN PaymentStatus = 'refunded' "
-                + "THEN Amount ELSE 0 END), 0) AS TotalRefunds "
+                + "(SELECT COALESCE(SUM(Amount), 0) FROM WalletTransaction "
+                + "WHERE TransactionType='refund') AS TotalRefunds "
                 + "FROM Payment";
 
         // Money recorded against bookings that are

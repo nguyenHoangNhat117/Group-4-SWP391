@@ -175,27 +175,26 @@ public class RoomTypeDAO extends DBContext {
      * @return RoomType object or null if not found
      */
     public RoomType getRoomTypeById(int id) {
+        return getRoomTypeById(id, false);
+    }
+
+    public RoomType getActiveRoomTypeById(int id) {
+        return getRoomTypeById(id, true);
+    }
+
+    private RoomType getRoomTypeById(int id, boolean activeOnly) {
         RoomType roomType = null;
-        try {
-            String query = "SELECT RoomTypeID, Name, Description, PricePerNight, Beds, Capacity, Picture FROM RoomType WHERE RoomTypeID = ?";
-            PreparedStatement statement = this.getConnection().prepareStatement(query);
+        String query = "SELECT RoomTypeID, Name, Description, PricePerNight, Beds, Capacity, Picture "
+                + "FROM RoomType WHERE RoomTypeID = ?" + (activeOnly ? " AND IsActive = 1" : "");
+        try (java.sql.Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(query)) {
             statement.setInt(1, id);
-            ResultSet rs = statement.executeQuery();
-
-            if (rs.next()) {
-                int roomTypeId = rs.getInt("RoomTypeID");
-                String name = rs.getString("Name");
-                String description = rs.getString("Description");
-                BigDecimal pricePerNight = rs.getBigDecimal("PricePerNight");
-                int beds = rs.getInt("Beds");
-                int capacity = rs.getInt("Capacity");
-                String picture = rs.getString("Picture");
-
-                roomType = new RoomType(roomTypeId, name, description, pricePerNight, beds, capacity, picture);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    roomType = new RoomType(rs.getInt("RoomTypeID"), rs.getString("Name"),
+                            rs.getString("Description"), rs.getBigDecimal("PricePerNight"),
+                            rs.getInt("Beds"), rs.getInt("Capacity"), rs.getString("Picture"));
+                }
             }
-
-            rs.close();
-            statement.close();
         } catch (SQLException ex) {
             Logger.getLogger(RoomTypeDAO.class.getName()).log(Level.SEVERE, null, ex);
         }

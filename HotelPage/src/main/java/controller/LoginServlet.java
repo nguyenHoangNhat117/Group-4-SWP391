@@ -225,8 +225,9 @@ public class LoginServlet extends HttpServlet {
                 // Nếu Filter lưu "/booking?roomNumber=..." -> Tự động đổi thành "/details?roomNumber=..."
                 if (pendingUrl.matches("/booking\\?roomNumber=[0-9]+")) {
                     target = pendingUrl.replaceFirst("^/booking", "/details");
-                } else if (pendingUrl.matches("/details\\?roomNumber=[0-9]+")) {
-                    target = pendingUrl;
+                } else if (pendingUrl.matches("/details\\?roomNumber=[0-9]+")
+                        || pendingUrl.matches("/(?:payment|checkout)\\?draft=[0-9a-f-]{36}")) {
+                    target = pendingUrl.replaceFirst("^/checkout", "/payment");
                 }
             }
         } else if ("staff".equalsIgnoreCase(user.getRole())) {

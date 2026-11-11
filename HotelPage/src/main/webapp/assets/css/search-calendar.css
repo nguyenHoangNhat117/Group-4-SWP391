@@ -1,0 +1,22 @@
+.litepicker .day-item.search-unavailable {
+    color: #6b7280;
+    text-decoration: line-through;
+    cursor: not-allowed;
+}
+.price-band-field {
+    position: relative;
+}
+
+.price-band-field > select {
+    padding-inline-start: 2.6rem !important;
+}
+
+.search-field .price-band-field > .bi,
+.price-band-field > .bi {
+    position: absolute;
+    inset-inline-start: .9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9a7957;
+    pointer-events: none;
+}

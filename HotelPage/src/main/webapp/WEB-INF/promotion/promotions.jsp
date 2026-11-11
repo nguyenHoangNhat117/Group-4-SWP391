@@ -122,7 +122,7 @@
                                         <span class="promo-detail-label"><ui:text key="screen.1f5a4a67ec147476"/></span>
                                         <strong>
                                             <c:choose>
-                                                <c:when test="${not empty promotion.minimumAmount}">${promotion.minimumAmount} USD</c:when>
+                                                <c:when test="${not empty promotion.minimumAmount}"><ui:money amount="${promotion.minimumAmount}"/></c:when>
                                                 <c:otherwise><ui:text key="screen.dc937b59892604f5"/></c:otherwise>
                                             </c:choose>
                                         </strong>
@@ -132,7 +132,7 @@
                                         <span class="promo-detail-label"><ui:text key="screen.b97d28b155bd566e"/></span>
                                         <strong>
                                             <c:choose>
-                                                <c:when test="${not empty promotion.maximumDiscount}">${promotion.maximumDiscount} USD</c:when>
+                                                <c:when test="${not empty promotion.maximumDiscount}"><ui:money amount="${promotion.maximumDiscount}"/></c:when>
                                                 <c:otherwise><ui:text key="screen.b5cfdf2524d479e0"/></c:otherwise>
                                             </c:choose>
                                         </strong>

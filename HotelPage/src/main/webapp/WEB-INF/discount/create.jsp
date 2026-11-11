@@ -57,12 +57,12 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label"><ui:text key="screen.261e63f6216d3e14"/></label>
                         <input type="number" name="minimum-amount" class="form-control"
-                               min="0" step="0.01">
+                               min="0" step="1">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label"><ui:text key="screen.07c67858698c4fe6"/></label>
                         <input type="number" name="maximum-discount" class="form-control"
-                               min="0" step="0.01">
+                               min="0" step="1">
                     </div>
                 </div>
 

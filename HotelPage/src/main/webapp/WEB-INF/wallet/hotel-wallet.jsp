@@ -130,7 +130,7 @@
             <div class="amount">
                 <fmt:formatNumber
                     value="${totalPayments}"
-                    maxFractionDigits="2"/>
+                    maxFractionDigits="0"/>
                 VND
             </div>
         </div>
@@ -140,7 +140,7 @@
             <div class="amount">
                 <fmt:formatNumber
                     value="${totalRefunds}"
-                    maxFractionDigits="2"/>
+                    maxFractionDigits="0"/>
                 VND
             </div>
         </div>
@@ -150,7 +150,7 @@
             <div class="amount">
                 <fmt:formatNumber
                     value="${activePayments}"
-                    maxFractionDigits="2"/>
+                    maxFractionDigits="0"/>
                 VND
             </div>
         </div>
@@ -160,7 +160,7 @@
             <div class="amount">
                 <fmt:formatNumber
                     value="${customerBalances}"
-                    maxFractionDigits="2"/>
+                    maxFractionDigits="0"/>
                 VND
             </div>
         </div>
@@ -203,7 +203,7 @@
                             <td>
                                 <fmt:formatNumber
                                     value="${p.amount}"
-                                    maxFractionDigits="2"/>
+                                    maxFractionDigits="0"/>
                                 VND
                             </td>
 

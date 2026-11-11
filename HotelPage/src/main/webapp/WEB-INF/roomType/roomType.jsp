@@ -96,7 +96,7 @@
                                             <c:out value="${roomType.description}"/>
                                         </td>
 
-                                        <td>${roomType.pricePerNight} USD</td>
+                                        <td><ui:money amount="${roomType.pricePerNight}"/></td>
                                         <td>${roomType.beds}</td>
                                         <td>${roomType.capacity}</td>
 
