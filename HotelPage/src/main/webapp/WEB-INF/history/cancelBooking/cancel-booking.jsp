@@ -67,13 +67,13 @@
                
 
 
-                <div class="alert ${requestScope.refundEligible ? 'alert-success' : 'alert-info'}">
+                <div class="alert ${requestScope.refundAmount > 0 ? 'alert-success' : 'alert-info'}">
                     <c:choose>
-                        <c:when test="${requestScope.refundEligible}">
-                            <ui:text key="screen.146aeb6d6e108f5e"/>
+                        <c:when test="${requestScope.refundAmount > 0}">
+                            <ui:text key="room.cancel.refund"/> <strong><ui:money amount="${requestScope.refundAmount}"/></strong>
                         </c:when>
                         <c:otherwise>
-                            <ui:text key="screen.06e02fec35b2eb5e"/>
+                            <ui:text key="room.cancel.no.refund"/>
                         </c:otherwise>
                     </c:choose>
                 </div>
@@ -102,7 +102,7 @@
 
                         <strong><ui:text key="screen.d104a659abae9ebc"/></strong>
 
-                        $${requestScope.booking.totalPrice}
+                        <ui:money amount="${requestScope.booking.totalPrice}"/>
 
                     </p>
 

@@ -143,7 +143,7 @@ public class CancelBookingServlet
             return;
         }
 
-        request.setAttribute("refundEligible", bookingDAO.isRefundEligible(bookingId));
+        request.setAttribute("refundAmount", bookingDAO.getCancellationRefund(booking));
         request.setAttribute(
                 "booking",
                 booking
@@ -279,7 +279,7 @@ public class CancelBookingServlet
          * - BookingID
          * - CustomerID
          * - pending / confirmed status
-         * - before check-in (refund requires more than 24h notice)
+         * - cancellation and wallet refund rules for the booking
          *
          * It performs UPDATE, not DELETE.
          */

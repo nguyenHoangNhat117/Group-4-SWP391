@@ -120,7 +120,7 @@
             <h1 class="wallet-heading"><ui:text key="screen.46d8ad210d354832"/></h1>
             <section class="wallet-balance">
                 <div class="small text-uppercase" style="letter-spacing:.14em;color:#e8d8c7"><ui:text key="screen.3ab7dd8428d13314"/></div>
-                <div class="amount mt-2"><fmt:formatNumber value="${balance}" type="number" maxFractionDigits="2"/> 
+                <div class="amount mt-2"><fmt:formatNumber value="${balance}" type="number" maxFractionDigits="0"/>
                     <span style="font-size:22px">VND</span>
                 </div>
                 <p class="mb-0 mt-2"><ui:text key="screen.63d4ea1d3f0d6393"/></p>

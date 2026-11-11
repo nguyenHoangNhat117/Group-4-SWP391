@@ -37,15 +37,13 @@ public class PayOSWebhookServlet extends HttpServlet {
                 resp.getWriter().write("{\"received\":true}");
                 return;
             }
-            long paymentId = data.path("orderCode").asLong(-1);
+            long orderCode = data.path("orderCode").asLong(-1);
             long amount = data.path("amount").asLong(-1);
-            if (paymentId <= 0 || amount <= 0) {
+            if (orderCode <= 0 || amount <= 0) {
                 resp.sendError(400, "Invalid payment data");
                 return;
             }
-            PaymentDAO dao = new PaymentDAO();
-            String code = dao.getTransactionCodeByPaymentId(paymentId);
-            if (code == null || !dao.completeOnlinePayment(code, amount, "bank_transfer")) {
+            if (!new PaymentDAO().completePayOSPayment(orderCode, amount)) {
                 resp.sendError(400, "Payment could not be reconciled");
                 return;
             }

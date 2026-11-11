@@ -55,15 +55,14 @@ public class HotelWalletServlet extends HttpServlet {
                 + "COALESCE(SUM(CASE "
                 + "WHEN PaymentStatus IN ('paid', 'refunded') "
                 + "THEN Amount ELSE 0 END), 0) AS TotalPayments, "
-                + "COALESCE(SUM(CASE "
-                + "WHEN PaymentStatus = 'refunded' "
-                + "THEN Amount ELSE 0 END), 0) AS TotalRefunds "
+                + "(SELECT COALESCE(SUM(Amount), 0) FROM WalletTransaction "
+                + "WHERE TransactionType='refund') + (SELECT COALESCE(SUM(Amount),0) FROM OfflineRefund WHERE Status='completed') AS TotalRefunds "
                 + "FROM Payment";
 
         // Money recorded against bookings that are
         // still pending or confirmed.
         String activeSql
-                = "SELECT COALESCE(SUM(p.Amount), 0) AS ActivePayments "
+                = "SELECT COALESCE(SUM(p.Amount-COALESCE(p.RefundedAmount,0)), 0) AS ActivePayments "
                 + "FROM Payment p "
                 + "JOIN Booking b ON p.BookingID = b.BookingID "
                 + "WHERE p.PaymentStatus = 'paid' "

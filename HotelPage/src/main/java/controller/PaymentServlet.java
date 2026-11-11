@@ -352,6 +352,7 @@ if ("bank_transfer".equals(paymentMethod)) {
     }
 
     long paymentId = -1;
+    String checkoutUrl;
 
     try {
         paymentId = paymentDAO.createPendingOnlinePayment(
@@ -369,14 +370,12 @@ if ("bank_transfer".equals(paymentMethod)) {
                 .setScale(0, java.math.RoundingMode.UNNECESSARY)
                 .longValueExact();
 
-        String checkoutUrl = OnlinePaymentGateway.createPayOSLink(
+        checkoutUrl = OnlinePaymentGateway.createPayOSLink(
                 paymentId,
+                paymentDAO.getPayOSOrderCode(paymentId),
                 gatewayAmount,
                 OnlinePaymentConfig.publicBaseUrl()
         );
-
-        response.sendRedirect(checkoutUrl);
-        return;
 
     } catch (Exception ex) {
         ex.printStackTrace();
@@ -399,6 +398,9 @@ if ("bank_transfer".equals(paymentMethod)) {
         );
         return;
     }
+
+    response.sendRedirect(checkoutUrl);
+    return;
 }
 
         String result =
@@ -555,7 +557,7 @@ if ("bank_transfer".equals(paymentMethod)) {
 
         try {
             int value = Integer.parseInt(raw.trim());
-            return (value == 10 || value == 20 || value == 100)
+            return (value == 10 || value == 20 || value == 50 || value == 100)
                     ? value
                     : null;
         } catch (NumberFormatException e) {

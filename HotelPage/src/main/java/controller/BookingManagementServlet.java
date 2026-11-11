@@ -349,12 +349,8 @@ public class BookingManagementServlet
          * Used by JSP to display only valid
          * next status options.
          */
-        request.setAttribute(
-                "nextStatuses",
-                getNextStatuses(
-                        booking.getStatus()
-                )
-        );
+        request.setAttribute("nextStatuses", request.getAttribute("offlineCreator") != null
+                ? new String[0] : getNextStatuses(booking.getStatus()));
 
         request.getRequestDispatcher(
                 "/WEB-INF/booking-management/detail.jsp"
@@ -395,6 +391,8 @@ public class BookingManagementServlet
 
             return;
         }
+
+        if (!util.AuthSupport.checkCsrf(request,response)) return;
 
         String action
                 = request.getParameter(

@@ -39,6 +39,15 @@ public class OfflineHoldExpiryListener
                 15,
                 TimeUnit.SECONDS
         );
+        executor.scheduleWithFixedDelay(() -> {
+            try {
+                dao.BookingDAO bookings = new dao.BookingDAO();
+                bookings.expireOnlineNoShows();
+                bookings.refundLateOnlinePayments();
+            } catch (Exception e) {
+                event.getServletContext().log("Online cancellation reconciliation failed", e);
+            }
+        }, 0, 30, TimeUnit.SECONDS);
     }
 
     @Override

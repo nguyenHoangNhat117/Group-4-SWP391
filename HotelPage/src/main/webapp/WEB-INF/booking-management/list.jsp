@@ -267,7 +267,7 @@
                                                 <td class="text-nowrap">
                                         <fmt:formatNumber
                                             value="${booking.totalPrice}"
-                                            maxFractionDigits="2"/>
+                                            maxFractionDigits="0"/>
                                         VND
                                         </td>
 

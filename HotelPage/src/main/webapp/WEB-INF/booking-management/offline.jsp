@@ -5,6 +5,13 @@
     Author     : Nguyen Hoang Nhat
 --%>
 
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
+<%-- 
+    Document   : offline
+    Created on : Nov 5, 2026, 9:48:13 PM
+    Author     : Nguyen Hoang Nhat
+--%>
+
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core"%>
 <%@taglib prefix="fn" uri="jakarta.tags.functions"%>
@@ -27,7 +34,7 @@
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/assets/css/offline-booking.css?v=1">
+              href="${pageContext.request.contextPath}/assets/css/offline-booking.css?v=stable-1">
     </head>
 
     <body class="offline-booking-page">
@@ -313,7 +320,7 @@
                                                             data-price="${room.roomType.pricePerNight}"
                                                             data-label="${fn:escapeXml(room.roomType.name)}"
                                                             ${form.roomNumber == room.roomNumber
-                                                              ? 'selected' : ''} data-i18n="screen.911ea89c43d9dbb8">
+                                                              ? 'selected' : ''}>
 
                                                         ${requestScope.i18n['screen.911ea89c43d9dbb8']} ${room.roomNumber}
                                                         · <c:out value="${room.roomType.name}"/>
@@ -403,14 +410,13 @@
                                                         <option value="${customer.customerID}"
                                                                 ${form.customerId == customer.customerID
                                                                   ? 'selected' : ''}
-                                                                  ${customer.user.accountStatus != 'active'
-                                                                    ? 'disabled' : ''}>
+                                                                  >
 
                                                                     <c:out value="${customer.lastName}
                                                                            ${customer.firstName}
                                                                            · ${customer.email}
                                                                            · ${customer.phone}
-                                                                           · ${customer.user.accountStatus}"/>
+                                                                           "/>
                                                                 </option>
                                                         </c:forEach>
                                                     </select>
@@ -446,7 +452,7 @@
                                                     </div>
 
                                                     <div class="ob-field">
-                                                        <label for="email"><ui:text key="screen.969ccbd3cf6300ec"/></label>
+                                                        <label for="email"><ui:text key="offline.emailOptional"/></label>
 
                                                         <input class="ob-input"
                                                                type="email"
@@ -465,11 +471,11 @@
                                                                type="tel"
                                                                id="phone"
                                                                name="phone"
-                                                               maxlength="11"
-                                                               inputmode="numeric"
+                                                               maxlength="20"
+                                                               inputmode="tel"
                                                                autocomplete="tel"
                                                                value="${fn:escapeXml(form.phone)}"
-                                                               placeholder="0901234567">
+                                                               placeholder="+84901234567"><p class="ob-note"><ui:text key="offline.phoneHint"/></p>
                                                     </div>
                                                 </div>
                                             </div>

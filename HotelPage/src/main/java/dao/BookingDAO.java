@@ -55,7 +55,7 @@ public class BookingDAO extends DBContext {
                 + "FROM Booking b "
                 + "JOIN Customer c "
                 + "ON b.CustomerID = c.CustomerID "
-                + "JOIN [User] u "
+                + "LEFT JOIN [User] u "
                 + "ON c.UserID = u.UserID "
                 + "ORDER BY b.BookingDate DESC, b.BookingID DESC";
 
@@ -209,6 +209,13 @@ public class BookingDAO extends DBContext {
             );
         }
 
+        int id = insertBooking(conn, customerId, total, specialRequest, actor, requestKey, promotionCode);
+        insertBookingDetail(conn, id, roomNumber, checkIn, checkOut, currentPrice, guests, specialRequest);
+        return id;
+    }
+
+    private int insertBooking(Connection conn, int customerId, BigDecimal total, String specialRequest,
+            Integer actor, String requestKey, String promotionCode) throws SQLException {
         String sql;
 
         if (actor == null) {
@@ -261,6 +268,11 @@ public class BookingDAO extends DBContext {
             }
         }
 
+        return id;
+    }
+
+    private void insertBookingDetail(Connection conn, int id, int roomNumber, LocalDate checkIn,
+            LocalDate checkOut, BigDecimal currentPrice, int guests, String specialRequest) throws SQLException {
         String detailSql
                 = "INSERT BookingDetail("
                 + "BookingID,RoomNumber,CheckInDate,CheckOutDate,"
@@ -277,8 +289,74 @@ public class BookingDAO extends DBContext {
             ps.setNString(7, specialRequest);
             ps.executeUpdate();
         }
+    }
 
-        return id;
+    public int createRoomTypeBooking(int customerId, int typeId, LocalDate checkIn, LocalDate checkOut,
+            int quantity, int guests, BigDecimal nightly, model.BookingContact contact) throws SQLException {
+        model.OfflineBookingDraft.validateStay(checkIn, checkOut, guests, util.ReportPeriod.today());
+        if (quantity < 1 || quantity > guests) {
+            throw new IllegalArgumentException("Invalid room quantity");
+        }
+
+        int guestsPerRoom = (guests + quantity - 1) / quantity;
+        String candidates = "SELECT RoomNumber FROM Room WHERE RoomTypeID=? AND Status='available' ORDER BY RoomNumber";
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                List<Integer> roomNumbers = new ArrayList<>();
+                try (PreparedStatement ps = conn.prepareStatement(candidates)) {
+                    ps.setInt(1, typeId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            roomNumbers.add(rs.getInt(1));
+                        }
+                    }
+                }
+
+                List<Integer> selected = new ArrayList<>();
+                for (int roomNumber : roomNumbers) {
+                    BigDecimal currentPrice;
+                    try {
+                        currentPrice = lockAvailableRoom(conn, roomNumber, checkIn, checkOut, guestsPerRoom, typeId);
+                    } catch (IllegalArgumentException unavailable) {
+                        continue;
+                    }
+                    if (currentPrice.compareTo(nightly) != 0) {
+                        throw new IllegalArgumentException("Room price has changed");
+                    }
+                    selected.add(roomNumber);
+                    if (selected.size() == quantity) {
+                        break;
+                    }
+                }
+                if (selected.size() != quantity) {
+                    throw new IllegalArgumentException("Insufficient room availability");
+                }
+
+                long nights = java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut);
+                BigDecimal total = nightly.multiply(BigDecimal.valueOf(nights * quantity));
+                int bookingId = insertBooking(conn, customerId, total, null, null, null, null);
+                try (PreparedStatement ps = conn.prepareStatement("UPDATE Booking SET OnlineDepositPolicy=1, ContactName=?, "
+                        + "ContactPhone=?, ContactEmail=?, ContactCountry=? WHERE BookingID=?")) {
+                    ps.setNString(1, contact.getName());
+                    ps.setNString(2, contact.getPhone());
+                    ps.setNString(3, contact.getEmail());
+                    ps.setNString(4, contact.getCountry());
+                    ps.setInt(5, bookingId);
+                    ps.executeUpdate();
+                }
+
+                for (int i = 0; i < quantity; i++) {
+                    int roomGuests = guests / quantity + (i < guests % quantity ? 1 : 0);
+                    insertBookingDetail(conn, bookingId, selected.get(i), checkIn, checkOut, nightly, roomGuests, null);
+                }
+                conn.commit();
+                return bookingId;
+            } catch (SQLException | RuntimeException ex) {
+                conn.rollback();
+                throw ex;
+            }
+        }
     }
 
     static BigDecimal lockAvailableRoom(
@@ -289,6 +367,11 @@ public class BookingDAO extends DBContext {
             int guests
     ) throws SQLException {
 
+        return lockAvailableRoom(conn, roomNumber, from, to, guests, null);
+    }
+
+    private static BigDecimal lockAvailableRoom(Connection conn, int roomNumber,
+            LocalDate from, LocalDate to, int guests, Integer expectedType) throws SQLException {
         BigDecimal price;
 
         String roomSql
@@ -299,11 +382,13 @@ public class BookingDAO extends DBContext {
                 + "WHERE r.RoomNumber=? "
                 + "AND r.Status='available' "
                 + "AND rt.IsActive=1 "
-                + "AND rt.Capacity>=?";
+                + "AND rt.Capacity>=? AND (? IS NULL OR r.RoomTypeID=?)";
 
         try (PreparedStatement ps = conn.prepareStatement(roomSql)) {
             ps.setInt(1, roomNumber);
             ps.setInt(2, guests);
+            ps.setObject(3, expectedType, java.sql.Types.INTEGER);
+            ps.setObject(4, expectedType, java.sql.Types.INTEGER);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
@@ -546,6 +631,7 @@ public class BookingDAO extends DBContext {
                 + "b.SpecialRequest, "
                 + "b.CancellationDate, "
                 + "b.CancellationReason, "
+                + "b.ContactName, b.ContactPhone, b.ContactEmail, b.ContactCountry, b.OnlineDepositPolicy, "
                 + "c.CustomerID, "
                 + "c.FirstName, "
                 + "c.LastName, "
@@ -563,7 +649,7 @@ public class BookingDAO extends DBContext {
                 + "FROM Booking b "
                 + "JOIN Customer c "
                 + "ON b.CustomerID = c.CustomerID "
-                + "JOIN [User] u "
+                + "LEFT JOIN [User] u "
                 + "ON c.UserID = u.UserID "
                 + "WHERE b.BookingID = ?";
 
@@ -606,6 +692,11 @@ public class BookingDAO extends DBContext {
                 Booking booking = mapBooking(rs);
 
                 booking.setCustomer(customer);
+                booking.setOnlineDepositPolicy(rs.getBoolean("OnlineDepositPolicy"));
+                if (rs.getString("ContactName") != null) {
+                    booking.setContact(new model.BookingContact(rs.getString("ContactName"), rs.getString("ContactPhone"),
+                            rs.getString("ContactEmail"), rs.getString("ContactCountry")));
+                }
 
                 booking.setDetails(
                         getBookingDetails(
@@ -646,7 +737,7 @@ public class BookingDAO extends DBContext {
                 + "TotalPrice, "
                 + "SpecialRequest, "
                 + "CancellationDate, "
-                + "CancellationReason "
+                + "CancellationReason, OnlineDepositPolicy "
                 + "FROM Booking "
                 + "WHERE CustomerID = ? "
                 + "ORDER BY BookingDate DESC, "
@@ -664,6 +755,7 @@ public class BookingDAO extends DBContext {
 
                     Booking booking
                             = mapBooking(rs);
+                    booking.setOnlineDepositPolicy(rs.getBoolean("OnlineDepositPolicy"));
 
                     booking.setDetails(
                             getBookingDetails(
@@ -715,7 +807,7 @@ public class BookingDAO extends DBContext {
                 + "TotalPrice, "
                 + "SpecialRequest, "
                 + "CancellationDate, "
-                + "CancellationReason "
+                + "CancellationReason, OnlineDepositPolicy "
                 + "FROM Booking "
                 + "WHERE CustomerID = ? "
                 + "ORDER BY BookingDate DESC, "
@@ -740,6 +832,7 @@ public class BookingDAO extends DBContext {
 
                     Booking booking
                             = mapBooking(rs);
+                    booking.setOnlineDepositPolicy(rs.getBoolean("OnlineDepositPolicy"));
 
                     booking.setDetails(
                             getBookingDetails(
@@ -811,11 +904,16 @@ public class BookingDAO extends DBContext {
         return cancelBookingInternal(bookingId, customerId, reason);
     }
 
-    // A cancelled booking stays in history. Refund all actually paid amounts
-    // to the customer wallet, regardless of hours before check-in.
-    // The booking and payment changes commit or roll back together.
     private boolean cancelBookingInternal(int bookingId, Integer customerId, String reason) {
-        String lockSql = "SELECT Status FROM Booking WITH (UPDLOCK, HOLDLOCK) "
+        return cancelBookingInternal(bookingId, customerId, reason, false);
+    }
+
+    private boolean cancelBookingInternal(int bookingId, Integer customerId, String reason, boolean noShow) {
+        try (Connection c=getConnection(); PreparedStatement ps=c.prepareStatement("SELECT CreatedByUserID FROM Booking WHERE BookingID=?")) {
+            ps.setInt(1,bookingId);
+            try(ResultSet rs=ps.executeQuery()) { if(rs.next() && rs.getObject(1)!=null) return false; }
+        } catch(SQLException ex) { return false; }
+        String lockSql = "SELECT Status, OnlineDepositPolicy, TotalPrice, CustomerID FROM Booking WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE BookingID = ?" + (customerId == null ? "" : " AND CustomerID = ?");
         String checkSql = "SELECT MIN(CheckInDate) AS FirstCheckIn FROM BookingDetail WHERE BookingID = ?";
         String updateSql = "UPDATE Booking SET Status = 'cancelled', "
@@ -827,6 +925,9 @@ public class BookingDAO extends DBContext {
         try {
             conn = getConnection();
             conn.setAutoCommit(false);
+            boolean onlinePolicy;
+            BigDecimal total;
+            int ownerId;
             try (PreparedStatement ps = conn.prepareStatement(lockSql)) {
                 ps.setInt(1, bookingId);
                 if (customerId != null) {
@@ -838,8 +939,11 @@ public class BookingDAO extends DBContext {
                         return false;
                     }
                     String status = rs.getString(1);
-                    if (!"pending".equalsIgnoreCase(status)
-                            && !"confirmed".equalsIgnoreCase(status)) {
+                    onlinePolicy = rs.getBoolean(2);
+                    total = rs.getBigDecimal(3);
+                    ownerId = rs.getInt(4);
+                    if (noShow ? !onlinePolicy || !"confirmed".equals(status)
+                            : !"pending".equals(status) && !"confirmed".equals(status)) {
                         conn.rollback();
                         return false;
                     }
@@ -855,17 +959,11 @@ public class BookingDAO extends DBContext {
                     }
                 }
             }
-            // No cancellation is allowed after the check-in date begins.
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT CASE WHEN CAST(? AS DATETIME2) > SYSDATETIME() THEN 1 ELSE 0 END")) {
-                ps.setDate(1, firstCheckIn);
-                try (ResultSet rs = ps.executeQuery()) {
-                    rs.next();
-                    if (rs.getInt(1) != 1) {
-                        conn.rollback();
-                        return false;
-                    }
-                }
+            LocalDate today = util.ReportPeriod.today();
+            LocalDate checkIn = firstCheckIn.toLocalDate();
+            if (noShow ? !checkIn.isBefore(today) : onlinePolicy ? today.isAfter(checkIn) : !today.isBefore(checkIn)) {
+                conn.rollback();
+                return false;
             }
             try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
                 ps.setString(1, reason);
@@ -875,104 +973,17 @@ public class BookingDAO extends DBContext {
                     return false;
                 }
             }
-            {
-                // Credit all received deposits into the customer's wallet atomically.
-                // UPDATE/INSERT and booking cancellation share this SQL transaction.
-                String amountSql = "SELECT COALESCE(SUM(p.Amount),0) FROM Payment p WITH (UPDLOCK, HOLDLOCK) "
-                        + "WHERE p.BookingID = ? AND p.PaymentStatus = 'paid'";
-                java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
-                try (PreparedStatement ps = conn.prepareStatement(amountSql)) {
-                    ps.setInt(1, bookingId);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            amount = rs.getBigDecimal(1);
-                        }
-                    }
-                }
-                if (amount != null && amount.signum() > 0) {
-                    // A unique filtered index on (BookingID) for refund entries
-                    // provides a database-level safety net against double credit.
-                    try (PreparedStatement ps = conn.prepareStatement(
-                            "SELECT 1 FROM WalletTransaction WITH (UPDLOCK, HOLDLOCK) "
-                            + "WHERE BookingID=? AND TransactionType='refund'")) {
-                        ps.setInt(1, bookingId);
-                        try (ResultSet rs = ps.executeQuery()) {
-                            if (rs.next()) {
-                                conn.rollback();
-                                return false;
-                            }
-                        }
-                    }
-                    String customerSql = "SELECT CustomerID FROM Booking WHERE BookingID = ?";
-                    int walletCustomerId;
-                    try (PreparedStatement ps = conn.prepareStatement(customerSql)) {
-                        ps.setInt(1, bookingId);
-                        try (ResultSet rs = ps.executeQuery()) {
-                            if (!rs.next()) {
-                                conn.rollback();
-                                return false;
-                            }
-                            walletCustomerId = rs.getInt(1);
-                        }
-                    }
-                    // Legacy installations still require Wallet.UserID (NOT NULL).
-                    // CustomerID and UserID are different keys: resolve UserID from Customer.
-                    boolean legacyUserIdColumn;
-                    try (PreparedStatement ps = conn.prepareStatement(
-                            "SELECT CASE WHEN COL_LENGTH('dbo.Wallet','UserID') IS NULL THEN 0 ELSE 1 END")) {
-                        try (ResultSet rs = ps.executeQuery()) {
-                            rs.next();
-                            legacyUserIdColumn = rs.getInt(1) == 1;
-                        }
-                    }
-                    if (legacyUserIdColumn) {
-                        try (PreparedStatement ps = conn.prepareStatement(
-                                "IF NOT EXISTS (SELECT 1 FROM Wallet WITH (UPDLOCK, HOLDLOCK) WHERE CustomerID = ?) "
-                                + "INSERT INTO Wallet(CustomerID, UserID, Balance) "
-                                + "SELECT c.CustomerID, c.UserID, 0 FROM Customer c WHERE c.CustomerID = ?")) {
-                            ps.setInt(1, walletCustomerId);
-                            ps.setInt(2, walletCustomerId);
-                            ps.executeUpdate();
-                        }
-                    } else {
-                        try (PreparedStatement ps = conn.prepareStatement(
-                                "IF NOT EXISTS (SELECT 1 FROM Wallet WITH (UPDLOCK, HOLDLOCK) WHERE CustomerID = ?) "
-                                + "INSERT INTO Wallet(CustomerID, Balance) VALUES (?, 0)")) {
-                            ps.setInt(1, walletCustomerId);
-                            ps.setInt(2, walletCustomerId);
-                            ps.executeUpdate();
-                        }
-                    }
-                    int walletId;
-                    try (PreparedStatement ps = conn.prepareStatement(
-                            "SELECT WalletID FROM Wallet WITH (UPDLOCK, HOLDLOCK) WHERE CustomerID = ?")) {
-                        ps.setInt(1, walletCustomerId);
-                        try (ResultSet rs = ps.executeQuery()) {
-                            if (!rs.next()) {
-                                conn.rollback();
-                                return false;
-                            }
-                            walletId = rs.getInt(1);
-                        }
-                    }
-                    try (PreparedStatement ps = conn.prepareStatement(
-                            "INSERT INTO WalletTransaction(WalletID,BookingID,Amount,TransactionType,Description) "
-                            + "VALUES (?,?,?,'refund',N'Booking cancellation refund')")) {
-                        ps.setInt(1, walletId);
-                        ps.setInt(2, bookingId);
-                        ps.setBigDecimal(3, amount);
-                        ps.executeUpdate();
-                    }
-                    try (PreparedStatement ps = conn.prepareStatement(
-                            "UPDATE Wallet SET Balance = Balance + ? WHERE WalletID = ?")) {
-                        ps.setBigDecimal(1, amount);
-                        ps.setInt(2, walletId);
-                        ps.executeUpdate();
-                    }
+            BigDecimal paid = paidForCancellation(conn, bookingId);
+            BigDecimal refund = onlinePolicy ? util.OnlineStayPolicy.refund(total, paid, checkIn, today) : paid;
+            if (refund.signum() > 0) {
+                creditRefund(conn, bookingId, ownerId, refund);
+                if (refund.compareTo(paid) == 0) {
                     try (PreparedStatement ps = conn.prepareStatement(refundSql)) {
                         ps.setInt(1, bookingId);
                         ps.executeUpdate();
                     }
+                } else {
+                    recordPartialRefund(conn, bookingId, refund);
                 }
             }
             conn.commit();
@@ -992,13 +1003,176 @@ public class BookingDAO extends DBContext {
         }
     }
 
+    private static BigDecimal paidForCancellation(Connection conn, int bookingId) throws SQLException {
+        String sql = "SELECT COALESCE(SUM(Amount),0) FROM Payment WITH (UPDLOCK, HOLDLOCK) "
+                + "WHERE BookingID=? AND PaymentStatus='paid'";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, bookingId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getBigDecimal(1);
+            }
+        }
+    }
+
+    private static void recordPartialRefund(Connection conn, int bookingId, BigDecimal refund) throws SQLException {
+        String sql = "WITH Allocated AS (SELECT PaymentID, Amount, SUM(Amount) OVER (ORDER BY PaymentID "
+                + "ROWS UNBOUNDED PRECEDING)-Amount AS PreviousAmount FROM Payment "
+                + "WHERE BookingID=? AND PaymentStatus='paid') "
+                + "UPDATE p SET RefundedAmount=CASE WHEN a.Amount<?-a.PreviousAmount THEN a.Amount "
+                + "ELSE ?-a.PreviousAmount END FROM Payment p JOIN Allocated a ON a.PaymentID=p.PaymentID "
+                + "WHERE a.PreviousAmount<?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, bookingId);
+            ps.setBigDecimal(2, refund);
+            ps.setBigDecimal(3, refund);
+            ps.setBigDecimal(4, refund);
+            ps.executeUpdate();
+        }
+    }
+
+    private static void creditRefund(Connection conn, int bookingId, int customerId, BigDecimal amount) throws SQLException {
+        // Legacy installations still require Wallet.UserID (NOT NULL).
+        // CustomerID and UserID are different keys: resolve UserID from Customer.
+        boolean legacyUserIdColumn;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT CASE WHEN COL_LENGTH('dbo.Wallet','UserID') IS NULL THEN 0 ELSE 1 END")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                legacyUserIdColumn = rs.getInt(1) == 1;
+            }
+        }
+        if (legacyUserIdColumn) {
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "IF NOT EXISTS (SELECT 1 FROM Wallet WITH (UPDLOCK, HOLDLOCK) WHERE CustomerID = ?) "
+                    + "INSERT INTO Wallet(CustomerID, UserID, Balance) "
+                    + "SELECT c.CustomerID, c.UserID, 0 FROM Customer c WHERE c.CustomerID = ?")) {
+                ps.setInt(1, customerId);
+                ps.setInt(2, customerId);
+                ps.executeUpdate();
+            }
+        } else {
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "IF NOT EXISTS (SELECT 1 FROM Wallet WITH (UPDLOCK, HOLDLOCK) WHERE CustomerID = ?) "
+                    + "INSERT INTO Wallet(CustomerID, Balance) VALUES (?, 0)")) {
+                ps.setInt(1, customerId);
+                ps.setInt(2, customerId);
+                ps.executeUpdate();
+            }
+        }
+        int walletId;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT WalletID FROM Wallet WITH (UPDLOCK, HOLDLOCK) WHERE CustomerID = ?")) {
+            ps.setInt(1, customerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new SQLException("Refund wallet not found");
+                }
+                walletId = rs.getInt(1);
+            }
+        }
+        try (PreparedStatement ps = conn.prepareStatement(
+                "UPDATE WalletTransaction SET Amount=Amount+? "
+                + "WHERE WalletID=? AND BookingID=? AND TransactionType='refund'; "
+                + "IF @@ROWCOUNT=0 INSERT INTO WalletTransaction(WalletID,BookingID,Amount,TransactionType,Description) "
+                + "VALUES (?,?,?,'refund',N'Booking cancellation refund')")) {
+            ps.setBigDecimal(1, amount);
+            ps.setInt(2, walletId);
+            ps.setInt(3, bookingId);
+            ps.setInt(4, walletId);
+            ps.setInt(5, bookingId);
+            ps.setBigDecimal(6, amount);
+            ps.executeUpdate();
+        }
+        try (PreparedStatement ps = conn.prepareStatement(
+                "UPDATE Wallet SET Balance = Balance + ? WHERE WalletID = ?")) {
+            ps.setBigDecimal(1, amount);
+            ps.setInt(2, walletId);
+            ps.executeUpdate();
+        }
+    }
+
+    public void expireOnlineNoShows() throws SQLException {
+        String sql = "SELECT b.BookingID FROM Booking b JOIN BookingDetail d ON d.BookingID=b.BookingID "
+                + "WHERE b.OnlineDepositPolicy=1 AND b.Status='confirmed' GROUP BY b.BookingID HAVING MIN(d.CheckInDate)<?";
+        List<Integer> ids = new ArrayList<>();
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, util.ReportPeriod.today());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) { ids.add(rs.getInt(1)); }
+            }
+        }
+        for (int id : ids) {
+            cancelBookingInternal(id, null, "No-show after check-in day", true);
+        }
+    }
+
+    public void refundLateOnlinePayments() throws SQLException {
+        String sql = "SELECT DISTINCT b.BookingID FROM Booking b JOIN Payment p ON p.BookingID=b.BookingID "
+                + "WHERE b.OnlineDepositPolicy=1 AND b.Status='cancelled' AND p.PaymentStatus='paid' "
+                + "AND p.PaymentMethod='bank_transfer' AND p.PaymentDate>b.CancellationDate";
+        List<Integer> ids = new ArrayList<>();
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                ids.add(rs.getInt(1));
+            }
+        }
+        for (int bookingId : ids) {
+            refundLateOnlinePayment(bookingId);
+        }
+    }
+
+    private void refundLateOnlinePayment(int bookingId) throws SQLException {
+        String lock = "SELECT CustomerID, CancellationDate FROM Booking WITH (UPDLOCK,HOLDLOCK) "
+                + "WHERE BookingID=? AND OnlineDepositPolicy=1 AND Status='cancelled'";
+        String refund = "SET NOCOUNT ON; DECLARE @refunds TABLE (Amount DECIMAL(18,2)); "
+                + "UPDATE Payment SET PaymentStatus='refunded' "
+                + "OUTPUT INSERTED.Amount-INSERTED.RefundedAmount INTO @refunds "
+                + "WHERE BookingID=? AND PaymentStatus='paid' AND PaymentMethod='bank_transfer' AND PaymentDate>?; "
+                + "SELECT COALESCE(SUM(Amount),0) FROM @refunds;";
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                int customerId;
+                java.sql.Timestamp cancelledAt;
+                try (PreparedStatement ps = conn.prepareStatement(lock)) {
+                    ps.setInt(1, bookingId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            conn.rollback();
+                            return;
+                        }
+                        customerId = rs.getInt(1);
+                        cancelledAt = rs.getTimestamp(2);
+                    }
+                }
+                BigDecimal total;
+                try (PreparedStatement ps = conn.prepareStatement(refund)) {
+                    ps.setInt(1, bookingId);
+                    ps.setTimestamp(2, cancelledAt);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        rs.next();
+                        total = rs.getBigDecimal(1);
+                    }
+                }
+                if (total.signum() > 0) {
+                    creditRefund(conn, bookingId, customerId, total);
+                }
+                conn.commit();
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            }
+        }
+    }
+
     /**
-     * True only when an actual payment was marked refunded (not merely when
-     * booking was cancelled).
+     * True when the booking produced a wallet refund, including partial refunds.
      */
     public boolean hasRefundedPayment(int bookingId, int customerId) {
-        String sql = "SELECT 1 FROM Payment p JOIN Booking b ON b.BookingID=p.BookingID "
-                + "WHERE p.BookingID=? AND b.CustomerID=? AND p.PaymentStatus='refunded'";
+        String sql = "SELECT 1 FROM WalletTransaction t JOIN Booking b ON b.BookingID=t.BookingID "
+                + "WHERE t.BookingID=? AND b.CustomerID=? AND t.TransactionType='refund'";
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, bookingId);
             ps.setInt(2, customerId);
@@ -1012,13 +1186,16 @@ public class BookingDAO extends DBContext {
     }
 
     public boolean canCustomerCancelBooking(int bookingId, int customerId) {
-        String sql = "SELECT 1 FROM Booking b WHERE b.BookingID = ? AND b.CustomerID = ? "
-                + "AND b.Status IN ('pending', 'confirmed') "
-                + "AND EXISTS (SELECT 1 FROM BookingDetail bd WHERE bd.BookingID = b.BookingID "
-                + "GROUP BY bd.BookingID HAVING CAST(MIN(bd.CheckInDate) AS DATETIME2) > SYSDATETIME())";
+        String sql = "SELECT 1 FROM Booking b CROSS APPLY (SELECT MIN(bd.CheckInDate) AS FirstCheckIn "
+                + "FROM BookingDetail bd WHERE bd.BookingID=b.BookingID) stay "
+                + "WHERE b.BookingID=? AND b.CustomerID=? AND b.Status IN ('pending', 'confirmed') "
+                + "AND (stay.FirstCheckIn>? OR (b.OnlineDepositPolicy=1 AND stay.FirstCheckIn=?))";
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, bookingId);
             ps.setInt(2, customerId);
+            LocalDate today = util.ReportPeriod.today();
+            ps.setObject(3, today);
+            ps.setObject(4, today);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
@@ -1028,18 +1205,13 @@ public class BookingDAO extends DBContext {
         }
     }
 
-    public boolean isRefundEligible(int bookingId) {
-        String sql = "SELECT 1 FROM BookingDetail WHERE BookingID = ? "
-                + "GROUP BY BookingID HAVING CAST(MIN(CheckInDate) AS DATETIME2) > SYSDATETIME()";
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, bookingId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException ex) {
-            Logger.getLogger(BookingDAO.class.getName()).log(Level.SEVERE, "Operation failed", ex);
-            return false;
-        }
+    public BigDecimal getCancellationRefund(Booking booking) {
+        LocalDate checkIn = booking.getDetails().stream().map(BookingDetail::getCheckInDate)
+                .min(LocalDate::compareTo).orElse(null);
+        if (checkIn == null) { return BigDecimal.ZERO; }
+        BigDecimal paid = new PaymentDAO().getTotalPaidAmount(booking.getId());
+        return booking.isOnlineDepositPolicy()
+                ? util.OnlineStayPolicy.refund(booking.getTotalPrice(), paid, checkIn, util.ReportPeriod.today()) : paid;
     }
 
     /*
@@ -1051,6 +1223,11 @@ public class BookingDAO extends DBContext {
     public boolean updateBookingStatus(
             int bookingId,
             String newStatus) {
+
+        try (Connection c=getConnection(); PreparedStatement ps=c.prepareStatement("SELECT CreatedByUserID FROM Booking WHERE BookingID=?")) {
+            ps.setInt(1,bookingId);
+            try(ResultSet rs=ps.executeQuery()) { if(rs.next() && rs.getObject(1)!=null) return false; }
+        } catch(SQLException ex) { return false; }
 
         /*
          * These are the statuses defined by HotelDB.
@@ -1097,7 +1274,9 @@ public class BookingDAO extends DBContext {
                 + "'Cancelled by Staff/Admin') "
                 + "ELSE NULL "
                 + "END "
-                + "WHERE BookingID = ?";
+                + "WHERE BookingID = ? AND Status=? "
+                + "AND (?<>'checked_in' OR OnlineDepositPolicy=0 OR NOT EXISTS (SELECT 1 FROM BookingDetail "
+                + "WHERE BookingID=Booking.BookingID AND CheckInDate<?))";
 
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
@@ -1106,6 +1285,9 @@ public class BookingDAO extends DBContext {
             ps.setString(2, newStatus);
             ps.setString(3, newStatus);
             ps.setInt(4, bookingId);
+            ps.setString(5, booking.getStatus());
+            ps.setString(6, newStatus);
+            ps.setObject(7, util.ReportPeriod.today());
 
             return ps.executeUpdate() > 0;
 
@@ -1132,7 +1314,7 @@ public class BookingDAO extends DBContext {
                 = "UPDATE Booking "
                 + "SET Status = 'confirmed' "
                 + "WHERE BookingID = ? "
-                + "AND Status = 'pending'";
+                + "AND Status = 'pending' AND CreatedByUserID IS NULL";
 
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
@@ -1170,6 +1352,7 @@ public class BookingDAO extends DBContext {
                 + "CancellationReason = "
                 + "'Expired pending booking' "
                 + "WHERE Status = 'pending' "
+                + "AND CreatedByUserID IS NULL "
                 + "AND BookingDate < "
                 + "DATEADD(MINUTE, -30, "
                 + "SYSDATETIME())";
@@ -1344,7 +1527,7 @@ public class BookingDAO extends DBContext {
                 + "FROM Booking b "
                 + "JOIN Customer c "
                 + "ON c.CustomerID = b.CustomerID "
-                + "JOIN [User] u "
+                + "LEFT JOIN [User] u "
                 + "ON u.UserID = c.UserID "
                 + "WHERE 1 = 1 "
         );
@@ -1601,7 +1784,7 @@ public class BookingDAO extends DBContext {
                 + "FROM Booking b "
                 + "JOIN Customer c "
                 + "ON c.CustomerID = b.CustomerID "
-                + "JOIN [User] u "
+                + "LEFT JOIN [User] u "
                 + "ON u.UserID = c.UserID "
                 + "WHERE 1 = 1 "
         );

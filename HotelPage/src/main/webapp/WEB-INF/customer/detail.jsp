@@ -343,7 +343,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label"><ui:text key="screen.969ccbd3cf6300ec"/></label>
-                                <input type="email" class="form-control" name="email" maxlength="100" required value="<c:out value='${customerDetail.email}'/>">
+                                <input type="email" class="form-control" name="email" maxlength="100" ${customerDetail.user.id gt 0 ? 'required' : ''} value="<c:out value='${customerDetail.email}'/>">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label"><ui:text key="screen.63dceb8800b2dd4a"/></label>
@@ -425,7 +425,8 @@
                                     <c:choose>
 
 
-                                        <c:when test="${customerDetail.user.accountStatus == 'active'}">
+                                        <c:when test="${customerDetail.user.id eq 0}"><span class="badge bg-secondary"><ui:text key="offline.noAccount"/></span></c:when>
+<c:when test="${customerDetail.user.accountStatus == 'active'}">
 
                                             <span
                                                 class="badge bg-success">
@@ -480,7 +481,7 @@
                         <!-- CHANGE ACCOUNT STATUS             -->
                         <!-- ================================= -->
 
-                        <h4 class="mb-3">
+                        <c:if test="${customerDetail.user.id gt 0}"><h4 class="mb-3">
 
                             <ui:text key="screen.9f00d170c98434c5"/>
 
@@ -570,7 +571,7 @@
                             </div>
 
 
-                        </form>
+                        </form></c:if>
 
 
                         <hr class="my-4">

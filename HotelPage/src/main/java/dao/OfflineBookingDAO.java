@@ -10,7 +10,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import model.*;
 import util.AuthSupport;
-import util.PasswordUtil;
+
 import util.ReportPeriod;
 
 public class OfflineBookingDAO extends DBContext {
@@ -177,8 +177,8 @@ public class OfflineBookingDAO extends DBContext {
         String sql
                 = "SELECT TOP(30) c.*,u.Username,u.AccountStatus "
                 + "FROM Customer c "
-                + "JOIN [User] u ON u.UserID=c.UserID "
-                + "WHERE u.Role='customer' AND ("
+                + "LEFT JOIN [User] u ON u.UserID=c.UserID "
+                + "WHERE ("
                 + "c.Phone LIKE ? ESCAPE '~' OR "
                 + "c.Email LIKE ? ESCAPE '~' OR "
                 + "u.Username LIKE ? ESCAPE '~'"
@@ -195,7 +195,7 @@ public class OfflineBookingDAO extends DBContext {
                     u.setId(rs.getInt("UserID"));
                     u.setUsername(rs.getString("Username"));
                     u.setRole("customer");
-                    u.setAccountStatus(rs.getString("AccountStatus"));
+                    u.setAccountStatus("active");
 
                     customers.add(new Customer(
                             rs.getInt("CustomerID"),
@@ -268,12 +268,6 @@ public class OfflineBookingDAO extends DBContext {
 
         OfflineBookingDraft d = accepted.draft;
 
-        String hash = d.customerId == null
-                ? PasswordUtil.hash(
-                        PasswordUtil.generateInitialPassword()
-                )
-                : null;
-
         try (Connection c = getConnection()) {
             c.setAutoCommit(false);
 
@@ -331,7 +325,7 @@ public class OfflineBookingDAO extends DBContext {
                 }
 
                 int customer = d.customerId == null
-                        ? createCustomer(c, d, hash)
+                        ? createCustomer(c, d)
                         : d.customerId;
 
                 int id = new BookingDAO()
@@ -350,6 +344,9 @@ public class OfflineBookingDAO extends DBContext {
                                 d.promotionCode
                         );
 
+                try (PreparedStatement audit=c.prepareStatement("INSERT OfflineBookingEvent(BookingID,ActorUserID,RequestKey,Action,Note,Amount) VALUES(?,?,?,'create',N'Tạo đơn giữ phòng tại quầy',?)")) {
+                    audit.setInt(1,id); audit.setInt(2,actor); audit.setString(3,d.requestKey); audit.setBigDecimal(4,gross); audit.executeUpdate();
+                }
                 c.commit();
                 return id;
 
@@ -392,14 +389,7 @@ public class OfflineBookingDAO extends DBContext {
             return d.lastName + " " + d.firstName;
         }
 
-        String sql
-                = "SELECT c.FirstName,c.LastName,c.Email,c.Phone "
-                + "FROM Customer c WITH(HOLDLOCK) "
-                + "JOIN [User] u WITH(HOLDLOCK) "
-                + "ON u.UserID=c.UserID "
-                + "WHERE c.CustomerID=? "
-                + "AND u.Role='customer' "
-                + "AND u.AccountStatus='active'";
+        String sql = "SELECT FirstName,LastName,Email,Phone FROM Customer WITH(HOLDLOCK) WHERE CustomerID=?";
 
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, d.customerId);
@@ -416,10 +406,9 @@ public class OfflineBookingDAO extends DBContext {
                 String last = AuthSupport.text(rs.getString(2));
 
                 if ((first + last).isBlank()
-                        || !AuthSupport.validEmail(rs.getString(3))
-                        || !AuthSupport.validPhone(rs.getString(4))) {
+                        || !model.OfflineBookingDraft.validPhone(rs.getString(4))) {
                     throw new IllegalArgumentException(
-                            "Hồ sơ khách thiếu họ tên, email "
+                            "Hồ sơ khách thiếu họ tên "
                             + "hoặc điện thoại hợp lệ. "
                             + "Cập nhật trong Customers trước khi đặt."
                     );
@@ -559,7 +548,7 @@ public class OfflineBookingDAO extends DBContext {
                 BigDecimal paid;
 
                 String paidSql
-                        = "SELECT COALESCE(SUM(Amount),0) "
+                        = "SELECT COALESCE(SUM(Amount-COALESCE(RefundedAmount,0)),0) "
                         + "FROM Payment WITH(HOLDLOCK) "
                         + "WHERE BookingID=? "
                         + "AND PaymentStatus='paid'";
@@ -596,9 +585,12 @@ public class OfflineBookingDAO extends DBContext {
                 data.put("payable", payable);
                 data.put(
                         "remaining",
-                        payable.subtract(paid).max(BigDecimal.ZERO)
+                        "cancelled".equals(data.get("status")) ? BigDecimal.ZERO
+                                : payable.subtract(paid).max(BigDecimal.ZERO)
                 );
                 data.put("firstPayment", paid.signum() == 0);
+                data.put("depositAmount", payable.multiply(BigDecimal.valueOf((Integer)data.get("depositPercent")))
+                        .divide(BigDecimal.valueOf(100),0,RoundingMode.CEILING));
                 data.put(
                         "canChange",
                         pending && paid.signum() == 0
@@ -729,101 +721,19 @@ public class OfflineBookingDAO extends DBContext {
         }
     }
 
-    private int createCustomer(
-            Connection c,
-            OfflineBookingDraft d,
-            String hash
-    ) throws SQLException {
-
-        String duplicateSql
-                = "SELECT 1 FROM AccountContact "
-                + "WITH(UPDLOCK,HOLDLOCK) "
-                + "WHERE Email=? OR Phone=? "
-                + "UNION ALL "
-                + "SELECT 1 FROM Customer WITH(UPDLOCK,HOLDLOCK) "
-                + "WHERE Email=? OR Phone=? "
-                + "UNION ALL "
-                + "SELECT 1 FROM [User] WITH(UPDLOCK,HOLDLOCK) "
-                + "WHERE Username=?";
-
-        try (PreparedStatement ps
-                = c.prepareStatement(duplicateSql)) {
-            ps.setNString(1, d.email);
-            ps.setString(2, d.phone);
-            ps.setNString(3, d.email);
-            ps.setString(4, d.phone);
-            ps.setNString(5, d.email);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    throw new IllegalArgumentException(
-                            "Email hoặc điện thoại đã tồn tại. "
-                            + "Tìm và chọn khách có sẵn."
-                    );
-                }
+    private int createCustomer(Connection c, OfflineBookingDraft d) throws SQLException {
+        // A front-desk guest is a customer profile, not an automatically activated login.
+        String query = "SELECT TOP(1) CustomerID FROM Customer WITH(UPDLOCK,HOLDLOCK) WHERE Phone=? OR (?<>'' AND Email=?)";
+        try (PreparedStatement ps=c.prepareStatement(query)) {
+            ps.setString(1,d.phone); ps.setString(2,d.email); ps.setString(3,d.email);
+            try (ResultSet rs=ps.executeQuery()) {
+                if(rs.next()) throw new IllegalArgumentException("Email hoặc điện thoại đã tồn tại. Tìm và chọn khách có sẵn.");
             }
         }
-
-        int userId;
-
-        String userSql
-                = "SET NOCOUNT ON; "
-                + "DECLARE @ids TABLE(ID INT); "
-                + "INSERT [User]("
-                + "Username,[Password],Role,"
-                + "DisplayName,AccountStatus"
-                + ") OUTPUT INSERTED.UserID INTO @ids "
-                + "VALUES(?,?,'customer',?,'active'); "
-                + "SELECT ID FROM @ids;";
-
-        try (PreparedStatement ps = c.prepareStatement(userSql)) {
-            ps.setString(
-                    1, "walkin_" + d.requestKey.replace("-", "")
-            );
-            ps.setString(2, hash);
-            ps.setNString(3, d.lastName + " " + d.firstName);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                rs.next();
-                userId = rs.getInt(1);
-            }
-        }
-
-        String contactSql
-                = "INSERT AccountContact("
-                + "UserID,FirstName,LastName,Email,Phone"
-                + ") VALUES(?,?,?,?,?)";
-
-        try (PreparedStatement ps = c.prepareStatement(contactSql)) {
-            ps.setInt(1, userId);
-            ps.setNString(2, d.firstName);
-            ps.setNString(3, d.lastName);
-            ps.setNString(4, d.email);
-            ps.setString(5, d.phone);
-            ps.executeUpdate();
-        }
-
-        String customerSql
-                = "SET NOCOUNT ON; "
-                + "DECLARE @ids TABLE(ID INT); "
-                + "INSERT Customer("
-                + "UserID,FirstName,LastName,Email,Phone"
-                + ") OUTPUT INSERTED.CustomerID INTO @ids "
-                + "VALUES(?,?,?,?,?); "
-                + "SELECT ID FROM @ids;";
-
-        try (PreparedStatement ps
-                = c.prepareStatement(customerSql)) {
-            ps.setInt(1, userId);
-            ps.setNString(2, d.firstName);
-            ps.setNString(3, d.lastName);
-            ps.setNString(4, d.email);
-            ps.setString(5, d.phone);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                rs.next();
-                return rs.getInt(1);
-            }
+        try (PreparedStatement ps=c.prepareStatement("SET NOCOUNT ON; DECLARE @ids TABLE(ID INT); INSERT Customer(UserID,FirstName,LastName,Email,Phone) OUTPUT INSERTED.CustomerID INTO @ids VALUES(NULL,?,?,?,?); SELECT ID FROM @ids;")) {
+            ps.setNString(1,d.firstName); ps.setNString(2,d.lastName);
+            ps.setNString(3,d.email.isBlank()?null:d.email); ps.setString(4,d.phone);
+            try(ResultSet rs=ps.executeQuery()) { rs.next(); return rs.getInt(1); }
         }
     }
 }

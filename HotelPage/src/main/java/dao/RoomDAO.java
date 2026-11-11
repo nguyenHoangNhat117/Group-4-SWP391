@@ -16,6 +16,134 @@ import model.RoomType;
 
 public class RoomDAO extends DBContext {
 
+    private static final String SEARCH_INVENTORY = " FROM Room r "
+            + "JOIN RoomType rt ON rt.RoomTypeID=r.RoomTypeID "
+            + "WHERE r.Status='available' AND rt.IsActive=1 AND rt.Capacity>=? "
+            + "AND (? IS NULL OR rt.RoomTypeID=?) "
+            + "AND (? IS NULL OR rt.PricePerNight>=?) "
+            + "AND (? IS NULL OR rt.PricePerNight<?) ";
+    private static final String SEARCH_STAY = "AND NOT EXISTS ("
+            + "SELECT 1 FROM BookingDetail bd JOIN Booking b ON b.BookingID=bd.BookingID "
+            + "WHERE bd.RoomNumber=r.RoomNumber AND b.Status<>'cancelled' "
+            + "AND bd.CheckInDate<? AND bd.CheckOutDate>?) ";
+
+    public static final class AvailableType {
+        private final RoomType type;
+        private final int available;
+        private final int reviewCount;
+        private final java.math.BigDecimal rating;
+
+        private AvailableType(RoomType type, int available, int reviewCount, java.math.BigDecimal rating) {
+            this.type = type;
+            this.available = available;
+            this.reviewCount = reviewCount;
+            this.rating = rating;
+        }
+
+        public RoomType getType() {
+            return type;
+        }
+
+        public int getAvailable() {
+            return available;
+        }
+
+        public int getReviewCount() {
+            return reviewCount;
+        }
+
+        public java.math.BigDecimal getRating() {
+            return rating;
+        }
+    }
+
+    public List<AvailableType> findAvailableTypes(LocalDate from, LocalDate to, int guests,
+            Integer typeId, model.RoomPriceBand band, String sort) throws SQLException {
+        String order;
+        switch (sort) {
+            case "price_asc": order = "rt.PricePerNight ASC, rt.RoomTypeID"; break;
+            case "price_desc": order = "rt.PricePerNight DESC, rt.RoomTypeID"; break;
+            case "capacity_desc": order = "rt.Capacity DESC, rt.PricePerNight, rt.RoomTypeID"; break;
+            default: order = "rt.RoomTypeID";
+        }
+        String sql = "WITH AvailableTypes AS (SELECT rt.RoomTypeID, rt.Name, rt.Description, rt.PricePerNight, "
+                + "rt.Beds, rt.Capacity, rt.Picture, COUNT(*) AS Available "
+                + SEARCH_INVENTORY + SEARCH_STAY
+                + "GROUP BY rt.RoomTypeID, rt.Name, rt.Description, rt.PricePerNight, "
+                + "rt.Beds, rt.Capacity, rt.Picture) "
+                + "SELECT rt.*, reviews.ReviewCount, reviews.Rating FROM AvailableTypes rt CROSS APPLY ("
+                + "SELECT COUNT(*) AS ReviewCount, CAST(AVG(rv.Star) AS DECIMAL(3,1)) AS Rating "
+                + "FROM Review rv WHERE rv.ReviewStatus='approved' AND EXISTS ("
+                + "SELECT 1 FROM BookingDetail bd JOIN Room r ON r.RoomNumber=bd.RoomNumber "
+                + "WHERE bd.BookingID=rv.BookingID AND r.RoomTypeID=rt.RoomTypeID)"
+                + ") reviews ORDER BY " + order;
+        List<AvailableType> types = new ArrayList<>();
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindInventory(ps, guests, typeId, band);
+            ps.setObject(8, to);
+            ps.setObject(9, from);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    RoomType type = new RoomType(rs.getInt("RoomTypeID"), rs.getString("Name"),
+                            rs.getString("Description"), rs.getBigDecimal("PricePerNight"),
+                            rs.getInt("Beds"), rs.getInt("Capacity"), rs.getString("Picture"));
+                    types.add(new AvailableType(type, rs.getInt("Available"),
+                            rs.getInt("ReviewCount"), rs.getBigDecimal("Rating")));
+                }
+            }
+        }
+        return types;
+    }
+
+    public java.util.Map<String, String> findCalendarAvailability(LocalDate from, LocalDate to,
+            int guests, Integer typeId, model.RoomPriceBand band) throws SQLException {
+        String sql = "WITH Nights AS (SELECT CAST(? AS date) AS StayDate "
+                + "UNION ALL SELECT DATEADD(day,1,StayDate) FROM Nights WHERE StayDate<?), "
+                + "Inventory AS (SELECT r.RoomNumber " + SEARCH_INVENTORY + ") "
+                + "SELECT n.StayDate, MAX(CASE WHEN upcoming.BookedFrom<=n.StayDate THEN NULL "
+                + "ELSE COALESCE(upcoming.BookedFrom,CAST(? AS date)) END) AS LastCheckout "
+                + "FROM Nights n CROSS JOIN Inventory i OUTER APPLY ("
+                + "SELECT MIN(bd.CheckInDate) AS BookedFrom FROM BookingDetail bd "
+                + "JOIN Booking b ON b.BookingID=bd.BookingID WHERE bd.RoomNumber=i.RoomNumber "
+                + "AND b.Status<>'cancelled' AND bd.CheckOutDate>n.StayDate "
+                + "AND bd.CheckInDate<?) upcoming "
+                + "GROUP BY n.StayDate OPTION (MAXRECURSION 366)";
+        java.util.Map<String, String> availability = new java.util.LinkedHashMap<>();
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, from);
+            ps.setObject(2, to);
+            bindInventory(ps, 3, guests, typeId, band);
+            ps.setObject(10, to);
+            ps.setObject(11, to);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    java.sql.Date checkout = rs.getDate("LastCheckout");
+                    LocalDate stayDate = rs.getDate("StayDate").toLocalDate();
+                    if (checkout != null && checkout.toLocalDate().isAfter(stayDate)) {
+                        availability.put(stayDate.toString(), checkout.toLocalDate().toString());
+                    }
+                }
+            }
+        }
+        return availability;
+    }
+
+    private static void bindInventory(PreparedStatement ps, int guests, Integer typeId,
+            model.RoomPriceBand band) throws SQLException {
+        bindInventory(ps, 1, guests, typeId, band);
+    }
+
+    private static void bindInventory(PreparedStatement ps, int start, int guests, Integer typeId,
+            model.RoomPriceBand band) throws SQLException {
+        ps.setInt(start, guests);
+        ps.setObject(start + 1, typeId, java.sql.Types.INTEGER);
+        ps.setObject(start + 2, typeId, java.sql.Types.INTEGER);
+        ps.setBigDecimal(start + 3, band.getMinimum());
+        ps.setBigDecimal(start + 4, band.getMinimum());
+        ps.setBigDecimal(start + 5, band.getUpperExclusive());
+        ps.setBigDecimal(start + 6, band.getUpperExclusive());
+    }
+
     private static final int PAGE_SIZE = 6;
 
     /*
