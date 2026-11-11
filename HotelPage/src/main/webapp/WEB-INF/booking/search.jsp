@@ -157,6 +157,8 @@
                 margin-bottom: 15px;
             }
         </style>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/search-calendar.css">
+        <script src="${pageContext.request.contextPath}/assets/js/search-calendar.js" defer></script>
     </head>
 
     <body>
@@ -215,6 +217,11 @@
                                                name="booking-dates"
                                                value="${sessionScope.dates}"
                                                readonly required data-i18n-placeholder="screen.d54be811186bb99f">
+                                        <small id="search-calendar-status" class="visually-hidden" aria-live="polite"
+                                           data-loading="${requestScope.i18n['room.calendar.loading']}"
+                                           data-error="${requestScope.i18n['room.calendar.error']}"
+                                           data-unavailable="${requestScope.i18n['room.calendar.unavailable']}"
+                                           data-changed="${requestScope.i18n['room.calendar.changed']}"></small>
                                     </div>
                                 </div>
 
@@ -251,23 +258,8 @@
 
                                 <!-- Cột 4: Khoảng giá (Optional Price Range - BR-16) -->
                                 <div class="col-lg-2 col-md-6 col-sm-12">
-                                    <div class="row g-2">
-                                        <div class="col-6">
-                                            <label for="min-price" class="small fw-semibold text-secondary text-uppercase"><ui:text key="screen.c5ad45f2c77175b7"/></label>
-                                            <input type="number" step="0.01" min="0"
-                                                   class="form-control px-2 py-2 ${param.error == 'invalid-filter' ? 'is-invalid border-danger' : ''}"
-                                                   id="min-price" name="min-price"
-                                                   placeholder="0"
-                                                   value="${sessionScope.searchMinPrice}">
-                                        </div>
-                                        <div class="col-6">
-                                            <label for="max-price" class="small fw-semibold text-secondary text-uppercase"><ui:text key="screen.a97dc5177dd9eee6"/></label>
-                                            <input type="number" step="0.01" min="0"
-                                                   class="form-control px-2 py-2 ${param.error == 'invalid-filter' ? 'is-invalid border-danger' : ''}"
-                                                   id="max-price" name="max-price"
-                                                   placeholder="${requestScope.i18n['screen.2b505597daa736f1']}"
-                                                   value="${sessionScope.searchMaxPrice}" data-i18n-placeholder="screen.2b505597daa736f1">
-                                        </div>
+                                    <div class="search-field">
+                                        <jsp:include page="/WEB-INF/room/price-band.jsp"><jsp:param name="searchStyle" value="booking"/></jsp:include>
                                     </div>
                                 </div>
 
@@ -321,22 +313,6 @@
         <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
         <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
 
-        <script>
-            document.addEventListener("DOMContentLoaded", function () {
-                const picker = new Litepicker({
-                    element: document.getElementById('floatingBookingDate'),
-                    singleMode: false, // for date range
-                    numberOfMonths: 2, // show two months side by side
-                    numberOfColumns: 2,
-                    autoApply: true,
-                    format: 'MMM D, YYYY',
-                    tooltipText: {
-                        one: 'day',
-                        other: 'days'
-                    },
-                    minDate: new Date()
-                });
-            });
-        </script>
+
     </body>
 </html>

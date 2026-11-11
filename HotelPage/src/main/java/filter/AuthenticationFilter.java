@@ -22,6 +22,7 @@ import java.util.Objects;
         filterName = "AuthenticationFilter",
         urlPatterns = {
             "/booking",
+            "/checkout",
             "/payment",
             "/review",
             "/profile",
@@ -60,9 +61,25 @@ public class AuthenticationFilter implements Filter {
         String fullPath = servletPath
                 + (pathInfo == null ? "" : pathInfo);
 
+        boolean checkoutPayment = false;
+        if ("/payment".equals(fullPath)) {
+            if (req.getCharacterEncoding() == null) {
+                req.setCharacterEncoding("UTF-8");
+            }
+            boolean checkoutReview = "POST".equalsIgnoreCase(req.getMethod())
+                    && "review".equals(req.getParameter("action"));
+            checkoutPayment = req.getParameter("draft") != null || checkoutReview;
+            if (checkoutReview || (checkoutPayment && "GET".equalsIgnoreCase(req.getMethod()))) {
+                req.getRequestDispatcher("/checkout").forward(req, res);
+                return;
+            }
+        }
+
         // Preserve public browsing and room search.
         if (isPublicBookingSearch(req, servletPath)
-                || isPublicRoomRequest(req, servletPath)) {
+                || isPublicRoomRequest(req, servletPath)
+                || ("/checkout".equals(servletPath) && ("GET".equalsIgnoreCase(req.getMethod())
+                || "review".equals(req.getParameter("action"))))) {
 
             chain.doFilter(request, response);
             return;
@@ -159,7 +176,11 @@ public class AuthenticationFilter implements Filter {
                 return;
             }
 
-            chain.doFilter(request, response);
+            if (checkoutPayment) {
+                req.getRequestDispatcher("/checkout").forward(req, res);
+            } else {
+                chain.doFilter(request, response);
+            }
             return;
         }
 
@@ -296,6 +317,7 @@ public class AuthenticationFilter implements Filter {
 
     private boolean isCustomerPath(String path) {
         return "/booking".equals(path)
+                || "/checkout".equals(path)
                 || "/payment".equals(path)
                 || "/review".equals(path)
                 || "/profile".equals(path)

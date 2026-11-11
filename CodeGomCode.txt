@@ -1,7 +1,0 @@
-Get-ChildItem -Recurse -Filter *.java | ForEach-Object {
-    "=================================================="
-    "FILE: $($_.FullName)"
-    "=================================================="
-    Get-Content $_.FullName -Raw
-    "`n"
-} | Set-Content -Encoding UTF8 "all_code.txt"

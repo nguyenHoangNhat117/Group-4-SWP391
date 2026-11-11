@@ -142,6 +142,8 @@
                 color: #b29575 !important;
             }
         </style>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/search-calendar.css">
+        <script src="${pageContext.request.contextPath}/assets/js/search-calendar.js" defer></script>
     </head>
 
     <body class="bg-light">
@@ -193,7 +195,7 @@
                                                     <div class="fw-semibold text-dark">${room.roomType.name}</div>
                                                 </td>
                                                 <td class="fw-medium text-secondary">
-                                                    $${room.roomType.pricePerNight}
+                                                    <ui:money amount="${room.roomType.pricePerNight}"/>
                                                 </td>
                                                 <td class="text-center text-secondary">${room.roomType.beds}</td>
                                                 <td class="text-center text-secondary"><i class="bi bi-people-fill me-1"></i>${room.roomType.capacity}</td>
@@ -301,6 +303,11 @@
                                                value="${sessionScope.dates}"
                                                placeholder="${sessionScope.dates}"
                                                name="booking-dates" readonly required>
+                                        <small id="search-calendar-status" class="visually-hidden" aria-live="polite"
+                                           data-loading="${requestScope.i18n['room.calendar.loading']}"
+                                           data-error="${requestScope.i18n['room.calendar.error']}"
+                                           data-unavailable="${requestScope.i18n['room.calendar.unavailable']}"
+                                           data-changed="${requestScope.i18n['room.calendar.changed']}"></small>
                                     </div>
                                 </div>
 
@@ -325,23 +332,13 @@
                                 </div>
 
                                 <div class="col-lg-2 col-md-4 col-6">
-                                    <label class="form-label small fw-bold text-uppercase text-muted mb-1"><ui:text key="screen.232e0023d9a3eba2"/></label>
-                                    <div class="input-group">
-                                        <input type="number" step="0.01" min="0"
-                                               class="form-control bg-light ${param.error == 'invalid-filter' ? 'is-invalid border-danger' : 'border-0'}"
-                                               name="min-price" placeholder="${requestScope.i18n['screen.dea79332147ffe1f']}"
-                                               value="${sessionScope.searchMinPrice}" data-i18n-placeholder="screen.dea79332147ffe1f">
-                                        <input type="number" step="0.01" min="0"
-                                               class="form-control bg-light ${param.error == 'invalid-filter' ? 'is-invalid border-danger' : 'border-0'}"
-                                               name="max-price" placeholder="${requestScope.i18n['screen.a1a5936d3b0f8a69']}"
-                                               value="${sessionScope.searchMaxPrice}" data-i18n-placeholder="screen.a1a5936d3b0f8a69">
-                                    </div>
+                                    <jsp:include page="/WEB-INF/room/price-band.jsp"/>
                                 </div>
 
                                 <div class="col-lg-2 col-md-4 col-6">
                                     <label for="sort-by" class="form-label small fw-bold text-uppercase text-muted mb-1"><ui:text key="screen.6d2227555fccff99"/></label>
                                     <select class="form-select bg-light border-0" id="sort-by" name="sort-by">
-                                        <option value="room_asc" ${sessionScope.searchSortBy == 'room_asc' ? 'selected' : ''} data-i18n="screen.f91ba3e6d86ddac0">${requestScope.i18n['screen.f91ba3e6d86ddac0']}</option>
+                                        <option value="room_asc" ${sessionScope.searchSortBy == 'room_asc' ? 'selected' : ''} data-i18n="screen.82dea9a01c0033ec">${requestScope.i18n['screen.82dea9a01c0033ec']}</option>
                                         <option value="price_asc" ${sessionScope.searchSortBy == 'price_asc' ? 'selected' : ''} data-i18n="screen.3044c75602f03114">${requestScope.i18n['screen.3044c75602f03114']}</option>
                                         <option value="price_desc" ${sessionScope.searchSortBy == 'price_desc' ? 'selected' : ''} data-i18n="screen.8abbc1606cfd7f90">${requestScope.i18n['screen.8abbc1606cfd7f90']}</option>
                                         <option value="capacity_desc" ${sessionScope.searchSortBy == 'capacity_desc' ? 'selected' : ''} data-i18n="screen.a980d50906f2f261">${requestScope.i18n['screen.a980d50906f2f261']}</option>
@@ -356,76 +353,41 @@
                             </form>
                         </div>
 
-                        <!-- Room Cards Grid -->
                         <div class="row g-4 mb-5">
-                            <c:forEach var="room" items="${rooms}">
+                            <c:forEach var="result" items="${availableTypes}">
+                                <c:set var="type" value="${result.type}"/>
+                                <c:url var="detailsUrl" value="/room-stay">
+                                    <c:param name="roomTypeId" value="${type.id}"/>
+                                </c:url>
                                 <div class="col-md-6 col-lg-4">
-                                    <div class="card room-card h-100">
-                                        <a href="${pageContext.request.contextPath}/details?roomNumber=${room.roomNumber}" class="room-img-wrap d-block text-decoration-none">
-                                            <img src="${pageContext.request.contextPath}/assets/img/${room.roomType.picture}" alt="${room.roomType.name}">
-                                            <span class="room-badge"><i class="bi bi-door-closed me-1"></i> <ui:text key="screen.911ea89c43d9dbb8"/> ${room.roomNumber}</span>
+                                    <article class="card room-card h-100">
+                                        <a href="${detailsUrl}" class="room-img-wrap d-block text-decoration-none">
+                                            <img src="${pageContext.request.contextPath}/assets/img/<c:out value='${type.picture}'/>" alt="<c:out value='${type.name}'/>">
+                                            <span class="room-badge">${result.available} <ui:text key="room.available"/></span>
                                         </a>
-
                                         <div class="card-body d-flex flex-column p-4">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <h5 class="fw-bold text-dark mb-0">
-                                                    <a href="${pageContext.request.contextPath}/details?roomNumber=${room.roomNumber}" class="text-dark text-decoration-none">
-                                                        ${room.roomType.name}
-                                                    </a>
-                                                </h5>
-                                                <!-- Public Approved Rating Summary (BR-48) -->
-                                                <div class="small text-nowrap ms-2">
-                                                    <c:choose>
-                                                        <c:when test="${reviewCountMap[room.roomNumber] > 0}">
-                                                            <i class="bi bi-star-fill text-warning"></i>
-                                                            <span class="fw-semibold">${avgStarMap[room.roomNumber]}</span>
-                                                            <span class="text-muted">(${reviewCountMap[room.roomNumber]})</span>
-                                                        </c:when>
-                                                        <c:otherwise>
-                                                            <span class="text-muted small"><ui:text key="screen.f29c7621dd9f0b1d"/></span>
-                                                        </c:otherwise>
-                                                    </c:choose>
+                                            <h5 class="fw-bold"><a class="text-dark text-decoration-none" href="${detailsUrl}"><c:out value="${type.name}"/></a></h5>
+                                            <c:if test="${result.reviewCount > 0}">
+                                                <div class="small mb-2"><i class="bi bi-star-fill text-warning"></i>
+                                                    ${result.rating} <span class="text-muted">(${result.reviewCount})</span>
                                                 </div>
+                                            </c:if>
+                                            <p class="text-muted small"><c:out value="${type.description}"/></p>
+                                            <div class="text-muted small mb-3">
+                                                ${type.beds} <ui:text key="screen.2e2a3cd1a00809d3"/> ·
+                                                ${type.capacity} <ui:text key="screen.3c8e0fde6fcc71e0"/>
                                             </div>
-
-                                            <p class="text-muted small mb-2" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-                                                <c:out value="${room.roomType.description}"/>
-                                            </p>
-
-                                            <!-- THÊM DÒNG NÀY: Text link thay cho nút Details -->
-                                            <a href="${pageContext.request.contextPath}/details?roomNumber=${room.roomNumber}" 
-                                               class="text-decoration-none fw-semibold small mb-4 room-title-hover d-inline-block" style="color: #6c757d;">
-                                                <ui:text key="screen.cb4759ed919a639c"/> <i class="bi bi-arrow-right ms-1"></i>
-                                            </a>
-
-                                            <div class="d-flex gap-3 mb-4 mt-auto">
-                                                <div class="text-muted small"><i class="bi bi-moon-stars me-1 text-primary"></i> ${room.roomType.beds} <ui:text key="screen.2e2a3cd1a00809d3"/></div>
-                                                <div class="text-muted small"><i class="bi bi-people me-1 text-primary"></i> <ui:text key="screen.3e2884632c01454f"/> ${room.roomType.capacity} <ui:text key="screen.3c8e0fde6fcc71e0"/></div>
-                                            </div>
-
-                                            <div class="d-flex justify-content-between align-items-end border-top pt-3 mt-auto">
-                                                <div>
-                                                    <span class="d-block text-muted small" style="margin-bottom: -5px;"><ui:text key="screen.8f51d73d59f406d5"/></span>
-                                                    <span class="room-price">$${room.roomType.pricePerNight}</span>
-                                                    <span class="text-muted small"><ui:text key="screen.f8b08898c2e4a561"/></span>
-                                                </div>
-
-                                                <div class="d-flex gap-2">
-                                                    <!-- ĐÃ XÓA NÚT DETAILS Ở ĐÂY, CHỈ GIỮ LẠI BOOK NOW -->
-                                                    <c:if test="${empty sessionScope.loggedUser || sessionScope.loggedUser.role == 'customer'}">
-                                                        <a href="./booking?roomNumber=${room.roomNumber}" class="btn btn-book text-decoration-none">
-                                                            <ui:text key="screen.67be79359de4aa3f"/>
-                                                        </a>
-                                                    </c:if>
-                                                </div>
+                                            <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-auto">
+                                                <span><strong class="room-price"><ui:money amount="${type.pricePerNight}"/></strong> <ui:text key="screen.f8b08898c2e4a561"/></span>
+                                                <a href="${detailsUrl}" class="btn btn-book"><ui:text key="screen.cb4759ed919a639c"/></a>
                                             </div>
                                         </div>
-                                    </div>
+                                    </article>
                                 </div>
                             </c:forEach>
 
                             <!-- Exception 6b: No Available Rooms Found -->
-                            <c:if test="${empty rooms}">
+                            <c:if test="${empty availableTypes}">
                                 <div class="col-12 text-center py-5">
                                     <i class="bi bi-calendar-x display-1 text-muted mb-3"></i>
                                     <h4 class="fw-bold text-dark"><ui:text key="screen.cbe53eabc103e3c8"/></h4>
@@ -440,15 +402,15 @@
                             <nav aria-label="${requestScope.i18n['screen.024148d6099b7d63']}" class="mt-5 d-flex justify-content-center w-100" data-i18n-aria-label="screen.024148d6099b7d63">
                                 <ul class="pagination pagination-lg mb-0">
                                     <li class="page-item ${pageIndex <= 1 ? 'disabled' : ''}">
-                                        <a class="page-link" href="./room?page-index=${pageIndex - 1}&guest-count=${sessionScope.guestCount}&room-type-id=${sessionScope.searchRoomTypeId}&min-price=${sessionScope.searchMinPrice}&max-price=${sessionScope.searchMaxPrice}&sort-by=${sessionScope.searchSortBy}"><i class="bi bi-chevron-left"></i></a>
+                                        <a class="page-link" href="./room?page-index=${pageIndex - 1}"><i class="bi bi-chevron-left"></i></a>
                                     </li>
                                     <c:forEach var="i" begin="1" end="${totalPages}">
                                         <li class="page-item ${pageIndex == i ? 'active' : ''}">
-                                            <a class="page-link" href="./room?page-index=${i}&guest-count=${sessionScope.guestCount}&room-type-id=${sessionScope.searchRoomTypeId}&min-price=${sessionScope.searchMinPrice}&max-price=${sessionScope.searchMaxPrice}&sort-by=${sessionScope.searchSortBy}">${i}</a>
+                                            <a class="page-link" href="./room?page-index=${i}">${i}</a>
                                         </li>
                                     </c:forEach>
                                     <li class="page-item ${pageIndex >= totalPages ? 'disabled' : ''}">
-                                        <a class="page-link" href="./room?page-index=${pageIndex + 1}&guest-count=${sessionScope.guestCount}&room-type-id=${sessionScope.searchRoomTypeId}&min-price=${sessionScope.searchMinPrice}&max-price=${sessionScope.searchMaxPrice}&sort-by=${sessionScope.searchSortBy}"><i class="bi bi-chevron-right"></i></a>
+                                        <a class="page-link" href="./room?page-index=${pageIndex + 1}"><i class="bi bi-chevron-right"></i></a>
                                     </li>
                                 </ul>
                             </nav>
@@ -468,20 +430,6 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
-            // Khởi tạo lịch
-            const dateInput = document.getElementById('floatingBookingDate');
-            if (dateInput) {
-                const picker = new Litepicker({
-                    element: dateInput,
-                    singleMode: false,
-                    numberOfMonths: 2,
-                    numberOfColumns: 2,
-                    autoApply: true,
-                    format: 'MMM D, YYYY',
-                    tooltipText: {one: 'day', other: 'days'},
-                    minDate: new Date()
-                });
-            }
         </script>
     </body>
 </html>

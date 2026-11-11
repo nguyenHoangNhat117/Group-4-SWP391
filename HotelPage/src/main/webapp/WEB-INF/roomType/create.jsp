@@ -64,7 +64,7 @@
                     <!-- Price Per Night -->
                     <div class="mb-3">
                         <label for="pricePerNight" class="form-label fs-5 fw-semibold"><ui:text key="screen.0702805f3bf73124"/></label>
-                        <input type="number" step="0.01" id="pricePerNight" name="pricePerNight"
+                        <input type="number" step="1" id="pricePerNight" name="pricePerNight"
                                class="form-control form-control-lg" min="1" required>
                     </div>
 

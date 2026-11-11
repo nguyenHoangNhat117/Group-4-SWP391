@@ -1,4 +1,3 @@
-<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="c"
            uri="jakarta.tags.core" %>
@@ -17,7 +16,7 @@
         http-equiv="Content-Type"
         content="text/html; charset=UTF-8">
 
-    <title data-i18n="screen.7048f38b33f135df">${requestScope.i18n['screen.7048f38b33f135df']}</title>
+    <title>Payment</title>
 
     <link
         href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
@@ -57,7 +56,7 @@
 
             <h2 class="text-center mb-4">
 
-                <ui:text key="screen.ed291f171aa86115"/>
+                Confirm Your Payment
 
             </h2>
 
@@ -73,7 +72,10 @@
                            alert-danger
                            text-center">
 
-                    <ui:text key="screen.977c66234640a8b2"/>
+                    Discount code is invalid,
+                    expired, inactive, exhausted,
+                    or does not satisfy the
+                    minimum booking amount.
 
                 </div>
 
@@ -87,7 +89,8 @@
                            alert-danger
                            text-center">
 
-                    <ui:text key="screen.771f01602f932fba"/>
+                    Please select a valid
+                    payment method.
 
                 </div>
 
@@ -101,17 +104,22 @@
                            alert-danger
                            text-center">
 
-                    <ui:text key="screen.f0bb321462d05aa0"/>
+                    Payment could not be completed.
+                    Please try again.
 
                 </div>
 
             </c:if>
 
 
+            <c:if test="${param.error == 'online-not-configured'}">
+                <div class="alert alert-danger text-center">Online payment is not configured. Please contact the administrator.</div>
+            </c:if>
+
             <c:if test="${param.error == 'invalid-payment-percent'}">
 
                 <div class="alert alert-danger text-center">
-                    <ui:text key="screen.5269fce2b442cd48"/>
+                    Please select 10%, 20%, or 100% for the first payment.
                 </div>
 
             </c:if>
@@ -124,35 +132,35 @@
             <div class="mb-4">
 
                 <h5>
-                    <ui:text key="screen.8e9d3e1467f7cc3f"/>${booking.id}
+                    Booking #${booking.id}
                 </h5>
 
 
                 <p class="mb-1">
 
-                    <strong><ui:text key="screen.755c8b2a9fb11446"/></strong>
+                    <strong>Status:</strong>
 
-                    <ui:message text="${booking.status}"/>
+                    ${booking.status}
 
                 </p>
 
 
                 <p class="mb-0">
 
-                    <strong><ui:text key="screen.f981e52aa5f5e667"/></strong>
+                    <strong>Booking Total:</strong>
 
                     <span
                         class="text-primary
                                fw-bold">
 
-                        $${booking.totalPrice}
+                        ${booking.totalPrice} VND
 
                     </span>
 
                 </p>
 
-                <p class="mb-1 mt-2"><strong><ui:text key="screen.a2e1944f944f0e3b"/></strong> $${paidAmount}</p>
-                <p class="mb-0"><strong><ui:text key="screen.b7adb0e79057b084"/></strong> <span class="text-danger fw-bold">$${remainingAmount}</span></p>
+                <p class="mb-1 mt-2"><strong>Already paid:</strong> ${paidAmount} VND</p>
+                <p class="mb-0"><strong>Remaining:</strong> <span class="text-danger fw-bold">${remainingAmount} VND</span></p>
 
             </div>
 
@@ -162,7 +170,7 @@
             <!-- ========================================= -->
 
             <h5 class="mb-3">
-                <ui:text key="screen.6816c8a3445d0f73"/>
+                Room Details
             </h5>
 
 
@@ -186,7 +194,7 @@
                         <div class="col-md-6">
 
                             <strong>
-                                <ui:text key="screen.93853234d7ebd9b2"/>
+                                Room:
                             </strong>
 
                             #${detail.roomNumber}
@@ -197,7 +205,7 @@
                         <div class="col-md-6">
 
                             <strong>
-                                <ui:text key="screen.1ac580f9fde7374f"/>
+                                Guests:
                             </strong>
 
                             ${detail.guestCount}
@@ -208,7 +216,7 @@
                         <div class="col-md-6">
 
                             <strong>
-                                <ui:text key="screen.a44e12f354688caf"/>
+                                Check-in:
                             </strong>
 
                             ${fn:substring(detail.checkInDate, 8, 10)}/${fn:substring(detail.checkInDate, 5, 7)}/${fn:substring(detail.checkInDate, 0, 4)}
@@ -219,7 +227,7 @@
                         <div class="col-md-6">
 
                             <strong>
-                                <ui:text key="screen.865998541ea4eba7"/>
+                                Check-out:
                             </strong>
 
                             ${fn:substring(detail.checkOutDate, 8, 10)}/${fn:substring(detail.checkOutDate, 5, 7)}/${fn:substring(detail.checkOutDate, 0, 4)}
@@ -230,10 +238,10 @@
                         <div class="col-md-12">
 
                             <strong>
-                                <ui:text key="screen.89ae1c4ac3ed0966"/>
+                                Price per night:
                             </strong>
 
-                            $${detail.pricePerNight}
+                            ${detail.pricePerNight} VND
 
                         </div>
 
@@ -262,7 +270,7 @@
 
                 <c:if test="${firstPayment}">
                     <div class="mb-4">
-                        <label for="payment-percent" class="form-label fw-semibold"><ui:text key="screen.8312d6d815743896"/></label>
+                        <label for="payment-percent" class="form-label fw-semibold">Initial payment percentage</label>
                         <select id="payment-percent" name="payment-percent" class="form-select form-select-lg" required ${selectedPercent != null ? 'disabled' : ''}>
                             <option value="10" ${selectedPercent == 10 ? 'selected' : ''}>10%</option>
                             <option value="20" ${selectedPercent == 20 ? 'selected' : ''}>20%</option>
@@ -277,7 +285,7 @@
 
                 <c:if test="${!firstPayment}">
                     <div class="alert alert-info">
-                        <ui:text key="screen.fbd43a17fae70f8c"/> <strong>$${remainingAmount}</strong>.
+                        This payment will settle the full remaining balance of <strong>${remainingAmount} VND</strong>.
                     </div>
                 </c:if>
 
@@ -290,7 +298,7 @@
                         class="form-label
                                fw-semibold">
 
-                        <ui:text key="screen.f89a4e17557766ec"/>
+                        Payment Method
 
                     </label>
 
@@ -303,30 +311,19 @@
                         required>
 
 
-                        <option value="" data-i18n="screen.f9b3d69c6c703742">
-                            ${requestScope.i18n['screen.f9b3d69c6c703742']}
+                        <option value="">
+                            -- Select payment method --
                         </option>
 
 
-                        <option value="cash" data-i18n="screen.e2da108f63008e44">
-                            ${requestScope.i18n['screen.e2da108f63008e44']}
+                        <option value="cash">
+                            Cash
                         </option>
 
 
-                        <option value="bank_transfer" data-i18n="screen.ee82ae2801cf9097">
-                            ${requestScope.i18n['screen.ee82ae2801cf9097']}
+                        <option value="bank_transfer">
+                            Bank Transfer (payOS)
                         </option>
-
-
-                        <option value="credit_card" data-i18n="screen.9f629f57b7d02936">
-                            ${requestScope.i18n['screen.9f629f57b7d02936']}
-                        </option>
-
-
-                        <option value="e_wallet" data-i18n="screen.f7bb9a1dcdb515df">
-                            ${requestScope.i18n['screen.f7bb9a1dcdb515df']}
-                        </option>
-
 
                     </select>
 
@@ -344,9 +341,9 @@
                         class="form-label
                                fw-semibold">
 
-                        <ui:text key="screen.fd947a841a798fb7"/>
+                        Promotion Code
                         <span class="text-muted">
-                            <ui:text key="screen.0059798b7f7023e4"/>
+                            (optional)
                         </span>
 
                     </label>
@@ -359,7 +356,7 @@
                         class="form-control
                                form-control-lg"
                         maxlength="50"
-                        placeholder="${requestScope.i18n['screen.b7ee37d374ce6a5c']}" data-i18n-placeholder="screen.b7ee37d374ce6a5c">
+                        placeholder="Enter promotion code">
 
                 </div>
 
@@ -377,7 +374,7 @@
 
                         <h6 class="fw-bold mb-3">
 
-                            <ui:text key="screen.6a85de18585c99f5"/>
+                            Available Promotions
 
                         </h6>
 
@@ -394,19 +391,23 @@
                                 </strong>
 
                                 -
-                                ${promotion.saleOff}<ui:text key="screen.5e0aa53f41a26fe8"/>
+                                ${promotion.saleOff}% off
 
 
                                 <c:if test="${promotion.minimumAmount != null}">
 
-                                    <ui:text key="screen.97953ebdb79279c3"/>${promotion.minimumAmount}
+                                    |
+                                    Minimum:
+                                    ${promotion.minimumAmount} VND
 
                                 </c:if>
 
 
                                 <c:if test="${promotion.maximumDiscount != null}">
 
-                                    <ui:text key="screen.f2f07057ca60ce74"/>${promotion.maximumDiscount}
+                                    |
+                                    Maximum discount:
+                                    ${promotion.maximumDiscount} VND
 
                                 </c:if>
 
@@ -427,7 +428,8 @@
                     class="alert
                            alert-info">
 
-                    <ui:text key="screen.58cd661919761e50"/>
+                    The payable amount is calculated on the server.
+                    A promotion code can only be used on the first payment.
 
                 </div>
 
@@ -440,7 +442,7 @@
                            text-white"
                     style="background-color: #b29575;">
 
-                    <c:choose><c:when test="${firstPayment}"><ui:text key="screen.8c907a591a8e3612"/></c:when><c:otherwise><ui:text key="screen.cb8be35a87c097ab"/></c:otherwise></c:choose>
+                    <c:choose><c:when test="${firstPayment}">Confirm Initial Payment</c:when><c:otherwise>Pay Remaining Balance</c:otherwise></c:choose>
 
                 </button>
 

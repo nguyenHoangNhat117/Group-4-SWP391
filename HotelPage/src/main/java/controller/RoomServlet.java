@@ -15,6 +15,9 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
 import model.Room;
+import model.RoomPriceBand;
+import java.sql.SQLException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import model.RoomType;
 import model.User;
 
@@ -66,6 +69,10 @@ public class RoomServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        if ("availability".equals(request.getParameter("action"))) {
+            showAvailability(request, response);
+            return;
+        }
         HttpSession session = request.getSession(false);
         User user = session == null ? null
                 : (session.getAttribute("loggedUser") instanceof User
@@ -123,15 +130,28 @@ public class RoomServlet extends HttpServlet {
         }
     }
 
-    private java.math.BigDecimal parseNonNegativeDecimal(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return null;
-        }
+    private void showAvailability(HttpServletRequest request, HttpServletResponse response)
+            throws IOException, ServletException {
+        Integer guests = positiveInt(request.getParameter("guest-count"));
+        Integer typeId = positiveInt(request.getParameter("room-type-id"));
+        RoomPriceBand band;
+        LocalDate today = util.ReportPeriod.today();
         try {
-            java.math.BigDecimal value = new java.math.BigDecimal(raw.trim());
-            return value.compareTo(java.math.BigDecimal.ZERO) >= 0 ? value : java.math.BigDecimal.valueOf(-1);
-        } catch (NumberFormatException ex) {
-            return java.math.BigDecimal.valueOf(-1);
+            band = RoomPriceBand.parse(request.getParameter("price-band"));
+        } catch (IllegalArgumentException ex) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        new dao.BookingDAO().expirePendingBookings();
+        try {
+            LocalDate lastDate = today.plusDays(365);
+            java.util.Map<String, String> dates = new RoomDAO().findCalendarAvailability(
+                    today, lastDate, guests == null ? 1 : guests, typeId, band);
+            response.setContentType("application/json");
+            response.setHeader("Cache-Control", "no-store");
+            new ObjectMapper().writeValue(response.getOutputStream(), java.util.Map.of("dates", dates));
+        } catch (SQLException ex) {
+            throw new ServletException("Unable to load calendar availability", ex);
         }
     }
 
@@ -178,7 +198,7 @@ public class RoomServlet extends HttpServlet {
 
         // BR-14 revalidation on session dates
         if (checkIn == null || checkOut == null
-                || checkIn.isBefore(LocalDate.now())
+                || checkIn.isBefore(util.ReportPeriod.today())
                 || !checkOut.isAfter(checkIn)) {
             redirect(request, response, "/booking?error=invalid-dates");
             return;
@@ -192,50 +212,21 @@ public class RoomServlet extends HttpServlet {
 
         Integer selectedRoomTypeId = session.getAttribute("searchRoomTypeId") instanceof Integer
                 ? (Integer) session.getAttribute("searchRoomTypeId") : null;
-        java.math.BigDecimal minPrice = session.getAttribute("searchMinPrice") instanceof java.math.BigDecimal
-                ? (java.math.BigDecimal) session.getAttribute("searchMinPrice") : null;
-        java.math.BigDecimal maxPrice = session.getAttribute("searchMaxPrice") instanceof java.math.BigDecimal
-                ? (java.math.BigDecimal) session.getAttribute("searchMaxPrice") : null;
-        String sortBy = session.getAttribute("searchSortBy") instanceof String
-                ? (String) session.getAttribute("searchSortBy") : "room_asc";
-
-        int totalRooms = roomDAO.countAvailableRooms(
-                checkIn, checkOut, guestCount, selectedRoomTypeId, minPrice, maxPrice
-        );
-        int totalPages = (totalRooms + PAGE_SIZE - 1) / PAGE_SIZE;
-        int page = 1;
+        RoomPriceBand band = RoomPriceBand.parse((String) session.getAttribute("searchPriceBand"));
+        String sort = (String) session.getAttribute("searchSortBy");
+        List<RoomDAO.AvailableType> types;
+        try {
+            types = roomDAO.findAvailableTypes(checkIn, checkOut, guestCount,
+                    selectedRoomTypeId, band, sort == null ? "room_asc" : sort);
+        } catch (SQLException ex) {
+            throw new ServletException("Unable to load room inventory", ex);
+        }
+        int totalPages = (types.size() + PAGE_SIZE - 1) / PAGE_SIZE;
         Integer parsedPage = positiveInt(request.getParameter("page-index"));
-        if (parsedPage != null) {
-            page = parsedPage;
-        }
-        if (totalPages > 0 && page > totalPages) {
-            page = totalPages;
-        }
-
-        List<Room> rooms = totalRooms == 0
-                ? java.util.Collections.emptyList()
-                : roomDAO.getAvailableRoomPage(
-                        page, checkIn, checkOut, guestCount,
-                        selectedRoomTypeId, minPrice, maxPrice, sortBy
-                );
-
-        // BR-48 & UC06 Step 6: Load public approved rating summary for each room
-        dao.ReviewDAO reviewDAO = new dao.ReviewDAO();
-        java.util.Map<Integer, java.math.BigDecimal> avgStarMap = new java.util.HashMap<>();
-        java.util.Map<Integer, Integer> reviewCountMap = new java.util.HashMap<>();
-        for (Room room : rooms) {
-            int rNum = room.getRoomNumber();
-            int count = reviewDAO.getReviewsByRoomNumber(rNum).size();
-            reviewCountMap.put(rNum, count);
-            avgStarMap.put(rNum, count > 0
-                    ? reviewDAO.getAverageStarByRoomNumber(rNum)
-                    : java.math.BigDecimal.ZERO);
-        }
-
+        int page = parsedPage == null ? 1 : Math.min(parsedPage, Math.max(1, totalPages));
+        int offset = (page - 1) * PAGE_SIZE;
         showRoomTypes(request);
-        request.setAttribute("rooms", rooms);
-        request.setAttribute("avgStarMap", avgStarMap);
-        request.setAttribute("reviewCountMap", reviewCountMap);
+        request.setAttribute("availableTypes", types.subList(offset, Math.min(offset + PAGE_SIZE, types.size())));
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("pageIndex", page);
 
@@ -355,7 +346,8 @@ public class RoomServlet extends HttpServlet {
         try {
             checkIn = LocalDate.parse(dates[0].trim(), DATE_FORMAT);
             checkOut = LocalDate.parse(dates[1].trim(), DATE_FORMAT);
-            if (checkIn.isBefore(LocalDate.now()) || !checkOut.isAfter(checkIn)) {
+            LocalDate today = util.ReportPeriod.today();
+            if (checkIn.isBefore(today) || !checkOut.isAfter(checkIn) || checkOut.isAfter(today.plusDays(365))) {
                 redirect(request, response, errorTarget + "error=invalid-dates");
                 return;
             }
@@ -408,12 +400,10 @@ public class RoomServlet extends HttpServlet {
             }
         }
 
-        java.math.BigDecimal minPrice = parseNonNegativeDecimal(request.getParameter("min-price"));
-        java.math.BigDecimal maxPrice = parseNonNegativeDecimal(request.getParameter("max-price"));
-
-        if ((minPrice != null && minPrice.compareTo(java.math.BigDecimal.ZERO) < 0)
-                || (maxPrice != null && maxPrice.compareTo(java.math.BigDecimal.ZERO) < 0)
-                || (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0)) {
+        RoomPriceBand band;
+        try {
+            band = RoomPriceBand.parse(request.getParameter("price-band"));
+        } catch (IllegalArgumentException ex) {
             redirect(request, response, errorTarget + "error=invalid-filter");
             return;
         }
@@ -431,8 +421,7 @@ public class RoomServlet extends HttpServlet {
         session.setAttribute("checkOutDate", checkOut);
         session.setAttribute("guestCount", guestCount);
         session.setAttribute("searchRoomTypeId", roomTypeId);
-        session.setAttribute("searchMinPrice", minPrice);
-        session.setAttribute("searchMaxPrice", maxPrice);
+        session.setAttribute("searchPriceBand", band.name());
         session.setAttribute("searchSortBy", sortBy);
         session.removeAttribute("availableRooms"); // prevent stale results
 

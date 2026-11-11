@@ -74,7 +74,7 @@
                     <div class="mb-3">
                         <label for="pricePerNight" class="form-label fs-5 fw-semibold"><ui:text key="screen.bf193eab4a1aafb0"/></label>
                         <input type="number" class="form-control form-control-lg" id="pricePerNight" name="pricePerNight"
-                               value="${roomType.pricePerNight}" min="0" step="0.01" required />
+                               value="${roomType.pricePerNight}" min="0" step="1" required />
                     </div>
 
                     <!-- Beds -->

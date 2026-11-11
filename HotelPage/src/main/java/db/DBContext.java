@@ -20,7 +20,7 @@ public class DBContext {
 
     private final String DB_URL = "jdbc:sqlserver://127.0.0.1:1433;databaseName=HotelDB;encrypt=false";
     private final String DB_USER = "sa";
-    private final String DB_PWD = "123456";
+    private final String DB_PWD = "123";
 
     public DBContext() {
         try {
@@ -28,6 +28,11 @@ public class DBContext {
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(DBContext.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    private static String env(String key, String fallback) {
+        String value = System.getenv(key);
+        return value == null || value.trim().isEmpty() ? fallback : value.trim();
     }
 
     public Connection getConnection() throws SQLException {

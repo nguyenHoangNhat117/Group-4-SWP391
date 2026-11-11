@@ -1,0 +1,56 @@
+<c:if test="${firstPayment}">
+    <div class="mb-4">
+        <label for="payment-percent" class="form-label fw-semibold">Initial payment percentage</label>
+        <select id="payment-percent" name="payment-percent" class="form-select form-select-lg"
+                required ${selectedPercent != null ? 'disabled' : ''}>
+            <option value="10" ${selectedPercent == 10 || (selectedPercent == null && param['payment-percent'] == '10') ? 'selected' : ''}>10%</option>
+            <option value="20" ${selectedPercent == 20 || (selectedPercent == null && param['payment-percent'] == '20') ? 'selected' : ''}>20%</option>
+            <option value="100" ${selectedPercent == 100 || (selectedPercent == null && param['payment-percent'] == '100') ? 'selected' : ''}>100%</option>
+        </select>
+        <c:if test="${selectedPercent != null}">
+            <input type="hidden" name="payment-percent" value="${selectedPercent}">
+        </c:if>
+        <div class="form-text">${selectedPercent != null ? 'Payment percentage was selected during booking.' : 'This is the first payment for the booking.'}</div>
+    </div>
+</c:if>
+
+<c:if test="${!firstPayment}">
+    <div class="alert alert-info">
+        This payment will settle the full remaining balance of <strong>${remainingAmount} VND</strong>.
+    </div>
+</c:if>
+
+<div class="mb-4">
+    <label for="payment-method" class="form-label fw-semibold">Payment Method</label>
+    <select id="payment-method" name="payment-method" class="form-select form-select-lg" required>
+        <option value="">-- Select payment method --</option>
+        <option value="cash" ${param['payment-method'] == 'cash' ? 'selected' : ''}>Cash</option>
+        <option value="bank_transfer" ${param['payment-method'] == 'bank_transfer' ? 'selected' : ''}>Bank Transfer (payOS)</option>
+    </select>
+</div>
+
+<c:if test="${firstPayment}">
+    <div class="mb-4">
+        <label for="discount-code" class="form-label fw-semibold">Promotion Code <span class="text-muted">(optional)</span></label>
+        <input type="text" id="discount-code" name="discount-code" class="form-control form-control-lg"
+               maxlength="50" placeholder="Enter promotion code" value="<c:out value='${param["discount-code"]}'/>">
+    </div>
+
+    <c:if test="${not empty promotions}">
+        <div class="border rounded-3 p-3 mb-4">
+            <h6 class="fw-bold mb-3">Available Promotions</h6>
+            <c:forEach var="promotion" items="${promotions}">
+                <div class="mb-2">
+                    <strong><c:out value="${promotion.code}"/></strong> - ${promotion.saleOff}% off
+                    <c:if test="${promotion.minimumAmount != null}"> | Minimum: ${promotion.minimumAmount} VND</c:if>
+                    <c:if test="${promotion.maximumDiscount != null}"> | Maximum discount: ${promotion.maximumDiscount} VND</c:if>
+                </div>
+            </c:forEach>
+        </div>
+    </c:if>
+</c:if>
+
+<div class="alert alert-info">
+    The payable amount is calculated on the server.
+    A promotion code can only be used on the first payment.
+</div>
