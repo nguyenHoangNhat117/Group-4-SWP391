@@ -49,7 +49,7 @@ public final class OfflineBookingDraft implements Serializable {
         this.firstName = AuthSupport.text(firstName);
         this.lastName = AuthSupport.text(lastName);
         this.email = AuthSupport.text(email);
-        this.phone = AuthSupport.text(phone);
+        this.phone = AuthSupport.text(phone).replace(" ", "").replace("-", "").replace("(", "").replace(")", "");
         this.promotionCode = AuthSupport.text(promotionCode);
         this.specialRequest = AuthSupport.text(specialRequest);
 
@@ -78,11 +78,11 @@ public final class OfflineBookingDraft implements Serializable {
                 && (!validName(firstName)
                 || !validName(lastName)
                 || (lastName + " " + firstName).length() > 100
-                || !AuthSupport.validEmail(email)
-                || !AuthSupport.validPhone(phone))) {
+                || (!email.isEmpty() && !AuthSupport.validEmail(email))
+                || !validPhone(phone))) {
             throw new IllegalArgumentException(
-                    "Khách mới cần họ, tên hợp lệ, email hợp lệ "
-                    + "và điện thoại 10–11 chữ số."
+                    "Khách mới cần họ, tên hợp lệ, email hợp lệ (nếu nhập) "
+                    + "và điện thoại 7–15 chữ số (có thể bắt đầu bằng +)."
             );
         }
     }
@@ -97,15 +97,18 @@ public final class OfflineBookingDraft implements Serializable {
                 || to == null
                 || from.isBefore(today)
                 || !to.isAfter(from)
-                || to.getYear() > 9998
+                || to.isAfter(today.plusDays(730))
+                || java.time.temporal.ChronoUnit.DAYS.between(from,to)>365
                 || guests <= 0
                 || guests > 1000) {
             throw new IllegalArgumentException(
-                    "Ngày nhận phòng phải từ hôm nay; "
-                    + "ngày trả sau ngày nhận; "
-                    + "số khách từ 1 đến 1000."
+                    "Ngày nhận từ hôm nay và trong 730 ngày tới; lưu trú 1–365 đêm; số khách từ 1 đến 1000."
             );
         }
+    }
+
+    public static boolean validPhone(String value) {
+        return value != null && value.matches("[+]?[0-9]{7,15}");
     }
 
     private static boolean validName(String value) {

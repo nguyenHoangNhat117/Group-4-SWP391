@@ -243,7 +243,7 @@ public class CustomerServlet
                 );
 
         if (customer == null || customer.getUser() == null
-                || !"customer".equals(customer.getUser().getRole())) {
+                || (customer.getUser().getId() > 0 && !"customer".equals(customer.getUser().getRole()))) {
 
             response.sendError(
                     HttpServletResponse.SC_NOT_FOUND
@@ -349,7 +349,7 @@ public class CustomerServlet
                 );
 
         if (customer == null || customer.getUser() == null
-                || !"customer".equals(customer.getUser().getRole())) {
+                || (customer.getUser().getId() > 0 && !"customer".equals(customer.getUser().getRole()))) {
 
             response.sendRedirect(
                     request.getContextPath()
@@ -370,9 +370,10 @@ public class CustomerServlet
             String city = trimToNull(request.getParameter("city"));
             String street = trimToNull(request.getParameter("street"));
 
-            if (email == null
-                    || email.length() > 100
-                    || !email.contains("@")
+            boolean walkIn = customer.getUser().getId() == 0;
+            if ((!walkIn && email == null)
+                    || (email != null && !AuthSupport.validEmail(email))
+                    || (walkIn && (firstName == null || lastName == null || !model.OfflineBookingDraft.validPhone(phone)))
                     || tooLong(firstName, 50)
                     || tooLong(lastName, 50)
                     || tooLong(phone, 20)
@@ -402,6 +403,11 @@ public class CustomerServlet
                             ? "&message=info-updated"
                             : "&message=info-update-failed")
             );
+            return;
+        }
+
+        if (customer.getUser().getId() == 0) {
+            response.sendError(400,"Hồ sơ khách tại quầy chưa có tài khoản đăng nhập để đổi trạng thái.");
             return;
         }
 

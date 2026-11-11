@@ -74,7 +74,7 @@ public class PaymentDAO extends DBContext {
             String bookingSql
                     = "SELECT BookingID, CustomerID, TotalPrice, Status "
                     + "FROM Booking WITH (UPDLOCK, HOLDLOCK) "
-                    + "WHERE BookingID = ? AND CustomerID = ?";
+                    + "WHERE BookingID = ? AND CustomerID = ? AND CreatedByUserID IS NULL";
 
             BigDecimal bookingTotal;
             String bookingStatus;
@@ -327,7 +327,7 @@ public class PaymentDAO extends DBContext {
             try {
                 BigDecimal total;
                 String status;
-                try (PreparedStatement ps = conn.prepareStatement("SELECT TotalPrice, Status FROM Booking WITH (UPDLOCK,HOLDLOCK) WHERE BookingID=? AND CustomerID=?")) {
+                try (PreparedStatement ps = conn.prepareStatement("SELECT TotalPrice, Status FROM Booking WITH (UPDLOCK,HOLDLOCK) WHERE BookingID=? AND CustomerID=? AND CreatedByUserID IS NULL")) {
                     ps.setInt(1, bookingId);
                     ps.setInt(2, customerId);
                     try (ResultSet rs = ps.executeQuery()) {
@@ -1182,49 +1182,24 @@ public class PaymentDAO extends DBContext {
         return method.equals("cash");
     }
 
-    public String processCounterPayment(
-            int bookingId,
-            int staffId,
-            String paymentMethod,
-            int paymentPercent,
-            String paymentKey,
-            BigDecimal quotedPaid,
-            BigDecimal quotedTotal,
-            BigDecimal quotedPayable) {
+    public String processCounterPayment(int bookingId, int staffId, String paymentMethod,
+            int paymentPercent, String paymentKey, BigDecimal quotedPaid,
+            BigDecimal quotedTotal, BigDecimal quotedPayable) {
+        return processCounterPayment(bookingId,staffId,paymentMethod,paymentPercent,paymentKey,
+                quotedPaid,quotedTotal,quotedPayable,null);
+    }
 
-        // Validate payment method.
-        if (!"cash".equalsIgnoreCase(paymentMethod)
-                && !"bank_transfer".equalsIgnoreCase(paymentMethod)) {
-            return INVALID_METHOD;
-        }
-
-        // Validate payment percentage.
-        if (paymentPercent != 10
-                && paymentPercent != 20
-                && paymentPercent != 100) {
+    public String processCounterPayment(int bookingId, int staffId, String paymentMethod,
+            int paymentPercent, String paymentKey, BigDecimal quotedPaid,
+            BigDecimal quotedTotal, BigDecimal quotedPayable, String reference) {
+        try {
+            new OfflineOperationsDAO().pay(bookingId,staffId,paymentMethod,paymentPercent,paymentKey,
+                    quotedPaid,quotedTotal,quotedPayable,reference);
+            return PAYMENT_SUCCESS;
+        } catch (SQLException | IllegalArgumentException ex) {
+            java.util.logging.Logger.getLogger(PaymentDAO.class.getName()).log(
+                    java.util.logging.Level.WARNING,"Counter payment rejected",ex);
             return INVALID_COUNTER_PAYMENT;
         }
-
-        // Validate quote information.
-        if (bookingId <= 0
-                || staffId <= 0
-                || paymentKey == null
-                || paymentKey.trim().isEmpty()
-                || quotedPaid == null
-                || quotedTotal == null
-                || quotedPayable == null) {
-            return INVALID_COUNTER_PAYMENT;
-        }
-
-        /*
-     * IMPORTANT:
-     * This method must execute the counter-payment transaction
-     * using the same database connection and transaction rules
-     * as the existing PaymentDAO methods.
-     *
-     * Do not call processPayment() here because that method
-     * handles customer-owned bookings.
-         */
-        return INVALID_COUNTER_PAYMENT;
     }
 }

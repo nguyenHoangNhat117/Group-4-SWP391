@@ -55,7 +55,7 @@ public class BookingDAO extends DBContext {
                 + "FROM Booking b "
                 + "JOIN Customer c "
                 + "ON b.CustomerID = c.CustomerID "
-                + "JOIN [User] u "
+                + "LEFT JOIN [User] u "
                 + "ON c.UserID = u.UserID "
                 + "ORDER BY b.BookingDate DESC, b.BookingID DESC";
 
@@ -649,7 +649,7 @@ public class BookingDAO extends DBContext {
                 + "FROM Booking b "
                 + "JOIN Customer c "
                 + "ON b.CustomerID = c.CustomerID "
-                + "JOIN [User] u "
+                + "LEFT JOIN [User] u "
                 + "ON c.UserID = u.UserID "
                 + "WHERE b.BookingID = ?";
 
@@ -909,6 +909,10 @@ public class BookingDAO extends DBContext {
     }
 
     private boolean cancelBookingInternal(int bookingId, Integer customerId, String reason, boolean noShow) {
+        try (Connection c=getConnection(); PreparedStatement ps=c.prepareStatement("SELECT CreatedByUserID FROM Booking WHERE BookingID=?")) {
+            ps.setInt(1,bookingId);
+            try(ResultSet rs=ps.executeQuery()) { if(rs.next() && rs.getObject(1)!=null) return false; }
+        } catch(SQLException ex) { return false; }
         String lockSql = "SELECT Status, OnlineDepositPolicy, TotalPrice, CustomerID FROM Booking WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE BookingID = ?" + (customerId == null ? "" : " AND CustomerID = ?");
         String checkSql = "SELECT MIN(CheckInDate) AS FirstCheckIn FROM BookingDetail WHERE BookingID = ?";
@@ -1220,6 +1224,11 @@ public class BookingDAO extends DBContext {
             int bookingId,
             String newStatus) {
 
+        try (Connection c=getConnection(); PreparedStatement ps=c.prepareStatement("SELECT CreatedByUserID FROM Booking WHERE BookingID=?")) {
+            ps.setInt(1,bookingId);
+            try(ResultSet rs=ps.executeQuery()) { if(rs.next() && rs.getObject(1)!=null) return false; }
+        } catch(SQLException ex) { return false; }
+
         /*
          * These are the statuses defined by HotelDB.
          */
@@ -1305,7 +1314,7 @@ public class BookingDAO extends DBContext {
                 = "UPDATE Booking "
                 + "SET Status = 'confirmed' "
                 + "WHERE BookingID = ? "
-                + "AND Status = 'pending'";
+                + "AND Status = 'pending' AND CreatedByUserID IS NULL";
 
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
@@ -1343,6 +1352,7 @@ public class BookingDAO extends DBContext {
                 + "CancellationReason = "
                 + "'Expired pending booking' "
                 + "WHERE Status = 'pending' "
+                + "AND CreatedByUserID IS NULL "
                 + "AND BookingDate < "
                 + "DATEADD(MINUTE, -30, "
                 + "SYSDATETIME())";
@@ -1517,7 +1527,7 @@ public class BookingDAO extends DBContext {
                 + "FROM Booking b "
                 + "JOIN Customer c "
                 + "ON c.CustomerID = b.CustomerID "
-                + "JOIN [User] u "
+                + "LEFT JOIN [User] u "
                 + "ON u.UserID = c.UserID "
                 + "WHERE 1 = 1 "
         );
@@ -1774,7 +1784,7 @@ public class BookingDAO extends DBContext {
                 + "FROM Booking b "
                 + "JOIN Customer c "
                 + "ON c.CustomerID = b.CustomerID "
-                + "JOIN [User] u "
+                + "LEFT JOIN [User] u "
                 + "ON u.UserID = c.UserID "
                 + "WHERE 1 = 1 "
         );
