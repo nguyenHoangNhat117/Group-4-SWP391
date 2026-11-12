@@ -6,15 +6,28 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Room;
 import model.RoomType;
+import util.ReportPeriod;
 
 public class RoomDAO extends DBContext {
+
+    public static final int CHANGE_BLOCKED_BY_BOOKING = -1;
+    public static final int MAX_CREATE_QUANTITY = 50;
+    private static final String ADMIN_ROOM_FILTER = " WHERE (? IS NULL OR r.RoomTypeID = ?)"
+            + " AND (? IS NULL OR r.RoomNumber = ?) ";
+    private static final String NO_ACTIVE_BOOKING = "NOT EXISTS ("
+            + "SELECT 1 FROM BookingDetail bd WITH (HOLDLOCK) "
+            + "JOIN Booking b WITH (HOLDLOCK) ON b.BookingID = bd.BookingID "
+            + "WHERE bd.RoomNumber = r.RoomNumber AND (b.Status = 'checked_in' "
+            + "OR (b.Status IN ('pending', 'confirmed') AND bd.CheckOutDate > ?)))";
 
     private static final String SEARCH_INVENTORY = " FROM Room r "
             + "JOIN RoomType rt ON rt.RoomTypeID=r.RoomTypeID "
@@ -152,32 +165,23 @@ public class RoomDAO extends DBContext {
      * Used by Admin Room Management.
      * =========================================================
      */
-    public int getTotalPages() {
-
-        String sql
-                = "SELECT COUNT(*) AS TotalRooms "
-                + "FROM Room";
-
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
-
-            if (rs.next()) {
-
-                int totalRooms
-                        = rs.getInt("TotalRooms");
-
-                return (int) Math.ceil(
-                        totalRooms * 1.0 / PAGE_SIZE
-                );
+    public int getTotalPages(Integer roomTypeId, Integer roomNumber) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Room r" + ADMIN_ROOM_FILTER;
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindAdminRoomFilter(ps, roomTypeId, roomNumber);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return (int) Math.ceil(rs.getInt(1) / (double) PAGE_SIZE);
             }
-
-        } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    RoomDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
         }
+    }
 
-        return 0;
+    private void bindAdminRoomFilter(PreparedStatement ps, Integer roomTypeId, Integer roomNumber)
+            throws SQLException {
+        ps.setObject(1, roomTypeId, Types.INTEGER);
+        ps.setObject(2, roomTypeId, Types.INTEGER);
+        ps.setObject(3, roomNumber, Types.INTEGER);
+        ps.setObject(4, roomNumber, Types.INTEGER);
     }
 
     /*
@@ -233,7 +237,7 @@ public class RoomDAO extends DBContext {
      * Admin management.
      * =========================================================
      */
-    public List<Room> getPage(int index) {
+    public List<Room> getPage(int index, Integer roomTypeId, Integer roomNumber) throws SQLException {
 
         List<Room> rooms
                 = new ArrayList<>();
@@ -256,6 +260,7 @@ public class RoomDAO extends DBContext {
                 + "FROM Room r "
                 + "JOIN RoomType rt "
                 + "ON rt.RoomTypeID = r.RoomTypeID "
+                + ADMIN_ROOM_FILTER
                 + "ORDER BY r.RoomNumber "
                 + "OFFSET ? ROWS "
                 + "FETCH NEXT ? ROWS ONLY";
@@ -263,15 +268,9 @@ public class RoomDAO extends DBContext {
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
 
-            ps.setInt(
-                    1,
-                    (index - 1) * PAGE_SIZE
-            );
-
-            ps.setInt(
-                    2,
-                    PAGE_SIZE
-            );
+            bindAdminRoomFilter(ps, roomTypeId, roomNumber);
+            ps.setInt(5, (index - 1) * PAGE_SIZE);
+            ps.setInt(6, PAGE_SIZE);
 
             try (ResultSet rs
                     = ps.executeQuery()) {
@@ -284,11 +283,6 @@ public class RoomDAO extends DBContext {
                 }
             }
 
-        } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    RoomDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
         }
 
         return rooms;
@@ -836,62 +830,42 @@ public class RoomDAO extends DBContext {
      * Therefore Admin should NOT manually supply
      * RoomNumber when creating a room.
      *
-     * Method returns generated RoomNumber.
-     * Returns -1 if creation fails.
+     * Returns the generated room numbers after the entire group commits.
      * =========================================================
      */
-    public int create(
-            String status,
-            int roomTypeId) {
-
-        if (!isValidRoomStatus(status)) {
-            return -1;
+    public List<Integer> create(String status, int roomTypeId, int quantity) {
+        if (!isValidRoomStatus(status) || quantity < 1 || quantity > MAX_CREATE_QUANTITY) {
+            return Collections.emptyList();
         }
 
-        String sql
-                = "INSERT INTO Room "
-                + "(RoomTypeID, Status) "
-                + "VALUES (?, ?)";
-
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(
-                        sql,
-                        Statement.RETURN_GENERATED_KEYS
-                )) {
-
-            ps.setInt(
-                    1,
-                    roomTypeId
-            );
-
-            ps.setString(
-                    2,
-                    status
-            );
-
-            int affectedRows
-                    = ps.executeUpdate();
-
-            if (affectedRows == 0) {
-                return -1;
-            }
-
-            try (ResultSet rs
-                    = ps.getGeneratedKeys()) {
-
-                if (rs.next()) {
-                    return rs.getInt(1);
+        String sql = "INSERT INTO Room (RoomTypeID, Status) VALUES (?, ?)";
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setInt(1, roomTypeId);
+                ps.setString(2, status);
+                List<Integer> roomNumbers = new ArrayList<>(quantity);
+                for (int i = 0; i < quantity; i++) {
+                    if (ps.executeUpdate() != 1) {
+                        throw new SQLException("Room insert did not create one row");
+                    }
+                    try (ResultSet keys = ps.getGeneratedKeys()) {
+                        if (!keys.next()) {
+                            throw new SQLException("Missing generated room number");
+                        }
+                        roomNumbers.add(keys.getInt(1));
+                    }
                 }
+                conn.commit();
+                return roomNumbers;
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
             }
-
         } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    RoomDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, "Room creation failed", ex);
+            return Collections.emptyList();
         }
-
-        return -1;
     }
 
     /*
@@ -911,32 +885,19 @@ public class RoomDAO extends DBContext {
             return 0;
         }
 
-        String sql
-                = "UPDATE Room "
-                + "SET "
-                + "RoomTypeID = ?, "
-                + "Status = ? "
-                + "WHERE RoomNumber = ?";
+        String sql = "UPDATE r SET RoomTypeID = ?, Status = ? FROM Room r WITH (UPDLOCK, HOLDLOCK) "
+                + "WHERE r.RoomNumber = ? AND ((r.RoomTypeID = ? AND (r.Status = ? OR ? = 'available')) "
+                + "OR " + NO_ACTIVE_BOOKING + ")";
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
-            ps.setInt(
-                    1,
-                    roomTypeId
-            );
-
-            ps.setString(
-                    2,
-                    status
-            );
-
-            ps.setInt(
-                    3,
-                    roomNumber
-            );
-
-            return ps.executeUpdate();
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roomTypeId);
+            ps.setString(2, status);
+            ps.setInt(3, roomNumber);
+            ps.setInt(4, roomTypeId);
+            ps.setString(5, status);
+            ps.setString(6, status);
+            ps.setObject(7, ReportPeriod.today());
+            return ps.executeUpdate() == 1 ? 1 : CHANGE_BLOCKED_BY_BOOKING;
 
         } catch (SQLException ex) {
 
@@ -1055,20 +1016,14 @@ public class RoomDAO extends DBContext {
     public int setRoomOutOfService(
             int roomNumber) {
 
-        String sql
-                = "UPDATE Room "
-                + "SET Status = 'out_of_service' "
-                + "WHERE RoomNumber = ?";
+        String sql = "UPDATE r SET Status = 'out_of_service' FROM Room r WITH (UPDLOCK, HOLDLOCK) "
+                + "WHERE r.RoomNumber = ? AND " + NO_ACTIVE_BOOKING;
 
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
-
-            ps.setInt(
-                    1,
-                    roomNumber
-            );
-
-            return ps.executeUpdate();
+            ps.setInt(1, roomNumber);
+            ps.setObject(2, ReportPeriod.today());
+            return ps.executeUpdate() == 1 ? 1 : CHANGE_BLOCKED_BY_BOOKING;
 
         } catch (SQLException ex) {
 

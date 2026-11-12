@@ -44,6 +44,11 @@
                 <!-- Error Messages -->
                 <c:choose>
 
+                    <c:when test="${param.error == 'active-booking'}">
+                        <p class="alert alert-danger text-center" role="alert">
+                            <ui:text key="room.update.activeBooking"/>
+                        </p>
+                    </c:when>
                     <c:when test="${param.error == 'missing-params'}">
 
                         <p class="alert alert-danger text-center">

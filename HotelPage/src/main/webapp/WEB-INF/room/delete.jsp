@@ -25,6 +25,11 @@
                 <div class="shadow rounded-4 bg-white p-5 w-50">
                     <form action="./room?action=delete" method="post" class="text-center">
                         <h2 class="mb-4"><ui:text key="screen.8cb609b89ee35b6f"/></h2>
+                        <c:if test="${param.error == 'active-booking'}">
+                            <p class="alert alert-danger" role="alert">
+                                <ui:text key="room.delete.activeBooking"/>
+                            </p>
+                        </c:if>
                         <p class="fs-5 mb-4">
                             <ui:text key="screen.a3eb9e3d9b982ad1"/> <strong>${param.roomNumber}</strong>?
                         </p>

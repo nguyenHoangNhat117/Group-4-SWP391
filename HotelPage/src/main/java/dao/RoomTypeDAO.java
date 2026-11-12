@@ -94,78 +94,102 @@ public class RoomTypeDAO extends DBContext {
         return roomTypes;
     }
 
-    /**
-     * Inserts a new RoomType record into the database and returns the generated ID.
-     *
-     * @param roomType RoomType object containing data to be inserted
-     * @return The ID of the newly created room type, or 0 if failed.
-     */
-    public int createRoomType(RoomType roomType) {
-        String query = "INSERT INTO RoomType (Name, Description, PricePerNight, Beds, Capacity, Picture) VALUES (?, ?, ?, ?, ?, ?)";
+    public boolean saveRoomType(RoomType roomType, String[] selectedAmenities) {
+        Set<Integer> amenityIds = new LinkedHashSet<>();
         try {
-            // Chú ý: Dùng Statement.RETURN_GENERATED_KEYS để lấy ID
-            PreparedStatement pstatement = this.getConnection().prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-            pstatement.setString(1, roomType.getName());
-            pstatement.setString(2, roomType.getDescription());
-            pstatement.setBigDecimal(3, roomType.getPricePerNight());
-            pstatement.setInt(4, roomType.getBeds());
-            pstatement.setInt(5, roomType.getCapacity());
-            pstatement.setString(6, roomType.getPicture());
+            if (selectedAmenities != null) {
+                for (String selectedAmenity : selectedAmenities) {
+                    amenityIds.add(Integer.parseInt(selectedAmenity));
+                }
+            }
+        } catch (NumberFormatException ex) {
+            return false;
+        }
 
-            int affectedRows = pstatement.executeUpdate();
-
-            if (affectedRows > 0) {
-                try (ResultSet rs = pstatement.getGeneratedKeys()) {
-                    if (rs.next()) {
-                        return rs.getInt(1); // Trả về ID vừa tạo
+        int id = roomType.getId();
+        boolean creating = id == 0;
+        String sql = creating
+                ? "INSERT INTO RoomType (Name, Description, PricePerNight, Beds, Capacity, Picture) VALUES (?, ?, ?, ?, ?, ?)"
+                : "UPDATE RoomType SET Name=?, Description=?, PricePerNight=?, Beds=?, Capacity=?, "
+                + "Picture=COALESCE(?, Picture) WHERE RoomTypeID=?";
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement save = conn.prepareStatement(sql,
+                    creating ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS)) {
+                save.setString(1, roomType.getName());
+                save.setString(2, roomType.getDescription());
+                save.setBigDecimal(3, roomType.getPricePerNight());
+                save.setInt(4, roomType.getBeds());
+                save.setInt(5, roomType.getCapacity());
+                save.setString(6, roomType.getPicture());
+                if (!creating) {
+                    save.setInt(7, id);
+                }
+                if (save.executeUpdate() != 1) {
+                    conn.rollback();
+                    return false;
+                }
+                if (creating) {
+                    try (ResultSet keys = save.getGeneratedKeys()) {
+                        if (!keys.next()) {
+                            throw new SQLException("Missing generated room type ID");
+                        }
+                        id = keys.getInt(1);
                     }
                 }
+                AmenityDAO.replaceRoomTypeAmenities(conn, id, amenityIds);
+                conn.commit();
+                return true;
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
             }
         } catch (SQLException ex) {
             Logger.getLogger(RoomTypeDAO.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
         }
-        return 0; // Trả về 0 nếu thất bại
     }
 
-    /**
-     * Updates an existing RoomType record.
-     *
-     * @param id RoomType ID to update
-     * @param name new name
-     * @param description new description
-     * @param pricePerNight new price
-     * @param beds number of beds
-     * @param capacity capacity
-     * @param picture new image URL/path
-     * @return number of affected rows
-     */
-    public int updateRoomType(int id, String name, String description, BigDecimal pricePerNight, int beds, int capacity, String picture) {
-        try {
-            String query = "UPDATE RoomType SET Name = ?, Description = ?, PricePerNight = ?, Beds = ?, Capacity = ?, Picture = ? WHERE RoomTypeID = ?";
-            Object[] params = {name, description, pricePerNight, beds, capacity, picture, id};
-            return this.executeQuery(query, params);
-        } catch (SQLException ex) {
-            Logger.getLogger(RoomTypeDAO.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return 0;
+    public enum DeleteResult {
+        DELETED, IN_USE, NOT_FOUND, FAILED
     }
 
-    /**
-     * Deletes a RoomType by its ID.
-     *
-     * @param id RoomType ID to delete
-     * @return true if deleted successfully, false otherwise
-     */
-    public boolean deleteRoomType(int id) {
-        try {
-            String query = "DELETE FROM RoomType WHERE RoomTypeID = ?";
-            Object[] params = {id};
-            int rowsAffected = this.executeQuery(query, params);
-            return rowsAffected > 0;
+    public DeleteResult deleteRoomType(int id) {
+        String lockSql = "SELECT RoomTypeID FROM RoomType WITH (XLOCK, HOLDLOCK) WHERE RoomTypeID=?";
+        String deleteSql = "DELETE FROM RoomType WHERE RoomTypeID=?";
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement lock = conn.prepareStatement(lockSql);
+                    PreparedStatement delete = conn.prepareStatement(deleteSql)) {
+                lock.setInt(1, id);
+                try (ResultSet roomType = lock.executeQuery()) {
+                    if (!roomType.next()) {
+                        conn.rollback();
+                        return DeleteResult.NOT_FOUND;
+                    }
+                }
+                AmenityDAO.replaceRoomTypeAmenities(conn, id, Collections.emptySet());
+                delete.setInt(1, id);
+                try {
+                    delete.executeUpdate();
+                } catch (SQLException ex) {
+                    // SQL Server rejects deletion when a Room still references this type.
+                    if (ex.getErrorCode() == 547) {
+                        conn.rollback();
+                        return DeleteResult.IN_USE;
+                    }
+                    throw ex;
+                }
+                conn.commit();
+                return DeleteResult.DELETED;
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            }
         } catch (SQLException ex) {
             Logger.getLogger(RoomTypeDAO.class.getName()).log(Level.SEVERE, null, ex);
+            return DeleteResult.FAILED;
         }
-        return false;
     }
 
     /**

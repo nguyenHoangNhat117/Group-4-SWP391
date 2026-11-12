@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import model.Room;
@@ -25,6 +26,7 @@ import model.User;
 public class RoomServlet extends HttpServlet {
 
     private static final int PAGE_SIZE = 6;
+    private static final String CREATED_ROOMS = "roomManagement.createdRooms";
     private static final DateTimeFormatter DATE_FORMAT
             = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
 
@@ -43,6 +45,13 @@ public class RoomServlet extends HttpServlet {
         // code used roomTypes. Supply both until the JSPs are standardized.
         request.setAttribute("categorys", types);
         request.setAttribute("roomTypes", types);
+    }
+
+    private void showCreateForm(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        showRoomTypes(request);
+        request.setAttribute("maxQuantity", RoomDAO.MAX_CREATE_QUANTITY);
+        request.getRequestDispatcher("/WEB-INF/room/create.jsp").forward(request, response);
     }
 
     private Integer positiveInt(String value) {
@@ -93,9 +102,7 @@ public class RoomServlet extends HttpServlet {
         RoomDAO roomDAO = new RoomDAO();
         switch (view) {
             case "create":
-                showRoomTypes(request);
-                request.getRequestDispatcher("/WEB-INF/room/create.jsp")
-                        .forward(request, response);
+                showCreateForm(request, response);
                 return;
             case "update": {
                 Integer roomNumber = positiveInt(request.getParameter("roomNumber"));
@@ -162,31 +169,7 @@ public class RoomServlet extends HttpServlet {
         boolean admin = user != null && "admin".equalsIgnoreCase(user.getRole());
 
         if (admin) {
-            int totalRooms = roomDAO.getAll().size();
-            int totalPages = (totalRooms + PAGE_SIZE - 1) / PAGE_SIZE;
-            int page = 1;
-            Integer parsedPage = positiveInt(request.getParameter("page-index"));
-            if (parsedPage != null) {
-                page = parsedPage;
-            }
-            if (totalPages > 0 && page > totalPages) {
-                page = totalPages;
-            }
-
-            List<Room> rooms = totalRooms == 0
-                    ? java.util.Collections.emptyList()
-                    : roomDAO.getPage(page);
-
-            request.setAttribute("rooms", rooms);
-            request.setAttribute("totalPages", totalPages);
-            request.setAttribute("pageIndex", page);
-
-            if (request.getParameter("page-index") == null && totalPages > 0) {
-                redirect(request, response, "/room?page-index=1");
-                return;
-            }
-            request.getRequestDispatcher("/WEB-INF/room/room.jsp")
-                    .forward(request, response);
+            showAdminList(request, response, session, roomDAO);
             return;
         }
 
@@ -238,6 +221,44 @@ public class RoomServlet extends HttpServlet {
                 .forward(request, response);
     }
 
+    private void showAdminList(HttpServletRequest request, HttpServletResponse response,
+            HttpSession session, RoomDAO roomDAO) throws ServletException, IOException {
+        String roomNumberInput = request.getParameter("room-number");
+        Integer roomNumber = positiveInt(roomNumberInput == null ? null : roomNumberInput.strip());
+        Integer roomTypeId = positiveInt(request.getParameter("room-type-id"));
+        boolean invalidRoomNumber = roomNumber == null
+                && roomNumberInput != null && !roomNumberInput.isBlank();
+
+        Integer requestedPage = positiveInt(request.getParameter("page-index"));
+        int totalPages = 0;
+        int page = 1;
+        List<Room> rooms = Collections.emptyList();
+        try {
+            if (!invalidRoomNumber) {
+                totalPages = roomDAO.getTotalPages(roomTypeId, roomNumber);
+                if (totalPages > 0) {
+                    page = requestedPage == null ? 1 : Math.min(requestedPage, totalPages);
+                    rooms = roomDAO.getPage(page, roomTypeId, roomNumber);
+                }
+            }
+        } catch (SQLException ex) {
+            throw new ServletException("Could not load the room management list", ex);
+        }
+
+        showRoomTypes(request);
+        request.setAttribute("adminRoomTypeId", roomTypeId);
+        request.setAttribute("adminRoomNumber", roomNumber);
+        request.setAttribute("invalidRoomNumber", invalidRoomNumber);
+        request.setAttribute("rooms", rooms);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("pageIndex", page);
+        synchronized (session) {
+            request.setAttribute("createdRooms", session.getAttribute(CREATED_ROOMS));
+            session.removeAttribute(CREATED_ROOMS);
+        }
+        request.getRequestDispatcher("/WEB-INF/room/room.jsp").forward(request, response);
+    }
+
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -267,18 +288,30 @@ public class RoomServlet extends HttpServlet {
             case "create": {
                 String status = request.getParameter("status");
                 Integer roomTypeId = positiveInt(request.getParameter("room-type-id"));
-                if (!isValidStatus(status) || roomTypeId == null
-                        || new RoomTypeDAO().getRoomTypeById(roomTypeId) == null) {
-                    redirect(request, response, "/room?view=create&error=missing-params");
-                    return;
+                String quantityInput = request.getParameter("quantity");
+                Integer quantity = positiveInt(quantityInput == null ? "1" : quantityInput.strip());
+                String error;
+                if (quantity == null || quantity > RoomDAO.MAX_CREATE_QUANTITY) {
+                    error = "invalid-quantity";
+                } else if (!isValidStatus(status)) {
+                    error = "invalid-status";
+                } else if (roomTypeId == null || new RoomTypeDAO().getRoomTypeById(roomTypeId) == null) {
+                    error = "invalid-room-type";
+                } else {
+                    List<Integer> roomNumbers = roomDAO.create(status, roomTypeId, quantity);
+                    if (!roomNumbers.isEmpty()) {
+                        synchronized (session) {
+                            session.setAttribute(CREATED_ROOMS, roomNumbers);
+                        }
+                        response.setStatus(HttpServletResponse.SC_SEE_OTHER);
+                        response.setHeader("Location", request.getContextPath() + "/room");
+                        return;
+                    }
+                    error = "create-failed";
                 }
-                // HotelDB.RoomNumber is IDENTITY; do not take room-number from form.
-                int generatedNumber = roomDAO.create(status, roomTypeId);
-                if (generatedNumber <= 0) {
-                    redirect(request, response, "/room?view=create&error=create-failed");
-                    return;
-                }
-                redirect(request, response, "/room?page-index=1");
+                request.setAttribute("createError", error);
+                request.setAttribute("selectedRoomTypeId", roomTypeId);
+                showCreateForm(request, response);
                 return;
             }
             case "update": {
@@ -296,8 +329,10 @@ public class RoomServlet extends HttpServlet {
                 }
                 int changed = roomDAO.update(roomNumber, status, roomTypeId);
                 if (changed <= 0) {
+                    String error = changed == RoomDAO.CHANGE_BLOCKED_BY_BOOKING
+                            ? "active-booking" : "update-failed";
                     redirect(request, response, "/room?view=update&roomNumber="
-                            + roomNumber + "&error=update-failed");
+                            + roomNumber + "&error=" + error);
                     return;
                 }
                 redirect(request, response, "/room?page-index=1");
@@ -311,6 +346,11 @@ public class RoomServlet extends HttpServlet {
                     return;
                 }
                 int changed = roomDAO.delete(roomNumber);
+                if (changed == RoomDAO.CHANGE_BLOCKED_BY_BOOKING) {
+                    redirect(request, response, "/room?view=delete&roomNumber="
+                            + roomNumber + "&error=active-booking");
+                    return;
+                }
                 if (changed <= 0) {
                     response.sendError(HttpServletResponse.SC_CONFLICT,
                             "Room removal failed; check booking history or database constraints.");

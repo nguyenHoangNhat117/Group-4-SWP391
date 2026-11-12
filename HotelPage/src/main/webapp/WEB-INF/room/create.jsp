@@ -39,25 +39,25 @@
                 <!-- Error Messages -->
                 <c:choose>
 
-                    <c:when test="${param.error == 'missing-params'}">
-                        <p class="alert alert-danger text-center">
-                            <ui:text key="screen.9eca9b88d5fc8dff"/>
+                    <c:when test="${createError == 'invalid-quantity'}">
+                        <p class="alert alert-danger text-center" role="alert">
+                            <ui:text key="room.admin.quantity.invalid"/>
                         </p>
                     </c:when>
 
-                    <c:when test="${param.error == 'invalid-status'}">
+                    <c:when test="${createError == 'invalid-status'}">
                         <p class="alert alert-danger text-center">
                             <ui:text key="screen.3e84be96fde86c7f"/>
                         </p>
                     </c:when>
 
-                    <c:when test="${param.error == 'invalid-room-type'}">
+                    <c:when test="${createError == 'invalid-room-type'}">
                         <p class="alert alert-danger text-center">
                             <ui:text key="screen.cb5b07a14e46aec9"/>
                         </p>
                     </c:when>
 
-                    <c:when test="${param.error == 'create-failed'}">
+                    <c:when test="${createError == 'create-failed'}">
                         <p class="alert alert-danger text-center">
                             <ui:text key="screen.ee26f12320833edd"/>
                         </p>
@@ -70,6 +70,7 @@
                            bg-white p-5 w-50">
 
                     <form
+                        id="create-rooms-form"
                         action="${pageContext.request.contextPath}/room?action=create"
                         method="post"
                         class="d-flex flex-column">
@@ -104,15 +105,15 @@
                                 class="form-select form-select-lg"
                                 required>
 
-                                <option value="available" data-i18n="screen.e674447337e83c13">
+                                <option value="available" ${param.status == 'available' ? 'selected' : ''} data-i18n="screen.e674447337e83c13">
                                     ${requestScope.i18n['screen.e674447337e83c13']}
                                 </option>
 
-                                <option value="maintenance" data-i18n="screen.17ccfa5b681e3e7b">
+                                <option value="maintenance" ${param.status == 'maintenance' ? 'selected' : ''} data-i18n="screen.17ccfa5b681e3e7b">
                                     ${requestScope.i18n['screen.17ccfa5b681e3e7b']}
                                 </option>
 
-                                <option value="out_of_service" data-i18n="screen.3cd4b662003a9db7">
+                                <option value="out_of_service" ${param.status == 'out_of_service' ? 'selected' : ''} data-i18n="screen.3cd4b662003a9db7">
                                     ${requestScope.i18n['screen.3cd4b662003a9db7']}
                                 </option>
 
@@ -141,11 +142,11 @@
                                     var="category"
                                     items="${requestScope.categorys}">
 
-                                    <option value="${category.id}">
+                                    <option value="${category.id}" ${category.id == selectedRoomTypeId ? 'selected' : ''}>
 
                                         ${category.id}
                                         -
-                                        ${category.name}
+                                        <c:out value="${category.name}"/>
 
                                     </option>
 
@@ -155,15 +156,28 @@
 
                         </div>
 
+                        <div class="mb-4">
+                            <label for="room-quantity" class="form-label fs-5 fw-semibold">
+                                <ui:text key="room.admin.quantity"/>
+                            </label>
+                            <input id="room-quantity" name="quantity" class="form-control form-control-lg"
+                                   type="number" min="1" max="${maxQuantity}" step="1" required
+                                   aria-describedby="room-quantity-help"
+                                   value="<c:out value='${param.quantity}' default='1'/>">
+                            <div id="room-quantity-help" class="form-text"><ui:text key="room.admin.quantity.help"/></div>
+                        </div>
+
                         <!-- Submit -->
                         <div class="text-end">
 
                             <button
+                                id="create-rooms-submit"
                                 type="submit"
                                 class="btn btn-primary
                                        fs-5 px-4 rounded-3">
 
-                                <ui:text key="screen.4759498ac2a719c6"/>
+                                <span id="create-rooms-submit-label"><ui:text key="screen.4759498ac2a719c6"/></span>
+                                <span id="create-rooms-pending-label" hidden><ui:text key="room.admin.creating"/></span>
 
                             </button>
 
@@ -181,6 +195,28 @@
 
         <script
             src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js">
+        </script>
+        <script>
+            const createRoomsForm = document.getElementById('create-rooms-form');
+            const createRoomsButton = document.getElementById('create-rooms-submit');
+            const createRoomsLabel = document.getElementById('create-rooms-submit-label');
+            const createRoomsPendingLabel = document.getElementById('create-rooms-pending-label');
+
+            createRoomsForm.addEventListener('submit', (event) => {
+                if (createRoomsButton.disabled) {
+                    event.preventDefault();
+                    return;
+                }
+                createRoomsButton.disabled = true;
+                createRoomsLabel.hidden = true;
+                createRoomsPendingLabel.hidden = false;
+            });
+
+            window.addEventListener('pageshow', () => {
+                createRoomsButton.disabled = false;
+                createRoomsLabel.hidden = false;
+                createRoomsPendingLabel.hidden = true;
+            });
         </script>
 
     </body>
