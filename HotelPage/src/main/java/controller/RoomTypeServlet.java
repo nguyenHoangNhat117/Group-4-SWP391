@@ -10,14 +10,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.RoomType;
 import model.User;
-import util.FileUploadUtil;
 
 @WebServlet(name = "RoomTypeServlet", urlPatterns = {"/room-type"})
 @MultipartConfig(
@@ -130,20 +132,25 @@ public class RoomTypeServlet extends HttpServlet {
                         return;
                     }
 
-                    int id = Integer.parseInt(
-                            request.getParameter("id").trim()
-                    );
+                    int id;
+                    try {
+                        id = Integer.parseInt(request.getParameter("id").trim());
+                    } catch (NumberFormatException ex) {
+                        response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                        return;
+                    }
 
                     RoomType rt = rtDAO.getRoomTypeById(id);
-                    String imgPath = rt.getPicture();
-
+                    if (rt == null) {
+                        response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                        return;
+                    }
                     dao.AmenityDAO aDao = new dao.AmenityDAO();
                     request.setAttribute("allAmenities", aDao.getAllAmenities());
                     request.setAttribute("roomAmenities", aDao.getAmenitiesByRoomTypeId(id));
                     request.setAttribute("roomType", rt);
                     session.setAttribute("updateRoomTypeId", id);
                     session.setAttribute("updateName", rt.getName());
-                    session.setAttribute("updateImgPath", imgPath);
 
                     request.getRequestDispatcher("/WEB-INF/roomType/update.jsp").forward(request, response);
                     break;
@@ -251,46 +258,28 @@ public class RoomTypeServlet extends HttpServlet {
                         return;
                     }
 
-                    File folder = new File(
-                            FileUploadUtil.UPLOAD_LOCATION + "/roomType"
-                    );
-
-                    if (!folder.exists()) {
-                        folder.mkdirs();
-                    }
-
-                    String imgFileName = imgPart.getSubmittedFileName();
-                    File outFile = new File(folder, imgFileName);
-                    FileUploadUtil.uploadFile(imgPart, outFile);
-
-                    RoomType roomType = new RoomType();
-                    roomType.setName(name);
-                    roomType.setDescription(description);
-                    roomType.setPricePerNight(pricePerNight);
-                    roomType.setBeds(beds);
-                    roomType.setCapacity(capacity);
-                    roomType.setPicture("roomType/" + imgFileName);
-
-                    // THAY ĐỔI Ở ĐÂY: Lưu roomType và lấy ID trả về
-                    int newRoomTypeId = rtDAO.createRoomType(roomType);
-                    
-                    // NẾU TẠO THÀNH CÔNG, LƯU KÈM AMENITIES
-                    if (newRoomTypeId > 0) {
-                        String[] selectedAmenities = request.getParameterValues("amenities");
-                        new dao.AmenityDAO().updateAmenitiesForRoomType(newRoomTypeId, selectedAmenities);
+                    RoomType roomType = new RoomType(0, name, description, pricePerNight, beds, capacity);
+                    if (!saveRoomType(rtDAO, roomType, imgPart, request.getParameterValues("amenities"))) {
+                        response.sendRedirect("./room-type?view=create&error=save-failed");
+                        return;
                     }
                     break;
                 }
 
                 case "delete": {
-                    int id = Integer.parseInt(
-                            request.getParameter("id")
-                    );
-                    
-                    // THAY ĐỔI Ở ĐÂY: Tránh lỗi khóa ngoại, ta xóa data bên bảng trung gian trước khi xóa RoomType
-                    new dao.AmenityDAO().updateAmenitiesForRoomType(id, null); 
-                    
-                    rtDAO.deleteRoomType(id);
+                    int id;
+                    try {
+                        id = Integer.parseInt(request.getParameter("id"));
+                    } catch (NumberFormatException ex) {
+                        response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                        return;
+                    }
+                    RoomTypeDAO.DeleteResult result = rtDAO.deleteRoomType(id);
+                    if (result != RoomTypeDAO.DeleteResult.DELETED) {
+                        String error = result == RoomTypeDAO.DeleteResult.IN_USE ? "in-use" : "delete-failed";
+                        response.sendRedirect("./room-type?error=" + error);
+                        return;
+                    }
                     break;
                 }
 
@@ -410,44 +399,10 @@ public class RoomTypeServlet extends HttpServlet {
                         return;
                     }
 
-                    Part imgPart = request.getPart("img");
-                    String picture;
-
-                    if (imgPart.getSubmittedFileName().trim().isEmpty()
-                            || imgPart.getSize() == 0) {
-                        picture = (String) session.getAttribute(
-                                "updateImgPath"
-                        );
-                    } else {
-                        File folder = new File(
-                                FileUploadUtil.UPLOAD_LOCATION + "/roomType"
-                        );
-
-                        if (!folder.exists()) {
-                            folder.mkdirs();
-                        }
-
-                        String imgFileName = imgPart.getSubmittedFileName();
-                        File outFile = new File(folder, imgFileName);
-
-                        FileUploadUtil.uploadFile(imgPart, outFile);
-                        picture = "roomType/" + imgFileName;
-                    }
-
-                    int isUpdated = rtDAO.updateRoomType(
-                            id,
-                            name,
-                            description,
-                            pricePerNight,
-                            beds,
-                            capacity,
-                            picture
-                    );
-                    
-                    // THAY ĐỔI Ở ĐÂY: NẾU CẬP NHẬT THÀNH CÔNG, LƯU KÈM AMENITIES
-                    if (isUpdated > 0) {
-                        String[] selectedAmenities = request.getParameterValues("amenities");
-                        new dao.AmenityDAO().updateAmenitiesForRoomType(id, selectedAmenities);
+                    RoomType roomType = new RoomType(id, name, description, pricePerNight, beds, capacity);
+                    if (!saveRoomType(rtDAO, roomType, request.getPart("img"), request.getParameterValues("amenities"))) {
+                        response.sendRedirect("./room-type?view=update&id=" + id + "&error=save-failed");
+                        return;
                     }
                     break;
                 }
@@ -462,6 +417,42 @@ public class RoomTypeServlet extends HttpServlet {
         } catch (Exception ex) {
             Logger.getLogger(db.DBContext.class.getName())
                     .log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private boolean saveRoomType(RoomTypeDAO dao, RoomType roomType, Part image, String[] amenities) {
+        if (image.getSize() == 0) {
+            return dao.saveRoomType(roomType, amenities);
+        }
+
+        String filename = image.getSubmittedFileName();
+        if (filename == null || RoomTypeImageServlet.imageContentType(filename) == null) {
+            return false;
+        }
+
+        Path uploaded = null;
+        boolean saved = false;
+        try {
+            String extension = filename.substring(filename.lastIndexOf('.'));
+            Path directory = Files.createDirectories(RoomTypeImageServlet.uploadDirectory());
+            uploaded = Files.createTempFile(directory, "room-type-", extension);
+            try (InputStream contents = image.getInputStream()) {
+                Files.copy(contents, uploaded, StandardCopyOption.REPLACE_EXISTING);
+            }
+            roomType.setPicture("roomType/" + uploaded.getFileName());
+            saved = dao.saveRoomType(roomType, amenities);
+            return saved;
+        } catch (IOException ex) {
+            Logger.getLogger(RoomTypeServlet.class.getName()).log(Level.SEVERE, "Room type image upload failed", ex);
+            return false;
+        } finally {
+            if (!saved && uploaded != null) {
+                try {
+                    Files.deleteIfExists(uploaded);
+                } catch (IOException ex) {
+                    Logger.getLogger(RoomTypeServlet.class.getName()).log(Level.WARNING, "Could not remove unused room type image", ex);
+                }
+            }
         }
     }
 

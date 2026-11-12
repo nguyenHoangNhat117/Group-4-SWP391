@@ -210,12 +210,12 @@
                                                             <h5 class="mb-2"><ui:text key="screen.8e9d3e1467f7cc3f"/>${booking.id} <ui:text key="screen.45989de49fb7f66d"/></h5>
                                                             <p class="mb-1"><strong><ui:text key="screen.bf6899307a899450"/></strong> ${fn:substring(booking.bookingDate, 8, 10)}/${fn:substring(booking.bookingDate, 5, 7)}/${fn:substring(booking.bookingDate, 0, 4)}</p>
                                                             <c:if test="${not empty booking.specialRequest}">
-                                                                <p class="mb-1"><strong><ui:text key="screen.906fb211c5e1ee2e"/></strong> ${booking.specialRequest}</p>
+                                                                <p class="mb-1"><strong><ui:text key="screen.906fb211c5e1ee2e"/></strong> <c:out value="${booking.specialRequest}"/></p>
                                                             </c:if>
                                                             <c:if test="${booking.status == 'cancelled'}">
                                                                 <p class="mb-1"><strong><ui:text key="screen.873135e90ec6e045"/></strong> ${fn:substring(booking.cancellationDate, 8, 10)}/${fn:substring(booking.cancellationDate, 5, 7)}/${fn:substring(booking.cancellationDate, 0, 4)}</p>
                                                                 <c:if test="${not empty booking.cancellationReason}">
-                                                                    <p class="mb-1"><strong><ui:text key="screen.821b8e24bc1baa29"/></strong> ${booking.cancellationReason}</p>
+                                                                    <p class="mb-1"><strong><ui:text key="screen.821b8e24bc1baa29"/></strong> <c:out value="${booking.cancellationReason}"/></p>
                                                                 </c:if>
                                                             </c:if>
                                                         </div>
@@ -241,7 +241,7 @@
                                                                         <p class="mb-1"><strong><ui:text key="screen.fe89253ac2b97036"/></strong> ${detail.guestCount}</p>
                                                                         <p class="mb-1"><strong><ui:text key="screen.5721f9a3c415ad9e"/></strong> <ui:money amount="${detail.pricePerNight}"/></p>
                                                                         <c:if test="${not empty detail.specialRequest}">
-                                                                            <p class="mb-0"><strong><ui:text key="screen.d0a5e5a4c95e9e12"/></strong> ${detail.specialRequest}</p>
+                                                                            <p class="mb-0"><strong><ui:text key="screen.d0a5e5a4c95e9e12"/></strong> <c:out value="${detail.specialRequest}"/></p>
                                                                         </c:if>
                                                                     </div>
                                                                 </div>

@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -50,45 +51,26 @@ public class AmenityDAO extends DBContext {
         return list;
     }
 
-    // Cập nhật tiện ích cho 1 loại phòng (Xóa hết cái cũ -> Thêm lại các cái mới được check)
-    public boolean updateAmenitiesForRoomType(int roomTypeId, String[] amenityIds) {
-        Connection conn = null;
-        try {
-            conn = getConnection();
-            conn.setAutoCommit(false); // Dùng Transaction
+    static void replaceRoomTypeAmenities(Connection conn, int roomTypeId, Set<Integer> amenityIds)
+            throws SQLException {
+        String deleteSql = "DELETE FROM RoomTypeAmenity WHERE RoomTypeID = ?";
+        try (PreparedStatement delete = conn.prepareStatement(deleteSql)) {
+            delete.setInt(1, roomTypeId);
+            delete.executeUpdate();
+        }
 
-            // 1. Xóa toàn bộ liên kết cũ
-            String deleteSql = "DELETE FROM RoomTypeAmenity WHERE RoomTypeID = ?";
-            try (PreparedStatement psDel = conn.prepareStatement(deleteSql)) {
-                psDel.setInt(1, roomTypeId);
-                psDel.executeUpdate();
-            }
+        if (amenityIds.isEmpty()) {
+            return;
+        }
 
-            // 2. Insert các liên kết mới
-            if (amenityIds != null && amenityIds.length > 0) {
-                String insertSql = "INSERT INTO RoomTypeAmenity (RoomTypeID, AmenityID) VALUES (?, ?)";
-                try (PreparedStatement psIns = conn.prepareStatement(insertSql)) {
-                    for (String idStr : amenityIds) {
-                        psIns.setInt(1, roomTypeId);
-                        psIns.setInt(2, Integer.parseInt(idStr));
-                        psIns.addBatch();
-                    }
-                    psIns.executeBatch();
-                }
+        String insertSql = "INSERT INTO RoomTypeAmenity (RoomTypeID, AmenityID) VALUES (?, ?)";
+        try (PreparedStatement insert = conn.prepareStatement(insertSql)) {
+            for (int amenityId : amenityIds) {
+                insert.setInt(1, roomTypeId);
+                insert.setInt(2, amenityId);
+                insert.addBatch();
             }
-
-            conn.commit();
-            return true;
-        } catch (SQLException ex) {
-            if (conn != null) {
-                try { conn.rollback(); } catch (SQLException e) { }
-            }
-            Logger.getLogger(AmenityDAO.class.getName()).log(Level.SEVERE, null, ex);
-            return false;
-        } finally {
-            if (conn != null) {
-                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException e) { }
-            }
+            insert.executeBatch();
         }
     }
 }

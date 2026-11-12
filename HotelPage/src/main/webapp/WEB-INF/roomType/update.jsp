@@ -23,6 +23,11 @@
             <%@include file="/WEB-INF/include/header.jsp" %>
             <main class="min-vh-100 d-flex flex-column align-items-center justify-content-center">
                 <c:choose>
+                    <c:when test="${param.error == 'save-failed'}">
+                        <p class="alert alert-danger text-center" role="alert">
+                            <ui:text key="room.type.save.failed"/>
+                        </p>
+                    </c:when>
                     <c:when test="${param.error == 'missing-params'}">
                         <p class="alert alert-danger text-center">
                             <ui:text key="screen.9eca9b88d5fc8dff"/>

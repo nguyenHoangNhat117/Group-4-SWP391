@@ -170,6 +170,52 @@
                             </a>
                         </div>
 
+                        <c:if test="${not empty createdRooms}">
+                            <div class="alert alert-success" role="status">
+                                <div><ui:text key="room.admin.createdCount"/> <strong>${createdRooms.size()}</strong></div>
+                                <details class="mt-2">
+                                    <summary><ui:text key="room.admin.viewCreated"/></summary>
+                                    <div class="d-flex flex-wrap gap-2 mt-2">
+                                        <c:forEach var="createdNumber" items="${createdRooms}">
+                                            <a class="btn btn-sm btn-outline-success"
+                                               href="${pageContext.request.contextPath}/room?room-number=${createdNumber}">#${createdNumber}</a>
+                                        </c:forEach>
+                                    </div>
+                                </details>
+                            </div>
+                        </c:if>
+
+                        <form class="row g-3 align-items-end mb-4" method="get"
+                              action="${pageContext.request.contextPath}/room">
+                            <div class="col-sm-5 col-lg-4">
+                                <label for="admin-room-type" class="form-label"><ui:text key="screen.82dea9a01c0033ec"/></label>
+                                <select id="admin-room-type" name="room-type-id" class="form-select">
+                                    <option value="" data-i18n="room.admin.allTypes">${requestScope.i18n['room.admin.allTypes']}</option>
+                                    <c:forEach var="roomType" items="${roomTypes}">
+                                        <option value="${roomType.id}" ${roomType.id == adminRoomTypeId ? 'selected' : ''}>
+                                            <c:out value="${roomType.name}"/>
+                                        </option>
+                                    </c:forEach>
+                                </select>
+                            </div>
+                            <div class="col-sm-4 col-lg-3">
+                                <label for="admin-room-number" class="form-label"><ui:text key="room.admin.searchNumber"/></label>
+                                <input id="admin-room-number" name="room-number" type="text" inputmode="numeric"
+                                       class="form-control ${invalidRoomNumber ? 'is-invalid' : ''}"
+                                       aria-invalid="${invalidRoomNumber}"
+                                       value="<c:out value='${param["room-number"]}'/>">
+                            </div>
+                            <div class="col-sm-auto d-flex gap-2">
+                                <button class="btn btn-primary" type="submit"><ui:text key="room.admin.applyFilters"/></button>
+                                <a class="btn btn-outline-secondary" href="${pageContext.request.contextPath}/room">
+                                    <ui:text key="room.admin.clearFilters"/>
+                                </a>
+                            </div>
+                        </form>
+                        <c:if test="${invalidRoomNumber}">
+                            <p class="alert alert-danger" role="alert"><ui:text key="room.admin.invalidNumber"/></p>
+                        </c:if>
+
                         <!-- Table Card -->
                         <div class="admin-card p-0 mb-4">
                             <div class="table-responsive">
@@ -192,7 +238,7 @@
                                                     <span class="fw-bold text-dark fs-5">#${room.roomNumber}</span>
                                                 </td>
                                                 <td>
-                                                    <div class="fw-semibold text-dark">${room.roomType.name}</div>
+                                                    <div class="fw-semibold text-dark"><c:out value="${room.roomType.name}"/></div>
                                                 </td>
                                                 <td class="fw-medium text-secondary">
                                                     <ui:money amount="${room.roomType.pricePerNight}"/>
@@ -235,7 +281,12 @@
                                             <tr>
                                                 <td colspan="7" class="text-center py-5 text-muted">
                                                     <i class="bi bi-inboxes fs-1 d-block mb-3"></i>
-                                                    <ui:text key="screen.158872d668b1d6dc"/>
+                                                    <c:choose>
+                                                        <c:when test="${invalidRoomNumber || not empty adminRoomTypeId || not empty adminRoomNumber}">
+                                                            <ui:text key="room.admin.noMatches"/>
+                                                        </c:when>
+                                                        <c:otherwise><ui:text key="screen.158872d668b1d6dc"/></c:otherwise>
+                                                    </c:choose>
                                                 </td>
                                             </tr>
                                         </c:if>
@@ -249,15 +300,15 @@
                             <nav aria-label="${requestScope.i18n['screen.d75e66b013af28b8']}" data-i18n-aria-label="screen.d75e66b013af28b8">
                                 <ul class="pagination justify-content-end">
                                     <li class="page-item ${pageIndex <= 1 ? 'disabled' : ''}">
-                                        <a class="page-link" href="${pageContext.request.contextPath}/room?page-index=${pageIndex - 1}"><ui:text key="screen.a57b08a480b822a0"/></a>
+                                        <a class="page-link" href="${pageContext.request.contextPath}/room?page-index=${pageIndex - 1}&amp;room-type-id=${adminRoomTypeId}&amp;room-number=${adminRoomNumber}"><ui:text key="screen.a57b08a480b822a0"/></a>
                                     </li>
                                     <c:forEach var="i" begin="1" end="${totalPages}">
                                         <li class="page-item ${pageIndex == i ? 'active' : ''}">
-                                            <a class="page-link" href="${pageContext.request.contextPath}/room?page-index=${i}">${i}</a>
+                                            <a class="page-link" href="${pageContext.request.contextPath}/room?page-index=${i}&amp;room-type-id=${adminRoomTypeId}&amp;room-number=${adminRoomNumber}">${i}</a>
                                         </li>
                                     </c:forEach>
                                     <li class="page-item ${pageIndex >= totalPages ? 'disabled' : ''}">
-                                        <a class="page-link" href="${pageContext.request.contextPath}/room?page-index=${pageIndex + 1}"><ui:text key="screen.1ff57a29d7c9d11b"/></a>
+                                        <a class="page-link" href="${pageContext.request.contextPath}/room?page-index=${pageIndex + 1}&amp;room-type-id=${adminRoomTypeId}&amp;room-number=${adminRoomNumber}"><ui:text key="screen.1ff57a29d7c9d11b"/></a>
                                     </li>
                                 </ul>
                             </nav>

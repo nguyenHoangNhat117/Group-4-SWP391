@@ -75,7 +75,7 @@ public class RoomTypeImageServlet extends HttpServlet {
                 ? Files.newInputStream(legacy, LinkOption.NOFOLLOW_LINKS) : null;
     }
 
-    private String imageContentType(String filename) {
+    static String imageContentType(String filename) {
         String lower = filename.toLowerCase(Locale.ROOT);
         if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
             return "image/jpeg";

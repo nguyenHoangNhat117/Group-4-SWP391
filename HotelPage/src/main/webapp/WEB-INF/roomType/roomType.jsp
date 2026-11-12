@@ -46,6 +46,14 @@
                     </a>
                 </div>
 
+                <c:choose>
+                    <c:when test="${param.error == 'in-use'}">
+                        <p class="alert alert-danger" role="alert"><ui:text key="room.type.delete.inUse"/></p>
+                    </c:when>
+                    <c:when test="${param.error == 'delete-failed'}">
+                        <p class="alert alert-danger" role="alert"><ui:text key="room.type.delete.failed"/></p>
+                    </c:when>
+                </c:choose>
                 <div class="table-panel">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
