@@ -1,0 +1,135 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : Nov 11, 2026, 3:46:24 PM
+    Author     : Nguyen Hoang Nhat
+*/
+html.uc09-page {
+    scroll-snap-type:none!important;
+}
+.oc-eyebrow {
+    color:#94774f;
+    font-size:11px;
+    letter-spacing:2px;
+    margin-bottom:10px;
+}
+.oc-message {
+    padding:16px 20px;
+    border:1px solid #d9c39f;
+    background:#f5ebda;
+    color:#51402b;
+    border-radius:12px;
+    margin-bottom:20px;
+    overflow-wrap:anywhere;
+}
+.oc-overview {
+    display:flex;
+    flex-wrap:wrap;
+    gap:24px 40px;
+    margin-bottom:20px;
+}
+.oc-overview small,.oc-money small {
+    display:block;
+    font-size:12px;
+    color:#88765e;
+    margin-bottom:8px;
+}
+.oc-overview strong {
+    font-size:15px;
+    color:#34281e;
+}
+.oc-money {
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:14px;
+    margin-bottom:22px;
+}
+.oc-money > div {
+    padding:22px;
+    border:1px solid #e6dccf;
+    border-radius:16px;
+    background:#f6efe4;
+}
+.oc-money strong {
+    font-size:clamp(17px,2vw,26px);
+    color:#3c2d1d;
+    overflow-wrap:anywhere;
+}
+.oc-grid {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:22px;
+    margin:22px 0;
+    align-items:start;
+}
+.oc-grid h2,.oc-history h2,.oc-room-list h2 {
+    margin-bottom:20px!important;
+}
+.oc-form {
+    display:grid;
+    gap:16px;
+    margin-top:18px;
+}
+.oc-form label {
+    display:grid;
+    gap:8px;
+    color:#514332;
+    font-size:14px;
+}
+.oc-form .oc-check {
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    line-height:1.6;
+}
+.oc-check input {
+    margin-top:5px;
+    flex-shrink:0;
+    accent-color:#8a7152;
+}
+.oc-form .ob-button {
+    justify-self:start;
+}
+.oc-history {
+    margin:22px 0;
+}
+.oc-table {
+    overflow-x:auto;
+}
+.oc-table table {
+    border-collapse:collapse;
+    width:100%;
+    font-size:13px;
+}
+.oc-table th,.oc-table td {
+    text-align:left;
+    padding:14px 10px;
+    border-bottom:1px solid #eee6dc;
+    vertical-align:top;
+    overflow-wrap:anywhere;
+}
+.oc-table th {
+    color:#88765e;
+    font-weight:600;
+    white-space:nowrap;
+}
+.oc-badge {
+    display:inline-block;
+    padding:4px 9px;
+    margin-left:8px;
+    border-radius:20px;
+    background:#f4e5c9;
+    color:#805f32;
+    font-size:12px;
+}
+@media(max-width:700px) {
+    .oc-grid,.oc-money {
+        grid-template-columns:1fr;
+    }
+    .oc-overview {
+        gap:20px;
+    }
+}
+

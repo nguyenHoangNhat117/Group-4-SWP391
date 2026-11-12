@@ -59,7 +59,7 @@ html.uc09-page {
     color: var(--lx-muted);
 }
 
-.offline-booking-page .ob-steps span {
+.offline-booking-page .ob-steps > li > span:first-child {
     display: grid;
     place-items: center;
     width: 27px;
@@ -74,7 +74,7 @@ html.uc09-page {
     font-weight: 600;
 }
 
-.offline-booking-page .ob-steps .is-current span {
+.offline-booking-page .ob-steps > .is-current > span:first-child {
     background: var(--lx-espresso);
     color: white;
     border-color: var(--lx-espresso);
@@ -575,3 +575,11 @@ html.uc09-page {
         transform: none;
     }
 }
+
+/* Readable booking steps, including translated labels. */
+.offline-booking-page .ob-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; max-width:760px; padding:0; border:0; }
+.offline-booking-page .ob-steps > li { min-width:0; padding:16px; gap:12px; border:1px solid #e6dccf; border-radius:16px; background:#fbf8f3; font-size:14px; line-height:1.4; }
+.offline-booking-page .ob-steps > li > span:first-child { flex:0 0 36px; width:36px; height:36px; }
+.offline-booking-page .ob-steps > li > span[data-i18n] { min-width:0; overflow-wrap:anywhere; }
+.offline-booking-page .ob-steps > li.is-current { background:#f3e9da; border-color:#c8a879; color:#34281e; }
+@media(max-width:540px) { .offline-booking-page .ob-steps { grid-template-columns:1fr; gap:8px; } }

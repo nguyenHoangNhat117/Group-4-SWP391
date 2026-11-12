@@ -48,7 +48,7 @@ public class CustomerDAO extends DBContext {
                 + "u.AccountStatus, "
                 + "u.CreatedAt "
                 + "FROM Customer c "
-                + "JOIN [User] u "
+                + "LEFT JOIN [User] u "
                 + "ON u.UserID = c.UserID "
                 + "ORDER BY c.CustomerID DESC";
 
@@ -99,7 +99,7 @@ public class CustomerDAO extends DBContext {
                 + "u.AccountStatus, "
                 + "u.CreatedAt "
                 + "FROM Customer c "
-                + "JOIN [User] u "
+                + "LEFT JOIN [User] u "
                 + "ON u.UserID = c.UserID "
                 + "WHERE c.UserID = ?";
 
@@ -156,7 +156,7 @@ public class CustomerDAO extends DBContext {
                 + "u.AccountStatus, "
                 + "u.CreatedAt "
                 + "FROM Customer c "
-                + "JOIN [User] u "
+                + "LEFT JOIN [User] u "
                 + "ON u.UserID = c.UserID "
                 + "WHERE c.CustomerID = ?";
 
@@ -237,9 +237,9 @@ public class CustomerDAO extends DBContext {
                 + "u.AccountStatus, "
                 + "u.CreatedAt "
                 + "FROM Customer c "
-                + "JOIN [User] u "
+                + "LEFT JOIN [User] u "
                 + "ON u.UserID = c.UserID "
-                + "WHERE u.[Role] = 'customer' "
+                + "WHERE (u.[Role] = 'customer' OR c.UserID IS NULL) "
         );
 
         boolean hasKeyword
@@ -359,9 +359,9 @@ public class CustomerDAO extends DBContext {
         sql.append(
                 "SELECT COUNT(*) AS Total "
                 + "FROM Customer c "
-                + "JOIN [User] u "
+                + "LEFT JOIN [User] u "
                 + "ON u.UserID = c.UserID "
-                + "WHERE u.[Role] = 'customer' "
+                + "WHERE (u.[Role] = 'customer' OR c.UserID IS NULL) "
         );
 
         boolean hasKeyword
@@ -516,7 +516,7 @@ public class CustomerDAO extends DBContext {
             String city,
             String street) {
 
-        if (customerId <= 0 || email == null || email.trim().isEmpty()) {
+        if (customerId <= 0) {
             return false;
         }
 
@@ -524,13 +524,13 @@ public class CustomerDAO extends DBContext {
                 = "UPDATE Customer SET "
                 + "FirstName = ?, LastName = ?, Email = ?, Phone = ?, "
                 + "Country = ?, City = ?, Street = ? "
-                + "WHERE CustomerID = ? AND EXISTS (SELECT 1 FROM [User] u WHERE u.UserID = Customer.UserID AND u.Role = 'customer')";
+                + "WHERE CustomerID = ? AND (Customer.UserID IS NULL OR EXISTS (SELECT 1 FROM [User] u WHERE u.UserID = Customer.UserID AND u.Role = 'customer'))";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, emptyToNull(firstName));
             ps.setString(2, emptyToNull(lastName));
-            ps.setString(3, email.trim());
+            ps.setString(3, emptyToNull(email));
             ps.setString(4, emptyToNull(phone));
             ps.setString(5, emptyToNull(country));
             ps.setString(6, emptyToNull(city));
