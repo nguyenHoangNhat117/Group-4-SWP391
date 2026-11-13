@@ -38,6 +38,32 @@
                 margin-bottom: 15px;
                 box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             }
+            .room-spec-card {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: .3rem;
+                min-height: 6rem;
+                height: 100%;
+                padding: .85rem .65rem;
+                background: #f7f3ee;
+                border: 1px solid #ede5dc;
+                border-radius: .75rem;
+                overflow-wrap: anywhere;
+            }
+            .room-amenity-card {
+                border: 1px solid #ede5dc;
+                background: #fcfaf7;
+            }
+            .room-amenity-icon {
+                display: grid;
+                place-items: center;
+                flex: 0 0 2rem;
+                height: 2rem;
+                background: #f1e7d9;
+                border-radius: .6rem;
+                color: #79583c;
+            }
             .availability-card {
                 background: #ffffff;
                 border-radius: 16px;
@@ -149,24 +175,32 @@
                                 <c:out value="${not empty roomType.description ? roomType.description : 'Experience comfort and elegance in our well-appointed room.'}"/>
                             </p>
                             <div class="row g-3 text-center pt-2 border-top">
-                                <div class="col-sm-4">
-                                    <div class="p-3 bg-light rounded-3">
+                                <div class="${empty roomSpecifications ? 'col-sm-4' : 'col-sm-6 col-xl-3'}">
+                                    <div class="room-spec-card">
                                         <div class="text-muted small text-uppercase"><ui:text key="screen.bf193eab4a1aafb0"/></div>
                                         <div class="fs-5 fw-bold text-dark"><ui:money amount="${roomType.pricePerNight}"/></div>
                                     </div>
                                 </div>
-                                <div class="col-sm-4">
-                                    <div class="p-3 bg-light rounded-3">
+                                <div class="${empty roomSpecifications ? 'col-sm-4' : 'col-sm-6 col-xl-3'}">
+                                    <div class="room-spec-card">
                                         <div class="text-muted small text-uppercase"><ui:text key="screen.2e2a3cd1a00809d3"/></div>
                                         <div class="fs-5 fw-bold text-dark">${roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></div>
                                     </div>
                                 </div>
-                                <div class="col-sm-4">
-                                    <div class="p-3 bg-light rounded-3">
+                                <div class="${empty roomSpecifications ? 'col-sm-4' : 'col-sm-6 col-xl-3'}">
+                                    <div class="room-spec-card">
                                         <div class="text-muted small text-uppercase"><ui:text key="screen.a641d8404ba319e8"/></div>
                                         <div class="fs-5 fw-bold text-dark">${roomType.capacity} <ui:text key="screen.3c8e0fde6fcc71e0"/></div>
                                     </div>
                                 </div>
+                                <c:if test="${not empty roomSpecifications}">
+                                    <div class="col-sm-6 col-xl-3">
+                                        <div class="room-spec-card">
+                                            <div class="text-muted small text-uppercase"><ui:text key="room.spec.area"/></div>
+                                            <div class="fs-5 fw-bold text-dark">${roomSpecifications.areaM2} m²</div>
+                                        </div>
+                                    </div>
+                                </c:if>
                             </div>
                         </div>
 
@@ -178,8 +212,8 @@
                                     <div class="row g-3">
                                         <c:forEach var="amenity" items="${amenities}">
                                             <div class="col-md-6">
-                                                <div class="d-flex align-items-start p-3 bg-light rounded-3 h-100">
-                                                    <i class="bi bi-check2-circle text-success fs-5 me-2"></i>
+                                                <div class="room-amenity-card d-flex align-items-center gap-3 p-3 rounded-3 h-100">
+                                                    <span class="room-amenity-icon"><i class="bi bi-stars" aria-hidden="true"></i></span>
                                                     <div>
                                                         <c:set var="amenityNameKey" value="room.amenity.name.${amenity.name}"/>
                                                         <c:set var="amenityDescriptionKey" value="room.amenity.description.${amenity.description}"/>

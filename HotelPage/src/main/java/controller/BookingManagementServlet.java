@@ -1,6 +1,7 @@
 package controller;
 
 import dao.BookingDAO;
+import dao.OnlineCheckInDAO;
 import dao.PaymentDAO;
 
 import jakarta.servlet.ServletException;
@@ -12,9 +13,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Locale;
 
 import model.Booking;
 import model.User;
@@ -141,6 +144,10 @@ public class BookingManagementServlet
             status = null;
         }
 
+        String roomInput = request.getParameter("room-number");
+        Integer roomNumber = parseId(roomInput == null ? null : roomInput.trim());
+        boolean invalidRoom = roomInput != null && !roomInput.isBlank() && roomNumber == null;
+
         LocalDate fromDate
                 = parseDate(
                         request.getParameter(
@@ -158,19 +165,10 @@ public class BookingManagementServlet
         /*
          * Date range validation.
          */
-        if (fromDate != null
-                && toDate != null
-                && toDate.isBefore(
-                        fromDate)) {
-
-            request.setAttribute(
-                    "dateError",
-                    "To Date cannot be earlier "
-                    + "than From Date."
-            );
-
-            toDate = null;
-        }
+        boolean invalidDates = (fromDate == null && hasFilterValue(request, "from-date"))
+                || (toDate == null && hasFilterValue(request, "to-date"))
+                || (fromDate != null && toDate != null && toDate.isBefore(fromDate));
+        boolean invalidFilters = invalidDates || invalidRoom;
 
         int currentPage
                 = parsePositiveInt(
@@ -181,11 +179,12 @@ public class BookingManagementServlet
                 );
 
         int totalBookings
-                = bookingDAO.countBookings(
+                = invalidFilters ? 0 : bookingDAO.countBookings(
                         keyword,
                         status,
                         fromDate,
-                        toDate
+                        toDate,
+                        roomNumber
                 );
 
         int totalPages
@@ -204,11 +203,12 @@ public class BookingManagementServlet
         }
 
         List<Booking> bookings
-                = bookingDAO.searchBookings(
+                = invalidFilters ? List.of() : bookingDAO.searchBookings(
                         keyword,
                         status,
                         fromDate,
                         toDate,
+                        roomNumber,
                         currentPage,
                         PAGE_SIZE
                 );
@@ -222,6 +222,9 @@ public class BookingManagementServlet
                 "keyword",
                 keyword
         );
+        request.setAttribute("roomInput", roomInput);
+        request.setAttribute("invalidRoom", invalidRoom);
+        request.setAttribute("invalidDates", invalidDates);
 
         request.setAttribute(
                 "selectedStatus",
@@ -259,6 +262,11 @@ public class BookingManagementServlet
                 request,
                 response
         );
+    }
+
+    private boolean hasFilterValue(HttpServletRequest request, String name) {
+        String value = request.getParameter(name);
+        return value != null && !value.isBlank();
     }
 
 
@@ -351,6 +359,11 @@ public class BookingManagementServlet
          */
         request.setAttribute("nextStatuses", request.getAttribute("offlineCreator") != null
                 ? new String[0] : getNextStatuses(booking.getStatus()));
+        try {
+            request.setAttribute("roomTypeNames", bookingDAO.getCurrentRoomTypeNames(bookingId));
+        } catch (SQLException ex) {
+            throw new ServletException("Unable to load assigned room types", ex);
+        }
 
         request.getRequestDispatcher(
                 "/WEB-INF/booking-management/detail.jsp"
@@ -431,6 +444,22 @@ public class BookingManagementServlet
                     + "?message=invalid-data"
             );
 
+            return;
+        }
+
+        if ("checked_in".equals(newStatus)) {
+            String message;
+            try {
+                OnlineCheckInDAO.Result result = new OnlineCheckInDAO().checkIn(bookingId);
+                message = result == OnlineCheckInDAO.Result.SUCCESS
+                        ? "status-updated"
+                        : "online-check-in-" + result.name().toLowerCase(Locale.ROOT).replace('_', '-');
+            } catch (SQLException ex) {
+                log("Unable to update online stay " + bookingId, ex);
+                message = "online-check-in-failed";
+            }
+            response.sendRedirect(request.getContextPath() + "/booking-management?view=detail&id="
+                    + bookingId + "&message=" + message);
             return;
         }
 

@@ -37,8 +37,8 @@ public class ReviewServlet
                 "UTF-8"
         );
 
-        HttpSession session
-                = request.getSession(false);
+        HttpSession session =
+                request.getSession(false);
 
         /*
          * ===============================================
@@ -61,13 +61,13 @@ public class ReviewServlet
             return;
         }
 
-        User user
-                = (User) session.getAttribute(
+        User user =
+                (User) session.getAttribute(
                         "loggedUser"
                 );
 
-        Customer customer
-                = (Customer) session.getAttribute(
+        Customer customer =
+                (Customer) session.getAttribute(
                         "customer"
                 );
 
@@ -86,8 +86,8 @@ public class ReviewServlet
          * 2. ROOM NUMBER
          * ===============================================
          */
-        Integer roomNumber
-                = parsePositiveInt(
+        Integer roomNumber =
+                parsePositiveInt(
                         request.getParameter(
                                 "room-number"
                         )
@@ -111,8 +111,8 @@ public class ReviewServlet
 
         try {
 
-            star
-                    = new BigDecimal(
+            star =
+                    new BigDecimal(
                             request.getParameter(
                                     "star"
                             )
@@ -130,9 +130,10 @@ public class ReviewServlet
             return;
         }
 
-        if (star.compareTo(BigDecimal.ONE) < 0
-                || star.compareTo(new BigDecimal("5")) > 0
-                || star.remainder(new BigDecimal("0.5")).signum() != 0) {
+        if (star.compareTo(
+                BigDecimal.ONE) < 0
+                || star.compareTo(
+                        new BigDecimal("5")) > 0) {
 
             redirectRoom(
                     request,
@@ -149,15 +150,15 @@ public class ReviewServlet
          * 4. COMMENT
          * ===============================================
          */
-        String comment
-                = request.getParameter(
+        String comment =
+                request.getParameter(
                         "comment"
                 );
 
         if (comment != null) {
 
-            comment
-                    = comment.trim();
+            comment =
+                    comment.trim();
 
             if (comment.isEmpty()) {
                 comment = null;
@@ -166,8 +167,8 @@ public class ReviewServlet
             if (comment != null
                     && comment.length() > 1000) {
 
-                comment
-                        = comment.substring(
+                comment =
+                        comment.substring(
                                 0,
                                 1000
                         );
@@ -185,17 +186,17 @@ public class ReviewServlet
          * - no existing Review
          * ===============================================
          */
-        BookingDAO bookingDAO
-                = new BookingDAO();
+        BookingDAO bookingDAO =
+                new BookingDAO();
 
-        Integer bookingId
-                = parsePositiveInt(
+        Integer bookingId =
+                parsePositiveInt(
                         request.getParameter("booking-id")
                 );
 
         if (bookingId == null) {
-            bookingId
-                    = bookingDAO
+            bookingId =
+                    bookingDAO
                             .getLatestCompletedBookingId(
                                     customer.getCustomerID(),
                                     roomNumber
@@ -214,8 +215,8 @@ public class ReviewServlet
             return;
         }
 
-        ReviewDAO reviewDAO
-                = new ReviewDAO();
+        ReviewDAO reviewDAO =
+                new ReviewDAO();
 
         /*
          * Double-check eligibility.
@@ -256,8 +257,8 @@ public class ReviewServlet
          * ReviewStatus = pending
          * ===============================================
          */
-        boolean created
-                = reviewDAO.addReview(
+        boolean created =
+                reviewDAO.addReview(
                         bookingId,
                         comment,
                         star
@@ -335,8 +336,8 @@ public class ReviewServlet
 
         try {
 
-            int number
-                    = Integer.parseInt(
+            int number =
+                    Integer.parseInt(
                             value.trim()
                     );
 

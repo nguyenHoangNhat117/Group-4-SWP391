@@ -20,6 +20,7 @@
               href="${pageContext.request.contextPath}/assets/css/luxe-shared-shell.css">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
+        <link rel="stylesheet" href="<c:url value='/assets/css/booking-management.css'/>">
     </head>
 
     <body>
@@ -27,7 +28,7 @@
             <%@include file="/WEB-INF/include/header.jsp"%>
 
             <main>
-                <div class="container py-5">
+                <div class="container booking-detail-shell py-4 py-lg-5">
 
                     <%-- UC09: người tạo và điểm vào thu tiền tại quầy --%>
                     <c:if test="${not empty offlineCreator}">
@@ -63,6 +64,11 @@
                             <ui:text key="screen.2353e54cae2389f7"/>
                         </div>
                     </c:if>
+                    <c:forEach var="reason" items="wrong-date,room-not-ready,room-occupied,room-conflict,invalid-booking,failed">
+                        <c:if test="${param.message == 'online-check-in-'.concat(reason)}">
+                            <div class="alert alert-warning" role="alert"><ui:text key="${'booking.online.checkin.'.concat(reason)}"/></div>
+                        </c:if>
+                    </c:forEach>
 
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                         <div>
@@ -320,6 +326,7 @@
                                             <thead class="table-light">
                                                 <tr>
                                                     <th><ui:text key="screen.911ea89c43d9dbb8"/></th>
+                                                    <th><ui:text key="booking.detail.current.room.type"/></th>
                                                     <th><ui:text key="screen.f49fc7767bcfb17b"/></th>
                                                     <th><ui:text key="screen.5b4ecf4c9808dca1"/></th>
                                                     <th><ui:text key="screen.3c8e0fde6fcc71e0"/></th>
@@ -335,6 +342,7 @@
                                                         <td>
                                                             <ui:text key="screen.6c8c6af24c9b021c"/>${detail.roomNumber}
                                                         </td>
+                                                        <td class="room-type-name"><c:out value="${roomTypeNames[detail.roomNumber]}" default="—"/></td>
                                                         <td>${detail.checkInDate}</td>
                                                         <td>${detail.checkOutDate}</td>
                                                         <td>${detail.guestCount}</td>
@@ -421,6 +429,7 @@
                         <div class="card-body">
                             <c:choose>
                                 <c:when test="${not empty nextStatuses}">
+                                    <p class="small text-muted mb-3"><ui:text key="booking.detail.status.hint"/></p>
                                     <form action="${pageContext.request.contextPath}/booking-management"
                                           method="post"
                                           class="row g-3 align-items-end">
@@ -454,7 +463,10 @@
 
                                                 <c:forEach var="status"
                                                            items="${nextStatuses}">
-                                                    <option value="${status}" >
+                                                    <option value="${status}" data-i18n="${status == 'checked_in' ? 'screen.17c05c08a9ac3e5a'
+                                                            : status == 'checked_out' ? 'screen.cbe2b33735c6335c'
+                                                            : status == 'cancelled' ? 'screen.d353a99eb4556847'
+                                                            : status == 'completed' ? 'screen.22a970d2e5b1cc23' : 'screen.fe00b67b6dd1143f'}">
                                                         <c:choose>
                                                             <c:when test="${status == 'confirmed'}">
                                                                 ${requestScope.i18n['screen.fe00b67b6dd1143f']}

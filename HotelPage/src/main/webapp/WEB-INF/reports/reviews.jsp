@@ -63,115 +63,94 @@
                     <c:when test="${review.reviewStatus == 'rejected'}"><c:set var="rejectedCount" value="${rejectedCount + 1}" /></c:when>
                 </c:choose>
             </c:forEach>
+            <section class="container my-4" aria-label="${requestScope.i18n['screen.d796c3f47a2c5009']}" data-i18n-aria-label="screen.d796c3f47a2c5009">
+                <h2><ui:text key="screen.d796c3f47a2c5009"/></h2>
+                <div class="row g-3">
+                    <div class="col-md-3"><div class="card p-3"><strong><ui:text key="screen.980777020186b784"/></strong><h3>${fn:length(reviews)}</h3></div></div>
+                    <div class="col-md-3"><div class="card p-3"><strong><ui:text key="screen.87b42e40c2a290e0"/></strong><h3>${approvedCount}</h3></div></div>
+                    <div class="col-md-3"><div class="card p-3"><strong><ui:text key="screen.0bcdff77493ef760"/></strong><h3>${pendingCount} / ${rejectedCount}</h3></div></div>
+                    <div class="col-md-3"><div class="card p-3"><strong><ui:text key="screen.a3ee576b0504de9f"/></strong><h3><c:choose><c:when test="${approvedCount > 0}"><fmt:formatNumber value="${starTotal / approvedCount}" maxFractionDigits="1" minFractionDigits="1"/> / 5</c:when><c:otherwise><ui:text key="screen.e2f79e5b60330bba"/></c:otherwise></c:choose></h3></div></div>
+                </div>
+                <div class="mt-3">
+    <strong><ui:text key="screen.0f6484cf8b5d3961"/></strong>
+
+    5★ ${approvedRatingCounts[5]} ·
+    4★ ${approvedRatingCounts[4]} ·
+    3★ ${approvedRatingCounts[3]} ·
+    2★ ${approvedRatingCounts[2]} ·
+    1★ ${approvedRatingCounts[1]}
+</div>
+                <c:if test="${not reportIsAdmin}"><small><ui:text key="screen.4bfc5c616de51c80"/></small></c:if>
+            </section>
             <c:choose>
                 <c:when test="${reportIsAdmin}">
-                    <div class="report-heading">
-                        <div>
-                            <p class="report-eyebrow">
-                                <ui:text key="screen.b11fef0048e7eff8"/>
-                            </p>
+            <div class="report-heading">
+                <div>
+                    <p class="report-eyebrow">
+                        <ui:text key="screen.b11fef0048e7eff8"/>
+                    </p>
 
-                            <h1>
-                                <c:choose>
-                                    <c:when test="${reportIsAdmin}">
-                                        <ui:text key="screen.47bf4e92fa8a67be"/>
-                                    </c:when>
-
-                                    <c:otherwise>
-                                        <ui:text key="screen.d515fdd22c1437ff"/>
-                                    </c:otherwise>
-                                </c:choose>
-                            </h1>
-
-                            <p class="report-description">
-                                <ui:text key="screen.326be3a3dda19299"/>
-                            </p>
-                        </div>
-
+                    <h1>
                         <c:choose>
                             <c:when test="${reportIsAdmin}">
-                                <a class="report-button" href="${ctx}/">
-                                    <ui:text key="screen.74fcd10c9e772c3e"/>
-                                </a>
+                                <ui:text key="screen.47bf4e92fa8a67be"/>
                             </c:when>
 
                             <c:otherwise>
-                                <a class="report-button" href="${ctx}/dashboard">
-                                    <ui:text key="screen.a7750c2b09f60f0b"/>
-                                </a>
+                                <ui:text key="screen.d515fdd22c1437ff"/>
                             </c:otherwise>
                         </c:choose>
-                    </div>
+                    </h1>
 
-                    <%-- Manager report navigation. --%>
-                    <c:if test="${not reportIsAdmin}">
-                        <div class="report-tabs" aria-label="${requestScope.i18n['screen.19025f8911e31c54']}" data-i18n-aria-label="screen.19025f8911e31c54">
+                    <p class="report-description">
+                        <ui:text key="screen.326be3a3dda19299"/>
+                    </p>
+                </div>
 
-                            <a href="${ctx}/reports?view=bookings&amp;page-index=1">
-                                <ui:text key="screen.4e5f81ada70c344e"/>
-                            </a>
+                <c:choose>
+                    <c:when test="${reportIsAdmin}">
+                        <a class="report-button" href="${ctx}/">
+                            <ui:text key="screen.74fcd10c9e772c3e"/>
+                        </a>
+                    </c:when>
 
-                            <a href="${ctx}/reports?view=payments&amp;page-index=1">
-                                <ui:text key="screen.632e1c5839411a10"/>
-                            </a>
+                    <c:otherwise>
+                        <a class="report-button" href="${ctx}/dashboard">
+                            <ui:text key="screen.a7750c2b09f60f0b"/>
+                        </a>
+                    </c:otherwise>
+                </c:choose>
+            </div>
 
-                            <a href="${ctx}/reports?view=reviews"
-                               aria-current="page">
-                                <ui:text key="screen.84cb7871b741c32e"/>
-                            </a>
+            <%-- Manager report navigation. --%>
+            <c:if test="${not reportIsAdmin}">
+                <div class="report-tabs" aria-label="${requestScope.i18n['screen.19025f8911e31c54']}" data-i18n-aria-label="screen.19025f8911e31c54">
 
-                            <a href="${ctx}/reports?view=month">
-                                <ui:text key="screen.c4b7330bd91e0c97"/>
-                            </a>
+                    <a href="${ctx}/reports?view=bookings&amp;page-index=1">
+                        <ui:text key="screen.4e5f81ada70c344e"/>
+                    </a>
 
-                        </div>
-                    </c:if>
+                    <a href="${ctx}/reports?view=payments&amp;page-index=1">
+                        <ui:text key="screen.632e1c5839411a10"/>
+                    </a>
+
+                    <a href="${ctx}/reports?view=reviews"
+                       aria-current="page">
+                        <ui:text key="screen.84cb7871b741c32e"/>
+                    </a>
+
+                    <a href="${ctx}/reports?view=month">
+                        <ui:text key="screen.c4b7330bd91e0c97"/>
+                    </a>
+
+                </div>
+            </c:if>
 
                 </c:when>
                 <c:otherwise>
                     <%@ include file="report-list-toolbar.jsp" %>
                 </c:otherwise>
             </c:choose>
-
-            <section class="report-summary" aria-label="${requestScope.i18n['screen.d796c3f47a2c5009']}" data-i18n-aria-label="screen.d796c3f47a2c5009">
-                <div class="report-summary-card">
-                    <span><ui:text key="screen.980777020186b784"/></span>
-                    <strong>${fn:length(reviews)}</strong>
-                </div>
-                <div class="report-summary-card">
-                    <span><ui:text key="screen.87b42e40c2a290e0"/></span>
-                    <strong>${approvedCount}</strong>
-                </div>
-                <div class="report-summary-card">
-                    <span><ui:text key="screen.0bcdff77493ef760"/></span>
-                    <strong>${pendingCount} / ${rejectedCount}</strong>
-                </div>
-                <div class="report-summary-card">
-                    <span><ui:text key="screen.a3ee576b0504de9f"/></span>
-                    <strong>
-                        <c:choose>
-                            <c:when test="${approvedCount > 0}">
-                                <fmt:formatNumber value="${starTotal / approvedCount}" maxFractionDigits="1" minFractionDigits="1"/> / 5
-                            </c:when>
-                            <c:otherwise><ui:text key="screen.e2f79e5b60330bba"/></c:otherwise>
-                        </c:choose>
-                    </strong>
-                </div>
-            </section>
-
-            <p class="report-rating-breakdown">
-                <b><ui:text key="screen.0f6484cf8b5d3961"/></b>
-                5★ ${approvedRatingCounts[10]} 
-                4.5★ ${approvedRatingCounts[9]} 
-                4★ ${approvedRatingCounts[8]} 
-                3.5★ ${approvedRatingCounts[7]} 
-                3★ ${approvedRatingCounts[6]} 
-                2.5★ ${approvedRatingCounts[5]} 
-                2★ ${approvedRatingCounts[4]} 
-                1.5★ ${approvedRatingCounts[3]} 
-                1★ ${approvedRatingCounts[2]}
-            </p>
-            <c:if test="${not reportIsAdmin}"><small><ui:text key="screen.4bfc5c616de51c80"/></small></c:if>
 
             <c:choose>
 

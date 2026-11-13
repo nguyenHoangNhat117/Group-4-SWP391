@@ -209,7 +209,7 @@ public class RoomServlet extends HttpServlet {
         Integer parsedPage = positiveInt(request.getParameter("page-index"));
         int page = parsedPage == null ? 1 : Math.min(parsedPage, Math.max(1, totalPages));
         int offset = (page - 1) * PAGE_SIZE;
-        showRoomTypes(request);
+        request.setAttribute("roomTypes", new RoomTypeDAO().getAllActive());
         request.setAttribute("availableTypes", types.subList(offset, Math.min(offset + PAGE_SIZE, types.size())));
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("pageIndex", page);

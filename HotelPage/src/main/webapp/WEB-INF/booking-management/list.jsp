@@ -23,6 +23,7 @@
               href="${pageContext.request.contextPath}/assets/css/luxe-shared-shell.css">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
+        <link rel="stylesheet" href="<c:url value='/assets/css/booking-management.css'/>">
     </head>
 
     <body class="luxe-admin-suite luxe-admin-bookings">
@@ -44,19 +45,15 @@
                     <span class="luxe-admin-banner-art" aria-hidden="true"></span>
                 </div>
 
-                <div class="container py-5">
+                <div class="container booking-list-shell py-4 py-lg-5">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                         <div>
-                            <h2 class="fw-bold mb-1"><ui:text key="screen.60bbdeefb7640eb4"/></h2>
-                            <span class="text-muted">
+                            <h1 class="h2 fw-bold mb-2"><ui:text key="screen.60bbdeefb7640eb4"/></h1>
+                            <span class="booking-result-count">
                                 <ui:text key="screen.18e872be2359d76e"/> ${totalBookings} <ui:text key="screen.1576870e601b1e12"/>
                             </span>
                         </div>
 
-                        <a class="btn btn-primary"
-                           href="${pageContext.request.contextPath}/offline-booking">
-                            <ui:text key="screen.afe42350b046a3d9"/>
-                        </a>
                     </div>
 
                     <c:if test="${param.message == 'invalid-data'}">
@@ -71,21 +68,22 @@
                         </div>
                     </c:if>
 
-                    <c:if test="${not empty dateError}">
-                        <div class="alert alert-warning">
-                            <c:out value="${dateError}"/>
+                    <c:if test="${invalidDates || invalidRoom}">
+                        <div class="alert alert-warning" role="alert">
+                            <c:if test="${invalidDates}"><p class="mb-0"><ui:text key="booking.list.date.error"/></p></c:if>
+                            <c:if test="${invalidRoom}"><p class="mb-0"><ui:text key="booking.list.room.error"/></p></c:if>
                         </div>
                     </c:if>
 
-                    <div class="card shadow-sm mb-4">
+                    <div class="card booking-filter-card mb-4">
                         <div class="card-body">
                             <form action="${pageContext.request.contextPath}/booking-management"
                                   method="get"
-                                  class="row g-3">
+                                  class="row g-3 align-items-end">
 
                                 <input type="hidden" name="view" value="list">
 
-                                <div class="col-lg-4 col-md-6">
+                                <div class="col-xl-4 col-md-6">
                                     <label for="keyword"
                                            class="form-label fw-semibold">
                                         <ui:text key="screen.49c266baaaa70981"/>
@@ -97,6 +95,13 @@
                                            class="form-control"
                                            value="${fn:escapeXml(keyword)}"
                                            placeholder="${requestScope.i18n['screen.47077267c183fca4']}" data-i18n-placeholder="screen.47077267c183fca4">
+                                </div>
+
+                                <div class="col-xl-2 col-md-6">
+                                    <label for="room-number" class="form-label fw-semibold"><ui:text key="booking.list.room"/></label>
+                                    <input type="text" inputmode="numeric" pattern="[0-9]+" maxlength="10"
+                                           id="room-number" name="room-number" class="form-control ${invalidRoom ? 'is-invalid' : ''}"
+                                           value="${fn:escapeXml(roomInput)}">
                                 </div>
 
                                 <div class="col-lg-2 col-md-6">
@@ -145,7 +150,7 @@
                                 <div class="col-lg-2 col-md-6">
                                     <label for="from-date"
                                            class="form-label fw-semibold">
-                                        <ui:text key="screen.61288e82a1ba695d"/>
+                                        <ui:text key="booking.list.stay.from"/>
                                     </label>
 
                                     <input type="date"
@@ -158,7 +163,7 @@
                                 <div class="col-lg-2 col-md-6">
                                     <label for="to-date"
                                            class="form-label fw-semibold">
-                                        <ui:text key="screen.8f44d1ea3ccaa10c"/>
+                                        <ui:text key="booking.list.stay.to"/>
                                     </label>
 
                                     <input type="date"
@@ -168,33 +173,26 @@
                                            value="${toDate}">
                                 </div>
 
-                                <div class="col-lg-2 d-flex align-items-end">
-                                    <button type="submit"
-                                            class="btn btn-primary w-100">
+                                <div class="col-12 d-flex flex-wrap align-items-center gap-3">
+                                    <button type="submit" class="btn btn-primary px-4">
                                         <ui:text key="screen.49c266baaaa70981"/>
                                     </button>
+                                    <c:if test="${not empty keyword || not empty selectedStatus || not empty roomInput
+                                                  || not empty fromDate || not empty toDate || invalidDates}">
+                                        <a href="<c:url value='/booking-management'/>" class="btn btn-outline-secondary">
+                                            <ui:text key="screen.5776503c1a52f4fa"/>
+                                        </a>
+                                    </c:if>
                                 </div>
                             </form>
-
-                            <c:if test="${not empty keyword
-                                          or not empty selectedStatus
-                                          or not empty fromDate
-                                          or not empty toDate}">
-                                  <div class="mt-3">
-                                      <a href="${pageContext.request.contextPath}/booking-management"
-                                         class="btn btn-outline-secondary btn-sm">
-                                          <ui:text key="screen.5776503c1a52f4fa"/>
-                                      </a>
-                                  </div>
-                            </c:if>
                         </div>
                     </div>
 
                     <c:choose>
                         <c:when test="${not empty bookings}">
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-hover align-middle">
-                                    <thead class="table-dark">
+                            <div class="table-responsive booking-results">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead>
                                         <tr>
                                             <th><ui:text key="screen.a85aca2f532a24ab"/></th>
                                             <th><ui:text key="screen.bf3763383aaf4306"/></th>
@@ -209,7 +207,7 @@
                                     <tbody>
                                         <c:forEach var="booking" items="${bookings}">
                                             <tr>
-                                                <td>#${booking.id}</td>
+                                                <td class="fw-semibold">#${booking.id}</td>
 
                                                 <td>
                                                     <c:choose>
@@ -231,7 +229,7 @@
                                                 </td>
 
                                                 <td>
-                                                    <c:out value="${booking.bookingDate}"/>
+                                                    <time datetime="<c:out value='${booking.bookingDate}'/>"><c:out value="${fn:replace(fn:substring(booking.bookingDate, 0, 16), 'T', ' ')}"/></time>
                                                 </td>
 
                                                 <td>
@@ -239,7 +237,7 @@
                                                         <c:when test="${not empty booking.details}">
                                                             <c:forEach var="detail"
                                                                        items="${booking.details}">
-                                                                <div class="mb-2">
+                                                                <div class="booking-stay-row">
                                                                     <strong>
                                                                         <ui:text key="screen.6c8c6af24c9b021c"/>${detail.roomNumber}
                                                                     </strong>
@@ -331,9 +329,11 @@
                         </c:when>
 
                         <c:otherwise>
-                            <div class="alert alert-info text-center">
-                                <ui:text key="screen.07b38d42ae8d6405"/>
-                            </div>
+                            <c:if test="${!invalidDates && !invalidRoom}">
+                                <div class="booking-empty text-center" role="status">
+                                    <ui:text key="screen.07b38d42ae8d6405"/>
+                                </div>
+                            </c:if>
                         </c:otherwise>
                     </c:choose>
 
@@ -342,6 +342,7 @@
                             <c:param name="view" value="list"/>
                             <c:param name="page" value="${currentPage - 1}"/>
                             <c:param name="keyword" value="${keyword}"/>
+                            <c:param name="room-number" value="${roomInput}"/>
                             <c:param name="status" value="${selectedStatus}"/>
                             <c:param name="from-date" value="${fromDate}"/>
                             <c:param name="to-date" value="${toDate}"/>
@@ -351,12 +352,13 @@
                             <c:param name="view" value="list"/>
                             <c:param name="page" value="${currentPage + 1}"/>
                             <c:param name="keyword" value="${keyword}"/>
+                            <c:param name="room-number" value="${roomInput}"/>
                             <c:param name="status" value="${selectedStatus}"/>
                             <c:param name="from-date" value="${fromDate}"/>
                             <c:param name="to-date" value="${toDate}"/>
                         </c:url>
 
-                        <nav class="mt-4" aria-label="${requestScope.i18n['screen.15fced987e317bf7']}" data-i18n-aria-label="screen.15fced987e317bf7">
+                        <nav class="booking-pagination mt-4" aria-label="${requestScope.i18n['screen.15fced987e317bf7']}" data-i18n-aria-label="screen.15fced987e317bf7">
                             <ul class="pagination justify-content-center flex-wrap">
                                 <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
                                     <a class="page-link"
@@ -370,6 +372,7 @@
                                         <c:param name="view" value="list"/>
                                         <c:param name="page" value="${i}"/>
                                         <c:param name="keyword" value="${keyword}"/>
+                                        <c:param name="room-number" value="${roomInput}"/>
                                         <c:param name="status" value="${selectedStatus}"/>
                                         <c:param name="from-date" value="${fromDate}"/>
                                         <c:param name="to-date" value="${toDate}"/>
