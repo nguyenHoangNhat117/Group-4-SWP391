@@ -1,6 +1,5 @@
 package controller;
 
-import dao.AmenityDAO;
 import dao.BookingDAO;
 import dao.DiscountDAO;
 import dao.RoomDAO;
@@ -30,6 +29,7 @@ import model.RoomPriceBand;
 import model.RoomType;
 import model.User;
 import util.ReportPeriod;
+import util.OnlineStayDates;
 import util.OnlineStayPolicy;
 
 @WebServlet(urlPatterns = {"/room-stay", "/checkout"})
@@ -41,7 +41,7 @@ public class RoomStayServlet extends HttpServlet {
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
         if ("/room-stay".equals(request.getServletPath())) {
-            showRoomStay(request, response, session);
+            redirectRoomStay(request, response);
             return;
         }
         response.setHeader("Cache-Control", "no-store");
@@ -91,32 +91,15 @@ public class RoomStayServlet extends HttpServlet {
         confirmCheckout(request, response, draft, customer);
     }
 
-    private void showRoomStay(HttpServletRequest request, HttpServletResponse response, HttpSession session)
-            throws ServletException, IOException {
+    private void redirectRoomStay(HttpServletRequest request, HttpServletResponse response) throws IOException {
         int typeId = number(request.getParameter("roomTypeId"), 0);
         if (typeId < 1) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        LocalDate from = session == null ? null : (LocalDate) session.getAttribute("checkInDate");
-        LocalDate to = session == null ? null : (LocalDate) session.getAttribute("checkOutDate");
-        if (!validStay(from, to)) {
-            redirect(request, response, "/booking?error=invalid-dates");
-            return;
-        }
-        RoomType type = new RoomTypeDAO().getActiveRoomTypeById(typeId);
-        if (type == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
-        int available = availableCount(typeId, from, to, 1);
-        request.setAttribute("roomType", type);
-        request.setAttribute("amenities", new AmenityDAO().getAmenitiesByRoomTypeId(typeId));
-        request.setAttribute("checkIn", from);
-        request.setAttribute("checkOut", to);
-        request.setAttribute("nights", ChronoUnit.DAYS.between(from, to));
-        request.setAttribute("available", available);
-        request.getRequestDispatcher("/WEB-INF/booking/room-stay.jsp").forward(request, response);
+        String error = request.getParameter("error");
+        redirect(request, response, "/details?roomTypeId=" + typeId
+                + ("quantity".equals(error) || "availability".equals(error) ? "&error=" + error : ""));
     }
 
     private void prepareCheckout(HttpServletRequest request, HttpServletResponse response, HttpSession session)
@@ -128,11 +111,10 @@ public class RoomStayServlet extends HttpServlet {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-        LocalDate from = (LocalDate) session.getAttribute("checkInDate");
-        LocalDate to = (LocalDate) session.getAttribute("checkOutDate");
-        if (!validStay(from, to) || !from.toString().equals(request.getParameter("checkIn"))
-                || !to.toString().equals(request.getParameter("checkOut"))) {
-            redirect(request, response, "/booking?error=invalid-dates");
+        LocalDate from = OnlineStayDates.parseIsoDate(request.getParameter("checkIn"));
+        LocalDate to = OnlineStayDates.parseIsoDate(request.getParameter("checkOut"));
+        if (!OnlineStayDates.isValid(from, to, ReportPeriod.today())) {
+            redirect(request, response, "/details?roomTypeId=" + typeId + "&error=invalid-dates");
             return;
         }
         RoomType type = new RoomTypeDAO().getActiveRoomTypeById(typeId);
@@ -142,11 +124,11 @@ public class RoomStayServlet extends HttpServlet {
         }
         if (quantity < 1 || guests < quantity || guests > 1000
                 || (guests + quantity - 1) / quantity > type.getCapacity()) {
-            redirect(request, response, "/room-stay?roomTypeId=" + typeId + "&error=quantity");
+            redirect(request, response, detailsPath(typeId, from, to, quantity, guests) + "&error=quantity");
             return;
         }
         if (availableCount(typeId, from, to, (guests + quantity - 1) / quantity) < quantity) {
-            redirect(request, response, "/room-stay?roomTypeId=" + typeId + "&error=availability");
+            redirect(request, response, detailsPath(typeId, from, to, quantity, guests) + "&error=availability");
             return;
         }
         StayDraft draft = new StayDraft(type, from, to, quantity, guests);
@@ -182,6 +164,11 @@ public class RoomStayServlet extends HttpServlet {
                     return;
                 }
             } else {
+                if (!OnlineStayDates.isValid(draft.from, draft.to, ReportPeriod.today())) {
+                    redirect(request, response, detailsPath(draft.type.getId(), draft.from, draft.to,
+                            draft.quantity, draft.guests) + "&error=invalid-dates");
+                    return;
+                }
                 BookingContact contact;
                 try {
                     contact = new BookingContact(request.getParameter("contact-name"), request.getParameter("contact-phone"),
@@ -196,7 +183,8 @@ public class RoomStayServlet extends HttpServlet {
                     draft.bookingId = new BookingDAO().createRoomTypeBooking(customer.getCustomerID(), draft.type.getId(),
                             draft.from, draft.to, draft.quantity, draft.guests, draft.type.getPricePerNight(), contact);
                 } catch (IllegalArgumentException ex) {
-                    redirect(request, response, "/room-stay?roomTypeId=" + draft.type.getId() + "&error=availability");
+                    redirect(request, response, detailsPath(draft.type.getId(), draft.from, draft.to,
+                            draft.quantity, draft.guests) + "&error=availability");
                     return;
                 } catch (SQLException ex) {
                     throw new ServletException("Unable to create booking", ex);
@@ -328,10 +316,9 @@ public class RoomStayServlet extends HttpServlet {
         return null;
     }
 
-    private static boolean validStay(LocalDate from, LocalDate to) {
-        LocalDate today = ReportPeriod.today();
-        return from != null && to != null && !from.isBefore(today)
-                && to.isAfter(from) && !to.isAfter(today.plusDays(365));
+    private static String detailsPath(int typeId, LocalDate from, LocalDate to, int quantity, int guests) {
+        return "/details?roomTypeId=" + typeId + "&checkIn=" + from + "&checkOut=" + to
+                + "&quantity=" + quantity + "&guests=" + guests;
     }
 
     private static int number(String value, int fallback) {

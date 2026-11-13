@@ -246,6 +246,7 @@ public class HistoryServlet extends HttpServlet {
         Map<Integer, BigDecimal> remainingAmountMap = new HashMap<>();
         Map<Integer, Boolean> reviewedMap = new HashMap<>();
         Map<Integer, Boolean> refundedMap = new HashMap<>();
+        Map<Integer, String> lateRefundMessageMap = new HashMap<>();
 
         Map<Integer, Boolean> cancellableMap = new HashMap<>();
 
@@ -257,7 +258,12 @@ public class HistoryServlet extends HttpServlet {
             }
 
             paidAmountMap.put(booking.getId(), paidAmount);
-            refundedMap.put(booking.getId(), bookingDAO.hasRefundedPayment(booking.getId(), customerId));
+            boolean refunded = bookingDAO.hasRefundedPayment(booking.getId(), customerId);
+            refundedMap.put(booking.getId(), refunded);
+            String lateRefundMessage = lateRefundMessage(booking, paymentDAO, refunded);
+            if (lateRefundMessage != null) {
+                lateRefundMessageMap.put(booking.getId(), lateRefundMessage);
+            }
             remainingAmountMap.put(booking.getId(), remainingAmount);
             reviewedMap.put(
                     booking.getId(),
@@ -276,6 +282,7 @@ public class HistoryServlet extends HttpServlet {
 
         request.setAttribute("paidAmountMap", paidAmountMap);
         request.setAttribute("refundedMap", refundedMap);
+        request.setAttribute("lateRefundMessageMap", lateRefundMessageMap);
         request.setAttribute("remainingAmountMap", remainingAmountMap);
 
         request.setAttribute(
@@ -301,6 +308,25 @@ public class HistoryServlet extends HttpServlet {
         request.getRequestDispatcher(
                 "/WEB-INF/history/books.jsp"
         ).forward(request, response);
+    }
+
+    private String lateRefundMessage(Booking booking, PaymentDAO payments, boolean refunded) {
+        if (!booking.isOnlineDepositPolicy() || !"cancelled".equals(booking.getStatus())
+                || booking.getCancellationDate() == null) {
+            return null;
+        }
+        boolean lateRefunded = false;
+        for (Payment payment : payments.getPaymentsByBookingId(booking.getId())) {
+            if (!"bank_transfer".equals(payment.getPaymentMethod()) || payment.getPaymentDate() == null
+                    || !payment.getPaymentDate().isAfter(booking.getCancellationDate())) {
+                continue;
+            }
+            if ("paid".equals(payment.getPaymentStatus())) {
+                return "room.late.refund.pending";
+            }
+            lateRefunded |= "refunded".equals(payment.getPaymentStatus());
+        }
+        return lateRefunded && refunded ? "room.late.refund.complete" : null;
     }
 
     /*

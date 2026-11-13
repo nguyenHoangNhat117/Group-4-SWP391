@@ -1,8 +1,10 @@
 package controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import dao.BookingDAO;
 import dao.DiscountDAO;
 import dao.PaymentDAO;
+import jakarta.servlet.DispatcherType;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -14,12 +16,17 @@ import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Path;
+import java.sql.SQLException;
+import java.time.Instant;
 
 import model.Booking;
 import model.Customer;
+import model.Payment;
 import model.User;
 import util.OnlinePaymentConfig;
 import util.OnlinePaymentGateway;
+import util.PayOSCheckoutStore;
 
 @WebServlet(
         name = "PaymentServlet",
@@ -29,6 +36,181 @@ public class PaymentServlet
         extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
+    private PayOSCheckoutStore checkoutStore() {
+        String serverDirectory = System.getProperty("catalina.base", System.getProperty("user.home"));
+        String appDirectory = getServletContext().getContextPath().replace('/', '_');
+        return new PayOSCheckoutStore(Path.of(serverDirectory, "luxe-payos-checkouts", "app" + appDirectory));
+    }
+
+    private void showOnlineQr(HttpServletRequest request, HttpServletResponse response, Customer customer,
+            Booking booking) throws ServletException, IOException {
+        response.setHeader("Cache-Control", "no-store");
+        boolean statusOnly = "qr-status".equals(request.getParameter("view"));
+        String state = "unavailable";
+        long deadline = 0;
+        String checkoutUrl = null;
+        String returnUrl = OnlinePaymentConfig.callbacksConfigured()
+                ? OnlinePaymentConfig.publicBaseUrl() + qrPath(booking.getId()) : "";
+        BigDecimal amount = null;
+        try {
+            PaymentDAO payments = new PaymentDAO();
+            Instant checkedAt = Instant.now();
+            long seconds = payments.getOnlineHoldSeconds(booking.getId(), customer.getCustomerID());
+            deadline = checkedAt.plusSeconds(seconds).toEpochMilli();
+            Payment payment = payments.findPendingPayOSPayment(booking.getId(), customer.getCustomerID());
+            if (payment != null && OnlinePaymentConfig.payosConfigured()) {
+                amount = payment.getAmount();
+                long orderCode = payments.getPayOSOrderCode(payment.getId());
+                long expectedAmount = amount.longValueExact();
+                JsonNode order = OnlinePaymentGateway.getPayOSOrder(orderCode, expectedAmount);
+                String status = order.path("status").asText();
+                String linkId = order.path("id").asText();
+                if ("PAID".equals(status) && order.path("amountPaid").asLong(-1) == expectedAmount
+                        && order.path("amountRemaining").asLong(-1) == 0) {
+                    if (statusOnly) {
+                        writeQrStatus(response, "paid");
+                        return;
+                    }
+                    // Use the same verified reconciliation as the hosted return.
+                    response.sendRedirect(request.getContextPath() + "/payment/return?gateway=payos&status=PAID"
+                            + "&paymentId=" + payment.getId() + "&orderCode=" + orderCode);
+                    return;
+                }
+                if ("CANCELLED".equals(status) || ("cancelled".equals(booking.getStatus())
+                        && !"Expired pending booking".equals(booking.getCancellationReason()))) {
+                    state = "cancelled";
+                } else if ("EXPIRED".equals(status) || Instant.now().toEpochMilli() >= deadline) {
+                    state = "expired";
+                } else if ("PENDING".equals(status) && linkId.matches("[a-fA-F0-9]{32}")) {
+                    checkoutUrl = "https://pay.payos.vn/web/" + linkId;
+                    JsonNode saved = null;
+                    if (!statusOnly) {
+                        try {
+                            saved = checkoutStore().load(orderCode, Instant.now());
+                        } catch (IOException ex) {
+                            log("Unable to read saved payOS checkout " + orderCode, ex);
+                        }
+                    }
+                    if (saved != null) {
+                        JsonNode details = saved.path("data");
+                        String originalUrl = details.path("checkoutUrl").asText();
+                        if (linkId.equals(details.path("paymentLinkId").asText())
+                                && expectedAmount == details.path("amount").asLong(-1)
+                                && isPayOSCheckoutUrl(originalUrl)) {
+                            checkoutUrl = originalUrl;
+                            returnUrl = saved.path("returnUrl").asText(returnUrl);
+                            request.setAttribute("qrPayload", details.path("qrCode").asText());
+                            request.setAttribute("qrBankBin", details.path("bin").asText());
+                            request.setAttribute("qrAccountNumber", details.path("accountNumber").asText());
+                            request.setAttribute("qrAccountName", details.path("accountName").asText());
+                            request.setAttribute("qrDescription", details.path("description").asText());
+                        }
+                    }
+                    state = "pending";
+                } else if ("PROCESSING".equals(status)) {
+                    state = "checking";
+                }
+            } else if ("cancelled".equals(booking.getStatus())
+                    && !"Expired pending booking".equals(booking.getCancellationReason())) {
+                state = "cancelled";
+            } else if ("confirmed".equals(booking.getStatus())) {
+                if (statusOnly) {
+                    writeQrStatus(response, "paid");
+                    return;
+                }
+                response.sendRedirect(request.getContextPath() + "/history?view=bookings");
+                return;
+            } else if (seconds == 0) {
+                state = "expired";
+            } else if (payment == null) {
+                state = "missing";
+            }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        } catch (SQLException | IOException | ArithmeticException ex) {
+            log("Unable to look up payOS checkout for booking " + booking.getId(), ex);
+        }
+        if ("unavailable".equals(state) && deadline > 0 && Instant.now().toEpochMilli() >= deadline) {
+            state = "expired";
+        }
+        if (statusOnly) {
+            writeQrStatus(response, state);
+            return;
+        }
+        request.setAttribute("qrBookingId", booking.getId());
+        request.setAttribute("qrState", state);
+        request.setAttribute("qrCheckoutUrl", checkoutUrl);
+        request.setAttribute("qrReturnUrl", returnUrl);
+        request.setAttribute("qrAmount", amount);
+        request.setAttribute("qrSeconds", Math.max(0, (deadline - Instant.now().toEpochMilli() + 999) / 1000));
+        request.getRequestDispatcher("/WEB-INF/pay/embedded-checkout.jsp").forward(request, response);
+    }
+
+    private static void writeQrStatus(HttpServletResponse response, String state) throws IOException {
+        response.setContentType("text/plain;charset=UTF-8");
+        response.getWriter().write(state);
+    }
+
+    private void startOnlineQr(HttpServletRequest request, HttpServletResponse response, PaymentDAO payments,
+            Customer customer, Booking booking, String voucher, Integer percent) throws IOException {
+        if (!OnlinePaymentConfig.callbacksConfigured() || !OnlinePaymentConfig.payosConfigured()) {
+            response.sendRedirect(request.getContextPath() + "/payment?bookingId=" + booking.getId()
+                    + "&error=online-not-configured");
+            return;
+        }
+        if (percent == null || (percent != 50 && percent != 100)) {
+            response.sendRedirect(request.getContextPath() + "/payment?bookingId=" + booking.getId()
+                    + "&error=invalid-payment-percent");
+            return;
+        }
+        long paymentId = -1;
+        try {
+            int customerId = customer.getCustomerID();
+            if (payments.findPendingPayOSPayment(booking.getId(), customerId) == null) {
+                Instant checkedAt = Instant.now();
+                long seconds = payments.getOnlineHoldSeconds(booking.getId(), customerId);
+                if (seconds > 0) {
+                    paymentId = payments.createPendingOnlinePayment(booking.getId(), customerId,
+                            "bank_transfer", voucher, percent);
+                    long amount = payments.getPaymentAmountById(paymentId).longValueExact();
+                    long orderCode = payments.getPayOSOrderCode(paymentId);
+                    String returnUrl = OnlinePaymentConfig.publicBaseUrl() + qrPath(booking.getId());
+                    Instant expiresAt = checkedAt.plusSeconds(seconds);
+                    JsonNode details = OnlinePaymentGateway.createEmbeddedPayOSLink(paymentId, orderCode,
+                            amount, returnUrl, expiresAt.getEpochSecond());
+                    String checkoutUrl = details.path("checkoutUrl").asText();
+                    if (isPayOSCheckoutUrl(checkoutUrl)) {
+                        PayOSCheckoutStore store = checkoutStore();
+                        store.save(orderCode, details, returnUrl, expiresAt);
+                        store.removeExpired(Instant.now());
+                    }
+                }
+            }
+        } catch (OnlinePaymentGateway.PayOSLinkRejectedException ex) {
+            try {
+                payments.markOnlinePaymentFailed(payments.getTransactionCodeByPaymentId(paymentId), "bank_transfer");
+            } catch (SQLException cleanupError) {
+                log("Unable to release rejected payOS payment " + paymentId, cleanupError);
+            }
+            response.sendRedirect(request.getContextPath() + "/payment?bookingId=" + booking.getId()
+                    + "&error=payment-failed");
+            return;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        } catch (Exception ex) {
+            // A timeout can leave a valid provider link. Keep the same order code for lookup.
+            log("Unable to start payOS checkout for booking " + booking.getId(), ex);
+        }
+        response.sendRedirect(request.getContextPath() + qrPath(booking.getId()));
+    }
+
+    private static String qrPath(int bookingId) {
+        return "/payment?bookingId=" + bookingId;
+    }
+
+    private static boolean isPayOSCheckoutUrl(String url) {
+        return url.startsWith("https://pay.payos.vn/") || url.startsWith("https://next.pay.payos.vn/");
+    }
 
     /*
      * =========================================================
@@ -133,6 +315,11 @@ public class PaymentServlet
                     + "&message=booking-not-found"
             );
 
+            return;
+        }
+
+        if (booking.isOnlineDepositPolicy()) {
+            showOnlineQr(request, response, customer, booking);
             return;
         }
 
@@ -309,6 +496,18 @@ public class PaymentServlet
 
         PaymentDAO paymentDAO =
                 new PaymentDAO();
+
+        Booking onlineBooking = new BookingDAO().getBookingById(bookingId);
+        if (onlineBooking != null && onlineBooking.isOnlineDepositPolicy()) {
+            if (request.getDispatcherType() != DispatcherType.FORWARD
+                    || !"confirm".equals(request.getParameter("action"))
+                    || !"bank_transfer".equals(paymentMethod)) {
+                response.sendRedirect(request.getContextPath() + qrPath(bookingId));
+                return;
+            }
+            startOnlineQr(request, response, paymentDAO, customer, onlineBooking, discountCode, paymentPercent);
+            return;
+        }
 
         BigDecimal alreadyPaid = paymentDAO.getTotalPaidAmount(bookingId);
         boolean firstPayment = alreadyPaid.compareTo(BigDecimal.ZERO) == 0;

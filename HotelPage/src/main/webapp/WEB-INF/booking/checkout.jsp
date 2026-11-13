@@ -17,19 +17,28 @@
     <%@ include file="../include/header.jsp" %>
     <main class="stay-content">
       <div class="container stay-shell">
-        <c:url var="stayUrl" value="/room-stay"><c:param name="roomTypeId" value="${roomType.id}"/></c:url>
+        <c:url var="stayUrl" value="/details">
+            <c:param name="roomTypeId" value="${roomType.id}"/>
+            <c:param name="checkIn" value="${checkIn}"/>
+            <c:param name="checkOut" value="${checkOut}"/>
+            <c:param name="quantity" value="${quantity}"/>
+            <c:param name="guests" value="${guests}"/>
+        </c:url>
         <a href="${stayUrl}" class="stay-back"><i class="bi bi-arrow-left" aria-hidden="true"></i> <ui:text key="room.back.stay"/></a>
         <div class="stay-heading"><div class="stay-brand">Luxe Escape</div><h1><ui:text key="room.booking.checkout.title"/></h1></div>
         <div class="row g-4">
             <aside class="col-lg-5 order-lg-2">
                 <div class="stay-panel stay-summary p-3 p-md-4">
-                    <h2 class="h5"><c:out value="${roomType.name}"/></h2>
-                    <p>${quantity} <ui:text key="room.quantity"/> · ${guests} <ui:text key="screen.3c8e0fde6fcc71e0"/></p>
-                    <p class="stay-dates">${checkIn} → ${checkOut}</p>
+                    <h2 class="h4 fw-bold mb-3"><c:out value="${roomType.name}"/></h2>
+                    <p class="checkout-stay-meta mb-2">
+                        <span><i class="bi bi-door-open" aria-hidden="true"></i> <ui:text key="room.quantity"/> <strong>${quantity}</strong></span>
+                        <span><i class="bi bi-people" aria-hidden="true"></i> <ui:text key="room.guests.total"/> <strong>${guests}</strong></span>
+                    </p>
+                    <p class="stay-dates flex-wrap"><i class="bi bi-calendar3" aria-hidden="true"></i> <time datetime="${checkIn}">${checkIn}</time> <span aria-hidden="true">&rarr;</span> <time datetime="${checkOut}">${checkOut}</time></p>
                     <dl class="mb-0" aria-live="polite">
                         <div><dt><ui:text key="room.checkout.stay.total"/></dt>
                             <dd><ui:money amount="${total}"/></dd></div>
-                        <div><dt><ui:text key="room.checkout.due"/></dt>
+                        <div class="checkout-due-row"><dt><ui:text key="room.checkout.due"/></dt>
                             <dd id="checkout-due"><ui:money amount="${initialDue}"/></dd></div>
                         <div><dt><ui:text key="room.checkout.hotel.balance"/></dt>
                             <dd id="checkout-balance"><ui:money amount="${initialBalance}"/></dd></div>
@@ -59,7 +68,7 @@
                     <input type="hidden" name="action" value="confirm">
                     <input type="hidden" name="draft" value="${draftToken}">
                     <fieldset class="mb-4">
-                      <legend class="h5"><ui:text key="room.booking.contact.title"/></legend>
+                      <legend class="h5 stay-form-heading"><i class="bi bi-person me-2" aria-hidden="true"></i><ui:text key="room.booking.contact.title"/></legend>
                       <div class="row g-3">
                         <div class="col-md-6">
                             <label for="contact-name" class="form-label"><ui:text key="room.contact.name"/></label>
@@ -88,7 +97,7 @@
                       </div>
                     </fieldset>
                     <fieldset class="border-top pt-4">
-                        <legend class="h5"><ui:text key="room.booking.payment.title"/></legend>
+                        <legend class="h5 stay-form-heading"><i class="bi bi-credit-card me-2" aria-hidden="true"></i><ui:text key="room.booking.payment.title"/></legend>
                         <div class="mb-3">
                             <label for="payment-plan" class="form-label"><ui:text key="room.checkout.method"/></label>
                             <select id="payment-plan" name="payment-plan" class="form-select" required>
