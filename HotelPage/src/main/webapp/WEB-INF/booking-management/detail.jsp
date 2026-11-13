@@ -454,7 +454,7 @@
 
                                                 <c:forEach var="status"
                                                            items="${nextStatuses}">
-                                                    <option value="${status}" data-i18n="screen.fe00b67b6dd1143f">
+                                                    <option value="${status}" >
                                                         <c:choose>
                                                             <c:when test="${status == 'confirmed'}">
                                                                 ${requestScope.i18n['screen.fe00b67b6dd1143f']}
