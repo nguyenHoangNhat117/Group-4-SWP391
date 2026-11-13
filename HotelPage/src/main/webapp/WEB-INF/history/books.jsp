@@ -168,6 +168,11 @@
                                             <c:set var="paidAmount" value="${paidAmountMap[booking.id]}" />
                                             <c:set var="remainingAmount" value="${remainingAmountMap[booking.id]}" />
                                             <c:choose>
+                                                <c:when test="${not empty lateRefundMessageMap[booking.id]}">
+                                                    <span class="badge text-wrap text-start ${lateRefundMessageMap[booking.id] == 'room.late.refund.pending' ? 'bg-warning text-dark' : 'bg-success'}">
+                                                        <ui:text key="${lateRefundMessageMap[booking.id]}"/>
+                                                    </span>
+                                                </c:when>
                                                 <c:when test="${booking.status == 'cancelled' && refundedMap[booking.id]}">
                                                     <span class="badge bg-success"><ui:text key="screen.c797239908d33b97"/></span>
                                                     <div class="small text-muted mt-1"><ui:text key="screen.ace7885e1829b09f"/></div>

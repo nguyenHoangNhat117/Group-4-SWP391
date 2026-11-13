@@ -3,6 +3,103 @@
     text-decoration: line-through;
     cursor: not-allowed;
 }
+
+.booking-search-page .litepicker .day-item.is-locked,
+.booking-search-page .litepicker .day-item.is-locked:hover,
+.room-details-page .litepicker .day-item.is-locked,
+.room-details-page .litepicker .day-item.is-locked:hover {
+    position: relative;
+    color: #746b61;
+    text-decoration: none;
+    cursor: not-allowed;
+}
+
+.booking-search-page .litepicker .day-item.is-locked:not(.search-loading)::before,
+.booking-search-page .litepicker .day-item.is-locked:not(.search-loading)::after,
+.room-details-page .litepicker .day-item.is-locked:not(.search-loading)::before,
+.room-details-page .litepicker .day-item.is-locked:not(.search-loading)::after {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 1.45rem;
+    height: 1px;
+    background-color: #9a7957;
+    transform: translate(-50%, -50%) rotate(45deg);
+    pointer-events: none;
+}
+
+.booking-search-page .litepicker .day-item.is-locked:not(.search-loading)::after,
+.room-details-page .litepicker .day-item.is-locked:not(.search-loading)::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.booking-search-page .search-field .form-select,
+.booking-search-page .search-filter-toggle {
+    min-height: 50px;
+    padding: 12px 2.1rem 12px 40px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    color: #333;
+    font-weight: 500;
+}
+
+.booking-search-page .search-field .form-select:focus,
+.booking-search-page .search-filter-toggle:focus {
+    border-color: #b29575;
+    box-shadow: 0 0 0 0.25rem rgba(178, 149, 117, 0.25);
+}
+
+.booking-search-page .search-field > .bi {
+    top: auto;
+    bottom: 12px;
+    pointer-events: none;
+}
+
+.booking-search-page .search-field .form-select[hidden] {
+    display: none;
+}
+
+.booking-search-page .search-filter-toggle {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.booking-search-page .search-filter-toggle::after {
+    position: absolute;
+    top: 50%;
+    right: .85rem;
+    color: #846448;
+    transform: translateY(-50%);
+}
+
+.booking-search-page .search-field > .search-filter-toggle::after {
+    top: auto;
+    bottom: 22px;
+    transform: none;
+}
+
+.booking-search-page .search-filter-menu {
+    width: 100%;
+    min-width: 12rem;
+    max-height: 16rem;
+    overflow-y: auto;
+}
+
+.booking-search-page .search-filter-menu .dropdown-item {
+    white-space: normal;
+}
+
+.booking-search-page .search-filter-menu .dropdown-item.active {
+    background: var(--lx-cream, #f8f3ec);
+    color: var(--lx-gold-dark, #76583e);
+    font-weight: 600;
+}
+
 .price-band-field {
     position: relative;
 }

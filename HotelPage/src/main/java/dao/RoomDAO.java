@@ -108,19 +108,34 @@ public class RoomDAO extends DBContext {
         return types;
     }
 
+    public int countAvailableRoomsByType(LocalDate from, LocalDate to, int typeId) throws SQLException {
+        String sql = "SELECT COUNT(*)" + SEARCH_INVENTORY + SEARCH_STAY;
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindInventory(ps, 1, typeId, model.RoomPriceBand.ALL);
+            ps.setObject(8, to);
+            ps.setObject(9, from);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
+            }
+        }
+    }
+
     public java.util.Map<String, String> findCalendarAvailability(LocalDate from, LocalDate to,
-            int guests, Integer typeId, model.RoomPriceBand band) throws SQLException {
+            int guests, Integer typeId, model.RoomPriceBand band, int quantity) throws SQLException {
         String sql = "WITH Nights AS (SELECT CAST(? AS date) AS StayDate "
                 + "UNION ALL SELECT DATEADD(day,1,StayDate) FROM Nights WHERE StayDate<?), "
                 + "Inventory AS (SELECT r.RoomNumber " + SEARCH_INVENTORY + ") "
-                + "SELECT n.StayDate, MAX(CASE WHEN upcoming.BookedFrom<=n.StayDate THEN NULL "
-                + "ELSE COALESCE(upcoming.BookedFrom,CAST(? AS date)) END) AS LastCheckout "
+                + ", StayLimits AS (SELECT n.StayDate, COALESCE(upcoming.BookedFrom,CAST(? AS date)) AS LastCheckout "
                 + "FROM Nights n CROSS JOIN Inventory i OUTER APPLY ("
                 + "SELECT MIN(bd.CheckInDate) AS BookedFrom FROM BookingDetail bd "
                 + "JOIN Booking b ON b.BookingID=bd.BookingID WHERE bd.RoomNumber=i.RoomNumber "
                 + "AND b.Status<>'cancelled' AND bd.CheckOutDate>n.StayDate "
                 + "AND bd.CheckInDate<?) upcoming "
-                + "GROUP BY n.StayDate OPTION (MAXRECURSION 366)";
+                + "WHERE upcoming.BookedFrom IS NULL OR upcoming.BookedFrom>n.StayDate), "
+                + "Ranked AS (SELECT StayDate, LastCheckout, "
+                + "ROW_NUMBER() OVER (PARTITION BY StayDate ORDER BY LastCheckout DESC) AS RoomRank FROM StayLimits) "
+                + "SELECT StayDate, LastCheckout FROM Ranked WHERE RoomRank=? OPTION (MAXRECURSION 366)";
         java.util.Map<String, String> availability = new java.util.LinkedHashMap<>();
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, from);
@@ -128,6 +143,7 @@ public class RoomDAO extends DBContext {
             bindInventory(ps, 3, guests, typeId, band);
             ps.setObject(10, to);
             ps.setObject(11, to);
+            ps.setInt(12, quantity);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     java.sql.Date checkout = rs.getDate("LastCheckout");

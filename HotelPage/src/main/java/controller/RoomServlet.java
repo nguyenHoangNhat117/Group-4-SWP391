@@ -10,25 +10,23 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import model.Room;
 import model.RoomPriceBand;
 import java.sql.SQLException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import model.RoomType;
 import model.User;
+import util.OnlineStayDates;
+import util.ReportPeriod;
 
 @WebServlet(name = "RoomServlet", urlPatterns = {"/room"})
 public class RoomServlet extends HttpServlet {
 
     private static final int PAGE_SIZE = 6;
     private static final String CREATED_ROOMS = "roomManagement.createdRooms";
-    private static final DateTimeFormatter DATE_FORMAT
-            = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
 
     private boolean isAdmin(HttpSession session) {
         if (session == null) {
@@ -141,8 +139,13 @@ public class RoomServlet extends HttpServlet {
             throws IOException, ServletException {
         Integer guests = positiveInt(request.getParameter("guest-count"));
         Integer typeId = positiveInt(request.getParameter("room-type-id"));
+        Integer quantity = positiveInt(request.getParameter("quantity"));
+        if (request.getParameter("quantity") != null && (quantity == null || quantity > 1000)) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
         RoomPriceBand band;
-        LocalDate today = util.ReportPeriod.today();
+        LocalDate today = ReportPeriod.today();
         try {
             band = RoomPriceBand.parse(request.getParameter("price-band"));
         } catch (IllegalArgumentException ex) {
@@ -151,9 +154,9 @@ public class RoomServlet extends HttpServlet {
         }
         new dao.BookingDAO().expirePendingBookings();
         try {
-            LocalDate lastDate = today.plusDays(365);
+            LocalDate lastDate = today.plusDays(OnlineStayDates.ADVANCE_DAYS);
             java.util.Map<String, String> dates = new RoomDAO().findCalendarAvailability(
-                    today, lastDate, guests == null ? 1 : guests, typeId, band);
+                    today, lastDate, guests == null ? 1 : guests, typeId, band, quantity == null ? 1 : quantity);
             response.setContentType("application/json");
             response.setHeader("Cache-Control", "no-store");
             new ObjectMapper().writeValue(response.getOutputStream(), java.util.Map.of("dates", dates));
@@ -180,9 +183,7 @@ public class RoomServlet extends HttpServlet {
         LocalDate checkOut = session == null ? null : (LocalDate) session.getAttribute("checkOutDate");
 
         // BR-14 revalidation on session dates
-        if (checkIn == null || checkOut == null
-                || checkIn.isBefore(util.ReportPeriod.today())
-                || !checkOut.isAfter(checkIn)) {
+        if (!OnlineStayDates.isValid(checkIn, checkOut, ReportPeriod.today())) {
             redirect(request, response, "/booking?error=invalid-dates");
             return;
         }
@@ -384,10 +385,9 @@ public class RoomServlet extends HttpServlet {
         LocalDate checkIn;
         LocalDate checkOut;
         try {
-            checkIn = LocalDate.parse(dates[0].trim(), DATE_FORMAT);
-            checkOut = LocalDate.parse(dates[1].trim(), DATE_FORMAT);
-            LocalDate today = util.ReportPeriod.today();
-            if (checkIn.isBefore(today) || !checkOut.isAfter(checkIn) || checkOut.isAfter(today.plusDays(365))) {
+            checkIn = OnlineStayDates.parseSearchDate(dates[0]);
+            checkOut = OnlineStayDates.parseSearchDate(dates[1]);
+            if (!OnlineStayDates.isValid(checkIn, checkOut, ReportPeriod.today())) {
                 redirect(request, response, errorTarget + "error=invalid-dates");
                 return;
             }
@@ -456,7 +456,7 @@ public class RoomServlet extends HttpServlet {
         }
 
         // 4. Retain search criteria in session (UC06 Postconditions)
-        session.setAttribute("dates", rawDates.trim());
+        session.setAttribute("dates", OnlineStayDates.formatSearchRange(checkIn, checkOut));
         session.setAttribute("checkInDate", checkIn);
         session.setAttribute("checkOutDate", checkOut);
         session.setAttribute("guestCount", guestCount);

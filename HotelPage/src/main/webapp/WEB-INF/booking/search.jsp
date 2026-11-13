@@ -32,7 +32,7 @@
                 height: 60vh;
                 min-height: 400px;
                 background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)),
-                    url('<%= request.getContextPath()%>/assets/img/hero-bg.jpg') center/cover no-repeat; /* Bạn có thể tạo ảnh hero-bg.jpg để vào thư mục img */
+                    url('<%= request.getContextPath()%>/assets/img/lobby.jpg') center/cover no-repeat;
                 background-color: #2c3e50; /* Fallback color */
                 display: flex;
                 align-items: center;
@@ -70,15 +70,7 @@
                 padding: 20px;
             }
 
-            .search-input-group {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 15px;
-            }
-
             .search-field {
-                flex: 1;
-                min-width: 200px;
                 position: relative;
             }
 
@@ -122,7 +114,7 @@
                 color: white;
                 border: none;
                 border-radius: 8px;
-                padding: 12px 30px;
+                padding: 12px 14px;
                 font-size: 1.1rem;
                 font-weight: 600;
                 transition: all 0.3s ease;
@@ -157,11 +149,11 @@
                 margin-bottom: 15px;
             }
         </style>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/search-calendar.css">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/search-calendar.css">
         <script src="${pageContext.request.contextPath}/assets/js/search-calendar.js" defer></script>
     </head>
 
-    <body>
+    <body class="booking-search-page">
         <div class="body-wrapper">    
             <%@include file="../include/header.jsp" %>
 
@@ -228,7 +220,7 @@
                                 <!-- Cột 2: Số lượng khách (Capacity - BR-15) -->
                                 <div class="col-lg-2 col-md-3 col-sm-6">
                                     <div class="search-field">
-                                        <label for="guest-count"><ui:text key="screen.3c8e0fde6fcc71e0"/> <span class="text-danger">*</span></label>
+                                        <label for="guest-count"><ui:text key="room.search.guestsPerRoom"/> <span class="text-danger">*</span></label>
                                         <i class="bi bi-people-fill"></i>
                                         <input type="number"
                                                class="form-control ${param.error == 'invalid-filter' ? 'is-invalid border-danger' : ''}"
@@ -245,11 +237,11 @@
                                     <div class="search-field">
                                         <label for="room-type-id"><ui:text key="screen.82dea9a01c0033ec"/></label>
                                         <i class="bi bi-door-open-fill"></i>
-                                        <select class="form-control" id="room-type-id" name="room-type-id">
+                                        <select class="form-select" id="room-type-id" name="room-type-id">
                                             <option value="" data-i18n="screen.bc01325482f36133">${requestScope.i18n['screen.bc01325482f36133']}</option>
                                             <c:forEach var="rt" items="${requestScope.roomTypes}">
                                                 <option value="${rt.id}" ${sessionScope.searchRoomTypeId == rt.id ? 'selected' : ''}>
-                                                    ${rt.name}
+                                                    <c:out value="${rt.name}"/>
                                                 </option>
                                             </c:forEach>
                                         </select>

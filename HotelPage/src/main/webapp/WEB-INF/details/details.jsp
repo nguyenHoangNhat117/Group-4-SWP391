@@ -6,19 +6,19 @@
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta charset="UTF-8">
-        <title data-i18n="screen.911ea89c43d9dbb8">${requestScope.i18n['screen.911ea89c43d9dbb8']} ${room.roomNumber} - ${room.roomType.name} ${requestScope.i18n['screen.5c08a32dd286d9e8']}</title>
+        <title><c:out value="${roomType.name}"/></title>
 
         <!-- Bootstrap & Icons -->
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" />
-        <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css">
 
         <!-- Custom CSS -->
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/general.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+        <link rel="stylesheet" href="<c:url value='/assets/css/search-calendar.css'/>">
 
         <style>
             body {
@@ -44,6 +44,18 @@
                 box-shadow: 0 8px 25px rgba(0,0,0,0.06);
                 border: 1px solid #eee;
             }
+            .detail-price,
+            .detail-total {
+                color: #76583e;
+            }
+            .detail-quote {
+                background: #f8f3ec;
+                border: 1px solid #e8dfd2;
+            }
+            .detail-stock {
+                background: #f8f3ec;
+                color: #76583e;
+            }
             .btn-luxe {
                 background-color: #b29575;
                 color: #fff;
@@ -62,7 +74,7 @@
             }
         </style>
     </head>
-    <body>
+    <body class="room-details-page">
         <div class="body-wrapper">
             <%@include file="../include/header.jsp" %>
 
@@ -96,8 +108,9 @@
 
                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                     <div>
-                        <h2 class="fw-bold mb-1"><ui:text key="screen.911ea89c43d9dbb8"/> ${room.roomNumber} &mdash; <c:out value="${room.roomType.name}"/></h2>
-                        <div class="d-flex align-items-center text-muted gap-3">
+                        <h1 class="fw-bold mb-2"><c:if test="${not empty room}"><ui:text key="screen.911ea89c43d9dbb8"/> ${room.roomNumber} &mdash; </c:if><c:out value="${roomType.name}"/></h1>
+                        <div class="d-flex flex-wrap align-items-center text-muted gap-3">
+                            <c:if test="${not empty room}">
                             <span>
                                 <c:choose>
                                     <c:when test="${empty reviews}">
@@ -111,61 +124,47 @@
                                 </c:choose>
                             </span>
                             <span>&middot;</span>
-                            <span><i class="bi bi-moon-stars me-1"></i>${room.roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></span>
+                            </c:if>
+                            <span><i class="bi bi-moon-stars me-1"></i>${roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></span>
                             <span>&middot;</span>
-                            <span><i class="bi bi-people me-1"></i><ui:text key="screen.a3f67d7dd58cf9cc"/> ${room.roomType.capacity} <ui:text key="screen.83fa2571cc72ee59"/></span>
+                            <span class="badge rounded-pill detail-stock fs-6"><i class="bi bi-people me-1" aria-hidden="true"></i>${roomType.capacity} <ui:text key="room.guests.per.room"/></span>
                         </div>
                     </div>
 
-                    <!-- Real-time Availability Badge (Normal Flow Step 4) -->
-                    <div>
-                        <c:choose>
-                            <c:when test="${isRoomAvailable}">
-                                <span class="badge bg-success fs-6 px-3 py-2 rounded-pill">
-                                    <i class="bi bi-check-circle me-1"></i> <ui:text key="screen.be11f67264a9d569"/>
-                                </span>
-                            </c:when>
-                            <c:otherwise>
-                                <span class="badge bg-danger fs-6 px-3 py-2 rounded-pill">
-                                    <i class="bi bi-x-circle me-1"></i> <ui:text key="screen.c2c4d8e965f5310e"/>
-                                </span>
-                            </c:otherwise>
-                        </c:choose>
-                    </div>
                 </div>
 
                 <!-- Main Row: Image Gallery + Specifications (Left) & Availability/Booking Widget (Right) -->
                 <div class="row g-4 mt-1 align-items-start">
                     <!-- Left Column: Image, Description, Amenities -->
                     <div class="col-lg-7">
-                        <img src="${pageContext.request.contextPath}/assets/img/${room.roomType.picture}"
+                        <img src="${pageContext.request.contextPath}/assets/img/<c:out value='${roomType.picture}'/>"
                              class="img-fluid w-100 rounded-4 shadow-sm mb-4"
                              style="max-height: 480px; object-fit: cover;"
-                             alt="Room ${room.roomNumber}"/>
+                             alt="<c:out value='${roomType.name}'/>"/>
 
                         <!-- Room Description -->
                         <div class="bg-white border rounded-4 p-4 shadow-sm mb-4">
                             <h4 class="fw-bold mb-3"><ui:text key="screen.de659431fe98de4e"/></h4>
                             <p class="text-secondary mb-3">
-                                <c:out value="${not empty room.roomType.description ? room.roomType.description : 'Experience comfort and elegance in our well-appointed room.'}"/>
+                                <c:out value="${not empty roomType.description ? roomType.description : 'Experience comfort and elegance in our well-appointed room.'}"/>
                             </p>
                             <div class="row g-3 text-center pt-2 border-top">
                                 <div class="col-sm-4">
                                     <div class="p-3 bg-light rounded-3">
                                         <div class="text-muted small text-uppercase"><ui:text key="screen.bf193eab4a1aafb0"/></div>
-                                        <div class="fs-5 fw-bold text-dark"><ui:money amount="${room.roomType.pricePerNight}"/></div>
+                                        <div class="fs-5 fw-bold text-dark"><ui:money amount="${roomType.pricePerNight}"/></div>
                                     </div>
                                 </div>
                                 <div class="col-sm-4">
                                     <div class="p-3 bg-light rounded-3">
                                         <div class="text-muted small text-uppercase"><ui:text key="screen.2e2a3cd1a00809d3"/></div>
-                                        <div class="fs-5 fw-bold text-dark">${room.roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></div>
+                                        <div class="fs-5 fw-bold text-dark">${roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></div>
                                     </div>
                                 </div>
                                 <div class="col-sm-4">
                                     <div class="p-3 bg-light rounded-3">
                                         <div class="text-muted small text-uppercase"><ui:text key="screen.a641d8404ba319e8"/></div>
-                                        <div class="fs-5 fw-bold text-dark">${room.roomType.capacity} <ui:text key="screen.3c8e0fde6fcc71e0"/></div>
+                                        <div class="fs-5 fw-bold text-dark">${roomType.capacity} <ui:text key="screen.3c8e0fde6fcc71e0"/></div>
                                     </div>
                                 </div>
                             </div>
@@ -182,9 +181,11 @@
                                                 <div class="d-flex align-items-start p-3 bg-light rounded-3 h-100">
                                                     <i class="bi bi-check2-circle text-success fs-5 me-2"></i>
                                                     <div>
-                                                        <div class="fw-semibold text-dark"><c:out value="${amenity.name}"/></div>
+                                                        <c:set var="amenityNameKey" value="room.amenity.name.${amenity.name}"/>
+                                                        <c:set var="amenityDescriptionKey" value="room.amenity.description.${amenity.description}"/>
+                                                        <div class="fw-semibold text-dark" data-i18n="${not empty requestScope.i18n[amenityNameKey] ? amenityNameKey : ''}"><c:out value="${requestScope.i18n[amenityNameKey]}" default="${amenity.name}"/></div>
                                                         <c:if test="${not empty amenity.description}">
-                                                            <small class="text-muted"><c:out value="${amenity.description}"/></small>
+                                                            <small class="text-muted" data-i18n="${not empty requestScope.i18n[amenityDescriptionKey] ? amenityDescriptionKey : ''}"><c:out value="${requestScope.i18n[amenityDescriptionKey]}" default="${amenity.description}"/></small>
                                                         </c:if>
                                                     </div>
                                                 </div>
@@ -205,125 +206,90 @@
                         <div class="availability-card p-4 mb-4">
                             <div class="d-flex justify-content-between align-items-baseline border-bottom pb-3 mb-3">
                                 <div>
-                                    <span class="fs-3 fw-bold" style="color: #b29575;"><ui:money amount="${room.roomType.pricePerNight}"/></span>
+                                    <span class="fs-2 fw-bold detail-price"><ui:money amount="${roomType.pricePerNight}"/></span>
                                     <span class="text-muted"><ui:text key="screen.9f93223e3ed44949"/></span>
                                 </div>
-                                <span class="text-muted small"><ui:text key="screen.6c8c6af24c9b021c"/>${room.roomNumber}</span>
                             </div>
-
-                            <!-- Date Validation Error (BR-14) -->
-                            <c:if test="${not empty dateError}">
-                                <div class="alert alert-danger small py-2" role="alert">
-                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                    <c:out value="${dateError}"/>
-                                </div>
-                            </c:if>
-
-                            <!-- Exception 4c: Room Unavailable Notice -->
-                            <c:if test="${not empty unavailableNotice}">
-                                <div class="alert alert-warning small py-2" role="alert">
-                                    <i class="bi bi-exclamation-circle-fill me-1"></i>
-                                    <c:out value="${unavailableNotice}"/>
-                                    <c:if test="${!isCapacitySatisfied}">
-                                        <div class="mt-1 fw-semibold">
-                                            <ui:text key="screen.7c30f8b36a308144"/> ${guestCount} <ui:text key="screen.be95adeb592fd0ec"/> ${room.roomType.capacity}.)
-                                        </div>
-                                    </c:if>
-                                </div>
-                            </c:if>
-
-                            <!-- Alternative Flow 4a: Modify Check-in, Check-out, or Guest Count -->
-                            <form action="${pageContext.request.contextPath}/details" method="get" class="mb-3">
-                                <input type="hidden" name="roomNumber" value="${room.roomNumber}">
-
-                                <div class="mb-3">
-                                    <label for="detailBookingDates" class="form-label small fw-bold text-uppercase text-muted">
-                                        <ui:text key="screen.e8d00105a4a052bf"/>
-                                    </label>
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-light"><i class="bi bi-calendar3"></i></span>
-                                        <input type="text"
-                                               id="detailBookingDates"
-                                               name="booking-dates"
-                                               class="form-control ${not empty dateError ? 'is-invalid border-danger' : ''}"
-                                               value="<c:out value='${sessionScope.dates}'/>"
-                                               readonly required>
+                            <form action="<c:url value='/details'/>" method="post" id="details-stay-form"
+                                  data-endpoint="<c:url value='/details'/>" data-capacity="${roomType.capacity}">
+                                <input type="hidden" name="action" value="review">
+                                <input type="hidden" name="roomTypeId" value="${roomType.id}">
+                                <c:if test="${not empty room}">
+                                    <input type="hidden" name="roomNumber" value="${room.roomNumber}">
+                                </c:if>
+                                <div class="row g-3 mb-3">
+                                    <div class="col-12">
+                                        <label for="detailBookingDates" class="form-label fw-semibold"><ui:text key="screen.c832b0d0d927dcff"/></label>
+                                        <input class="form-control bg-light" id="detailBookingDates" type="text" readonly
+                                               value="${dateRange}" data-calendar-url="<c:url value='/room'/>"
+                                               aria-describedby="detail-calendar-status">
+                                        <input type="hidden" name="checkIn" value="${checkInDate}">
+                                        <input type="hidden" name="checkOut" value="${checkOutDate}">
+                                        <small id="detail-calendar-status" class="visually-hidden" aria-live="polite"
+                                               data-loading="${requestScope.i18n['room.calendar.loading']}"
+                                               data-error="${requestScope.i18n['room.details.load.error']}"
+                                               data-unavailable="${requestScope.i18n['room.calendar.unavailable']}"></small>
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="detailQuantity" class="form-label"><ui:text key="room.quantity"/></label>
+                                        <input class="form-control" id="detailQuantity" type="number" name="quantity"
+                                               min="1" max="${maxRooms > 0 ? maxRooms : 1}" value="${quantity}" required
+                                               ${maxRooms == 0 ? 'readonly' : ''}
+                                               aria-describedby="detailRoomLimit">
+                                        <small id="detailRoomLimit" class="text-muted"><ui:text key="room.details.max"/> <span id="detailMaxRooms">${maxRooms}</span></small>
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="detailGuests" class="form-label"><ui:text key="room.guests.total"/></label>
+                                        <input class="form-control" id="detailGuests" type="number" name="guests"
+                                               min="${quantity}" max="${maxGuests}" value="${guestCount}" required
+                                               ${maxRooms == 0 ? 'readonly' : ''}
+                                               aria-describedby="detailGuestLimit">
+                                        <small id="detailGuestLimit" class="text-muted"><ui:text key="room.details.max"/> <span id="detailMaxGuests">${maxGuests}</span></small>
                                     </div>
                                 </div>
 
-                                <div class="mb-3">
-                                    <label for="detailGuestCount" class="form-label small fw-bold text-uppercase text-muted">
-                                        <ui:text key="screen.8693a9d0090f4f64"/> ${room.roomType.capacity})
-                                    </label>
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-light"><i class="bi bi-people-fill"></i></span>
-                                        <input type="number"
-                                               id="detailGuestCount"
-                                               name="guest-count"
-                                               min="1"
-                                               max="${room.roomType.capacity}" 
-                                               class="form-control ${!isCapacitySatisfied ? 'is-invalid border-danger' : ''}"
-                                               value="${guestCount > room.roomType.capacity ? room.roomType.capacity : guestCount}"
-                                               required>
-                                        <button type="submit" class="btn btn-outline-secondary fw-semibold">
-                                            <ui:text key="screen.dbc90cdfdaf2d3ce"/>
+                                <div class="detail-quote rounded-3 p-3 mb-3" aria-live="polite" id="detailQuote"
+                                     ${stayError == 'room.details.dates.error' ? 'hidden' : ''}>
+                                    <div class="d-flex flex-wrap gap-2 justify-content-between fw-semibold text-dark mb-2">
+                                        <span><strong id="detailNights">${nights}</strong> <ui:text key="room.nights"/></span>
+                                        <span><strong id="detailAvailable">${available}</strong> <ui:text key="room.available"/></span>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center border-top pt-2">
+                                        <span class="fw-bold text-dark"><ui:text key="room.estimated.total"/></span>
+                                        <span class="fs-4 fw-bold detail-total" id="detailTotal">
+                                            <c:choose>
+                                                <c:when test="${stayError == 'room.quantity.error'}">&mdash;</c:when>
+                                                <c:when test="${stayError == 'room.details.stock.error'}">&mdash;</c:when>
+                                                <c:otherwise><ui:money amount="${totalStayPrice}"/></c:otherwise>
+                                            </c:choose>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div id="detailStatus" class="mb-3 text-secondary" aria-live="polite">
+                                    <c:forEach var="message" items="${['room.details.dates.error', 'room.quantity.error',
+                                               'room.details.stock.error', 'room.availability.error', 'room.calendar.loading', 'room.details.load.error']}">
+                                        <div class="${message == 'room.calendar.loading' ? '' : 'text-danger'}"
+                                             data-message="${message}" ${stayError == message ? '' : 'hidden'}><ui:text key="${message}"/></div>
+                                    </c:forEach>
+                                </div>
+
+                                <c:choose>
+                                    <c:when test="${empty sessionScope.loggedUser || sessionScope.loggedUser.role == 'customer'}">
+                                        <button type="submit" id="detailReserve" class="btn btn-luxe btn-lg w-100 rounded-pill py-2"
+                                                ${canBook ? '' : 'disabled'}>
+                                            <i class="bi bi-calendar-check me-1" aria-hidden="true"></i> <ui:text key="room.reserve.now"/>
                                         </button>
-                                    </div>
-                                </div>
+                                    </c:when>
+                                    <c:when test="${sessionScope.loggedUser.role == 'staff' && staffRoomAvailable}">
+                                        <a href="<c:url value='/booking-management'/>" class="btn btn-luxe btn-lg w-100 rounded-pill py-2">
+                                            <i class="bi bi-person-plus me-1" aria-hidden="true"></i> <ui:text key="screen.afe42350b046a3d9"/>
+                                        </a>
+                                    </c:when>
+                                </c:choose>
                             </form>
-
-                            <!-- Calculated Stay Price Breakdown (Normal Flow Step 4 & Alternative Flow 4a) -->
-                            <div class="bg-light rounded-3 p-3 mb-3">
-                                <div class="d-flex justify-content-between small text-secondary mb-1">
-                                    <span><ui:text key="screen.a44e12f354688caf"/> <strong>${checkInDate}</strong></span>
-                                    <span><ui:text key="screen.865998541ea4eba7"/> <strong>${checkOutDate}</strong></span>
-                                </div>
-                                <div class="d-flex justify-content-between small text-secondary mb-2">
-                                    <span><ui:money amount="${room.roomType.pricePerNight}"/> &times; ${nights} <ui:text key="screen.44cd797adc77aeed"/></span>
-                                    <span><ui:text key="screen.1ac580f9fde7374f"/> ${guestCount}</span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center border-top pt-2">
-                                    <span class="fw-bold text-dark"><ui:text key="screen.0b50ef475b2aea19"/></span>
-                                    <span class="fs-5 fw-bold text-success"><ui:money amount="${totalStayPrice}"/></span>
-                                </div>
-                            </div>
-
-                            <!-- Alternative Flow 4b & Exception 4c: Action Button -->
-                            <c:choose>
-                                <c:when test="${empty sessionScope.loggedUser || sessionScope.loggedUser.role == 'customer'}">
-                                    <c:choose>
-                                        <c:when test="${isRoomAvailable}">
-                                            <a href="${pageContext.request.contextPath}/room-stay?roomTypeId=${room.roomType.id}"
-                                               class="btn btn-luxe btn-lg w-100 rounded-pill py-2">
-                                                <i class="bi bi-calendar-check me-1"></i> <ui:text key="screen.67be79359de4aa3f"/>
-                                            </a>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <button type="button" class="btn btn-luxe btn-lg w-100 rounded-pill py-2" disabled>
-                                                <i class="bi bi-slash-circle me-1"></i> <ui:text key="screen.8f56a46240fc23cf"/>
-                                            </button>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </c:when>
-
-                                <c:when test="${sessionScope.loggedUser.role == 'staff'}">
-                                    <c:choose>
-                                        <c:when test="${isRoomAvailable}">
-                                            <a href="${pageContext.request.contextPath}/booking-management"
-                                               class="btn btn-luxe btn-lg w-100 rounded-pill py-2">
-                                                <i class="bi bi-person-plus me-1"></i> <ui:text key="screen.afe42350b046a3d9"/>
-                                            </a>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <button type="button" class="btn btn-luxe btn-lg w-100 rounded-pill py-2" disabled>
-                                                <i class="bi bi-slash-circle me-1"></i> <ui:text key="screen.c56b534e322789de"/>
-                                            </button>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </c:when>
-                            </c:choose>
                         </div>
 
+                        <c:if test="${not empty room}">
                         <!-- Approved Customer Reviews Section (Normal Flow Step 3 & 4, BR-48) -->
                         <div class="bg-white border rounded-4 p-4 shadow-sm" id="review-title">
                             <h4 class="fw-bold mb-3">
@@ -364,6 +330,7 @@
                                 </c:otherwise>
                             </c:choose>
                         </div>
+                        </c:if>
                     </div>
                 </div>
             </main>
@@ -373,22 +340,8 @@
 
         <!-- JS Scripts -->
         <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
-        <script>
-            document.addEventListener("DOMContentLoaded", function () {
-                const dateInput = document.getElementById("detailBookingDates");
-                if (dateInput) {
-                    new Litepicker({
-                        element: dateInput,
-                        singleMode: false,
-                        numberOfMonths: 2,
-                        numberOfColumns: 2,
-                        autoApply: true,
-                        format: 'MMM D, YYYY',
-                        tooltipText: {one: 'day', other: 'days'},
-                        minDate: new Date()
-                    });
-                }
-            });
-        </script>
+        <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js" defer></script>
+        <script src="<c:url value='/assets/js/search-calendar.js'/>" defer></script>
+        <script src="${pageContext.request.contextPath}/assets/js/room-details.js" defer></script>
     </body>
 </html>

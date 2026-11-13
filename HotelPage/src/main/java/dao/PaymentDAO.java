@@ -49,6 +49,40 @@ public class PaymentDAO extends DBContext {
 
     public static final String INVALID_COUNTER_PAYMENT = "INVALID_COUNTER_PAYMENT";
 
+    public long getOnlineHoldSeconds(int bookingId, int customerId) throws SQLException {
+        String sql = "SELECT DATEDIFF_BIG(MILLISECOND, SYSDATETIME(), DATEADD(MINUTE,30,BookingDate)) / 1000 "
+                + "FROM Booking WHERE BookingID=? AND CustomerID=? AND OnlineDepositPolicy=1 "
+                + "AND CreatedByUserID IS NULL AND Status='pending'";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, bookingId);
+            ps.setInt(2, customerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Math.max(0, rs.getLong(1)) : 0;
+            }
+        }
+    }
+
+    public Payment findPendingPayOSPayment(int bookingId, int customerId) throws SQLException {
+        String sql = "SELECT p.PaymentID,p.Amount FROM Payment p "
+                + "JOIN Booking b ON b.BookingID=p.BookingID WHERE b.BookingID=? AND b.CustomerID=? "
+                + "AND b.OnlineDepositPolicy=1 AND b.CreatedByUserID IS NULL "
+                + "AND p.PaymentStatus='pending' AND p.PaymentMethod='bank_transfer' AND p.TransactionCode LIKE ?";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, bookingId);
+            ps.setInt(2, customerId);
+            ps.setString(3, PAYOS_CODE_PREFIX + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return null;
+                }
+                Payment payment = new Payment();
+                payment.setId(rs.getInt(1));
+                payment.setAmount(rs.getBigDecimal(2));
+                return payment;
+            }
+        }
+    }
+
     /*
      * =========================================================
      * PROCESS PAYMENT TRANSACTION
@@ -327,7 +361,8 @@ public class PaymentDAO extends DBContext {
             try {
                 BigDecimal total;
                 String status;
-                try (PreparedStatement ps = conn.prepareStatement("SELECT TotalPrice, Status FROM Booking WITH (UPDLOCK,HOLDLOCK) WHERE BookingID=? AND CustomerID=? AND CreatedByUserID IS NULL")) {
+                try (PreparedStatement ps = conn.prepareStatement("SELECT TotalPrice, Status FROM Booking WITH (UPDLOCK,HOLDLOCK) WHERE BookingID=? AND CustomerID=? AND CreatedByUserID IS NULL "
+                        + "AND (OnlineDepositPolicy=0 OR (Status='pending' AND DATEADD(MINUTE,30,BookingDate)>SYSDATETIME()))")) {
                     ps.setInt(1, bookingId);
                     ps.setInt(2, customerId);
                     try (ResultSet rs = ps.executeQuery()) {

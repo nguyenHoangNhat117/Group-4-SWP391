@@ -407,7 +407,7 @@
                         <div class="row g-4 mb-5">
                             <c:forEach var="result" items="${availableTypes}">
                                 <c:set var="type" value="${result.type}"/>
-                                <c:url var="detailsUrl" value="/room-stay">
+                                <c:url var="detailsUrl" value="/details">
                                     <c:param name="roomTypeId" value="${type.id}"/>
                                 </c:url>
                                 <div class="col-md-6 col-lg-4">
