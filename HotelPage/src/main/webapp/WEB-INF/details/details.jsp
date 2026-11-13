@@ -151,12 +151,7 @@
                             </span>
                             <span>&middot;</span>
                             </c:if>
-                            <span><i class="bi bi-moon-stars me-1"></i>
-                                <c:choose>
-                                    <c:when test="${not empty roomSpecifications}"><ui:catalogText group="room.catalog.bed" value="${roomSpecifications.bedLabel}"/></c:when>
-                                    <c:otherwise>${roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></c:otherwise>
-                                </c:choose>
-                            </span>
+                            <span><i class="bi bi-moon-stars me-1"></i>${roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></span>
                             <span>&middot;</span>
                             <span class="badge rounded-pill detail-stock fs-6"><i class="bi bi-people me-1" aria-hidden="true"></i>${roomType.capacity} <ui:text key="room.guests.per.room"/></span>
                         </div>
@@ -177,10 +172,7 @@
                         <div class="bg-white border rounded-4 p-4 shadow-sm mb-4">
                             <h4 class="fw-bold mb-3"><ui:text key="screen.de659431fe98de4e"/></h4>
                             <p class="text-secondary mb-3">
-                                <c:choose>
-                                    <c:when test="${not empty roomType.description}"><ui:catalogText group="room.catalog.description" value="${roomType.description}"/></c:when>
-                                    <c:otherwise><ui:text key="room.catalog.no.description"/></c:otherwise>
-                                </c:choose>
+                                <c:out value="${not empty roomType.description ? roomType.description : 'Experience comfort and elegance in our well-appointed room.'}"/>
                             </p>
                             <div class="row g-3 text-center pt-2 border-top">
                                 <div class="${empty roomSpecifications ? 'col-sm-4' : 'col-sm-6 col-xl-3'}">
@@ -192,12 +184,7 @@
                                 <div class="${empty roomSpecifications ? 'col-sm-4' : 'col-sm-6 col-xl-3'}">
                                     <div class="room-spec-card">
                                         <div class="text-muted small text-uppercase"><ui:text key="screen.2e2a3cd1a00809d3"/></div>
-                                        <div class="fs-5 fw-bold text-dark">
-                                            <c:choose>
-                                                <c:when test="${not empty roomSpecifications}"><ui:catalogText group="room.catalog.bed" value="${roomSpecifications.bedLabel}"/></c:when>
-                                                <c:otherwise>${roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></c:otherwise>
-                                            </c:choose>
-                                        </div>
+                                        <div class="fs-5 fw-bold text-dark">${roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></div>
                                     </div>
                                 </div>
                                 <div class="${empty roomSpecifications ? 'col-sm-4' : 'col-sm-6 col-xl-3'}">
