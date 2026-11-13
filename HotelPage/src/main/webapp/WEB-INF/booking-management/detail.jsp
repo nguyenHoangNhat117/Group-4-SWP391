@@ -198,7 +198,7 @@
                                                         <td class="text-nowrap">
                                                 <fmt:formatNumber
                                                     value="${payment.amount}"
-                                                    maxFractionDigits="2"/>
+                                                    maxFractionDigits="0"/>
                                                 VND
                                                 </td>
 
@@ -259,6 +259,9 @@
                                     <br>
 
                                     <c:choose>
+                                        <c:when test="${not empty booking.contact}">
+                                            <c:out value="${booking.contact.name}"/>
+                                        </c:when>
                                         <c:when test="${not empty booking.customer.firstName
                                                         or not empty booking.customer.lastName}">
                                             <c:out value="${booking.customer.lastName}"/>
@@ -279,22 +282,26 @@
                                 <div class="col-md-4">
                                     <strong><ui:text key="screen.17507dcf845793fa"/></strong>
                                     <br>
-                                    <c:out value="${booking.customer.email}"/>
+                                    <c:out value="${empty booking.contact ? booking.customer.email : booking.contact.email}"/>
                                 </div>
 
                                 <div class="col-md-4">
                                     <strong><ui:text key="screen.3305eb58093dce17"/></strong>
                                     <br>
-                                    <c:out value="${empty booking.customer.phone
-                                                    ? '-' : booking.customer.phone}"/>
+                                    <c:out value="${empty booking.contact ? booking.customer.phone : booking.contact.phone}" default="-"/>
                                 </div>
 
                                 <div class="col-md-4">
                                     <strong><ui:text key="screen.fa0882e21637cbe7"/></strong>
                                     <br>
-                                    <c:out value="${booking.customer.street}"/>
-                                    <c:out value="${booking.customer.city}"/>
-                                    <c:out value="${booking.customer.country}"/>
+                                    <c:choose>
+                                        <c:when test="${not empty booking.contact}"><c:out value="${booking.contact.country}"/></c:when>
+                                        <c:otherwise>
+                                            <c:out value="${booking.customer.street}"/>
+                                            <c:out value="${booking.customer.city}"/>
+                                            <c:out value="${booking.customer.country}"/>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </div>
                             </div>
                         </div>
@@ -335,7 +342,7 @@
                                                         <td class="text-nowrap">
                                                 <fmt:formatNumber
                                                     value="${detail.pricePerNight}"
-                                                    maxFractionDigits="2"/>
+                                                    maxFractionDigits="0"/>
                                                 VND
                                                 </td>
 
@@ -371,7 +378,7 @@
                                     <br>
                                     <fmt:formatNumber
                                         value="${booking.totalPrice}"
-                                        maxFractionDigits="2"/>
+                                        maxFractionDigits="0"/>
                                     VND
                                 </div>
 
@@ -447,7 +454,7 @@
 
                                                 <c:forEach var="status"
                                                            items="${nextStatuses}">
-                                                    <option value="${status}" data-i18n="screen.fe00b67b6dd1143f">
+                                                    <option value="${status}" >
                                                         <c:choose>
                                                             <c:when test="${status == 'confirmed'}">
                                                                 ${requestScope.i18n['screen.fe00b67b6dd1143f']}

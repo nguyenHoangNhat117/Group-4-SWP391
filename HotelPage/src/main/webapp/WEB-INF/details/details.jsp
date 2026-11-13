@@ -153,7 +153,7 @@
                                 <div class="col-sm-4">
                                     <div class="p-3 bg-light rounded-3">
                                         <div class="text-muted small text-uppercase"><ui:text key="screen.bf193eab4a1aafb0"/></div>
-                                        <div class="fs-5 fw-bold text-dark">$${room.roomType.pricePerNight}</div>
+                                        <div class="fs-5 fw-bold text-dark"><ui:money amount="${room.roomType.pricePerNight}"/></div>
                                     </div>
                                 </div>
                                 <div class="col-sm-4">
@@ -205,7 +205,7 @@
                         <div class="availability-card p-4 mb-4">
                             <div class="d-flex justify-content-between align-items-baseline border-bottom pb-3 mb-3">
                                 <div>
-                                    <span class="fs-3 fw-bold" style="color: #b29575;">$${room.roomType.pricePerNight}</span>
+                                    <span class="fs-3 fw-bold" style="color: #b29575;"><ui:money amount="${room.roomType.pricePerNight}"/></span>
                                     <span class="text-muted"><ui:text key="screen.9f93223e3ed44949"/></span>
                                 </div>
                                 <span class="text-muted small"><ui:text key="screen.6c8c6af24c9b021c"/>${room.roomNumber}</span>
@@ -279,12 +279,12 @@
                                     <span><ui:text key="screen.865998541ea4eba7"/> <strong>${checkOutDate}</strong></span>
                                 </div>
                                 <div class="d-flex justify-content-between small text-secondary mb-2">
-                                    <span>$${room.roomType.pricePerNight} &times; ${nights} <ui:text key="screen.44cd797adc77aeed"/></span>
+                                    <span><ui:money amount="${room.roomType.pricePerNight}"/> &times; ${nights} <ui:text key="screen.44cd797adc77aeed"/></span>
                                     <span><ui:text key="screen.1ac580f9fde7374f"/> ${guestCount}</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center border-top pt-2">
                                     <span class="fw-bold text-dark"><ui:text key="screen.0b50ef475b2aea19"/></span>
-                                    <span class="fs-5 fw-bold text-success">$${totalStayPrice}</span>
+                                    <span class="fs-5 fw-bold text-success"><ui:money amount="${totalStayPrice}"/></span>
                                 </div>
                             </div>
 
@@ -293,7 +293,7 @@
                                 <c:when test="${empty sessionScope.loggedUser || sessionScope.loggedUser.role == 'customer'}">
                                     <c:choose>
                                         <c:when test="${isRoomAvailable}">
-                                            <a href="${pageContext.request.contextPath}/booking?roomNumber=${room.roomNumber}"
+                                            <a href="${pageContext.request.contextPath}/room-stay?roomTypeId=${room.roomType.id}"
                                                class="btn btn-luxe btn-lg w-100 rounded-pill py-2">
                                                 <i class="bi bi-calendar-check me-1"></i> <ui:text key="screen.67be79359de4aa3f"/>
                                             </a>
@@ -344,13 +344,19 @@
                                         <c:forEach var="review" items="${reviews}">
                                             <div class="review-box mb-2">
                                                 <div class="d-flex align-items-center gap-2 mb-2">
-                                                    <img width="40" height="40" class="rounded-circle object-fit-cover"
-                                                         src="${pageContext.request.contextPath}/assets/img/${empty review.booking.customer.avatar ? 'avatar.jpg' : review.booking.customer.avatar}"
-                                                         alt="${requestScope.i18n['screen.3c7f17938dfc7e9c']}" data-i18n-alt="screen.3c7f17938dfc7e9c"/>
+
+                                                    <img width="40"
+                                                         height="40"
+                                                         class="rounded-circle object-fit-cover"
+                                                         src="${pageContext.request.contextPath}/avatar/image?reviewId=${review.reviewID}"
+                                                         onerror="this.onerror=null;this.src='${pageContext.request.contextPath}/assets/img/avatar.jpg';"
+                                                         alt="${requestScope.i18n['screen.3c7f17938dfc7e9c']}"
+                                                         data-i18n-alt="screen.3c7f17938dfc7e9c"/>
+
                                                     <div>
                                                         <strong><c:out value="${review.booking.customer.user.username}"/></strong>
                                                         <div class="text-muted" style="font-size: 0.75rem;">
-                                                            <c:out value="${review.reviewDate}"/>
+                                                            <c:out value="${review.formattedReviewDate}"/>
                                                         </div>
                                                     </div>
                                                     <span class="ms-auto text-warning fw-bold"><c:out value="${review.star}"/> ★</span>

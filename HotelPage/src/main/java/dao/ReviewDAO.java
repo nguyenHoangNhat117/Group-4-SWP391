@@ -230,6 +230,92 @@ public class ReviewDAO extends DBContext {
         return list;
     }
 
+    public String getApprovedReviewAvatar(int reviewId) {
+        String sql = "SELECT c.Avatar "
+                + "FROM Review r "
+                + "JOIN Booking b ON b.BookingID = r.BookingID "
+                + "JOIN Customer c ON c.CustomerID = b.CustomerID "
+                + "WHERE r.ReviewID = ? "
+                + "AND LOWER(LTRIM(RTRIM(r.ReviewStatus))) = 'approved'";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, reviewId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("Avatar");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public List<Review> getReviewsByRoomTypeId(int roomTypeId) {
+
+        List<Review> list = new ArrayList<>();
+
+        String sql = "SELECT DISTINCT "
+                + "r.ReviewID, r.Comment, r.Star, r.ReviewDate, r.ReviewStatus, "
+                + "b.BookingID, b.BookingDate, b.Status AS BookingStatus, "
+                + "b.TotalPrice, b.SpecialRequest, b.CancellationDate, b.CancellationReason, "
+                + "c.CustomerID, c.FirstName, c.LastName, c.Email, c.Phone, "
+                + "c.Country, c.City, c.Street, c.Avatar, "
+                + "u.UserID, u.Username, u.Password, u.Role, u.DisplayName "
+                + "FROM Review r "
+                + "JOIN Booking b ON b.BookingID = r.BookingID "
+                + "JOIN BookingDetail bd ON bd.BookingID = b.BookingID "
+                + "JOIN Room rm ON rm.RoomNumber = bd.RoomNumber "
+                + "JOIN Customer c ON c.CustomerID = b.CustomerID "
+                + "JOIN [User] u ON u.UserID = c.UserID "
+                + "WHERE rm.RoomTypeID = ? "
+                + "AND r.ReviewStatus = 'approved' "
+                + "ORDER BY r.ReviewDate DESC, r.ReviewID DESC";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, roomTypeId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapReview(conn, rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public BigDecimal getAverageStarByRoomTypeId(int roomTypeId) {
+
+        String sql = "SELECT AVG(x.Star) AS AvgStar FROM ( "
+                + "SELECT DISTINCT r.ReviewID, r.Star "
+                + "FROM Review r "
+                + "JOIN BookingDetail bd ON bd.BookingID = r.BookingID "
+                + "JOIN Room rm ON rm.RoomNumber = bd.RoomNumber "
+                + "WHERE rm.RoomTypeID = ? "
+                + "AND r.ReviewStatus = 'approved' ) x";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, roomTypeId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next() && rs.getBigDecimal("AvgStar") != null) {
+                    return rs.getBigDecimal("AvgStar")
+                            .setScale(1, RoundingMode.HALF_UP);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return BigDecimal.ZERO.setScale(1);
+    }
+
     /*
      * =========================================================
      * 4. AVERAGE STAR FOR ROOM
@@ -357,33 +443,36 @@ public class ReviewDAO extends DBContext {
     }
 
     public int[] getApprovedRatingCounts() {
-        int[] counts = new int[6];
+        
+    int[] counts = new int[11];
 
-        String sql = "SELECT CAST(Star AS INT) AS Rating, "
-           + "COUNT(*) AS Total "
-           + "FROM Review "
-           + "WHERE LOWER(LTRIM(RTRIM(ReviewStatus))) = 'approved' "
-           + "GROUP BY CAST(Star AS INT)";
+    String sql = "SELECT CAST(Star * 2 AS INT) AS Rating, "
+            + "COUNT(*) AS Total "
+            + "FROM Review "
+            + "WHERE LOWER(LTRIM(RTRIM(ReviewStatus))) = 'approved' "
+            + "GROUP BY CAST(Star * 2 AS INT)";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+    try (Connection conn = getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql);
+         ResultSet rs = ps.executeQuery()) {
 
-            while (rs.next()) {
-                int rating = rs.getInt("Rating");
-                int total = rs.getInt("Total");
+        while (rs.next()) {
+            int rating = rs.getInt("Rating");
+            int total = rs.getInt("Total");
 
-                if (rating >= 1 && rating <= 5) {
-                    counts[rating] = total;
-                }
+            if (rating >= 2 && rating <= 10) {
+                counts[rating] = total;
             }
-
-        } catch (SQLException e) {
-            throw new IllegalStateException(
-                    "Unable to load approved rating statistics.", e
-            );
         }
 
-        return counts;
+    } catch (SQLException e) {
+        throw new IllegalStateException(
+                "Unable to load approved rating statistics.", e
+        );
     }
+
+    return counts;
+}
 
     /*
      * =========================================================

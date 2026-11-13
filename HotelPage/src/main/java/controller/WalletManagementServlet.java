@@ -1,4 +1,3 @@
-
 package controller;
 
 import db.DBContext;
@@ -18,7 +17,7 @@ public class WalletManagementServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request,
-                         HttpServletResponse response)
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         HttpSession session = request.getSession(false);
@@ -49,8 +48,8 @@ public class WalletManagementServlet extends HttpServlet {
         if (customerIdParam != null
                 && !customerIdParam.isBlank()) {
             try {
-                selectedCustomerId =
-                        Integer.parseInt(customerIdParam);
+                selectedCustomerId
+                        = Integer.parseInt(customerIdParam);
 
                 if (selectedCustomerId <= 0) {
                     response.sendError(400, "Invalid customer ID");
@@ -62,8 +61,8 @@ public class WalletManagementServlet extends HttpServlet {
             }
         }
 
-        String walletSql =
-                "SELECT TOP (100) c.CustomerID, "
+        String walletSql
+                = "SELECT TOP (100) c.CustomerID, "
                 + "c.FirstName, c.LastName, c.Email, "
                 + "COALESCE(w.Balance, 0) AS Balance "
                 + "FROM Customer c "
@@ -71,8 +70,8 @@ public class WalletManagementServlet extends HttpServlet {
                 + "ON c.CustomerID = w.CustomerID "
                 + "ORDER BY c.CustomerID DESC";
 
-        String transactionSql =
-                "SELECT TOP (100) t.TransactionID, "
+        String transactionSql
+                = "SELECT TOP (100) t.WalletTransactionID, "
                 + "t.BookingID, t.Amount, "
                 + "t.TransactionType, t.Description, "
                 + "t.CreatedAt "
@@ -80,13 +79,12 @@ public class WalletManagementServlet extends HttpServlet {
                 + "JOIN Wallet w ON t.WalletID = w.WalletID "
                 + "WHERE w.CustomerID = ? "
                 + "ORDER BY t.CreatedAt DESC, "
-                + "t.TransactionID DESC";
+                + "t.WalletTransactionID DESC";
 
         try (Connection conn = new DBContext().getConnection()) {
 
-            try (PreparedStatement ps =
-                    conn.prepareStatement(walletSql);
-                 ResultSet rs = ps.executeQuery()) {
+            try (PreparedStatement ps
+                    = conn.prepareStatement(walletSql); ResultSet rs = ps.executeQuery()) {
 
                 while (rs.next()) {
                     Map<String, Object> wallet = new HashMap<>();
@@ -108,8 +106,8 @@ public class WalletManagementServlet extends HttpServlet {
 
             if (selectedCustomerId != null) {
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(transactionSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(transactionSql)) {
 
                     ps.setInt(1, selectedCustomerId);
 
@@ -120,7 +118,7 @@ public class WalletManagementServlet extends HttpServlet {
                             Map<String, Object> tx = new HashMap<>();
 
                             tx.put("transactionId",
-                                    rs.getInt("TransactionID"));
+                                    rs.getInt("WalletTransactionID"));
 
                             tx.put("bookingId",
                                     rs.getObject("BookingID"));
