@@ -38,7 +38,7 @@ public class BookingServlet extends HttpServlet {
         String roomNumberParam = request.getParameter("roomNumber");
 
         if (roomNumberParam == null || roomNumberParam.trim().isEmpty()) {
-            request.setAttribute("roomTypes", new dao.RoomTypeDAO().getAll());
+            request.setAttribute("roomTypes", new dao.RoomTypeDAO().getAllActive());
             request.getRequestDispatcher("/WEB-INF/booking/search.jsp").forward(request, response);
             return;
         }

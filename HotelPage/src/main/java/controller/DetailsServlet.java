@@ -180,6 +180,11 @@ public class DetailsServlet extends HttpServlet {
         }
         request.setAttribute("room", room);
         request.setAttribute("roomType", type);
+        try {
+            request.setAttribute("roomSpecifications", new RoomTypeDAO().getSpecifications(type.getId()));
+        } catch (SQLException ex) {
+            throw new ServletException("Unable to load room specifications", ex);
+        }
         request.setAttribute("amenities", new AmenityDAO().getAmenitiesByRoomTypeId(type.getId()));
         request.setAttribute("checkInDate", checkIn);
         request.setAttribute("checkOutDate", checkOut);

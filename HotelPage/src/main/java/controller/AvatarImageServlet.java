@@ -1,9 +1,9 @@
+
 package controller;
 
 import dao.CustomerDAO;
 import model.Customer;
 import model.User;
-import dao.ReviewDAO;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -22,39 +22,35 @@ public class AvatarImageServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request,
-            HttpServletResponse response)
+                         HttpServletResponse response)
             throws ServletException, IOException {
 
-        String filename;
-        String reviewIdParam = request.getParameter("reviewId");
+        HttpSession session = request.getSession(false);
 
-        if (reviewIdParam != null && !reviewIdParam.isBlank()) {
-            // Avatar người viết review: công khai, nhưng chỉ khi review đã approved
-            int reviewId;
-            try {
-                reviewId = Integer.parseInt(reviewIdParam.trim());
-            } catch (NumberFormatException e) {
-                response.sendError(400);
-                return;
-            }
-            filename = new ReviewDAO().getApprovedReviewAvatar(reviewId);
-        } else {
-            // Avatar của chính người đang đăng nhập (header, profile)
-            HttpSession session = request.getSession(false);
-            User user = session == null ? null : (User) session.getAttribute("loggedUser");
-            if (user == null) {
-                response.sendError(401);
-                return;
-            }
-            Customer customer = new CustomerDAO().getCustomerByUserID(user.getId());
-            filename = customer == null ? null : customer.getAvatar();
+        if (session == null) {
+            response.sendError(401);
+            return;
         }
 
-        if (filename == null || filename.isBlank()) {
+        User user = (User) session.getAttribute("loggedUser");
+
+        if (user == null) {
+            response.sendError(401);
+            return;
+        }
+
+        CustomerDAO dao = new CustomerDAO();
+        Customer customer = dao.getCustomerByUserID(user.getId());
+
+        if (customer == null
+                || customer.getAvatar() == null
+                || customer.getAvatar().isBlank()) {
             response.sendError(404);
             return;
         }
-        
+
+        // Read filename from the authenticated user's database record.
+        String filename = customer.getAvatar();
 
         // Supports the previous "avatar/filename" format.
         if (filename.startsWith("avatar/")) {
@@ -83,8 +79,13 @@ public class AvatarImageServlet extends HttpServlet {
             return;
         }
 
-        String contentType = filename.toLowerCase().endsWith(".png")
-        ? "image/png" : "image/jpeg";
+        String contentType = Files.probeContentType(image);
+
+        if (!"image/jpeg".equals(contentType)
+                && !"image/png".equals(contentType)) {
+            response.sendError(415, "Unsupported image type");
+            return;
+        }
 
         response.setContentType(contentType);
         response.setHeader("Cache-Control", "no-store");

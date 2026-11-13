@@ -19,12 +19,19 @@ public class RoomTypeDAO extends DBContext {
      * @return a list of RoomType objects
      */
     public List<RoomType> getAll() {
-        List<RoomType> roomTypes = new ArrayList<>();
-        try {
-            String query = "SELECT RoomTypeID, Name, Description, PricePerNight, Beds, Capacity, Picture FROM RoomType";
-            PreparedStatement pstatement = this.getConnection().prepareStatement(query);
-            ResultSet rs = pstatement.executeQuery();
+        return getAll(false);
+    }
 
+    public List<RoomType> getAllActive() {
+        return getAll(true);
+    }
+
+    private List<RoomType> getAll(boolean activeOnly) {
+        List<RoomType> roomTypes = new ArrayList<>();
+        String query = "SELECT RoomTypeID, Name, Description, PricePerNight, Beds, Capacity, Picture FROM RoomType"
+                + (activeOnly ? " WHERE IsActive=1" : "") + " ORDER BY PricePerNight, RoomTypeID";
+        try (Connection conn = getConnection(); PreparedStatement pstatement = conn.prepareStatement(query);
+                ResultSet rs = pstatement.executeQuery()) {
             while (rs.next()) {
                 int roomTypeId = rs.getInt(1);
                 String roomName = rs.getString(2);
@@ -41,6 +48,41 @@ public class RoomTypeDAO extends DBContext {
             Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
         return roomTypes;
+    }
+
+    public RoomTypeSpecifications getSpecifications(int roomTypeId) throws SQLException {
+        try (Connection conn = getConnection();
+                PreparedStatement exists = conn.prepareStatement("SELECT OBJECT_ID(N'dbo.RoomTypeSpecifications', N'U')");
+                ResultSet result = exists.executeQuery()) {
+            if (!result.next() || result.getObject(1) == null) {
+                return null;
+            }
+            try (PreparedStatement query = conn.prepareStatement(
+                    "SELECT AreaM2, BedLabel FROM dbo.RoomTypeSpecifications WHERE RoomTypeID=?")) {
+                query.setInt(1, roomTypeId);
+                try (ResultSet row = query.executeQuery()) {
+                    return row.next() ? new RoomTypeSpecifications(row.getInt(1), row.getString(2)) : null;
+                }
+            }
+        }
+    }
+
+    public static final class RoomTypeSpecifications {
+        private final int areaM2;
+        private final String bedLabel;
+
+        private RoomTypeSpecifications(int areaM2, String bedLabel) {
+            this.areaM2 = areaM2;
+            this.bedLabel = bedLabel;
+        }
+
+        public int getAreaM2() {
+            return areaM2;
+        }
+
+        public String getBedLabel() {
+            return bedLabel;
+        }
     }
 
     /**

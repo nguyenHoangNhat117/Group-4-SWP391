@@ -498,6 +498,22 @@ public class BookingDAO extends DBContext {
      * 4. GET BOOKING DETAILS
      * =========================================================
      */
+    public java.util.Map<Integer, String> getCurrentRoomTypeNames(int bookingId) throws SQLException {
+        String sql = "SELECT r.RoomNumber, t.Name FROM BookingDetail d "
+                + "JOIN Room r ON r.RoomNumber=d.RoomNumber JOIN RoomType t ON t.RoomTypeID=r.RoomTypeID "
+                + "WHERE d.BookingID=?";
+        java.util.Map<Integer, String> names = new java.util.HashMap<>();
+        try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, bookingId);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    names.put(rows.getInt(1), rows.getString(2));
+                }
+            }
+        }
+        return names;
+    }
+
     public List<BookingDetail> getBookingDetails(
             int bookingId) {
 
@@ -1224,6 +1240,15 @@ public class BookingDAO extends DBContext {
             int bookingId,
             String newStatus) {
 
+        if ("checked_in".equals(newStatus)) {
+            try {
+                return new OnlineCheckInDAO().checkIn(bookingId) == OnlineCheckInDAO.Result.SUCCESS;
+            } catch (SQLException ex) {
+                Logger.getLogger(BookingDAO.class.getName()).log(Level.SEVERE, "Online check-in failed", ex);
+                return false;
+            }
+        }
+
         try (Connection c=getConnection(); PreparedStatement ps=c.prepareStatement("SELECT CreatedByUserID FROM Booking WHERE BookingID=?")) {
             ps.setInt(1,bookingId);
             try(ResultSet rs=ps.executeQuery()) { if(rs.next() && rs.getObject(1)!=null) return false; }
@@ -1274,9 +1299,7 @@ public class BookingDAO extends DBContext {
                 + "'Cancelled by Staff/Admin') "
                 + "ELSE NULL "
                 + "END "
-                + "WHERE BookingID = ? AND Status=? "
-                + "AND (?<>'checked_in' OR OnlineDepositPolicy=0 OR NOT EXISTS (SELECT 1 FROM BookingDetail "
-                + "WHERE BookingID=Booking.BookingID AND CheckInDate<?))";
+                + "WHERE BookingID = ? AND Status=?";
 
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
@@ -1286,8 +1309,6 @@ public class BookingDAO extends DBContext {
             ps.setString(3, newStatus);
             ps.setInt(4, bookingId);
             ps.setString(5, booking.getStatus());
-            ps.setString(6, newStatus);
-            ps.setObject(7, util.ReportPeriod.today());
 
             return ps.executeUpdate() > 0;
 
@@ -1474,14 +1495,46 @@ public class BookingDAO extends DBContext {
  *
  * Filter:
  * - Booking status
- * - Booking date range
+     * - Stay date range and room number
  * =========================================================
      */
+    private static void appendStayFilter(StringBuilder sql, LocalDate fromDate, LocalDate toDate, Integer roomNumber) {
+        if (fromDate == null && toDate == null && roomNumber == null) {
+            return;
+        }
+        sql.append("AND EXISTS (SELECT 1 FROM BookingDetail stay WHERE stay.BookingID=b.BookingID ");
+        if (fromDate != null) {
+            sql.append("AND stay.CheckOutDate>? ");
+        }
+        if (toDate != null) {
+            sql.append("AND stay.CheckInDate<=? ");
+        }
+        if (roomNumber != null) {
+            sql.append("AND stay.RoomNumber=? ");
+        }
+        sql.append(") ");
+    }
+
+    private static int bindStayFilter(PreparedStatement ps, int index, LocalDate fromDate, LocalDate toDate,
+            Integer roomNumber) throws SQLException {
+        if (fromDate != null) {
+            ps.setObject(index++, fromDate);
+        }
+        if (toDate != null) {
+            ps.setObject(index++, toDate);
+        }
+        if (roomNumber != null) {
+            ps.setInt(index++, roomNumber);
+        }
+        return index;
+    }
+
     public List<Booking> searchBookings(
             String keyword,
             String status,
             LocalDate fromDate,
             LocalDate toDate,
+            Integer roomNumber,
             int page,
             int pageSize) {
 
@@ -1566,25 +1619,7 @@ public class BookingDAO extends DBContext {
             );
         }
 
-        /*
-     * BookingDate >= fromDate
-         */
-        if (fromDate != null) {
-
-            sql.append(
-                    "AND CAST(b.BookingDate AS DATE) >= ? "
-            );
-        }
-
-        /*
-     * BookingDate <= toDate
-         */
-        if (toDate != null) {
-
-            sql.append(
-                    "AND CAST(b.BookingDate AS DATE) <= ? "
-            );
-        }
+        appendStayFilter(sql, fromDate, toDate, roomNumber);
 
         sql.append(
                 "ORDER BY "
@@ -1630,21 +1665,7 @@ public class BookingDAO extends DBContext {
                 );
             }
 
-            if (fromDate != null) {
-
-                ps.setObject(
-                        index++,
-                        fromDate
-                );
-            }
-
-            if (toDate != null) {
-
-                ps.setObject(
-                        index++,
-                        toDate
-                );
-            }
+            index = bindStayFilter(ps, index, fromDate, toDate, roomNumber);
 
             ps.setInt(
                     index++,
@@ -1774,7 +1795,8 @@ public class BookingDAO extends DBContext {
             String keyword,
             String status,
             LocalDate fromDate,
-            LocalDate toDate) {
+            LocalDate toDate,
+            Integer roomNumber) {
 
         StringBuilder sql
                 = new StringBuilder();
@@ -1823,19 +1845,7 @@ public class BookingDAO extends DBContext {
             );
         }
 
-        if (fromDate != null) {
-
-            sql.append(
-                    "AND CAST(b.BookingDate AS DATE) >= ? "
-            );
-        }
-
-        if (toDate != null) {
-
-            sql.append(
-                    "AND CAST(b.BookingDate AS DATE) <= ? "
-            );
-        }
+        appendStayFilter(sql, fromDate, toDate, roomNumber);
 
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(
@@ -1870,21 +1880,7 @@ public class BookingDAO extends DBContext {
                 );
             }
 
-            if (fromDate != null) {
-
-                ps.setObject(
-                        index++,
-                        fromDate
-                );
-            }
-
-            if (toDate != null) {
-
-                ps.setObject(
-                        index,
-                        toDate
-                );
-            }
+            bindStayFilter(ps, index, fromDate, toDate, roomNumber);
 
             try (ResultSet rs
                     = ps.executeQuery()) {

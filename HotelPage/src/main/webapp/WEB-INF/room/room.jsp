@@ -83,6 +83,11 @@
                 transform: translateY(-5px);
                 box-shadow: 0 15px 30px rgba(0,0,0,0.15);
             }
+            .room-card-specs {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: .5rem;
+            }
             .room-img-wrap {
                 position: relative;
                 height: 240px;
@@ -423,12 +428,12 @@
                                                     ${result.rating} <span class="text-muted">(${result.reviewCount})</span>
                                                 </div>
                                             </c:if>
-                                            <p class="text-muted small"><c:out value="${type.description}"/></p>
-                                            <div class="text-muted small mb-3">
-                                                ${type.beds} <ui:text key="screen.2e2a3cd1a00809d3"/> ·
-                                                ${type.capacity} <ui:text key="screen.3c8e0fde6fcc71e0"/>
+                                            <p class="text-muted small"><ui:catalogText group="room.catalog.description" value="${type.description}"/></p>
+                                            <div class="room-card-specs text-muted small mt-auto mb-3">
+                                                <span><i class="bi bi-moon-stars me-1" aria-hidden="true"></i>${type.beds} <ui:text key="${type.beds == 1 ? 'room.catalog.one.bed' : 'screen.2e2a3cd1a00809d3'}"/></span>
+                                                <span><i class="bi bi-people me-1" aria-hidden="true"></i>${type.capacity} <ui:text key="screen.3c8e0fde6fcc71e0"/></span>
                                             </div>
-                                            <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-auto">
+                                            <div class="d-flex justify-content-between align-items-center border-top pt-3">
                                                 <span><strong class="room-price"><ui:money amount="${type.pricePerNight}"/></strong> <ui:text key="screen.f8b08898c2e4a561"/></span>
                                                 <a href="${detailsUrl}" class="btn btn-book"><ui:text key="screen.cb4759ed919a639c"/></a>
                                             </div>

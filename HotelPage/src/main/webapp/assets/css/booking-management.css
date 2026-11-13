@@ -1,0 +1,100 @@
+.luxe-admin-bookings .booking-list-shell {
+    max-width: 1320px;
+}
+
+.booking-result-count {
+    display: inline-block;
+    padding: .25rem .7rem;
+    border-radius: 999px;
+    background: #f2e8dc;
+    color: #674c36;
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+.luxe-admin-bookings .booking-filter-card,
+.luxe-admin-bookings .booking-results,
+.luxe-admin-bookings .booking-empty {
+    border: 1px solid #e8dfd4;
+    border-radius: 1rem;
+    background: #fffdf9;
+    box-shadow: 0 8px 24px rgba(64, 44, 24, .07);
+}
+
+.booking-filter-card .card-body {
+    padding: clamp(1rem, 2vw, 1.5rem);
+}
+
+.booking-filter-card .form-control,
+.booking-filter-card .form-select {
+    min-height: 2.75rem;
+}
+
+.booking-results .table thead th {
+    --bs-table-bg: #f3ebe1;
+    --bs-table-color: #503b2b;
+    white-space: nowrap;
+}
+
+.booking-results .table td {
+    overflow-wrap: anywhere;
+}
+
+.booking-results time {
+    white-space: nowrap;
+}
+
+.booking-stay-row {
+    min-width: 9rem;
+}
+
+.booking-stay-row + .booking-stay-row {
+    margin-top: .5rem;
+}
+
+.booking-empty {
+    padding: 2rem 1rem;
+    color: #674c36;
+}
+
+.booking-pagination {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    padding: 0;
+}
+
+.booking-pagination .pagination {
+    margin: 0;
+    padding: 0;
+}
+
+.booking-detail-shell {
+    max-width: 1160px;
+}
+
+.booking-detail-shell .card {
+    border: 1px solid #e8dfd4;
+    border-radius: 1rem;
+    overflow: hidden;
+    background: #fffdf9;
+}
+
+.booking-detail-shell .card-header {
+    padding: .85rem 1.25rem;
+    border-bottom: 1px solid #e8dfd4;
+    background: #f3ebe1;
+    color: #503b2b;
+}
+
+.booking-detail-shell .card-body {
+    padding: clamp(1rem, 2.4vw, 1.5rem);
+}
+
+.booking-detail-shell .table {
+    margin-bottom: 0;
+}
+
+.booking-detail-shell .room-type-name {
+    min-width: 10rem;
+}
