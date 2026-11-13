@@ -16,10 +16,6 @@ public class Review {
     public Review() {
     }
 
-    /*
-     * Giữ constructor cũ để các phần chưa sửa
-     * không bị lỗi compile ngay.
-     */
     public Review(
             int reviewID,
             Booking booking,
@@ -98,5 +94,10 @@ public class Review {
             String reviewStatus) {
 
         this.reviewStatus = reviewStatus;
+    }
+
+    public String getFormattedReviewDate() {
+        return reviewDate == null ? ""
+                : reviewDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
     }
 }

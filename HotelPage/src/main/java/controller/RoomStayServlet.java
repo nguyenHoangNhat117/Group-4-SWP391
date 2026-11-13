@@ -31,9 +31,11 @@ import model.RoomType;
 import model.User;
 import util.ReportPeriod;
 import util.OnlineStayPolicy;
+import dao.ReviewDAO;
 
 @WebServlet(urlPatterns = {"/room-stay", "/checkout"})
 public class RoomStayServlet extends HttpServlet {
+
     private static final String DRAFT = "roomStayDraft";
 
     @Override
@@ -116,6 +118,11 @@ public class RoomStayServlet extends HttpServlet {
         request.setAttribute("checkOut", to);
         request.setAttribute("nights", ChronoUnit.DAYS.between(from, to));
         request.setAttribute("available", available);
+        ReviewDAO reviewDAO = new ReviewDAO();
+        java.util.List<model.Review> typeReviews = reviewDAO.getReviewsByRoomTypeId(typeId);
+        request.setAttribute("typeReviews", typeReviews);
+        request.setAttribute("typeAverageStar",
+                typeReviews.isEmpty() ? BigDecimal.ZERO : reviewDAO.getAverageStarByRoomTypeId(typeId));
         request.getRequestDispatcher("/WEB-INF/booking/room-stay.jsp").forward(request, response);
     }
 
@@ -352,6 +359,7 @@ public class RoomStayServlet extends HttpServlet {
     }
 
     private static final class StayDraft {
+
         private final String token = UUID.randomUUID().toString();
         private final RoomType type;
         private final LocalDate from;

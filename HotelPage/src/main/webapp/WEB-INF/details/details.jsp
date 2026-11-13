@@ -344,13 +344,19 @@
                                         <c:forEach var="review" items="${reviews}">
                                             <div class="review-box mb-2">
                                                 <div class="d-flex align-items-center gap-2 mb-2">
-                                                    <img width="40" height="40" class="rounded-circle object-fit-cover"
-                                                         src="${pageContext.request.contextPath}/assets/img/${empty review.booking.customer.avatar ? 'avatar.jpg' : review.booking.customer.avatar}"
-                                                         alt="${requestScope.i18n['screen.3c7f17938dfc7e9c']}" data-i18n-alt="screen.3c7f17938dfc7e9c"/>
+
+                                                    <img width="40"
+                                                         height="40"
+                                                         class="rounded-circle object-fit-cover"
+                                                         src="${pageContext.request.contextPath}/avatar/image?reviewId=${review.reviewID}"
+                                                         onerror="this.onerror=null;this.src='${pageContext.request.contextPath}/assets/img/avatar.jpg';"
+                                                         alt="${requestScope.i18n['screen.3c7f17938dfc7e9c']}"
+                                                         data-i18n-alt="screen.3c7f17938dfc7e9c"/>
+
                                                     <div>
                                                         <strong><c:out value="${review.booking.customer.user.username}"/></strong>
                                                         <div class="text-muted" style="font-size: 0.75rem;">
-                                                            <c:out value="${review.reviewDate}"/>
+                                                            <c:out value="${review.formattedReviewDate}"/>
                                                         </div>
                                                     </div>
                                                     <span class="ms-auto text-warning fw-bold"><c:out value="${review.star}"/> ★</span>
