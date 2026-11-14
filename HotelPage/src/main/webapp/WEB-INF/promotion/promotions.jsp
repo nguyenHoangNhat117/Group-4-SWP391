@@ -74,7 +74,7 @@
                         <c:forEach var="promotion" items="${promotions}">
                             <article class="promo-card">
                                 <div class="promo-card__topbar">
-                                    <span class="promo-code-pill">${promotion.code}</span>
+                                    <span class="promo-code-pill"><c:out value="${promotion.code}"/></span>
                                     <span class="promo-tag">
                                         <c:choose>
                                             <c:when test="${promotion.saleOff >= 40}"><ui:text key="screen.8088e0569328484c"/></c:when>
@@ -140,7 +140,7 @@
                                 </div>
 
                                 <div class="promo-card__footer">
-                                    <span class="promo-card__footer-note"><ui:text key="screen.371111bf402bc397"/> <strong>${promotion.code}</strong> <ui:text key="screen.8440bde3ef010ce0"/></span>
+                                    <span class="promo-card__footer-note"><ui:text key="screen.371111bf402bc397"/> <strong><c:out value="${promotion.code}"/></strong> <ui:text key="screen.8440bde3ef010ce0"/></span>
                                 </div>
                             </article>
                         </c:forEach>

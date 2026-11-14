@@ -10,6 +10,10 @@ public class Payment {
     private Booking booking;
     private LocalDateTime paymentDate;
     private BigDecimal amount;
+    private BigDecimal discountAmount;
+    private BigDecimal refundedAmount;
+    private String historyStatus;
+    private BigDecimal historyRemainingAmount;
     private String paymentMethod;
     private String paymentStatus;
     private String transactionCode;
@@ -85,6 +89,42 @@ public class Payment {
 
     public String getPaymentMethod() {
         return paymentMethod;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+
+    public BigDecimal getRefundedAmount() {
+        // Older full refunds record the status without setting RefundedAmount.
+        if ("refunded".equalsIgnoreCase(paymentStatus)) {
+            return getAmount();
+        }
+        return refundedAmount == null ? BigDecimal.ZERO : refundedAmount;
+    }
+
+    public void setRefundedAmount(BigDecimal refundedAmount) {
+        this.refundedAmount = refundedAmount;
+    }
+
+    public String getHistoryStatus() {
+        return historyStatus == null ? paymentStatus : historyStatus;
+    }
+
+    public void setHistoryStatus(String historyStatus) {
+        this.historyStatus = historyStatus;
+    }
+
+    public BigDecimal getHistoryRemainingAmount() {
+        return historyRemainingAmount;
+    }
+
+    public void setHistoryRemainingAmount(BigDecimal historyRemainingAmount) {
+        this.historyRemainingAmount = historyRemainingAmount;
     }
 
     public void setPaymentMethod(String paymentMethod) {

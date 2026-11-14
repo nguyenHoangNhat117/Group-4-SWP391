@@ -49,7 +49,7 @@
                 <c:forEach var="discount" items="${discounts}">
                     <tr>
                         <td>${discount.id}</td>
-                        <td>${discount.code}</td>
+                        <td><c:out value="${discount.code}"/></td>
                         <td>${discount.quantity}</td>
                         <td>${discount.saleOff}%</td>
                         <td>${discount.startDate}</td>

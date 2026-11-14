@@ -29,7 +29,7 @@
 
                 <div class="mb-3">
                     <label class="form-label"><ui:text key="screen.fd947a841a798fb7"/></label>
-                    <input type="text" name="code" value="${discount.code}"
+                    <input type="text" name="code" value="<c:out value='${discount.code}'/>"
                            class="form-control" maxlength="50" required>
                 </div>
 

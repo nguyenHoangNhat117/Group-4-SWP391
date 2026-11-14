@@ -1,5 +1,7 @@
 package dao;
 
+import util.RoomOccupancySql;
+
 import db.DBContext;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -31,14 +33,14 @@ public class RoomDAO extends DBContext {
 
     private static final String SEARCH_INVENTORY = " FROM Room r "
             + "JOIN RoomType rt ON rt.RoomTypeID=r.RoomTypeID "
-            + "WHERE r.Status='available' AND rt.IsActive=1 AND rt.Capacity>=? "
+            + "WHERE r.Status='available' AND r.NeedsCleaning=0 AND rt.IsActive=1 AND rt.Capacity>=? "
             + "AND (? IS NULL OR rt.RoomTypeID=?) "
             + "AND (? IS NULL OR rt.PricePerNight>=?) "
             + "AND (? IS NULL OR rt.PricePerNight<?) ";
     private static final String SEARCH_STAY = "AND NOT EXISTS ("
             + "SELECT 1 FROM BookingDetail bd JOIN Booking b ON b.BookingID=bd.BookingID "
-            + "WHERE bd.RoomNumber=r.RoomNumber AND b.Status<>'cancelled' "
-            + "AND bd.CheckInDate<? AND bd.CheckOutDate>?) ";
+            + "WHERE bd.RoomNumber=r.RoomNumber AND "
+            + RoomOccupancySql.overlaps("b", "bd") + ") ";
 
     public static final class AvailableType {
         private final RoomType type;
@@ -130,7 +132,8 @@ public class RoomDAO extends DBContext {
                 + "FROM Nights n CROSS JOIN Inventory i OUTER APPLY ("
                 + "SELECT MIN(bd.CheckInDate) AS BookedFrom FROM BookingDetail bd "
                 + "JOIN Booking b ON b.BookingID=bd.BookingID WHERE bd.RoomNumber=i.RoomNumber "
-                + "AND b.Status<>'cancelled' AND bd.CheckOutDate>n.StayDate "
+                + "AND b.Status<>'cancelled' AND " + RoomOccupancySql.endDate("b", "bd") + ">bd.CheckInDate "
+                + "AND " + RoomOccupancySql.endDate("b", "bd") + ">n.StayDate "
                 + "AND bd.CheckInDate<?) upcoming "
                 + "WHERE upcoming.BookedFrom IS NULL OR upcoming.BookedFrom>n.StayDate), "
                 + "Ranked AS (SELECT StayDate, LastCheckout, "
@@ -344,7 +347,7 @@ public class RoomDAO extends DBContext {
                 + "FROM Room r "
                 + "JOIN RoomType rt "
                 + "ON rt.RoomTypeID = r.RoomTypeID "
-                + "WHERE r.Status = 'available' "
+                + "WHERE r.Status = 'available' AND r.NeedsCleaning=0 "
                 + "AND rt.IsActive = 1 "
                 + "AND NOT EXISTS ( "
                 + "    SELECT 1 "
@@ -352,9 +355,7 @@ public class RoomDAO extends DBContext {
                 + "    JOIN Booking b "
                 + "    ON b.BookingID = bd.BookingID "
                 + "    WHERE bd.RoomNumber = r.RoomNumber "
-                + "    AND b.Status <> 'cancelled' "
-                + "    AND bd.CheckInDate < ? "
-                + "    AND bd.CheckOutDate > ? "
+                + "    AND " + RoomOccupancySql.overlaps("b", "bd") + " "
                 + ") "
                 + "ORDER BY r.RoomNumber";
 
@@ -434,7 +435,7 @@ public class RoomDAO extends DBContext {
                 + "FROM Room r "
                 + "JOIN RoomType rt "
                 + "ON rt.RoomTypeID = r.RoomTypeID "
-                + "WHERE r.Status = 'available' "
+                + "WHERE r.Status = 'available' AND r.NeedsCleaning=0 "
                 + "AND rt.IsActive = 1 "
                 + "AND NOT EXISTS ( "
                 + "    SELECT 1 "
@@ -442,9 +443,7 @@ public class RoomDAO extends DBContext {
                 + "    JOIN Booking b "
                 + "    ON b.BookingID = bd.BookingID "
                 + "    WHERE bd.RoomNumber = r.RoomNumber "
-                + "    AND b.Status <> 'cancelled' "
-                + "    AND bd.CheckInDate < ? "
-                + "    AND bd.CheckOutDate > ? "
+                + "    AND " + RoomOccupancySql.overlaps("b", "bd") + " "
                 + ") "
                 + "ORDER BY r.RoomNumber "
                 + "OFFSET ? ROWS "
@@ -517,7 +516,7 @@ public class RoomDAO extends DBContext {
                 + "FROM Room r "
                 + "JOIN RoomType rt "
                 + "ON rt.RoomTypeID = r.RoomTypeID "
-                + "WHERE r.Status = 'available' "
+                + "WHERE r.Status = 'available' AND r.NeedsCleaning=0 "
                 + "AND rt.IsActive = 1 "
                 + "AND NOT EXISTS ( "
                 + "    SELECT 1 "
@@ -525,9 +524,7 @@ public class RoomDAO extends DBContext {
                 + "    JOIN Booking b "
                 + "    ON b.BookingID = bd.BookingID "
                 + "    WHERE bd.RoomNumber = r.RoomNumber "
-                + "    AND b.Status <> 'cancelled' "
-                + "    AND bd.CheckInDate < ? "
-                + "    AND bd.CheckOutDate > ? "
+                + "    AND " + RoomOccupancySql.overlaps("b", "bd") + " "
                 + ")";
 
         try (Connection conn = getConnection(); PreparedStatement ps
@@ -655,7 +652,7 @@ public class RoomDAO extends DBContext {
                 + "rt.Picture "
                 + "FROM Room r "
                 + "JOIN RoomType rt ON rt.RoomTypeID = r.RoomTypeID "
-                + "WHERE r.Status = 'available' "
+                + "WHERE r.Status = 'available' AND r.NeedsCleaning=0 "
                 + "AND rt.IsActive = 1 "
                 + "AND rt.Capacity >= ? "
                 + "AND NOT EXISTS ( "
@@ -663,9 +660,7 @@ public class RoomDAO extends DBContext {
                 + "    FROM BookingDetail bd "
                 + "    JOIN Booking b ON b.BookingID = bd.BookingID "
                 + "    WHERE bd.RoomNumber = r.RoomNumber "
-                + "    AND b.Status <> 'cancelled' "
-                + "    AND bd.CheckInDate < ? "
-                + "    AND bd.CheckOutDate > ? "
+                + "    AND " + RoomOccupancySql.overlaps("b", "bd") + " "
                 + ") "
         );
 
@@ -745,7 +740,7 @@ public class RoomDAO extends DBContext {
                 "SELECT COUNT(*) AS Total "
                 + "FROM Room r "
                 + "JOIN RoomType rt ON rt.RoomTypeID = r.RoomTypeID "
-                + "WHERE r.Status = 'available' "
+                + "WHERE r.Status = 'available' AND r.NeedsCleaning=0 "
                 + "AND rt.IsActive = 1 "
                 + "AND rt.Capacity >= ? "
                 + "AND NOT EXISTS ( "
@@ -753,9 +748,7 @@ public class RoomDAO extends DBContext {
                 + "    FROM BookingDetail bd "
                 + "    JOIN Booking b ON b.BookingID = bd.BookingID "
                 + "    WHERE bd.RoomNumber = r.RoomNumber "
-                + "    AND b.Status <> 'cancelled' "
-                + "    AND bd.CheckInDate < ? "
-                + "    AND bd.CheckOutDate > ? "
+                + "    AND " + RoomOccupancySql.overlaps("b", "bd") + " "
                 + ") "
         );
 

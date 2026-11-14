@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="<c:url value='/assets/css/general.css'/>">
     <link rel="stylesheet" href="<c:url value='/assets/css/luxe-shared-shell.css'/>">
     <link rel="stylesheet" href="<c:url value='/assets/css/room-checkout.css'/>">
+    <link rel="stylesheet" href="<c:url value='/assets/css/payment-qr-display.css?v=1'/>">
 </head>
 <body class="body-wrapper">
     <%@ include file="../include/header.jsp" %>

@@ -2,6 +2,7 @@ package controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import dao.PaymentDAO;
+import dao.CounterQrDAO;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -41,6 +42,25 @@ public class PayOSWebhookServlet extends HttpServlet {
             long amount = data.path("amount").asLong(-1);
             if (orderCode <= 0 || amount <= 0) {
                 resp.sendError(400, "Invalid payment data");
+                return;
+            }
+            if (CounterQrDAO.owns(orderCode)) {
+                // Chữ ký webhook đã hợp lệ; vẫn tra API để đối chiếu tổng thực nhận.
+                try {
+                    new CounterQrDAO().reconcile(orderCode);
+                } catch (IllegalArgumentException ex) {
+                    resp.sendError(400,"Unknown counter payment");
+                    return;
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    resp.sendError(503,"Counter reconciliation temporarily unavailable");
+                    return;
+                } catch (Exception ex) {
+                    log("Counter webhook reconciliation failed; order="+orderCode,ex);
+                    resp.sendError(503,"Counter reconciliation temporarily unavailable");
+                    return;
+                }
+                resp.getWriter().write("{\"received\":true}");
                 return;
             }
             if (!new PaymentDAO().completePayOSPayment(orderCode, amount)) {

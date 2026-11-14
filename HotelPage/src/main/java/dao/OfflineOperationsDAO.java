@@ -183,15 +183,46 @@ public class OfflineOperationsDAO extends DBContext {
     }
 
     public void checkOut(int id,int staff,String key) throws SQLException {
+        checkOut(id,staff,key,false);
+    }
+
+    public void checkOut(int id,int staff,String key,boolean earlyCheckoutAccepted) throws SQLException {
         final String token=requestKey(key);
         transaction(c -> {
             actor(c,staff); BookingRow b=booking(c,id);
             if(already(c,id,staff,token,"check_out")) return null;
             require("checked_in".equals(b.status),"Đơn chưa nhận phòng.");
+            // Chặn cả giao dịch chờ và khoản cần đối soát, kể cả request từ tab cũ.
+            require(money(c,"SELECT COUNT_BIG(*) FROM Payment WITH(UPDLOCK,HOLDLOCK) WHERE BookingID=? AND PaymentStatus='pending'",id).signum()==0,
+                    "Đang có giao dịch chờ. Đối soát xong trước khi trả phòng.");
+            require(money(c,"SELECT COUNT_BIG(*) FROM CounterQrCheckout WITH(HOLDLOCK) WHERE BookingID=? AND (Active=1 OR State='review')",id).signum()==0,
+                    "QR đang chờ hoặc cần đối soát. Chưa thể trả phòng.");
             require(paid(c,id).compareTo(b.total)>=0,"Còn công nợ. Thu đủ tiền trước khi trả phòng.");
+            LocalDate today=ReportPeriod.today();
+            boolean early=false;
+            int roomCount=0;
+            try(PreparedStatement ps=c.prepareStatement("SELECT d.CheckInDate,d.CheckOutDate FROM BookingDetail d "
+                    + "JOIN Room r WITH(UPDLOCK,HOLDLOCK) ON r.RoomNumber=d.RoomNumber WHERE d.BookingID=? ORDER BY r.RoomNumber")) {
+                ps.setInt(1,id);
+                try(ResultSet rs=ps.executeQuery()) {
+                    while(rs.next()) {
+                        LocalDate from=rs.getObject(1,LocalDate.class);
+                        LocalDate to=rs.getObject(2,LocalDate.class);
+                        require(from!=null && to!=null && to.isAfter(from),"Lịch lưu trú không hợp lệ. Kiểm tra booking.");
+                        require(!today.isBefore(from),"Chưa đến ngày nhận phòng. Kiểm tra trạng thái booking.");
+                        early|=today.isBefore(to);
+                        roomCount++;
+                    }
+                }
+            }
+            require(roomCount>0,"Booking không có phòng để trả.");
+            require(!early || earlyCheckoutAccepted,
+                    "Khách trả sớm. Cần xác nhận đã thông báo chính sách giữ nguyên tiền phòng trước khi trả.");
             execute(c,"UPDATE r SET NeedsCleaning=1 FROM Room r JOIN BookingDetail d ON d.RoomNumber=r.RoomNumber WHERE d.BookingID=?",id);
             execute(c,"UPDATE Booking SET Status='checked_out',ActualCheckOutAt=SYSUTCDATETIME() WHERE BookingID=?",id);
-            event(c,id,staff,token,"check_out","Đã quyết toán; phòng chờ dọn. Trả sớm không tự giảm tiền phòng.",BigDecimal.ZERO);
+            event(c,id,staff,token,"check_out",early
+                    ? "Khách trả sớm ngày "+today+"; đã thông báo giữ nguyên tiền phòng. Phòng chờ dọn."
+                    : "Đã quyết toán và trả phòng ngày "+today+"; phòng chờ dọn.",BigDecimal.ZERO);
             return null;
         });
     }
@@ -305,6 +336,14 @@ public class OfflineOperationsDAO extends DBContext {
             data.put("events",rows(c,"SELECT TOP(100) e.Action,e.Note,e.Amount,e.CreatedAt,u.DisplayName Actor FROM OfflineBookingEvent e JOIN [User] u ON u.UserID=e.ActorUserID WHERE e.BookingID=? ORDER BY e.EventID DESC",id));
             data.put("payments",rows(c,"SELECT PaymentID,Amount,PaymentStatus,PaymentMethod,TransactionCode,CounterReference,PaymentDate,COALESCE(RefundedAmount,0) RefundedAmount FROM Payment WHERE BookingID=? ORDER BY PaymentID",id));
             data.put("rooms",rows(c,"SELECT d.RoomNumber,d.CheckInDate,d.CheckOutDate,d.GuestCount,r.NeedsCleaning FROM BookingDetail d JOIN Room r ON r.RoomNumber=d.RoomNumber WHERE d.BookingID=?",id));
+            boolean earlyCheckout=false;
+            for(Object value:(List<?>)data.get("rooms")) {
+                Object end=((Map<?,?>)value).get("CheckOutDate");
+                if(end!=null && ReportPeriod.today().isBefore(LocalDate.parse(end.toString()))) earlyCheckout=true;
+            }
+            data.put("earlyCheckout",earlyCheckout);
+            List<Map<String,Object>> actualStay=rows(c,"SELECT CONVERT(date,DATEADD(MINUTE,420,ActualCheckOutAt)) ActualCheckoutDate FROM Booking WHERE BookingID=?",id);
+            data.put("actualCheckoutDate",actualStay.isEmpty()?null:actualStay.get(0).get("ActualCheckoutDate"));
             data.put("refunds",rows(c,"SELECT Amount,Fee,Status,Method,Reference,CompletedAt FROM OfflineRefund WHERE BookingID=?",id));
             data.put("charges",rows(c,"SELECT Description,Amount,CreatedAt FROM OfflineCharge WHERE BookingID=? ORDER BY ChargeID",id));
             data.put("hasAccount",money(c,"SELECT CASE WHEN UserID IS NULL THEN 0 ELSE 1 END FROM Customer WHERE CustomerID=(SELECT CustomerID FROM Booking WHERE BookingID=?)",id).signum()>0);

@@ -204,10 +204,18 @@ public class AuthenticationFilter implements Filter {
             return;
         }
 
-        if ("/customers".equals(servletPath)
-                || "/booking-management".equals(servletPath)
-                || "/offline-booking".equals(servletPath)
+        if ("/offline-booking".equals(servletPath)
                 || "/counter-payment".equals(servletPath)) {
+            if (!isRole(role, "staff")) {
+                deny(res);
+                return;
+            }
+            chain.doFilter(request, response);
+            return;
+        }
+
+        if ("/customers".equals(servletPath)
+                || "/booking-management".equals(servletPath)) {
 
             if (!isAnyRole(role, "staff", "admin")) {
                 deny(res);

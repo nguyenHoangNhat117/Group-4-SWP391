@@ -117,4 +117,35 @@
 
     customerMode();
     update();
+
+    // Giữ action=create khi khóa nút: nút disabled sẽ không được browser gửi lên.
+    let submittedAction = null;
+    let disabledButtons = [];
+    form.addEventListener("submit", event => {
+        if (form.dataset.creating === "true") {
+            event.preventDefault();
+            return;
+        }
+        if (event.submitter?.value !== "create") {
+            return;
+        }
+        submittedAction = document.createElement("input");
+        submittedAction.type = "hidden";
+        submittedAction.name = "action";
+        submittedAction.value = "create";
+        form.appendChild(submittedAction);
+        form.dataset.creating = "true";
+        form.setAttribute("aria-busy", "true");
+        disabledButtons = Array.from(form.querySelectorAll("button:not(:disabled)"));
+        disabledButtons.forEach(button => { button.disabled = true; });
+    });
+
+    window.addEventListener("pageshow", () => {
+        delete form.dataset.creating;
+        form.removeAttribute("aria-busy");
+        submittedAction?.remove();
+        submittedAction = null;
+        disabledButtons.forEach(button => { button.disabled = false; });
+        disabledButtons = [];
+    });
 })();

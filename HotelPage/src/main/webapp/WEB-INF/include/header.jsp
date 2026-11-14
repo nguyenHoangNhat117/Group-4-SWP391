@@ -82,12 +82,6 @@
                     </li>
 
                     <li>
-                        <a href="${pageContext.request.contextPath}/offline-booking">
-                            <ui:text key="nav.offline"/>
-                        </a>
-                    </li>
-
-                    <li>
                         <a href="${pageContext.request.contextPath}/customers">
                             <ui:text key="nav.customers"/>
                         </a>

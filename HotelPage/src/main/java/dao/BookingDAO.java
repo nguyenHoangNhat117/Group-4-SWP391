@@ -1,5 +1,7 @@
 package dao;
 
+import util.RoomOccupancySql;
+
 import db.DBContext;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -380,7 +382,7 @@ public class BookingDAO extends DBContext {
                 + "JOIN RoomType rt WITH(HOLDLOCK) "
                 + "ON rt.RoomTypeID=r.RoomTypeID "
                 + "WHERE r.RoomNumber=? "
-                + "AND r.Status='available' "
+                + "AND r.Status='available' AND r.NeedsCleaning=0 "
                 + "AND rt.IsActive=1 "
                 + "AND rt.Capacity>=? AND (? IS NULL OR r.RoomTypeID=?)";
 
@@ -405,9 +407,7 @@ public class BookingDAO extends DBContext {
                 = "SELECT 1 FROM BookingDetail bd "
                 + "JOIN Booking b ON b.BookingID=bd.BookingID "
                 + "WHERE bd.RoomNumber=? "
-                + "AND b.Status<>'cancelled' "
-                + "AND bd.CheckInDate<? "
-                + "AND bd.CheckOutDate>?";
+                + "AND " + RoomOccupancySql.overlaps("b", "bd");
 
         try (PreparedStatement ps = conn.prepareStatement(conflictSql)) {
             ps.setInt(1, roomNumber);
@@ -476,9 +476,7 @@ public class BookingDAO extends DBContext {
                 + "JOIN Booking b "
                 + "ON b.BookingID = bd.BookingID "
                 + "WHERE bd.RoomNumber = ? "
-                + "AND b.Status <> 'cancelled' "
-                + "AND bd.CheckInDate < ? "
-                + "AND bd.CheckOutDate > ?";
+                + "AND " + RoomOccupancySql.overlaps("b", "bd");
 
         try (PreparedStatement ps
                 = conn.prepareStatement(sql)) {
@@ -537,7 +535,7 @@ public class BookingDAO extends DBContext {
     /*
      * Internal method to reuse an existing connection.
      */
-    private List<BookingDetail> getBookingDetails(
+    List<BookingDetail> getBookingDetails(
             Connection conn,
             int bookingId)
             throws SQLException {

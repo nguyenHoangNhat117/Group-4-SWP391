@@ -2,6 +2,7 @@ package controller;
 
 import dao.OfflineBookingDAO;
 import dao.OfflineOperationsDAO;
+import dao.CounterQrDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
@@ -11,6 +12,7 @@ import java.sql.SQLException;
 import java.util.*;
 import model.User;
 import util.AuthSupport;
+import util.OnlinePaymentConfig;
 
 @WebServlet("/counter-payment")
 public class CounterPaymentServlet extends HttpServlet {
@@ -19,9 +21,28 @@ public class CounterPaymentServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest r,HttpServletResponse s) throws ServletException,IOException {
         if(OfflineBookingServlet.staff(r,s)==null) return;
+        AuthSupport.noStore(s);
         try {
             int id=positive(r.getParameter("bookingId"));
+            CounterQrDAO qr = new CounterQrDAO();
+            if ("qr".equals(r.getParameter("view")) || "qr-status".equals(r.getParameter("view"))) {
+                showQr(r,s,id,qr);
+                return;
+            }
+            Map<String,Object> activeQr = qr.active(id);
             Map<String,Object> summary=new OfflineBookingDAO().counterSummary(id);
+            if(activeQr!=null) {
+                summary.put("payable",activeQr.get("Payable"));
+                summary.put("paid",activeQr.get("PreviouslyPaid"));
+                summary.put("remaining",((BigDecimal)activeQr.get("Payable"))
+                        .subtract((BigDecimal)activeQr.get("PreviouslyPaid")).max(BigDecimal.ZERO));
+                summary.remove("promotionError");
+                summary.put("canPay",false);
+                summary.put("canChange",false);
+            }
+            r.setAttribute("activeQr",activeQr);
+            r.setAttribute("qrConfigured",OnlinePaymentConfig.payosConfigured()
+                    && OnlinePaymentConfig.callbacksConfigured());
             String token=UUID.randomUUID().toString();
             Map<String,Object> saved=new LinkedHashMap<>(summary);
             saved.put("createdAt",System.currentTimeMillis());
@@ -62,18 +83,35 @@ public class CounterPaymentServlet extends HttpServlet {
         int id=(Integer)quote.get("bookingId");
         try {
             String action=AuthSupport.text(r.getParameter("action"));
+            if(!"qr".equals(action) && new CounterQrDAO().active(id)!=null) {
+                throw new IllegalArgumentException("QR đang chờ đối soát. Mở lại QR để kiểm tra trước khi thao tác.");
+            }
             OfflineOperationsDAO ops=new OfflineOperationsDAO();
             switch(action) {
                 case "": case "pay":
+                    if (!"cash".equals(AuthSupport.text(r.getParameter("method")))) {
+                        throw new IllegalArgumentException("Chuyển khoản phải dùng QR và chờ hệ thống xác nhận.");
+                    }
                     ops.pay(id,actor.getId(),AuthSupport.text(r.getParameter("method")),positive(r.getParameter("percent")),key,
                             (BigDecimal)quote.get("paid"),(BigDecimal)quote.get("total"),(BigDecimal)quote.get("payable"),r.getParameter("reference"));
                     break;
+                case "qr": {
+                    CounterQrDAO qr = new CounterQrDAO();
+                    long order = qr.start(id,actor.getId(),key,positive(r.getParameter("percent")),
+                            (BigDecimal)quote.get("paid"),(BigDecimal)quote.get("total"),(BigDecimal)quote.get("payable"));
+                    try { qr.ensureLink(order); }
+                    catch (InterruptedException ex) { Thread.currentThread().interrupt(); }
+                    catch (Exception ex) { log("QR create result requires reconciliation; order="+order,ex); }
+                    s.setStatus(303);
+                    s.setHeader("Location",r.getContextPath()+"/counter-payment?bookingId="+id+"&view=qr&orderCode="+order);
+                    return;
+                }
                 case "promotion":
                     new OfflineBookingDAO().changePending(actor.getId(),id,r.getParameter("promotionCode"),false);
                     break;
                 case "cancel": ops.cancel(id,actor.getId(),key,r.getParameter("reason")); break;
                 case "check_in": ops.checkIn(id,actor.getId(),key,"yes".equals(r.getParameter("identityVerified")),positive(r.getParameter("actualGuests"))); break;
-                case "check_out": ops.checkOut(id,actor.getId(),key); break;
+                case "check_out": ops.checkOut(id,actor.getId(),key,"yes".equals(r.getParameter("earlyCheckoutAccepted"))); break;
                 case "complete": ops.complete(id,actor.getId(),key); break;
                 case "clean": ops.clean(id,actor.getId(),key); break;
                 case "charge": ops.charge(id,actor.getId(),key,r.getParameter("description"),new BigDecimal(AuthSupport.text(r.getParameter("amount")))); break;
@@ -92,6 +130,32 @@ public class CounterPaymentServlet extends HttpServlet {
         }
         s.setStatus(303);
         s.setHeader("Location",r.getContextPath()+"/counter-payment?bookingId="+id);
+    }
+
+    private void showQr(HttpServletRequest r,HttpServletResponse s,int booking,CounterQrDAO dao)
+            throws SQLException,ServletException,IOException {
+        long code;
+        try { code=Long.parseLong(r.getParameter("orderCode")); }
+        catch (RuntimeException ex) { throw new IllegalArgumentException("Mã QR không hợp lệ."); }
+        Map<String,Object> q=dao.find(code);
+        if(q==null || ((Number)q.get("BookingID")).intValue()!=booking) {
+            s.sendError(404); return;
+        }
+        boolean available=true;
+        if(!Arrays.asList("paid","rejected").contains(q.get("State"))) {
+            try { dao.reconcile(code); }
+            catch(InterruptedException ex) { Thread.currentThread().interrupt(); available=false; }
+            catch(Exception ex) { available=false; log("Unable to reconcile counter QR "+code,ex); }
+            q=dao.find(code);
+        }
+        if("qr-status".equals(r.getParameter("view"))) {
+            s.setContentType("text/plain;charset=UTF-8");
+            s.getWriter().write(available ? (String)q.get("State") : "unavailable");
+            return;
+        }
+        r.setAttribute("qr",q);
+        r.setAttribute("qrAvailable",available);
+        r.getRequestDispatcher("/WEB-INF/booking-management/counter-qr.jsp").forward(r,s);
     }
 
     private int positive(String raw) {

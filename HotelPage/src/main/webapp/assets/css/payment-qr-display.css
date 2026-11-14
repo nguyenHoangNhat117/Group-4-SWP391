@@ -1,0 +1,48 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/*
+    Created on : Nov 14, 2026, 9:36:49 PM
+    Author     : Nguyen Hoang Nhat
+*/
+/* Chỉ sửa hiển thị QR Customer; dữ liệu QR và luồng thanh toán giữ nguyên. */
+.stay-page #qr-image {
+    box-sizing: border-box;
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+    padding: 24px;
+    background: #fff;
+    border: 1px solid #e4d7c8;
+    border-radius: 12px;
+    overflow: visible;
+    color-scheme: light;
+    forced-color-adjust: none;
+}
+
+/* Kích thước gốc 256px khớp với embedded-checkout.js đang dùng. */
+.stay-page #qr-image canvas,
+.stay-page #qr-image img {
+    display: block;
+    box-sizing: content-box;
+    width: 256px !important;
+    max-width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+    margin: 0;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    clip-path: none !important;
+    filter: none !important;
+    background: #fff;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+/* Giữ cơ chế ẩn/hiện và fallback do script thanh toán hiện có quản lý. */
+.stay-page #qr-image[hidden] {
+    display: none !important;
+}

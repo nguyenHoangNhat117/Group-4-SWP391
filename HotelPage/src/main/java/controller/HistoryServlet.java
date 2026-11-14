@@ -12,9 +12,16 @@ import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.FormatStyle;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import model.Booking;
 import model.Customer;
@@ -27,6 +34,14 @@ public class HistoryServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
     private static final int PAGE_SIZE = 5;
+    private static final Logger LOGGER = Logger.getLogger(HistoryServlet.class.getName());
+    private static final List<String> PAYMENT_METHODS = List.of("bank_transfer", "cash");
+    private static final List<String> PAYMENT_STATUSES = List.of("paid", "partial", "pending", "failed", "refunded");
+    private static final Map<String, String> PAYMENT_LABELS = Map.of(
+            "bank_transfer", "screen.ee82ae2801cf9097", "cash", "screen.e2da108f63008e44",
+            "paid", "screen.fb81b961af456e5e", "partial", "screen.1390db305695537e",
+            "pending", "screen.331551b0de4157c9", "failed", "screen.031a8f0f659df890",
+            "refunded", "screen.117f6a7cf0372277");
 
     @Override
     protected void doGet(
@@ -90,26 +105,6 @@ public class HistoryServlet extends HttpServlet {
         }
 
         /*
-         * Customer cannot manually change ?id=...
-         * to another customer's ID.
-         */
-        if ("customer".equalsIgnoreCase(
-                user.getRole())) {
-
-            if (sessionCustomer == null) {
-
-                response.sendRedirect(
-                        request.getContextPath()
-                        + "/login"
-                );
-                return;
-            }
-
-            customerId
-                    = sessionCustomer.getCustomerID();
-        }
-
-        /*
          * Staff/Admin may inspect customer history.
          * Other roles cannot.
          */
@@ -147,6 +142,7 @@ public class HistoryServlet extends HttpServlet {
                 "historyCustomerId",
                 customerId
         );
+        request.setAttribute("ownHistory", "customer".equalsIgnoreCase(user.getRole()));
 
         switch (view) {
 
@@ -333,8 +329,6 @@ public class HistoryServlet extends HttpServlet {
      * =========================================================
      * PAYMENT HISTORY
      *
-     * Kept compatible with existing PaymentDAO for now.
-     * Payment module will be refactored next.
      * =========================================================
      */
     private void showPaymentHistory(
@@ -343,58 +337,67 @@ public class HistoryServlet extends HttpServlet {
             int customerId)
             throws ServletException, IOException {
 
-        PaymentDAO paymentDAO
-                = new PaymentDAO();
-
-        int currentPage
-                = parsePage(
-                        request.getParameter("page")
-                );
-
-        int totalPayments
-                = paymentDAO.countPaymentsByCustomerId(
-                        customerId
-                );
-
-        int totalPages
-                = totalPayments == 0
-                        ? 0
-                        : (int) Math.ceil(
-                                totalPayments
-                                / (double) PAGE_SIZE
-                        );
-
-        if (totalPages > 0
-                && currentPage > totalPages) {
-
-            currentPage = totalPages;
+        PaymentDAO paymentDAO = new PaymentDAO();
+        int currentPage = parsePage(request.getParameter("page"));
+        String query = request.getParameter("q");
+        String search = query == null ? "" : query.strip();
+        if (search.length() > 100) {
+            search = search.substring(0, 100);
+        }
+        request.setAttribute("paymentSearch", search);
+        String method = allowedPaymentFilter(request.getParameter("method"), PAYMENT_METHODS);
+        String status = allowedPaymentFilter(request.getParameter("status"), PAYMENT_STATUSES);
+        LocalDate date = parsePaymentDate(request.getParameter("date"));
+        request.setAttribute("paymentMethodFilter", method);
+        request.setAttribute("paymentStatusFilter", status);
+        request.setAttribute("paymentDateFilter", date);
+        request.setAttribute("paymentMethods", PAYMENT_METHODS);
+        request.setAttribute("paymentStatuses", PAYMENT_STATUSES);
+        request.setAttribute("paymentLabels", PAYMENT_LABELS);
+        request.setAttribute("hasPaymentFilters",
+                !search.isEmpty() || !method.isEmpty() || !status.isEmpty() || date != null);
+        String lookup = search.replaceFirst("^#(?=[0-9]+$)", "");
+        try {
+            int totalPayments = paymentDAO.countPaymentsByCustomerId(customerId, lookup, method, status, date);
+            int totalPages = (int) Math.ceil(totalPayments / (double) PAGE_SIZE);
+            currentPage = Math.min(currentPage, Math.max(1, totalPages));
+            if (totalPayments > 0) {
+                request.setAttribute("payments",
+                        paymentDAO.getPaymentsByCustomerId(customerId, lookup, method, status, date,
+                                currentPage, PAGE_SIZE));
+            }
+            request.setAttribute("totalPages", totalPages);
+            request.setAttribute("firstPageLink", Math.max(1, currentPage - 1));
+            request.setAttribute("lastPageLink", Math.min(totalPages, currentPage + 1));
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Unable to load payment history", e);
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+            request.setAttribute("paymentHistoryUnavailable", true);
         }
 
-        List<Payment> payments
-                = paymentDAO.getPaymentsByCustomerId(
-                        customerId,
-                        currentPage,
-                        PAGE_SIZE
-                );
+        request.setAttribute("currentPage", currentPage);
+        request.setAttribute("paymentDateFormat",
+                DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+                        .withLocale(request.getLocale()));
+        request.setAttribute("stayDateFormat",
+                DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(request.getLocale()));
+        request.getRequestDispatcher("/WEB-INF/history/payments.jsp").forward(request, response);
+    }
 
-        request.setAttribute(
-                "payments",
-                payments
-        );
+    private static String allowedPaymentFilter(String value, List<String> allowed) {
+        return value != null && allowed.contains(value) ? value : "";
+    }
 
-        request.setAttribute(
-                "totalPages",
-                totalPages
-        );
-
-        request.setAttribute(
-                "currentPage",
-                currentPage
-        );
-
-        request.getRequestDispatcher(
-                "/WEB-INF/history/payments.jsp"
-        ).forward(request, response);
+    private static LocalDate parsePaymentDate(String value) {
+        if (value == null || value.length() != 10) {
+            return null;
+        }
+        try {
+            LocalDate date = LocalDate.parse(value);
+            return date.getYear() > 0 && date.isBefore(LocalDate.of(9999, 12, 31)) ? date : null;
+        } catch (DateTimeParseException ex) {
+            return null;
+        }
     }
 
     /*
@@ -414,7 +417,8 @@ public class HistoryServlet extends HttpServlet {
         if ("customer".equalsIgnoreCase(
                 user.getRole())) {
 
-            if (customer == null) {
+            if (customer == null || customer.getUser() == null
+                    || customer.getUser().getId() != user.getId()) {
                 return null;
             }
 
