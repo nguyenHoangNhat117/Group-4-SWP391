@@ -123,14 +123,16 @@
                         </section>
                     </div>
 
+                    <c:if test="${empty offlineCreator and booking.onlineDepositPolicy and booking.status ne 'cancelled'}">
+                        <%@include file="online-actions.jspf"%>
+                    </c:if>
+                    <c:if test="${not empty nextStatuses}">
                     <div class="card mb-4">
                         <div class="card-header">
                             <strong><ui:text key="screen.d275eb2a59741cbf"/></strong>
                         </div>
 
                         <div class="card-body">
-                            <c:choose>
-                                <c:when test="${not empty nextStatuses}">
                                     <p class="small text-muted mb-3"><ui:text key="booking.detail.status.hint"/></p>
                                     <form id="booking-status-form" action="${pageContext.request.contextPath}/booking-management"
                                           method="post"
@@ -222,16 +224,9 @@
                                             </div>
                                         </div>
                                     </dialog>
-                                </c:when>
-
-                                <c:otherwise>
-                                    <div class="alert alert-secondary mb-0">
-                                        <ui:text key="screen.da87095c74827c40"/>
-                                    </div>
-                                </c:otherwise>
-                            </c:choose>
                         </div>
                     </div>
+                    </c:if>
 
                     <section class="card booking-data-card mb-4" aria-labelledby="stay-heading">
                         <h2 class="card-header" id="stay-heading"><ui:text key="screen.1c66fcafeab3b38e"/></h2>
@@ -490,6 +485,9 @@
         <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js"></script>
         <c:if test="${not empty nextStatuses}">
             <script src="<c:url value='/assets/js/booking-detail.js'/>"></script>
+        </c:if>
+        <c:if test="${booking.onlineDepositPolicy}">
+            <script defer src="<c:url value='/assets/js/offline-counter.js?v=online-actions-1'/>"></script>
         </c:if>
     </body>
 </html>

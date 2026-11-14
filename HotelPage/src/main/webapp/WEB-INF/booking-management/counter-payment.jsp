@@ -13,7 +13,8 @@
 <!DOCTYPE html>
 <html lang="${requestScope.uiLanguage}" class="uc09-page"><head>
         <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-        <title data-i18n="offline.title">${requestScope.i18n['offline.title']}</title>
+        <c:set var="titleKey" value="${summary.offline ? 'offline.title' : 'counter.online.title'}"/>
+        <title data-i18n="${titleKey}"><c:out value="${requestScope.i18n[titleKey]}"/></title>
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/general.css">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/luxe-shared-shell.css">
@@ -23,14 +24,16 @@
     </head><body class="offline-booking-page"><div class="body-wrapper">
             <%@include file="/WEB-INF/include/header.jsp"%>
             <main class="ob-page"><div class="ob-heading"><div><p class="oc-eyebrow">LUXE ESCAPE · FRONT DESK</p>
-                        <h1><ui:text key="offline.title"/> #${summary.bookingId}</h1></div>
+                        <h1><ui:text key="${titleKey}"/> #${summary.bookingId}</h1></div>
                     <a class="ob-back" href="${pageContext.request.contextPath}/booking-management"><ui:text key="offline.back"/></a></div>
                 <c:if test="${not empty operationMessage}"><div class="oc-message" role="status"><ui:message text="${operationMessage}"/></div></c:if>
                 <c:if test="${param.created eq '1'}"><div class="oc-message"><ui:text key="offline.created"/></div></c:if>
                 <div class="oc-overview ob-panel"><div><small><ui:text key="offline.customer"/></small><strong><a class="ob-back" href="${pageContext.request.contextPath}/customers?view=detail&amp;id=${operations.customerId}"><c:out value="${summary.customerName}"/></a></strong></div>
                     <div><small><ui:text key="offline.status"/></small><strong><ui:text key="offline.state.${summary.status}"/></strong></div>
-                    <div><small><ui:text key="offline.creator"/></small><strong><c:out value="${summary.creator}"/></strong></div>
-                    <c:if test="${summary.status eq 'pending'}"><div><small><ui:text key="offline.deadline"/></small><strong><c:out value="${summary.holdExpiresAt}"/></strong></div></c:if></div>
+                    <c:if test="${summary.offline}">
+                        <div><small><ui:text key="offline.creator"/></small><strong><c:out value="${summary.creator}"/></strong></div>
+                        <c:if test="${summary.status eq 'pending'}"><div><small><ui:text key="offline.deadline"/></small><strong><c:out value="${summary.holdExpiresAt}"/></strong></div></c:if>
+                    </c:if></div>
                 <div class="oc-money"><div><small><ui:text key="offline.total"/></small><strong><fmt:formatNumber value="${summary.payable}"/> VND</strong></div>
                     <div><small><ui:text key="offline.paid"/></small><strong><fmt:formatNumber value="${summary.paid}"/> VND</strong></div>
                     <div><small><ui:text key="offline.remaining"/></small><strong><fmt:formatNumber value="${summary.remaining}"/> VND</strong></div></div>
@@ -66,19 +69,19 @@
                                     <input type="hidden" name="paymentKey" value="${paymentKey}">
                                     <input type="hidden" name="action" value="promotion">
                                     <input class="ob-input" name="promotionCode" maxlength="50" value="${fn:escapeXml(summary.promotionCode)}"><button type="submit" class="ob-button ob-primary"><ui:text key="offline.promotion"/></button></form></section></c:if>
-                        <c:if test="${summary.status eq 'confirmed'}"><section class="ob-panel"><h2><ui:text key="offline.check_in"/></h2><form method="post" action="${pageContext.request.contextPath}/counter-payment" class="oc-form">
+                        <c:if test="${summary.offline and summary.status eq 'confirmed'}"><section class="ob-panel"><h2><ui:text key="offline.check_in"/></h2><form method="post" action="${pageContext.request.contextPath}/counter-payment" class="oc-form">
                                     <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
                                     <input type="hidden" name="paymentKey" value="${paymentKey}">
                                     <input type="hidden" name="action" value="check_in">
                                     <label><ui:text key="offline.actualGuests"/><input class="ob-input" type="number" name="actualGuests" min="1" max="1000" value="${operations.rooms[0].GuestCount}" required></label>
                                     <label class="oc-check"><input type="checkbox" name="identityVerified" value="yes" required> <ui:text key="offline.identity"/></label><p class="ob-note"><ui:text key="offline.checkInNote"/></p><button type="submit" class="ob-button ob-primary"><ui:text key="offline.check_in"/></button></form></section></c:if>
-                        <c:if test="${summary.status eq 'confirmed' or summary.status eq 'checked_in'}"><section class="ob-panel"><h2><ui:text key="offline.charge"/></h2><form method="post" action="${pageContext.request.contextPath}/counter-payment" class="oc-form">
+                        <c:if test="${summary.offline and (summary.status eq 'confirmed' or summary.status eq 'checked_in')}"><section class="ob-panel"><h2><ui:text key="offline.charge"/></h2><form method="post" action="${pageContext.request.contextPath}/counter-payment" class="oc-form">
                                     <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
                                     <input type="hidden" name="paymentKey" value="${paymentKey}">
                                     <input type="hidden" name="action" value="charge">
                                     <label><ui:text key="offline.description"/><input class="ob-input" name="description" maxlength="500" required></label>
                                     <label><ui:text key="offline.amount"/><input class="ob-input" name="amount" type="number" min="1" max="1000000000" step="1" required></label><button type="submit" class="ob-button ob-primary"><ui:text key="offline.charge"/></button></form></section></c:if>
-                        <c:if test="${summary.status eq 'pending' or summary.status eq 'confirmed'}"><section class="ob-panel"><h2><ui:text key="offline.cancel"/></h2><p class="ob-note"><ui:text key="offline.cancelPolicy"/> ${summary.depositPercent}%.</p><form method="post" action="${pageContext.request.contextPath}/counter-payment" class="oc-form">
+                        <c:if test="${summary.offline and (summary.status eq 'pending' or summary.status eq 'confirmed')}"><section class="ob-panel"><h2><ui:text key="offline.cancel"/></h2><p class="ob-note"><ui:text key="offline.cancelPolicy"/> ${summary.depositPercent}%.</p><form method="post" action="${pageContext.request.contextPath}/counter-payment" class="oc-form">
                                     <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
                                     <input type="hidden" name="paymentKey" value="${paymentKey}">
                                     <input type="hidden" name="action" value="cancel">

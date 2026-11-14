@@ -23,7 +23,12 @@
               href="${pageContext.request.contextPath}/assets/css/luxe-shared-shell.css">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
-        <link rel="stylesheet" href="<c:url value='/assets/css/booking-management.css'/>">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+        <c:url var="bookingListStyles" value="/assets/css/booking-management.css">
+            <c:param name="v" value="staff-calendar-2"/>
+        </c:url>
+        <link rel="stylesheet" href="${bookingListStyles}">
     </head>
 
     <body class="luxe-admin-suite luxe-admin-bookings">
@@ -79,11 +84,11 @@
                         <div class="card-body">
                             <form action="${pageContext.request.contextPath}/booking-management"
                                   method="get"
-                                  class="row g-3 align-items-end">
+                                  class="booking-filter-grid">
 
                                 <input type="hidden" name="view" value="list">
 
-                                <div class="col-xl-4 col-md-6">
+                                <div class="booking-filter-keyword">
                                     <label for="keyword"
                                            class="form-label fw-semibold">
                                         <ui:text key="screen.49c266baaaa70981"/>
@@ -97,14 +102,14 @@
                                            placeholder="${requestScope.i18n['screen.47077267c183fca4']}" data-i18n-placeholder="screen.47077267c183fca4">
                                 </div>
 
-                                <div class="col-xl-2 col-md-6">
+                                <div class="booking-filter-room">
                                     <label for="room-number" class="form-label fw-semibold"><ui:text key="booking.list.room"/></label>
                                     <input type="text" inputmode="numeric" pattern="[0-9]+" maxlength="10"
                                            id="room-number" name="room-number" class="form-control ${invalidRoom ? 'is-invalid' : ''}"
                                            value="${fn:escapeXml(roomInput)}">
                                 </div>
 
-                                <div class="col-lg-2 col-md-6">
+                                <div class="booking-filter-field">
                                     <label for="status"
                                            class="form-label fw-semibold">
                                         <ui:text key="screen.920e413c7d411b61"/>
@@ -147,37 +152,52 @@
                                     </select>
                                 </div>
 
-                                <div class="col-lg-2 col-md-6">
+                                <div class="booking-filter-field">
+                                    <label for="source" class="form-label fw-semibold"><ui:text key="booking.list.source"/></label>
+                                    <select id="source" name="source" class="form-select">
+                                        <option value="" data-i18n="screen.a52ace420f2175d0">${requestScope.i18n['screen.a52ace420f2175d0']}</option>
+                                        <option value="online" ${selectedSource eq 'online' ? 'selected' : ''}>Online</option>
+                                        <option value="offline" ${selectedSource eq 'offline' ? 'selected' : ''}>Offline</option>
+                                    </select>
+                                </div>
+
+                                <div class="booking-filter-field">
                                     <label for="from-date"
                                            class="form-label fw-semibold">
                                         <ui:text key="booking.list.stay.from"/>
                                     </label>
 
-                                    <input type="date"
-                                           id="from-date"
-                                           name="from-date"
-                                           class="form-control"
-                                           value="${fromDate}">
+                                    <div class="search-calendar-field">
+                                        <i class="bi bi-calendar3" aria-hidden="true"></i>
+                                        <input type="date"
+                                               id="from-date"
+                                               name="from-date" data-booking-calendar
+                                               class="form-control"
+                                               value="${fromDate}">
+                                    </div>
                                 </div>
 
-                                <div class="col-lg-2 col-md-6">
+                                <div class="booking-filter-field">
                                     <label for="to-date"
                                            class="form-label fw-semibold">
                                         <ui:text key="booking.list.stay.to"/>
                                     </label>
 
-                                    <input type="date"
-                                           id="to-date"
-                                           name="to-date"
-                                           class="form-control"
-                                           value="${toDate}">
+                                    <div class="search-calendar-field">
+                                        <i class="bi bi-calendar3" aria-hidden="true"></i>
+                                        <input type="date"
+                                               id="to-date"
+                                               name="to-date" data-booking-calendar
+                                               class="form-control"
+                                               value="${toDate}">
+                                    </div>
                                 </div>
 
-                                <div class="col-12 d-flex flex-wrap align-items-center gap-3">
-                                    <button type="submit" class="btn btn-primary px-4">
+                                <div class="booking-filter-actions">
+                                    <button type="submit" class="btn btn-primary">
                                         <ui:text key="screen.49c266baaaa70981"/>
                                     </button>
-                                    <c:if test="${not empty keyword || not empty selectedStatus || not empty roomInput
+                                    <c:if test="${not empty keyword || not empty selectedStatus || not empty selectedSource || not empty roomInput
                                                   || not empty fromDate || not empty toDate || invalidDates}">
                                         <a href="<c:url value='/booking-management'/>" class="btn btn-outline-secondary">
                                             <ui:text key="screen.5776503c1a52f4fa"/>
@@ -195,6 +215,7 @@
                                     <thead>
                                         <tr>
                                             <th><ui:text key="screen.a85aca2f532a24ab"/></th>
+                                            <th scope="col"><ui:text key="booking.list.source"/></th>
                                             <th><ui:text key="screen.bf3763383aaf4306"/></th>
                                             <th><ui:text key="screen.011519b48fd7ae0a"/></th>
                                             <th><ui:text key="screen.fe43f0a1373a3d68"/></th>
@@ -208,6 +229,7 @@
                                         <c:forEach var="booking" items="${bookings}">
                                             <tr>
                                                 <td class="fw-semibold">#${booking.id}</td>
+                                                <td><span class="badge rounded-pill ${booking.offline ? 'text-bg-secondary' : 'text-bg-primary'}">${booking.offline ? 'Offline' : 'Online'}</span></td>
 
                                                 <td>
                                                     <c:choose>
@@ -343,6 +365,7 @@
                             <c:param name="page" value="${currentPage - 1}"/>
                             <c:param name="keyword" value="${keyword}"/>
                             <c:param name="room-number" value="${roomInput}"/>
+                            <c:param name="source" value="${selectedSource}"/>
                             <c:param name="status" value="${selectedStatus}"/>
                             <c:param name="from-date" value="${fromDate}"/>
                             <c:param name="to-date" value="${toDate}"/>
@@ -353,6 +376,7 @@
                             <c:param name="page" value="${currentPage + 1}"/>
                             <c:param name="keyword" value="${keyword}"/>
                             <c:param name="room-number" value="${roomInput}"/>
+                            <c:param name="source" value="${selectedSource}"/>
                             <c:param name="status" value="${selectedStatus}"/>
                             <c:param name="from-date" value="${fromDate}"/>
                             <c:param name="to-date" value="${toDate}"/>
@@ -373,6 +397,7 @@
                                         <c:param name="page" value="${i}"/>
                                         <c:param name="keyword" value="${keyword}"/>
                                         <c:param name="room-number" value="${roomInput}"/>
+                                        <c:param name="source" value="${selectedSource}"/>
                                         <c:param name="status" value="${selectedStatus}"/>
                                         <c:param name="from-date" value="${fromDate}"/>
                                         <c:param name="to-date" value="${toDate}"/>
@@ -402,5 +427,7 @@
         </div>
 
         <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js" defer></script>
+        <script src="<c:url value='/assets/js/booking-management-calendar.js?v=staff-calendar-2'/>" defer></script>
     </body>
 </html>

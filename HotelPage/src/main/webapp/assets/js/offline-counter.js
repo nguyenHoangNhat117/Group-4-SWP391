@@ -45,7 +45,7 @@
                             : 'Confirm early checkout? The agreed total is unchanged; the room will require cleaning.')
                         : (vi() ? 'Xác nhận khách đã trả phòng và đã quyết toán đủ các khoản?'
                             : 'Confirm checkout and settlement of all charges?');
-                if (!window.confirm(message)) {
+                if (!(early && form.hasAttribute('data-online-checkout')) && !window.confirm(message)) {
                     event.preventDefault();
                     return;
                 }
@@ -64,6 +64,13 @@
             form.querySelectorAll('button[type="submit"]').forEach(button => {
                 button.disabled = true;
             });
+        });
+    });
+    document.querySelectorAll('[data-booking-confirm]').forEach(button => {
+        button.form.addEventListener('submit', event => {
+            if (event.submitter === button && !window.confirm(button.dataset.bookingConfirm)) {
+                event.preventDefault();
+            }
         });
     });
     window.addEventListener('pageshow', () => {

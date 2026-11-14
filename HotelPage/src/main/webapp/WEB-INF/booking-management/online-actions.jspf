@@ -1,0 +1,114 @@
+<section id="booking-actions" class="card mb-4">
+    <div class="card-body">
+        <c:if test="${not empty operationMessage}">
+            <div class="alert alert-info" role="status"><ui:message text="${operationMessage}"/></div>
+        </c:if>
+        <c:if test="${counterUnavailable}">
+            <p class="alert alert-warning"><ui:text key="counter.online.unavailable"/></p>
+        </c:if>
+
+        <c:if test="${not empty summary}">
+            <p class="mb-3">
+                <ui:text key="offline.total"/> <strong><ui:money amount="${summary.payable}"/></strong>
+                <span class="mx-2" aria-hidden="true">·</span>
+                <ui:text key="offline.paid"/> <strong><ui:money amount="${summary.paid}"/></strong>
+                <span class="mx-2" aria-hidden="true">·</span>
+                <ui:text key="offline.remaining"/> <strong><ui:money amount="${summary.remaining}"/></strong>
+            </p>
+        </c:if>
+
+        <c:choose>
+            <c:when test="${not empty activeQr}">
+                <c:url var="resumeQrUrl" value="/counter-payment">
+                    <c:param name="bookingId" value="${booking.id}"/>
+                    <c:param name="view" value="qr"/>
+                    <c:param name="orderCode" value="${activeQr.OrderCode}"/>
+                </c:url>
+                <p><ui:text key="counter.online.qrPending"/></p>
+                <a class="btn btn-primary" href="${resumeQrUrl}"><ui:text key="counter.online.resumeQr"/></a>
+            </c:when>
+            <c:otherwise>
+                <div class="d-flex gap-2 flex-wrap">
+                    <c:if test="${booking.status eq 'confirmed' or booking.status eq 'pending'}">
+                        <form method="post" action="<c:url value='/booking-management'/>">
+                            <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                            <input type="hidden" name="booking-id" value="${booking.id}">
+                            <input type="hidden" name="action" value="update-status">
+                            <c:if test="${booking.status eq 'confirmed'}">
+                                <button class="btn btn-primary" name="status" value="checked_in"><ui:text key="offline.check_in"/></button>
+                            </c:if>
+                            <c:if test="${booking.status eq 'pending' and paid}">
+                                <button class="btn btn-primary" name="status" value="confirmed"><ui:text key="screen.fe00b67b6dd1143f"/></button>
+                            </c:if>
+                            <button class="btn btn-outline-danger" name="status" value="cancelled"
+                                    data-booking-confirm="<c:out value='${requestScope.i18n["counter.online.cancelConfirm"]}'/>">
+                                <ui:text key="offline.cancel"/>
+                            </button>
+                        </form>
+                    </c:if>
+                </div>
+
+                <c:if test="${summary.canPay}">
+                    <details class="mt-3" ${summary.status eq 'checked_in' ? 'open' : ''}>
+                    <summary><ui:text key="counter.online.collect"/></summary>
+                    <form class="oc-form mt-2" method="post" action="<c:url value='/counter-payment'/>">
+                        <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                        <input type="hidden" name="paymentKey" value="${paymentKey}">
+                        <input type="hidden" name="action" value="pay">
+                        <select name="percent" hidden aria-hidden="true">
+                            <option value="100" data-amount="${summary.remaining}"></option>
+                        </select>
+                        <label for="balance-method" class="form-label"><ui:text key="offline.method"/></label>
+                        <select id="balance-method" name="method" class="form-select w-auto">
+                            <option value="cash"><ui:text key="offline.cash"/></option>
+                            <option value="bank_transfer" ${qrConfigured ? '' : 'disabled'}>QR payOS</option>
+                        </select>
+                        <p class="small text-muted my-2" data-counter-method-note></p>
+                        <c:if test="${not qrConfigured}"><p class="small text-muted"><ui:text key="counter.online.qrUnavailable"/></p></c:if>
+                        <p><ui:text key="offline.dueNow"/> <strong data-counter-due><ui:money amount="${summary.remaining}"/></strong></p>
+                        <button class="btn btn-primary" type="submit"><ui:text key="offline.pay"/></button>
+                    </form>
+                    </details>
+                </c:if>
+
+                <c:if test="${summary.status eq 'checked_in' and summary.remaining le 0}">
+                    <form class="oc-form" method="post" action="<c:url value='/counter-payment'/>" data-online-checkout>
+                        <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                        <input type="hidden" name="paymentKey" value="${paymentKey}">
+                        <input type="hidden" name="action" value="check_out">
+                        <c:if test="${operations.earlyCheckout}">
+                            <label class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="earlyCheckoutAccepted" value="yes" required>
+                                <ui:text key="counter.online.earlyCheckout"/>
+                            </label>
+                        </c:if>
+                        <button class="btn btn-primary" type="submit"><ui:text key="offline.check_out"/></button>
+                    </form>
+                </c:if>
+            </c:otherwise>
+        </c:choose>
+
+        <c:if test="${empty activeQr and (summary.status eq 'checked_out' or summary.status eq 'completed')}">
+            <c:if test="${summary.status eq 'checked_out' and summary.remaining le 0}">
+                <form class="oc-form mb-2" method="post" action="<c:url value='/counter-payment'/>">
+                    <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                    <input type="hidden" name="paymentKey" value="${paymentKey}">
+                    <input type="hidden" name="action" value="complete">
+                    <button class="btn btn-primary" type="submit"><ui:text key="offline.complete"/></button>
+                </form>
+            </c:if>
+            <c:set var="roomNeedsCleaning" value="${false}"/>
+            <c:forEach items="${operations.rooms}" var="assignedRoom">
+                <c:if test="${assignedRoom.NeedsCleaning}"><c:set var="roomNeedsCleaning" value="${true}"/></c:if>
+            </c:forEach>
+            <c:if test="${roomNeedsCleaning}">
+                <form class="oc-form" method="post" action="<c:url value='/counter-payment'/>">
+                    <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                    <input type="hidden" name="paymentKey" value="${paymentKey}">
+                    <input type="hidden" name="action" value="clean">
+                    <button class="btn btn-outline-primary" type="submit"><ui:text key="offline.clean"/></button>
+                </form>
+            </c:if>
+        </c:if>
+    </div>
+</section>

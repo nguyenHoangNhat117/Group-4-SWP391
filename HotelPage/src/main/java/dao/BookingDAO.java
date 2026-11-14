@@ -1269,6 +1269,12 @@ public class BookingDAO extends DBContext {
             return false;
         }
 
+        // Deposit-policy stays must settle through the counter checkout transaction.
+        if (booking.isOnlineDepositPolicy()
+                && ("checked_out".equals(newStatus) || "completed".equals(newStatus))) {
+            return false;
+        }
+
         if (!isValidStatusTransition(
                 booking.getStatus(),
                 newStatus)) {
@@ -1496,7 +1502,13 @@ public class BookingDAO extends DBContext {
      * - Stay date range and room number
  * =========================================================
      */
-    private static void appendStayFilter(StringBuilder sql, LocalDate fromDate, LocalDate toDate, Integer roomNumber) {
+    private static void appendBookingFilters(StringBuilder sql, LocalDate fromDate, LocalDate toDate,
+            Integer roomNumber, String source) {
+        if ("online".equals(source)) {
+            sql.append("AND b.CreatedByUserID IS NULL ");
+        } else if ("offline".equals(source)) {
+            sql.append("AND b.CreatedByUserID IS NOT NULL ");
+        }
         if (fromDate == null && toDate == null && roomNumber == null) {
             return;
         }
@@ -1533,6 +1545,7 @@ public class BookingDAO extends DBContext {
             LocalDate fromDate,
             LocalDate toDate,
             Integer roomNumber,
+            String source,
             int page,
             int pageSize) {
 
@@ -1553,6 +1566,7 @@ public class BookingDAO extends DBContext {
         sql.append(
                 "SELECT "
                 + "b.BookingID, "
+                + "b.CreatedByUserID, "
                 + "b.BookingDate, "
                 + "b.Status, "
                 + "b.TotalPrice, "
@@ -1617,7 +1631,7 @@ public class BookingDAO extends DBContext {
             );
         }
 
-        appendStayFilter(sql, fromDate, toDate, roomNumber);
+        appendBookingFilters(sql, fromDate, toDate, roomNumber, source);
 
         sql.append(
                 "ORDER BY "
@@ -1753,6 +1767,7 @@ public class BookingDAO extends DBContext {
                     Booking booking
                             = mapBooking(rs);
 
+                    booking.setOffline(rs.getObject("CreatedByUserID") != null);
                     booking.setCustomer(
                             customer
                     );
@@ -1794,7 +1809,8 @@ public class BookingDAO extends DBContext {
             String status,
             LocalDate fromDate,
             LocalDate toDate,
-            Integer roomNumber) {
+            Integer roomNumber,
+            String source) {
 
         StringBuilder sql
                 = new StringBuilder();
@@ -1843,7 +1859,7 @@ public class BookingDAO extends DBContext {
             );
         }
 
-        appendStayFilter(sql, fromDate, toDate, roomNumber);
+        appendBookingFilters(sql, fromDate, toDate, roomNumber, source);
 
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(

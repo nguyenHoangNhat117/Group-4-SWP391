@@ -31,6 +31,9 @@
               href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/offline-booking.css?v=stable-1">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+        <link rel="stylesheet" href="<c:url value='/assets/css/booking-management.css?v=staff-calendar-2'/>">
     </head>
 
     <body class="offline-booking-page">
@@ -78,13 +81,16 @@
                                             <ui:text key="screen.5d7b2d63203faae8"/>
                                         </label>
 
-                                        <input class="ob-input"
-                                               type="date"
-                                               id="checkIn"
-                                               name="checkIn"
-                                               required
-                                               min="${today}"
-                                               value="${fn:escapeXml(form.checkIn)}">
+                                        <div class="search-calendar-field">
+                                            <i class="bi bi-calendar3" aria-hidden="true"></i>
+                                            <input class="ob-input" data-booking-calendar
+                                                   type="date"
+                                                   id="checkIn"
+                                                   name="checkIn"
+                                                   required
+                                                   min="${today}"
+                                                   value="${fn:escapeXml(form.checkIn)}">
+                                        </div>
                                     </div>
 
                                     <div class="ob-field">
@@ -92,13 +98,16 @@
                                             <ui:text key="screen.1a51b94f713b1ee9"/>
                                         </label>
 
-                                        <input class="ob-input"
-                                               type="date"
-                                               id="checkOut"
-                                               name="checkOut"
-                                               required
-                                               min="${today}"
-                                               value="${fn:escapeXml(form.checkOut)}">
+                                        <div class="search-calendar-field">
+                                            <i class="bi bi-calendar3" aria-hidden="true"></i>
+                                            <input class="ob-input" data-booking-calendar data-after-date="checkIn"
+                                                   type="date"
+                                                   id="checkOut"
+                                                   name="checkOut"
+                                                   required
+                                                   min="${today}"
+                                                   value="${fn:escapeXml(form.checkOut)}">
+                                        </div>
                                     </div>
 
                                     <div class="ob-search ob-full">
@@ -424,6 +433,8 @@
         </div>
 
         <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js" defer></script>
+        <script src="<c:url value='/assets/js/booking-management-calendar.js?v=staff-calendar-2'/>" defer></script>
         <script src="${pageContext.request.contextPath}/assets/js/offline-booking.js?v=staff-direct-1" defer></script>
     </body>
 </html>

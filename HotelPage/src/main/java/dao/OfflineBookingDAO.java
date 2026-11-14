@@ -528,13 +528,13 @@ public class OfflineBookingDAO extends DBContext {
                         + "b.OfflinePromotionCode,"
                         + "u.DisplayName Creator,"
                         + "cu.FirstName,cu.LastName,"
-                        + "b.HoldExpiresAt,b.OfflineDepositPercent "
+                        + "b.HoldExpiresAt,b.OfflineDepositPercent,b.CreatedByUserID "
                         + "FROM Booking b WITH(HOLDLOCK) "
-                        + "JOIN [User] u "
+                        + "LEFT JOIN [User] u "
                         + "ON u.UserID=b.CreatedByUserID "
                         + "JOIN Customer cu "
                         + "ON cu.CustomerID=b.CustomerID "
-                        + "WHERE b.BookingID=?";
+                        + "WHERE b.BookingID=? AND (b.CreatedByUserID IS NOT NULL OR b.OnlineDepositPolicy=1)";
 
                 try (PreparedStatement ps = c.prepareStatement(sql)) {
                     ps.setInt(1, bookingId);
@@ -542,7 +542,7 @@ public class OfflineBookingDAO extends DBContext {
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) {
                             throw new IllegalArgumentException(
-                                    "Không tìm thấy đặt phòng offline."
+                                    "Không tìm thấy đơn hỗ trợ thu tại quầy."
                             );
                         }
 
@@ -554,6 +554,7 @@ public class OfflineBookingDAO extends DBContext {
                                 AuthSupport.text(rs.getString(3))
                         );
                         data.put("creator", rs.getString(4));
+                        data.put("offline", rs.getObject("CreatedByUserID") != null);
                         data.put(
                                 "customerName",
                                 AuthSupport.text(rs.getString(6))
@@ -561,9 +562,9 @@ public class OfflineBookingDAO extends DBContext {
                                 + AuthSupport.text(rs.getString(5))
                         );
 
-                        String deadline = rs.getObject(
-                                7, java.time.LocalDateTime.class
-                        ).atOffset(java.time.ZoneOffset.UTC)
+                        java.time.LocalDateTime expiresAt = rs.getObject(7, java.time.LocalDateTime.class);
+                        String deadline = expiresAt == null ? null
+                                : expiresAt.atOffset(java.time.ZoneOffset.UTC)
                                 .atZoneSameInstant(
                                         java.time.ZoneId.of(
                                                 "Asia/Ho_Chi_Minh"
@@ -604,8 +605,9 @@ public class OfflineBookingDAO extends DBContext {
 
                 boolean pending
                         = "pending".equals(data.get("status"));
+                boolean offline = Boolean.TRUE.equals(data.get("offline"));
 
-                if (paid.signum() == 0 && pending) {
+                if (offline && paid.signum() == 0 && pending) {
                     try {
                         payable = discounted(
                                 c,
@@ -624,12 +626,12 @@ public class OfflineBookingDAO extends DBContext {
                         "cancelled".equals(data.get("status")) ? BigDecimal.ZERO
                                 : payable.subtract(paid).max(BigDecimal.ZERO)
                 );
-                data.put("firstPayment", paid.signum() == 0);
+                data.put("firstPayment", offline && paid.signum() == 0);
                 data.put("depositAmount", payable.multiply(BigDecimal.valueOf((Integer)data.get("depositPercent")))
                         .divide(BigDecimal.valueOf(100),0,RoundingMode.CEILING));
                 data.put(
                         "canChange",
-                        pending && paid.signum() == 0
+                        offline && pending && paid.signum() == 0
                 );
 
                 boolean payableStatus = Arrays.asList(
@@ -640,6 +642,7 @@ public class OfflineBookingDAO extends DBContext {
                         "canPay",
                         !data.containsKey("promotionError")
                         && payableStatus
+                        && (offline || !pending)
                         && (payable.compareTo(paid) > 0
                         || (paid.signum() == 0 && pending))
                 );

@@ -29,43 +29,58 @@ public class CounterPaymentServlet extends HttpServlet {
                 showQr(r,s,id,qr);
                 return;
             }
-            Map<String,Object> activeQr = qr.active(id);
-            Map<String,Object> summary=new OfflineBookingDAO().counterSummary(id);
-            if(activeQr!=null) {
-                summary.put("payable",activeQr.get("Payable"));
-                summary.put("paid",activeQr.get("PreviouslyPaid"));
-                summary.put("remaining",((BigDecimal)activeQr.get("Payable"))
-                        .subtract((BigDecimal)activeQr.get("PreviouslyPaid")).max(BigDecimal.ZERO));
-                summary.remove("promotionError");
-                summary.put("canPay",false);
-                summary.put("canChange",false);
+            Map<String,Object> summary = new OfflineBookingDAO().counterSummary(id);
+            if (!Boolean.TRUE.equals(summary.get("offline"))) {
+                s.sendRedirect(r.getContextPath()+bookingDetail(id));
+                return;
             }
-            r.setAttribute("activeQr",activeQr);
-            r.setAttribute("qrConfigured",OnlinePaymentConfig.payosConfigured()
-                    && OnlinePaymentConfig.callbacksConfigured());
-            String token=UUID.randomUUID().toString();
-            Map<String,Object> saved=new LinkedHashMap<>(summary);
-            saved.put("createdAt",System.currentTimeMillis());
-            synchronized(r.getSession(false)) {
-                Map<String,Map<String,Object>> quotes=quotes(r.getSession(false));
-                quotes.values().removeIf(q -> System.currentTimeMillis()-(Long)q.get("createdAt")>30*60*1000L);
-                while(quotes.size()>=20) quotes.remove(quotes.keySet().iterator().next());
-                quotes.put(token,saved);
-            }
-            r.setAttribute("summary",summary);
-            r.setAttribute("operations",new OfflineOperationsDAO().operations(id));
-            r.setAttribute("paymentKey",token);
-            synchronized(r.getSession(false)) {
-                r.setAttribute("operationMessage",r.getSession(false).getAttribute("offlineMessage:"+id));
-                r.getSession(false).removeAttribute("offlineMessage:"+id);
-            }
+            prepareCounter(r, id, summary);
             r.getRequestDispatcher("/WEB-INF/booking-management/counter-payment.jsp").forward(r,s);
         } catch(IllegalArgumentException ex) {
             s.sendError(400,ex.getMessage());
         } catch(SQLException ex) {
-            log("Offline counter read failed",ex);
-            s.sendError(503,"Không thể tải hồ sơ tại quầy. Kiểm tra database và migration UC09_StableWorkflow.sql.");
+            log("Counter read failed",ex);
+            s.sendError(503,"Không thể tải hồ sơ tại quầy. Kiểm tra database và migration counter_qr.sql.");
         }
+    }
+
+    static void prepareCounter(HttpServletRequest r, int id) throws SQLException {
+        prepareCounter(r, id, new OfflineBookingDAO().counterSummary(id));
+    }
+
+    private static void prepareCounter(HttpServletRequest r, int id, Map<String,Object> summary) throws SQLException {
+        Map<String,Object> activeQr = new CounterQrDAO().active(id);
+        if (activeQr != null && Boolean.TRUE.equals(summary.get("offline"))
+                && "pending".equals(summary.get("status"))) {
+            BigDecimal quotedPayable = (BigDecimal) activeQr.get("Payable");
+            BigDecimal paid = (BigDecimal) summary.get("paid");
+            summary.put("payable", quotedPayable);
+            summary.put("remaining", quotedPayable.subtract(paid).max(BigDecimal.ZERO));
+            summary.remove("promotionError");
+        }
+        r.setAttribute("activeQr",activeQr);
+        r.setAttribute("qrConfigured",OnlinePaymentConfig.payosConfigured()
+                && OnlinePaymentConfig.callbacksConfigured());
+        String token=UUID.randomUUID().toString();
+        Map<String,Object> saved=new LinkedHashMap<>(summary);
+        saved.put("createdAt",System.currentTimeMillis());
+        synchronized(r.getSession(false)) {
+            Map<String,Map<String,Object>> quotes=quotes(r.getSession(false));
+            quotes.values().removeIf(q -> System.currentTimeMillis()-(Long)q.get("createdAt")>30*60*1000L);
+            while(quotes.size()>=20) quotes.remove(quotes.keySet().iterator().next());
+            quotes.put(token,saved);
+        }
+        r.setAttribute("summary",summary);
+        r.setAttribute("operations",new OfflineOperationsDAO().operations(id));
+        r.setAttribute("paymentKey",token);
+        synchronized(r.getSession(false)) {
+            r.setAttribute("operationMessage",r.getSession(false).getAttribute("offlineMessage:"+id));
+            r.getSession(false).removeAttribute("offlineMessage:"+id);
+        }
+    }
+
+    private static String bookingDetail(int id) {
+        return "/booking-management?view=detail&id=" + id + "#booking-actions";
     }
 
     @Override
@@ -122,14 +137,16 @@ public class CounterPaymentServlet extends HttpServlet {
         } catch(IllegalArgumentException ex) {
             r.getSession(false).setAttribute("offlineMessage:"+id,ex.getMessage());
         } catch(SQLException ex) {
-            log("Offline counter write failed; bookingId="+id,ex);
+            log("Counter write failed; bookingId="+id,ex);
             String message=ex.getErrorCode()==2601 || ex.getErrorCode()==2627
                     ? "Mã giao dịch đã được ghi nhận. Kiểm tra lịch sử trước khi thu/hoàn lại."
                     : "Không xác nhận được kết quả. Database có thể đang bận; tải lại và kiểm tra lịch sử trước khi thử lại.";
             r.getSession(false).setAttribute("offlineMessage:"+id,message);
         }
         s.setStatus(303);
-        s.setHeader("Location",r.getContextPath()+"/counter-payment?bookingId="+id);
+        String destination = Boolean.TRUE.equals(quote.get("offline"))
+                ? "/counter-payment?bookingId=" + id : bookingDetail(id);
+        s.setHeader("Location",r.getContextPath()+destination);
     }
 
     private void showQr(HttpServletRequest r,HttpServletResponse s,int booking,CounterQrDAO dao)
@@ -155,6 +172,8 @@ public class CounterPaymentServlet extends HttpServlet {
         }
         r.setAttribute("qr",q);
         r.setAttribute("qrAvailable",available);
+        r.setAttribute("counterBackUrl",r.getContextPath() + (q.get("CreatedByUserID") == null
+                ? bookingDetail(booking) : "/counter-payment?bookingId=" + booking));
         r.getRequestDispatcher("/WEB-INF/booking-management/counter-qr.jsp").forward(r,s);
     }
 
@@ -165,7 +184,7 @@ public class CounterPaymentServlet extends HttpServlet {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String,Map<String,Object>> quotes(HttpSession session) {
+    private static Map<String,Map<String,Object>> quotes(HttpSession session) {
         Object saved=session.getAttribute(KEY);
         if(saved instanceof Map) return (Map<String,Map<String,Object>>)saved;
         Map<String,Map<String,Object>> data=new LinkedHashMap<>();

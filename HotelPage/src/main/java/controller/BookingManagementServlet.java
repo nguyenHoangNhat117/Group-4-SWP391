@@ -145,6 +145,10 @@ public class BookingManagementServlet
         }
 
         String roomInput = request.getParameter("room-number");
+        String source = request.getParameter("source");
+        if (!"online".equals(source) && !"offline".equals(source)) {
+            source = null;
+        }
         Integer roomNumber = parseId(roomInput == null ? null : roomInput.trim());
         boolean invalidRoom = roomInput != null && !roomInput.isBlank() && roomNumber == null;
 
@@ -184,7 +188,8 @@ public class BookingManagementServlet
                         status,
                         fromDate,
                         toDate,
-                        roomNumber
+                        roomNumber,
+                        source
                 );
 
         int totalPages
@@ -209,6 +214,7 @@ public class BookingManagementServlet
                         fromDate,
                         toDate,
                         roomNumber,
+                        source,
                         currentPage,
                         PAGE_SIZE
                 );
@@ -223,6 +229,7 @@ public class BookingManagementServlet
                 keyword
         );
         request.setAttribute("roomInput", roomInput);
+        request.setAttribute("selectedSource", source);
         request.setAttribute("invalidRoom", invalidRoom);
         request.setAttribute("invalidDates", invalidDates);
 
@@ -357,8 +364,22 @@ public class BookingManagementServlet
          * Used by JSP to display only valid
          * next status options.
          */
-        request.setAttribute("nextStatuses", request.getAttribute("offlineCreator") != null
-                ? new String[0] : getNextStatuses(booking.getStatus()));
+        String[] nextStatuses = getNextStatuses(booking.getStatus());
+        if (request.getAttribute("offlineCreator") != null) {
+            nextStatuses = new String[0];
+        } else if (booking.isOnlineDepositPolicy()) {
+            nextStatuses = new String[0];
+            if (java.util.Arrays.asList("confirmed", "checked_in", "checked_out", "completed")
+                    .contains(booking.getStatus())) {
+                try {
+                    CounterPaymentServlet.prepareCounter(request, bookingId);
+                } catch (SQLException ex) {
+                    log("Counter actions unavailable for booking " + bookingId, ex);
+                    request.setAttribute("counterUnavailable", true);
+                }
+            }
+        }
+        request.setAttribute("nextStatuses", nextStatuses);
         try {
             request.setAttribute("roomTypeNames", bookingDAO.getCurrentRoomTypeNames(bookingId));
         } catch (SQLException ex) {

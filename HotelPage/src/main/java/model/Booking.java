@@ -11,6 +11,15 @@ public class Booking {
     private Customer customer;
     private BookingContact contact;
     private boolean onlineDepositPolicy;
+    private boolean offline;
+
+    public boolean isOffline() {
+        return offline;
+    }
+
+    public void setOffline(boolean offline) {
+        this.offline = offline;
+    }
 
     public boolean isOnlineDepositPolicy() {
         return onlineDepositPolicy;
