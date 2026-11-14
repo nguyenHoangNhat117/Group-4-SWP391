@@ -119,6 +119,17 @@ public final class LanguageSupport {
             }
         }
 
+        // Không bỏ mất khóa chỉ được bổ sung ở bản VI. Kiểm tra bundle trước
+        // khi bàn giao vẫn phải yêu cầu bản EN tương ứng.
+        for (Map.Entry<String, String> entry : translated.entrySet()) {
+            if (!EN.containsKey(entry.getKey())) {
+                LOG.warning("Missing English translation: " + entry.getKey());
+                if (!entry.getValue().isBlank()) {
+                    result.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+
         return Collections.unmodifiableMap(result);
     }
 
@@ -137,13 +148,13 @@ public final class LanguageSupport {
         HttpSession session = request.getSession(false);
 
         if (session != null) {
-            Object saved
-                    = session.getAttribute(SESSION_KEY);
-
-            if (saved instanceof String
-                    && supported((String) saved)) {
-
-                return (String) saved;
+            try {
+                Object saved = session.getAttribute(SESSION_KEY);
+                if (saved instanceof String && supported((String) saved)) {
+                    return (String) saved;
+                }
+            } catch (IllegalStateException ignored) {
+                // Đăng xuất ở tab khác: tiếp tục đọc cookie, không gây lỗi 500.
             }
         }
 

@@ -101,7 +101,7 @@
 
                     <li>
                         <a href="${pageContext.request.contextPath}/hotel-wallet">
-                            Hotel Wallet
+                            <ui:text key="nav.hotelWallet"/>
                         </a>
                     </li>
 
@@ -134,7 +134,7 @@
 
                     <li>
                         <a href="${pageContext.request.contextPath}/hotel-wallet">
-                            Hotel Wallet
+                            <ui:text key="nav.hotelWallet"/>
                         </a>
                     </li>
 
@@ -426,7 +426,7 @@
                                                 <path d="M20 12h-5v4h5"/>
                                                 </svg>
 
-                                                <span>Wallet Management</span>
+                                                <ui:text key="account.walletManagement"/>
                                             </a>
 
                                       </c:if>

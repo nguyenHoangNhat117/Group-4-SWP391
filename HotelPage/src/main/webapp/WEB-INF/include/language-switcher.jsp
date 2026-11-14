@@ -64,9 +64,9 @@
 </div>
 
 <script defer
-        src="${pageContext.request.contextPath}/assets/js/language.js?v=uc24-5">
+        src="${pageContext.request.contextPath}/assets/js/language.js?v=uc24-6">
 </script>
 
 <script defer
-        src="${pageContext.request.contextPath}/assets/js/language-ui.js?v=site-1">
+        src="${pageContext.request.contextPath}/assets/js/language-ui.js?v=site-2">
 </script>
