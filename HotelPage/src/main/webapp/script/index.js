@@ -41,6 +41,12 @@
         "(prefers-reduced-motion: reduce)"
     ).matches;
 
+    initRoomsCarousel(main, animationsDisabled || reducedMotion);
+
+    if (!animationsDisabled) {
+        initLobbyParallax(hero.querySelector("#hero-img"));
+    }
+
     if (animationsDisabled
             || reducedMotion
             || !("IntersectionObserver" in window)) {
@@ -89,3 +95,69 @@
         });
     });
 })();
+
+function initLobbyParallax(frame) {
+    if (!frame) {
+        return;
+    }
+
+    const motion = window.matchMedia("(prefers-reduced-motion: no-preference)");
+    frame.classList.add("lobby-parallax");
+    const travel = 14;
+    let updatePending = false;
+
+    function scheduleUpdate() {
+        if (updatePending || !motion.matches) {
+            return;
+        }
+
+        updatePending = true;
+        requestAnimationFrame(() => {
+            updatePending = false;
+            const { top, height } = frame.getBoundingClientRect();
+            const progress = (window.innerHeight - top) / (window.innerHeight + height);
+            const offset = (2 * Math.max(0, Math.min(1, progress)) - 1) * travel;
+            frame.style.setProperty("--lobby-offset", `${offset}px`);
+        });
+    }
+
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+    motion.addEventListener("change", scheduleUpdate);
+    scheduleUpdate();
+}
+
+function initRoomsCarousel(main, instantScroll) {
+    const track = main.querySelector(".rooms-carousel");
+    const navigation = main.querySelector(".rooms-navigation");
+    if (!track || !navigation) {
+        return;
+    }
+
+    const previous = navigation.querySelector("[data-room-prev]");
+    const next = navigation.querySelector("[data-room-next]");
+
+    function updateButtons() {
+        const maxScroll = track.scrollWidth - track.clientWidth;
+        previous.setAttribute("aria-disabled", track.scrollLeft <= 1);
+        next.setAttribute("aria-disabled", track.scrollLeft >= maxScroll - 1);
+    }
+
+    function move(button, direction) {
+        if (button.getAttribute("aria-disabled") === "true") {
+            return;
+        }
+
+        track.scrollBy({
+            left: direction * track.clientWidth,
+            behavior: instantScroll ? "instant" : "smooth"
+        });
+    }
+
+    previous.addEventListener("click", () => move(previous, -1));
+    next.addEventListener("click", () => move(next, 1));
+    track.addEventListener("scroll", updateButtons, { passive: true });
+    window.addEventListener("resize", updateButtons);
+    updateButtons();
+    navigation.hidden = false;
+}

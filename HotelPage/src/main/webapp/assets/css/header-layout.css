@@ -121,6 +121,24 @@ header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar > li > a {
     text-decoration: none;
 }
 
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar.luxe-guest-nav {
+    gap: clamp(16px, 2.4vw, 40px) !important;
+}
+
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-brand-full,
+header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-brand-short {
+    color: #5b3b20;
+}
+
+@supports (background-clip: text) {
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-brand-full,
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-brand-short {
+        background: linear-gradient(115deg, #352319 8%, #896139 56%, #55351f 92%);
+        background-clip: text;
+        color: transparent;
+    }
+}
+
 /* A discreet scrollbar appears only when needed. */
 
 header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar::-webkit-scrollbar {
@@ -227,5 +245,24 @@ header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-account-text stron
         min-width: 0;
         padding: 8px;
         font-size: 12px;
+    }
+
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 > nav:has(.luxe-guest-nav) {
+        grid-template-columns: minmax(0, 1fr) auto !important;
+    }
+
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 nav:has(.luxe-guest-nav) #nav-heading {
+        justify-self: start;
+    }
+
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar.luxe-guest-nav {
+        grid-column: 1 / -1 !important;
+        grid-row: 2 !important;
+        gap: clamp(12px, 4vw, 22px) !important;
+        padding-block: 0 !important;
+    }
+
+    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 nav:has(.luxe-guest-nav) .luxe-header-actions {
+        grid-column: 2 !important;
     }
 }

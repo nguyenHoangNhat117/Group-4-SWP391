@@ -273,11 +273,6 @@ section#call-to-action h2 {
     margin: 0 auto;
     text-align: center;
     font-size: 1.25rem;
-    animation: breathing 3s ease-out infinite;
-}
-
-#cta-button:hover {
-    transform: scale(1.1);
 }
 
 .card {
@@ -334,22 +329,6 @@ section#call-to-action h2 {
     transition: all 0.5s ease-out;
 }
 
-@keyframes breathing {
-    0% {
-        color: white;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.5;
-        color: white;
-        transform: scale(1.1);
-    }
-    100% {
-        color: white;
-        transform: scale(1);
-    }
-}
-
 body.disable-animation {
     scroll-behavior: auto;
     scroll-snap-type: none;
@@ -360,3 +339,250 @@ body.disable-animation *{
     animation-duration: 0s;
     animation-iteration-count: 0;
 }
+
+/* Bố cục tiêu đề và nút CTA của phần Rooms */
+.rooms-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.rooms-header #rooms-heading {
+    margin-bottom: 0;
+}
+
+.rooms-navigation:not([hidden]) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rooms-navigation button {
+    min-height: 44px;
+    padding: 8px 16px;
+    border: 1px solid #b29a7b;
+    border-radius: 999px;
+    background: transparent;
+    color: #2d2319;
+}
+
+.rooms-navigation button:hover:not([aria-disabled="true"]) {
+    background: #ede5d8;
+}
+
+.rooms-navigation button[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.rooms-navigation button:focus-visible,
+#room-container.rooms-carousel:focus-visible {
+    outline: 2px solid #795d3c;
+    outline-offset: 2px;
+}
+
+#rooms-content {
+    max-width: 480px;
+}
+
+#room-container.rooms-carousel {
+    --room-gap: 20px;
+    grid-template-columns: none;
+    grid-template-rows: auto;
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 2 * var(--room-gap)) / 3);
+    gap: var(--room-gap);
+    min-width: 0;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-block: 8px 12px;
+}
+
+#room-container.rooms-carousel > .room-card {
+    scroll-snap-align: start;
+}
+
+#room-container.rooms-carousel .room-img-wrap {
+    height: auto;
+    aspect-ratio: 4 / 3;
+}
+
+/* Định dạng thẻ phòng & khóa khung ảnh để khi zoom không bị tràn viền */
+.room-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 12px;
+    transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+.room-img-wrap {
+    width: 100%;
+    height: 260px;
+    overflow: hidden;
+}
+
+.room-img-wrap img.zoom-in-hover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Đồng bộ hiệu ứng Hover cho cả 5 thẻ phòng */
+.room-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.15);
+}
+
+.room-card:hover .room-img-wrap img.zoom-in-hover {
+    transform: scale(1.08);
+}
+
+.room-card:hover .arrow-up-right {
+    transform: translate(3px, -3px);
+    transition: transform 0.3s ease;
+}
+
+/* Tinh chỉnh chữ tên phòng và mô tả ngắn */
+.room-description {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    position: relative;
+}
+
+.room-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.room-short-desc {
+    font-size: 0.88rem;
+    opacity: 0.8;
+    line-height: 1.45;
+    margin-bottom: 0;
+    padding-right: 32px; /* Chừa khoảng trống cho icon mũi tên */
+}
+
+@media (max-width: 900px) {
+    #room-container.rooms-carousel {
+        grid-auto-columns: calc((100% - var(--room-gap)) / 2);
+    }
+}
+
+@media (max-width: 620px) {
+    #room-container.rooms-carousel {
+        grid-auto-columns: 100%;
+    }
+}
+
+/* Bố cục chính của khu vực */
+.our-rooms-section {
+    padding: 60px 0;
+    text-align: center;
+    overflow-x: hidden; /* Ngăn scrollbar ngang của toàn trang */
+    width: 100%;
+}
+
+.rooms-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 40px;
+    color: #111; /* Đổi màu theo theme của bạn nếu cần */
+}
+
+/* Kỹ thuật Full-bleed: Ép container tràn viền màn hình dù nằm trong box giới hạn */
+.rooms-slider-container {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    position: relative;
+}
+
+/* Thanh trượt ngang */
+.rooms-track {
+    display: flex;
+    gap: 2vw; /* Khoảng cách giữa các thẻ */
+    padding: 0 8vw; /* Tạo khoảng trống ở hai đầu để hiển thị 1 nửa thẻ bên ngoài */
+    overflow-x: auto;
+    scroll-snap-type: x mandatory; /* Bắt thẻ tự động khựng lại khi cuộn */
+    scroll-behavior: smooth;
+
+    /* Ẩn thanh cuộn mặc định cho mượt mắt */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.rooms-track::-webkit-scrollbar {
+    display: none;
+}
+
+/* Thiết kế thẻ phòng */
+.room-slide-card {
+    flex: 0 0 26vw; /* Tính toán kích thước để hiển thị 3 thẻ giữa và 2 thẻ rìa */
+    min-width: 280px; /* Chống méo trên màn hình nhỏ */
+    scroll-snap-align: center; /* Luôn căn giữa thẻ khi người dùng dừng cuộn */
+    display: block;
+    text-decoration: none; /* Bỏ gạch chân của thẻ <a> */
+    color: inherit;
+    transition: transform 0.3s ease;
+}
+
+/* Hộp chứa ảnh (tỷ lệ 3:2 tương đương khối chữ nhật đen) */
+.room-img-box {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    background-color: #000; /* Màu nền đen hiển thị lúc chưa tải ảnh xong giống thiết kế */
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.room-img-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Hiệu ứng Hover */
+.room-slide-card:hover .room-img-box img {
+    transform: scale(1.08);
+}
+
+.room-slide-card .room-name {
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: #222;
+    margin: 0;
+    text-align: center;
+    transition: color 0.3s ease;
+}
+
+.room-slide-card:hover .room-name {
+    color: #c5a880; /* Đổi màu chữ sang vàng sang trọng khi hover */
+}
+
+/* Responsive: Điều chỉnh số lượng thẻ hiển thị trên màn hình nhỏ */
+@media (max-width: 1024px) {
+    .room-slide-card {
+        flex: 0 0 40vw; /* Hiển thị khoảng 2 thẻ chính trên Tablet */
+    }
+}
+
+@media (max-width: 768px) {
+    .room-slide-card {
+        flex: 0 0 75vw; /* Hiển thị 1 thẻ chính giữa và 2 mép thẻ bên cạnh trên Mobile */
+    }
+    .rooms-track {
+        padding: 0 12.5vw;
+        gap: 16px;
+    }
+}
+

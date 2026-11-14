@@ -40,6 +40,28 @@ body.luxe-home main {
     animation: none !important;
 }
 
+body.luxe-home #hero-img {
+    position: relative;
+    overflow: hidden;
+}
+
+body.luxe-home #hero-img > .lobby-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    body.luxe-home:not(.disable-animation) #hero-img.lobby-parallax > .lobby-photo {
+        --lobby-travel: 14px;
+        top: calc(-1 * var(--lobby-travel));
+        height: calc(100% + 2 * var(--lobby-travel));
+        transform: translateY(var(--lobby-offset, 0px));
+    }
+}
+
 /* Content stays visible unless JavaScript enables reveal effects. */
 body.luxe-home .home-reveal {
     transition:

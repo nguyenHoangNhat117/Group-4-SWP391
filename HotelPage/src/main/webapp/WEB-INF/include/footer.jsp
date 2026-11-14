@@ -31,3 +31,4 @@
     <div class="luxe-footer-bottom"><ui:text key="screen.e054863fe5b390e5"/></div>
 </footer>
 <script src="${pageContext.request.contextPath}/assets/js/luxe-ui.js" defer></script>
+

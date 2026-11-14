@@ -147,15 +147,6 @@ a{transition:color .2s}
 .lx-pre{opacity:0;transform:translateY(26px);transition:opacity .75s var(--lx-ease),transform .75s var(--lx-ease)}
 .lx-pre.lx-in{opacity:1;transform:none}
 
-/* ---------- Footer ---------- */
-.luxe-shared-footer{background:var(--lx-grad-dark)!important;position:relative;overflow:hidden;margin-top:3rem}
-.luxe-shared-footer::before{content:'';position:absolute;width:520px;height:520px;right:-160px;top:-260px;border-radius:50%;background:radial-gradient(circle,rgba(201,176,138,.22),transparent 65%);pointer-events:none}
-.luxe-shared-footer .luxe-footer-logo{font-family:var(--lx-serif);background:var(--lx-grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:2rem}
-.luxe-shared-footer .luxe-footer-group h2{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--lx-gold-2)}
-.luxe-shared-footer .luxe-footer-group a{position:relative;transition:color .25s,padding-left .25s}
-.luxe-shared-footer .luxe-footer-group a:hover{color:#fff;text-decoration:none;padding-left:8px}
-.luxe-shared-footer .luxe-footer-bottom{border-top:1px solid rgba(255,255,255,.1)}
-
 /* ---------- Landing page ---------- */
 section#hero{position:relative;padding-top:48px}
 section#hero::before,section#hero::after{content:'';position:absolute;border-radius:50%;filter:blur(70px);z-index:-1;pointer-events:none}
@@ -163,7 +154,13 @@ section#hero::before{width:420px;height:420px;right:-6%;top:-40px;background:rgb
 section#hero::after{width:300px;height:300px;left:-8%;bottom:10%;background:rgba(178,154,123,.22);animation:lx-float 14s ease-in-out infinite reverse}
 @keyframes lx-float{0%,100%{transform:translate(0,0)}50%{transform:translate(26px,-30px)}}
 #hero-heading{font-family:var(--lx-serif);font-weight:600;letter-spacing:-.035em}
-#hero-heading span:nth-child(2){background:var(--lx-grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+#hero-heading > span:nth-child(2) {
+  background: linear-gradient(to right, #B48E4B 0%, #E6C786 45%, #E6C786 55%, #B48E4B 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
 #hero-heading span:nth-child(1){color:var(--lx-ink)}
 #hero-text p{font-size:1.05rem;line-height:1.7;color:var(--lx-muted)}
 #hero-img{border-radius:28px!important;box-shadow:var(--lx-shadow-lg)!important;border:6px solid rgba(255,255,255,.75)!important}
