@@ -72,10 +72,12 @@
                                 </strong>
                             </span>
 
+                            <c:if test="${sessionScope.loggedUser.role eq 'staff'}">
                             <a class="btn btn-primary"
                                href="${pageContext.request.contextPath}/counter-payment?bookingId=${booking.id}">
                                 <ui:text key="screen.feb1966292f16b45"/>
                             </a>
+                        </c:if>
                         </div>
                     </c:if>
 

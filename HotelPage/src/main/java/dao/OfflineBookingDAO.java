@@ -1,5 +1,7 @@
 package dao;
 
+import util.RoomOccupancySql;
+
 import db.DBContext;
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -115,14 +117,13 @@ public class OfflineBookingDAO extends DBContext {
                 + "rt.PricePerNight,rt.Capacity,rt.Beds "
                 + "FROM Room r "
                 + "JOIN RoomType rt ON rt.RoomTypeID=r.RoomTypeID "
-                + "WHERE r.Status='available' "
+                + "WHERE r.Status='available' AND r.NeedsCleaning=0 "
                 + "AND rt.IsActive=1 AND rt.Capacity>=? "
                 + "AND NOT EXISTS("
                 + "SELECT 1 FROM BookingDetail bd "
                 + "JOIN Booking b ON b.BookingID=bd.BookingID "
                 + "WHERE bd.RoomNumber=r.RoomNumber "
-                + "AND b.Status<>'cancelled' "
-                + "AND bd.CheckInDate<? AND bd.CheckOutDate>?"
+                + "AND " + RoomOccupancySql.overlaps("b", "bd")
                 + ") ORDER BY r.RoomNumber";
 
         try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
@@ -162,9 +163,7 @@ public class OfflineBookingDAO extends DBContext {
         }
 
         if (query.length() > 100) {
-            throw new IllegalArgumentException(
-                    "Từ khóa tối đa 100 ký tự."
-            );
+            throw new IllegalArgumentException("Từ khóa tối đa 100 ký tự.");
         }
 
         String key = "%"
@@ -174,28 +173,38 @@ public class OfflineBookingDAO extends DBContext {
                         .replace("[", "~[")
                 + "%";
 
-        String sql
-                = "SELECT TOP(30) c.*,u.Username,u.AccountStatus "
+        String sql = "SELECT TOP(30) c.*, "
+                + "u.UserID AS LinkedUserID, u.Username, "
+                + "u.Role AS AccountRole, u.AccountStatus "
                 + "FROM Customer c "
                 + "LEFT JOIN [User] u ON u.UserID=c.UserID "
-                + "WHERE ("
-                + "c.Phone LIKE ? ESCAPE '~' OR "
-                + "c.Email LIKE ? ESCAPE '~' OR "
-                + "u.Username LIKE ? ESCAPE '~'"
-                + ") ORDER BY c.CustomerID DESC";
+                + "WHERE (c.UserID IS NULL OR "
+                + "(u.UserID IS NOT NULL "
+                + "AND LOWER(LTRIM(RTRIM(u.AccountStatus)))='active')) "
+                + "AND (c.Phone LIKE ? ESCAPE '~' "
+                + "OR c.Email LIKE ? ESCAPE '~' "
+                + "OR u.Username LIKE ? ESCAPE '~') "
+                + "ORDER BY c.CustomerID DESC";
 
-        try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = getConnection();
+                PreparedStatement ps = c.prepareStatement(sql)) {
+
             ps.setNString(1, key);
             ps.setNString(2, key);
             ps.setNString(3, key);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    User u = new User();
-                    u.setId(rs.getInt("UserID"));
-                    u.setUsername(rs.getString("Username"));
-                    u.setRole("customer");
-                    u.setAccountStatus("active");
+                    User user = null;
+                    Object linkedUserId = rs.getObject("LinkedUserID");
+
+                    if (linkedUserId != null) {
+                        user = new User();
+                        user.setId(((Number) linkedUserId).intValue());
+                        user.setUsername(rs.getString("Username"));
+                        user.setRole(rs.getString("AccountRole"));
+                        user.setAccountStatus(rs.getString("AccountStatus"));
+                    }
 
                     customers.add(new Customer(
                             rs.getInt("CustomerID"),
@@ -207,7 +216,7 @@ public class OfflineBookingDAO extends DBContext {
                             rs.getString("City"),
                             rs.getString("Street"),
                             rs.getString("Avatar"),
-                            u
+                            user
                     ));
                 }
             }
@@ -382,14 +391,21 @@ public class OfflineBookingDAO extends DBContext {
 
     private String customerName(
             Connection c,
-            OfflineBookingDraft d
-    ) throws SQLException {
+            OfflineBookingDraft d) throws SQLException {
 
         if (d.customerId == null) {
             return d.lastName + " " + d.firstName;
         }
 
-        String sql = "SELECT FirstName,LastName,Email,Phone FROM Customer WITH(HOLDLOCK) WHERE CustomerID=?";
+        /*
+         * HOLDLOCK giữ dữ liệu khách/tài khoản ổn định đến khi
+         * transaction preview hoặc create kết thúc.
+         */
+        String sql = "SELECT c.FirstName, c.LastName, c.Email, c.Phone, "
+                + "c.UserID, u.UserID AS LinkedUserID, u.AccountStatus "
+                + "FROM Customer c WITH(HOLDLOCK) "
+                + "LEFT JOIN [User] u WITH(HOLDLOCK) ON u.UserID=c.UserID "
+                + "WHERE c.CustomerID=?";
 
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, d.customerId);
@@ -397,16 +413,36 @@ public class OfflineBookingDAO extends DBContext {
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     throw new IllegalArgumentException(
-                            "Khách không tồn tại, bị khóa "
-                            + "hoặc không hoạt động."
+                            "Khách hàng không còn tồn tại. "
+                            + "Vui lòng tìm và chọn lại khách."
                     );
                 }
 
-                String first = AuthSupport.text(rs.getString(1));
-                String last = AuthSupport.text(rs.getString(2));
+                Object customerUserId = rs.getObject("UserID");
+
+                // UserID NULL là khách tại quầy chưa có tài khoản website.
+                if (customerUserId != null) {
+                    Object linkedUserId = rs.getObject("LinkedUserID");
+                    String status = AuthSupport.text(
+                            rs.getString("AccountStatus")
+                    );
+
+                    if (linkedUserId == null
+                            || !"active".equalsIgnoreCase(status)) {
+                        throw new IllegalArgumentException(
+                                "Tài khoản của khách đang bị khóa, "
+                                + "ngừng hoạt động hoặc không còn hợp lệ. "
+                                + "Vui lòng chọn khách khác hoặc liên hệ Admin."
+                        );
+                    }
+                }
+
+                String first = AuthSupport.text(rs.getString("FirstName"));
+                String last = AuthSupport.text(rs.getString("LastName"));
 
                 if ((first + last).isBlank()
-                        || !model.OfflineBookingDraft.validPhone(rs.getString(4))) {
+                        || !OfflineBookingDraft.validPhone(
+                                rs.getString("Phone"))) {
                     throw new IllegalArgumentException(
                             "Hồ sơ khách thiếu họ tên "
                             + "hoặc điện thoại hợp lệ. "
