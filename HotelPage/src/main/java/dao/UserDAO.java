@@ -20,23 +20,22 @@ public class UserDAO extends DBContext {
     public static final String LOGIN_ERROR = "error";
     public static final String LOGIN_RATE_LIMITED = "rate_limited";
 
-    private static final Logger LOG =
-            Logger.getLogger(UserDAO.class.getName());
+    private static final Logger LOG
+            = Logger.getLogger(UserDAO.class.getName());
 
-    private static final String COLUMNS =
-            "UserID, Username, [Password], [Role], "
+    private static final String COLUMNS
+            = "UserID, Username, [Password], [Role], "
             + "DisplayName, AccountStatus, CreatedAt";
 
-    private static final String DUMMY =
-            PasswordUtil.hash("dummy-password-not-an-account");
+    private static final String DUMMY
+            = PasswordUtil.hash("dummy-password-not-an-account");
 
     public User login(String identifier, String password) {
         return authenticate(identifier, password).getUser();
     }
 
     public AuthenticationResult authenticate(
-            String identifier,
-            String password) {
+            String identifier, String password) {
 
         identifier = AuthSupport.text(identifier);
 
@@ -58,22 +57,24 @@ public class UserDAO extends DBContext {
             return new AuthenticationResult(LOGIN_ERROR, null);
         }
 
-        // Username và email của cùng tài khoản dùng chung bộ đếm.
         String rateKey = user == null
                 ? "unknown:" + identifier.toLowerCase(Locale.ROOT)
                 : "user:" + user.getId();
 
-        synchronized (AuthRateLimiter.class) {
+        /*
+     * Cùng tài khoản vẫn xử lý tuần tự.
+     * Không giữ khóa AuthRateLimiter.class trong lúc chạy PBKDF2.
+     * Một số tài khoản có thể chung nhóm lock, nhưng không khóa toàn hệ thống.
+         */
+        synchronized (util.AuthUcPolicy.loginLock(rateKey)) {
             if (AuthRateLimiter.isLoginBlocked(rateKey)) {
-                return new AuthenticationResult(
-                        LOGIN_RATE_LIMITED, null);
+                return new AuthenticationResult(LOGIN_RATE_LIMITED, null);
             }
 
-            boolean passwordMatches = PasswordUtil.verify(
-                    password,
-                    user == null ? DUMMY : user.getPassword());
+            boolean matches = PasswordUtil.verify(
+                    password, user == null ? DUMMY : user.getPassword());
 
-            if (!passwordMatches || user == null) {
+            if (!matches || user == null) {
                 return failedLogin(rateKey, LOGIN_INVALID);
             }
 
@@ -85,11 +86,8 @@ public class UserDAO extends DBContext {
                 return failedLogin(rateKey, LOGIN_INACTIVE);
             }
 
-            if (!"active".equalsIgnoreCase(user.getAccountStatus())) {
-                return failedLogin(rateKey, LOGIN_INVALID);
-            }
-
-            if (!supportedRole(user.getRole())) {
+            if (!"active".equalsIgnoreCase(user.getAccountStatus())
+                    || !supportedRole(user.getRole())) {
                 return failedLogin(rateKey, LOGIN_INVALID);
             }
 
@@ -127,8 +125,7 @@ public class UserDAO extends DBContext {
                 + "LEFT JOIN AccountContact c ON c.UserID = u.UserID "
                 + "WHERE u.Username = ? OR c.Email = ?";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, identifier);
             ps.setString(2, identifier);
@@ -229,16 +226,16 @@ public class UserDAO extends DBContext {
                 // Cả hai bảng nhận cùng thông tin và cùng UserID.
                 String[] contactInserts = {
                     "INSERT INTO AccountContact "
-                        + "(UserID, FirstName, LastName, Email, Phone) "
-                        + "VALUES (?, ?, ?, ?, ?)",
+                    + "(UserID, FirstName, LastName, Email, Phone) "
+                    + "VALUES (?, ?, ?, ?, ?)",
                     "INSERT INTO Customer "
-                        + "(UserID, FirstName, LastName, Email, Phone) "
-                        + "VALUES (?, ?, ?, ?, ?)"
+                    + "(UserID, FirstName, LastName, Email, Phone) "
+                    + "VALUES (?, ?, ?, ?, ?)"
                 };
 
                 for (String sql : contactInserts) {
-                    try (PreparedStatement ps =
-                            conn.prepareStatement(sql)) {
+                    try (PreparedStatement ps
+                            = conn.prepareStatement(sql)) {
 
                         ps.setInt(1, userId);
                         ps.setString(2, firstName);
@@ -310,11 +307,11 @@ public class UserDAO extends DBContext {
          */
         String[] checks = {
             "SELECT 1 FROM [User]" + hint
-                + " WHERE Username IN (?, ?)",
+            + " WHERE Username IN (?, ?)",
             "SELECT 1 FROM AccountContact" + hint
-                + " WHERE Email IN (?, ?)",
+            + " WHERE Email IN (?, ?)",
             "SELECT 1 FROM Customer" + hint
-                + " WHERE Email IN (?, ?)"
+            + " WHERE Email IN (?, ?)"
         };
 
         for (String sql : checks) {
@@ -350,8 +347,7 @@ public class UserDAO extends DBContext {
             return false;
         }
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, value.trim());
 
@@ -369,8 +365,7 @@ public class UserDAO extends DBContext {
         String sql = "SELECT " + COLUMNS
                 + " FROM [User] WHERE UserID = ?";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, id);
 
@@ -392,8 +387,7 @@ public class UserDAO extends DBContext {
                 + "AND u.[Role] = 'customer' "
                 + "AND u.AccountStatus = 'active'";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, email);
 
@@ -417,8 +411,7 @@ public class UserDAO extends DBContext {
                 + "AND AccountStatus = 'active' "
                 + "AND [Role] = 'customer'";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, newHash);
             ps.setInt(2, userId);
@@ -442,8 +435,7 @@ public class UserDAO extends DBContext {
                 + "WHERE UserID = "
                 + "(SELECT UserID FROM Customer WHERE Email = ?)";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, newHash);
             ps.setString(2, email.trim());
@@ -486,8 +478,7 @@ public class UserDAO extends DBContext {
     }
 
     private boolean update(String sql, String value, int id) {
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, value);
             ps.setInt(2, id);
