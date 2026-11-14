@@ -3,22 +3,23 @@ package controller;
 import dao.UserDAO;
 import util.AuthRateLimiter;
 import util.AuthSupport;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 
-// Updated by Nguyen Hoang Nhat
 @WebServlet(name = "RegisterServlet", urlPatterns = "/register")
 public class RegisterServlet extends HttpServlet {
 
     @Override
     protected void doGet(
             HttpServletRequest req,
-            HttpServletResponse res
-    ) throws ServletException, IOException {
+            HttpServletResponse res)
+            throws ServletException, IOException {
 
         AuthSupport.noStore(res);
         AuthSupport.token(req.getSession());
@@ -31,10 +32,9 @@ public class RegisterServlet extends HttpServlet {
     @Override
     protected void doPost(
             HttpServletRequest req,
-            HttpServletResponse res
-    ) throws ServletException, IOException {
+            HttpServletResponse res)
+            throws ServletException, IOException {
 
-        // Read Vietnamese text correctly before accessing parameters.
         req.setCharacterEncoding("UTF-8");
         AuthSupport.noStore(res);
 
@@ -42,17 +42,22 @@ public class RegisterServlet extends HttpServlet {
             return;
         }
 
-        String username = AuthSupport.text(req.getParameter("username"));
-        String email = AuthSupport.text(req.getParameter("email"));
-        String firstName = AuthSupport.text(req.getParameter("firstName"));
-        String lastName = AuthSupport.text(req.getParameter("lastName"));
-        String phone = AuthSupport.text(req.getParameter("phone"));
+        String username =
+                AuthSupport.text(req.getParameter("username"));
+        String email =
+                AuthSupport.text(req.getParameter("email"));
+        String firstName =
+                AuthSupport.text(req.getParameter("firstName"));
+        String lastName =
+                AuthSupport.text(req.getParameter("lastName"));
+        String phone =
+                AuthSupport.text(req.getParameter("phone"));
 
-        // Never trim or preserve submitted passwords.
+        // Không trim và không đưa mật khẩu trở lại form.
         String password = req.getParameter("password");
         String confirmPassword = req.getParameter("confirmPassword");
 
-        // Preserve non-sensitive values when validation fails.
+        // Giữ thông tin thường khi form có lỗi.
         req.setAttribute("enteredUsername", username);
         req.setAttribute("enteredEmail", email);
         req.setAttribute("enteredFirstName", firstName);
@@ -74,7 +79,6 @@ public class RegisterServlet extends HttpServlet {
             return;
         }
 
-        // DisplayName is limited to 100 characters in the database.
         String displayName = lastName + " " + firstName;
 
         if (displayName.length() > 100) {
@@ -109,12 +113,11 @@ public class RegisterServlet extends HttpServlet {
             return;
         }
 
-        // Keep the existing registration request limit.
         if (!AuthRateLimiter.allow(
                 "register:" + req.getRemoteAddr(),
                 10,
-                900000
-        )) {
+                900000)) {
+
             res.setStatus(429);
             fail(req, res, "Too many requests. Try again later.");
             return;
@@ -123,12 +126,14 @@ public class RegisterServlet extends HttpServlet {
         UserDAO dao = new UserDAO();
 
         try {
-            if (dao.isUsernameExists(username)) {
+            // Kiểm tra username với cả username/email đã tồn tại.
+            if (dao.isRegistrationIdentifierTaken(username)) {
                 fail(req, res, "Username is already registered.");
                 return;
             }
 
-            if (dao.checkEmailExists(email)) {
+            // Kiểm tra email với cả username/email đã tồn tại.
+            if (dao.isRegistrationIdentifierTaken(email)) {
                 fail(req, res, "Email is already registered.");
                 return;
             }
@@ -139,8 +144,7 @@ public class RegisterServlet extends HttpServlet {
                     email,
                     firstName,
                     lastName,
-                    phone
-            );
+                    phone);
 
             if (!registered) {
                 fail(req, res,
@@ -150,8 +154,8 @@ public class RegisterServlet extends HttpServlet {
                 return;
             }
 
-        } catch (IllegalStateException e) {
-            log("Registration unavailable", e);
+        } catch (IllegalStateException ex) {
+            log("Registration unavailable", ex);
 
             fail(req, res,
                     "Registration temporarily unavailable. "
@@ -159,29 +163,27 @@ public class RegisterServlet extends HttpServlet {
             return;
         }
 
-        // Redirect after success to avoid submitting the form again.
         req.getSession().setAttribute(
                 "registrationSuccess",
-                "Registration successful. Please sign in."
-        );
+                "Registration successful. Please sign in.");
 
-        res.sendRedirect(req.getContextPath() + "/register?success=1");
+        // Chuyển trang sau thành công, tránh F5 gửi lại POST.
+        res.sendRedirect(
+                req.getContextPath() + "/register?success=1");
     }
 
     private boolean validName(String name) {
-        // Allow Unicode names without imposing an ASCII-only pattern.
         return name != null
                 && !name.isBlank()
                 && name.length() <= 50
-                && name.chars()
-                        .noneMatch(Character::isISOControl);
+                && name.chars().noneMatch(Character::isISOControl);
     }
 
     private void fail(
             HttpServletRequest req,
             HttpServletResponse res,
-            String error
-    ) throws ServletException, IOException {
+            String error)
+            throws ServletException, IOException {
 
         req.setAttribute("error", error);
 

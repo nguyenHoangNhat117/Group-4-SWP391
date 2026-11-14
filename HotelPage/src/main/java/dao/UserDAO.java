@@ -11,7 +11,6 @@ import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-// Updated by Nguyen Hoang Nhat
 public class UserDAO extends DBContext {
 
     public static final String LOGIN_SUCCESS = "success";
@@ -21,16 +20,15 @@ public class UserDAO extends DBContext {
     public static final String LOGIN_ERROR = "error";
     public static final String LOGIN_RATE_LIMITED = "rate_limited";
 
-    private static final Logger LOG
-            = Logger.getLogger(UserDAO.class.getName());
+    private static final Logger LOG =
+            Logger.getLogger(UserDAO.class.getName());
 
-    private static final String COLUMNS
-            = "UserID, Username, [Password], [Role], "
+    private static final String COLUMNS =
+            "UserID, Username, [Password], [Role], "
             + "DisplayName, AccountStatus, CreatedAt";
 
-    // Use the same password verification path for unknown accounts.
-    private static final String DUMMY
-            = PasswordUtil.hash("dummy-password-not-an-account");
+    private static final String DUMMY =
+            PasswordUtil.hash("dummy-password-not-an-account");
 
     public User login(String identifier, String password) {
         return authenticate(identifier, password).getUser();
@@ -38,8 +36,8 @@ public class UserDAO extends DBContext {
 
     public AuthenticationResult authenticate(
             String identifier,
-            String password
-    ) {
+            String password) {
+
         identifier = AuthSupport.text(identifier);
 
         if (identifier.isEmpty()
@@ -55,35 +53,25 @@ public class UserDAO extends DBContext {
 
         try {
             user = findUserForLogin(identifier);
-        } catch (SQLException e) {
-            LOG.log(Level.SEVERE, "Authentication database error", e);
+        } catch (SQLException ex) {
+            LOG.log(Level.SEVERE, "Authentication database error", ex);
             return new AuthenticationResult(LOGIN_ERROR, null);
         }
 
-        /*
-         * Username and email belonging to the same account use one key.
-         * This prevents switching identifiers to bypass the failure limit.
-         */
+        // Username và email của cùng tài khoản dùng chung bộ đếm.
         String rateKey = user == null
                 ? "unknown:" + identifier.toLowerCase(Locale.ROOT)
                 : "user:" + user.getId();
 
-        /*
-         * Keep the block check, verification, and counter update atomic
-         * for concurrent login requests in this JVM.
-         * The database query has already finished before taking this lock.
-         */
         synchronized (AuthRateLimiter.class) {
             if (AuthRateLimiter.isLoginBlocked(rateKey)) {
                 return new AuthenticationResult(
-                        LOGIN_RATE_LIMITED, null
-                );
+                        LOGIN_RATE_LIMITED, null);
             }
 
             boolean passwordMatches = PasswordUtil.verify(
                     password,
-                    user == null ? DUMMY : user.getPassword()
-            );
+                    user == null ? DUMMY : user.getPassword());
 
             if (!passwordMatches || user == null) {
                 return failedLogin(rateKey, LOGIN_INVALID);
@@ -101,25 +89,24 @@ public class UserDAO extends DBContext {
                 return failedLogin(rateKey, LOGIN_INVALID);
             }
 
-            // Restrict login to the four roles in the current scope.
             if (!supportedRole(user.getRole())) {
                 return failedLogin(rateKey, LOGIN_INVALID);
             }
 
             AuthRateLimiter.clearLoginFailures(rateKey);
-
             return new AuthenticationResult(LOGIN_SUCCESS, user);
         }
     }
 
     private AuthenticationResult failedLogin(
             String rateKey,
-            String status
-    ) {
+            String status) {
+
         AuthRateLimiter.recordLoginFailure(rateKey);
 
         if (AuthRateLimiter.isLoginBlocked(rateKey)) {
-            return new AuthenticationResult(LOGIN_RATE_LIMITED, null);
+            return new AuthenticationResult(
+                    LOGIN_RATE_LIMITED, null);
         }
 
         return new AuthenticationResult(status, null);
@@ -132,18 +119,16 @@ public class UserDAO extends DBContext {
                 || "manager".equalsIgnoreCase(role);
     }
 
-    private User findUserForLogin(String identifier) throws SQLException {
-        /*
-         * LEFT JOIN keeps employee accounts visible even when they do not
-         * have a Customer profile.
-         */
-        String sql
-                = "SELECT u.* "
+    private User findUserForLogin(String identifier)
+            throws SQLException {
+
+        String sql = "SELECT u.* "
                 + "FROM [User] u "
                 + "LEFT JOIN AccountContact c ON c.UserID = u.UserID "
                 + "WHERE u.Username = ? OR c.Email = ?";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, identifier);
             ps.setString(2, identifier);
@@ -155,14 +140,10 @@ public class UserDAO extends DBContext {
 
                 User user = mapUser(rs);
 
-                /*
-                 * Do not choose an arbitrary account when one user's
-                 * username matches another customer's email.
-                 */
+                // Không chọn tùy ý khi dữ liệu cũ trùng định danh.
                 if (rs.next()) {
                     throw new SQLException(
-                            "Ambiguous username/email login identifier."
-                    );
+                            "Ambiguous username/email login identifier.");
                 }
 
                 return user;
@@ -176,15 +157,15 @@ public class UserDAO extends DBContext {
             String email,
             String firstName,
             String lastName,
-            String phone
-    ) {
+            String phone) {
+
         username = AuthSupport.text(username);
         email = AuthSupport.text(email);
         firstName = AuthSupport.text(firstName);
         lastName = AuthSupport.text(lastName);
         phone = AuthSupport.text(phone);
 
-        // Validate again before writing to the database.
+        // Kiểm tra lại trước khi ghi database.
         if (!AuthSupport.validUsername(username)
                 || !AuthSupport.validEmail(email)
                 || !AuthSupport.validPhone(phone)
@@ -204,30 +185,29 @@ public class UserDAO extends DBContext {
             return false;
         }
 
-        // PBKDF2 for new passwords; PasswordUtil.verify accepts legacy MD5.
         String hash = PasswordUtil.hash(password);
-
-        String insertUser
-                = "INSERT INTO [User] "
-                + "(Username, [Password], [Role], "
-                + "DisplayName, AccountStatus) "
-                + "VALUES (?, ?, 'customer', ?, 'active')";
-
-        String insertCustomer
-                = "INSERT INTO Customer "
-                + "(UserID, FirstName, LastName, Email, Phone) "
-                + "VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
 
             try {
+                // Kiểm tra lại trong transaction và giữ khóa đến khi kết thúc.
+                if (registrationIdentifiersTaken(
+                        conn, username, email, true)) {
+                    conn.rollback();
+                    return false;
+                }
+
                 int userId;
 
+                String userSql = "INSERT INTO [User] "
+                        + "(Username, [Password], [Role], "
+                        + "DisplayName, AccountStatus) "
+                        + "VALUES (?, ?, 'customer', ?, 'active')";
+
                 try (PreparedStatement ps = conn.prepareStatement(
-                        insertUser,
-                        Statement.RETURN_GENERATED_KEYS
-                )) {
+                        userSql, Statement.RETURN_GENERATED_KEYS)) {
+
                     ps.setString(1, username);
                     ps.setString(2, hash);
                     ps.setString(3, displayName);
@@ -239,60 +219,130 @@ public class UserDAO extends DBContext {
                     try (ResultSet keys = ps.getGeneratedKeys()) {
                         if (!keys.next()) {
                             throw new SQLException(
-                                    "Missing generated UserID"
-                            );
+                                    "Missing generated UserID");
                         }
 
                         userId = keys.getInt(1);
                     }
                 }
 
-                // Both inserts must use the same transaction.
-                try (PreparedStatement ps = conn.prepareStatement(
-                        insertCustomer
-                )) {
-                    ps.setInt(1, userId);
-                    ps.setString(2, firstName);
-                    ps.setString(3, lastName);
-                    ps.setString(4, email);
-                    ps.setString(5, phone);
+                // Cả hai bảng nhận cùng thông tin và cùng UserID.
+                String[] contactInserts = {
+                    "INSERT INTO AccountContact "
+                        + "(UserID, FirstName, LastName, Email, Phone) "
+                        + "VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO Customer "
+                        + "(UserID, FirstName, LastName, Email, Phone) "
+                        + "VALUES (?, ?, ?, ?, ?)"
+                };
 
-                    if (ps.executeUpdate() != 1) {
-                        throw new SQLException("Customer not inserted");
+                for (String sql : contactInserts) {
+                    try (PreparedStatement ps =
+                            conn.prepareStatement(sql)) {
+
+                        ps.setInt(1, userId);
+                        ps.setString(2, firstName);
+                        ps.setString(3, lastName);
+                        ps.setString(4, email);
+                        ps.setString(5, phone);
+
+                        if (ps.executeUpdate() != 1) {
+                            throw new SQLException(
+                                    "Registration contact not inserted");
+                        }
                     }
                 }
 
                 conn.commit();
                 return true;
 
-            } catch (SQLException | RuntimeException e) {
+            } catch (SQLException | RuntimeException ex) {
                 try {
                     conn.rollback();
                 } catch (SQLException rollbackError) {
-                    e.addSuppressed(rollbackError);
+                    ex.addSuppressed(rollbackError);
                 }
 
-                throw e;
+                throw ex;
             }
 
-        } catch (SQLException | RuntimeException e) {
-            LOG.log(Level.SEVERE, "Registration database error", e);
+        } catch (SQLException | RuntimeException ex) {
+            LOG.log(Level.SEVERE, "Registration database error", ex);
             return false;
         }
+    }
+
+    /*
+     * Chỉ dùng trong UC01.
+     * Không thay đổi các hàm kiểm tra hiện có của module khác.
+     */
+    public boolean isRegistrationIdentifierTaken(String identifier) {
+        String value = AuthSupport.text(identifier);
+
+        if (value.isEmpty()) {
+            return false;
+        }
+
+        try (Connection conn = getConnection()) {
+            return registrationIdentifiersTaken(
+                    conn, value, value, false);
+        } catch (SQLException ex) {
+            throw new IllegalStateException(
+                    "Database unavailable", ex);
+        }
+    }
+
+    private boolean registrationIdentifiersTaken(
+            Connection conn,
+            String username,
+            String email,
+            boolean lock) throws SQLException {
+
+        String hint = lock ? " WITH (UPDLOCK, HOLDLOCK)" : "";
+
+        /*
+         * Kiểm tra chéo cả hai giá trị:
+         * - Username mới với username/email đã tồn tại.
+         * - Email mới với username/email đã tồn tại.
+         *
+         * Customer.Email được kiểm tra thêm để nhận diện dữ liệu cũ
+         * chưa có AccountContact.
+         */
+        String[] checks = {
+            "SELECT 1 FROM [User]" + hint
+                + " WHERE Username IN (?, ?)",
+            "SELECT 1 FROM AccountContact" + hint
+                + " WHERE Email IN (?, ?)",
+            "SELECT 1 FROM Customer" + hint
+                + " WHERE Email IN (?, ?)"
+        };
+
+        for (String sql : checks) {
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, username);
+                ps.setString(2, email);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     public boolean isUsernameExists(String username) {
         return exists(
                 "SELECT 1 FROM [User] WHERE Username = ?",
-                username
-        );
+                username);
     }
 
     public boolean checkEmailExists(String email) {
         return exists(
                 "SELECT 1 FROM AccountContact WHERE Email = ?",
-                email
-        );
+                email);
     }
 
     private boolean exists(String sql, String value) {
@@ -300,7 +350,8 @@ public class UserDAO extends DBContext {
             return false;
         }
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, value.trim());
 
@@ -308,16 +359,18 @@ public class UserDAO extends DBContext {
                 return rs.next();
             }
 
-        } catch (SQLException e) {
-            throw new IllegalStateException("Database unavailable", e);
+        } catch (SQLException ex) {
+            throw new IllegalStateException(
+                    "Database unavailable", ex);
         }
     }
 
     public User getUserById(int id) {
-        String sql
-                = "SELECT " + COLUMNS + " FROM [User] WHERE UserID = ?";
+        String sql = "SELECT " + COLUMNS
+                + " FROM [User] WHERE UserID = ?";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, id);
 
@@ -325,25 +378,22 @@ public class UserDAO extends DBContext {
                 return rs.next() ? mapUser(rs) : null;
             }
 
-        } catch (SQLException e) {
-            throw new IllegalStateException("Database unavailable", e);
+        } catch (SQLException ex) {
+            throw new IllegalStateException(
+                    "Database unavailable", ex);
         }
     }
 
-    /*
-     * Preserve the existing recovery scope:
-     * active Customer accounts with a registered email.
-     */
     public User getUserByEmail(String email) {
-        String sql
-                = "SELECT u.* "
+        String sql = "SELECT u.* "
                 + "FROM [User] u "
                 + "JOIN Customer c ON c.UserID = u.UserID "
                 + "WHERE c.Email = ? "
                 + "AND u.[Role] = 'customer' "
                 + "AND u.AccountStatus = 'active'";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, email);
 
@@ -351,27 +401,24 @@ public class UserDAO extends DBContext {
                 return rs.next() ? mapUser(rs) : null;
             }
 
-        } catch (SQLException e) {
-            throw new IllegalStateException("Database unavailable", e);
+        } catch (SQLException ex) {
+            throw new IllegalStateException(
+                    "Database unavailable", ex);
         }
     }
 
     public int resetPassword(
             int userId,
             String expectedHash,
-            String newHash
-    ) {
-        /*
-         * Check the previous hash to avoid overwriting a password that
-         * another request has already changed.
-         */
-        String sql
-                = "UPDATE [User] SET [Password] = ? "
+            String newHash) {
+
+        String sql = "UPDATE [User] SET [Password] = ? "
                 + "WHERE UserID = ? AND [Password] = ? "
                 + "AND AccountStatus = 'active' "
                 + "AND [Role] = 'customer'";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, newHash);
             ps.setInt(2, userId);
@@ -379,32 +426,32 @@ public class UserDAO extends DBContext {
 
             return ps.executeUpdate();
 
-        } catch (SQLException e) {
-            LOG.log(Level.SEVERE, "Password reset database error", e);
+        } catch (SQLException ex) {
+            LOG.log(Level.SEVERE, "Password reset database error", ex);
             return 0;
         }
     }
 
-    // Retained for compatibility with existing callers.
+    // Giữ tương thích với các nơi gọi cũ.
     public int updatePasswordByEmail(String email, String newHash) {
         if (email == null || newHash == null) {
             return 0;
         }
 
-        String sql
-                = "UPDATE [User] SET [Password] = ? "
+        String sql = "UPDATE [User] SET [Password] = ? "
                 + "WHERE UserID = "
                 + "(SELECT UserID FROM Customer WHERE Email = ?)";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, newHash);
             ps.setString(2, email.trim());
 
             return ps.executeUpdate();
 
-        } catch (SQLException e) {
-            LOG.log(Level.SEVERE, "Password update database error", e);
+        } catch (SQLException ex) {
+            LOG.log(Level.SEVERE, "Password update database error", ex);
             return 0;
         }
     }
@@ -421,13 +468,11 @@ public class UserDAO extends DBContext {
             return false;
         }
 
-        // Preserve the current Customer Management scope.
         return update(
                 "UPDATE [User] SET AccountStatus = ? "
                 + "WHERE UserID = ? AND [Role] = 'customer'",
                 status,
-                id
-        );
+                id);
     }
 
     public boolean updateDisplayName(int id, String name) {
@@ -437,20 +482,20 @@ public class UserDAO extends DBContext {
                         "UPDATE [User] SET DisplayName = ? "
                         + "WHERE UserID = ?",
                         name.trim(),
-                        id
-                );
+                        id);
     }
 
     private boolean update(String sql, String value, int id) {
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, value);
             ps.setInt(2, id);
 
             return ps.executeUpdate() == 1;
 
-        } catch (SQLException e) {
-            LOG.log(Level.SEVERE, "User update database error", e);
+        } catch (SQLException ex) {
+            LOG.log(Level.SEVERE, "User update database error", ex);
             return false;
         }
     }
