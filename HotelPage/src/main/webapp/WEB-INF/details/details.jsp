@@ -134,22 +134,22 @@
 
                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                     <div>
-                        <h1 class="fw-bold mb-2"><c:if test="${not empty room}"><ui:text key="screen.911ea89c43d9dbb8"/> ${room.roomNumber} &mdash; </c:if><c:out value="${roomType.name}"/></h1>
-                        <div class="d-flex flex-wrap align-items-center text-muted gap-3">
+                        <h1 class="fw-bold mb-2"><c:if test="${not empty roomType}"><ui:text key="screen.911ea89c43d9dbb8"/> ${room.roomNumber} &mdash; </c:if><c:out value="${roomType.name}"/></h1>
+                            <div class="d-flex flex-wrap align-items-center text-muted gap-3">
                             <c:if test="${not empty room}">
-                            <span>
-                                <c:choose>
-                                    <c:when test="${empty reviews}">
-                                        <i class="bi bi-star text-muted me-1"></i><ui:text key="screen.539fd8609f5b572c"/>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <i class="bi bi-star-fill text-warning me-1"></i>
-                                        <strong class="text-dark">${averageStar}</strong> / 5
-                                        <span class="ms-1">(${reviews.size()} <ui:text key="screen.8718c7027494240d"/></span>
-                                    </c:otherwise>
-                                </c:choose>
-                            </span>
-                            <span>&middot;</span>
+                                <span>
+                                    <c:choose>
+                                        <c:when test="${empty reviews}">
+                                            <i class="bi bi-star text-muted me-1"></i><ui:text key="screen.539fd8609f5b572c"/>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <i class="bi bi-star-fill text-warning me-1"></i>
+                                            <strong class="text-dark">${averageStar}</strong> / 5
+                                            <span class="ms-1">(${reviews.size()} <ui:text key="screen.8718c7027494240d"/></span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </span>
+                                <span>&middot;</span>
                             </c:if>
                             <span><i class="bi bi-moon-stars me-1"></i>${roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></span>
                             <span>&middot;</span>
@@ -301,9 +301,9 @@
                                 </div>
                                 <div id="detailStatus" class="mb-3 text-secondary" aria-live="polite">
                                     <c:forEach var="message" items="${['room.details.dates.error', 'room.quantity.error',
-                                               'room.details.stock.error', 'room.availability.error', 'room.calendar.loading', 'room.details.load.error']}">
-                                        <div class="${message == 'room.calendar.loading' ? '' : 'text-danger'}"
-                                             data-message="${message}" ${stayError == message ? '' : 'hidden'}><ui:text key="${message}"/></div>
+                                                                      'room.details.stock.error', 'room.availability.error', 'room.calendar.loading', 'room.details.load.error']}">
+                                               <div class="${message == 'room.calendar.loading' ? '' : 'text-danger'}"
+                                                    data-message="${message}" ${stayError == message ? '' : 'hidden'}><ui:text key="${message}"/></div>
                                     </c:forEach>
                                 </div>
 
@@ -323,7 +323,7 @@
                             </form>
                         </div>
 
-                        <c:if test="${not empty room}">
+
                         <!-- Approved Customer Reviews Section (Normal Flow Step 3 & 4, BR-48) -->
                         <div class="bg-white border rounded-4 p-4 shadow-sm" id="review-title">
                             <h4 class="fw-bold mb-3">
@@ -344,16 +344,47 @@
                                         <c:forEach var="review" items="${reviews}">
                                             <div class="review-box mb-2">
                                                 <div class="d-flex align-items-center gap-2 mb-2">
-                                                    <img width="40" height="40" class="rounded-circle object-fit-cover"
-                                                         src="${pageContext.request.contextPath}/assets/img/${empty review.booking.customer.avatar ? 'avatar.jpg' : review.booking.customer.avatar}"
-                                                         alt="${requestScope.i18n['screen.3c7f17938dfc7e9c']}" data-i18n-alt="screen.3c7f17938dfc7e9c"/>
+
+                                                    <img width="40"
+                                                         height="40"
+                                                         class="rounded-circle object-fit-cover"
+                                                         src="${pageContext.request.contextPath}/avatar/image?reviewId=${review.reviewID}"
+                                                         onerror="this.onerror=null;this.src='${pageContext.request.contextPath}/assets/img/avatar.jpg';"
+                                                         alt="Customer avatar"/>
+
                                                     <div>
                                                         <strong><c:out value="${review.booking.customer.user.username}"/></strong>
                                                         <div class="text-muted" style="font-size: 0.75rem;">
                                                             <c:out value="${review.reviewDate}"/>
                                                         </div>
                                                     </div>
-                                                    <span class="ms-auto text-warning fw-bold"><c:out value="${review.star}"/> ★</span>
+                                                    <span class="ms-auto text-warning fw-bold">
+
+                                                        <c:forEach var="i" begin="1" end="5">
+
+                                                            <c:choose>
+
+                                                                <c:when test="${review.star >= i}">
+                                                                    <i class="bi bi-star-fill"></i>
+                                                                </c:when>
+
+                                                                <c:when test="${review.star >= i - 0.5}">
+                                                                    <i class="bi bi-star-half"></i>
+                                                                </c:when>
+
+                                                                <c:otherwise>
+                                                                    <i class="bi bi-star"></i>
+                                                                </c:otherwise>
+
+                                                            </c:choose>
+
+                                                        </c:forEach>
+
+                                                        <span class="ms-1">
+                                                            <c:out value="${review.star}"/>/5
+                                                        </span>
+
+                                                    </span>
                                                 </div>
                                                 <p class="mb-0 text-secondary" style="overflow-wrap: anywhere;">
                                                     <c:out value="${review.comment}"/>
@@ -364,7 +395,7 @@
                                 </c:otherwise>
                             </c:choose>
                         </div>
-                        </c:if>
+
                     </div>
                 </div>
             </main>

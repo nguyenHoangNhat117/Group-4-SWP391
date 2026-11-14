@@ -230,6 +230,85 @@ public class ReviewDAO extends DBContext {
         return list;
     }
 
+    public List<Review> getReviewsByRoomTypeId(
+            int roomTypeId) {
+
+        List<Review> list
+                = new ArrayList<>();
+
+        String sql
+                = "SELECT DISTINCT "
+                + "r.ReviewID, "
+                + "r.Comment, "
+                + "r.Star, "
+                + "r.ReviewDate, "
+                + "r.ReviewStatus, "
+                + "b.BookingID, "
+                + "b.BookingDate, "
+                + "b.Status AS BookingStatus, "
+                + "b.TotalPrice, "
+                + "b.SpecialRequest, "
+                + "b.CancellationDate, "
+                + "b.CancellationReason, "
+                + "c.CustomerID, "
+                + "c.FirstName, "
+                + "c.LastName, "
+                + "c.Email, "
+                + "c.Phone, "
+                + "c.Country, "
+                + "c.City, "
+                + "c.Street, "
+                + "c.Avatar, "
+                + "u.UserID, "
+                + "u.Username, "
+                + "u.Password, "
+                + "u.Role, "
+                + "u.DisplayName "
+                + "FROM Review r "
+                + "JOIN Booking b "
+                + "ON b.BookingID = r.BookingID "
+                + "JOIN BookingDetail bd "
+                + "ON bd.BookingID = b.BookingID "
+                + "JOIN Customer c "
+                + "ON c.CustomerID = b.CustomerID "
+                + "JOIN [User] u "
+                + "ON u.UserID = c.UserID "
+                + "JOIN Room rm ON rm.RoomNumber = bd.RoomNumber "
+                + "WHERE rm.RoomTypeID = ? "
+                + "AND r.ReviewStatus = 'approved' "
+                + "ORDER BY r.ReviewDate DESC, "
+                + "r.ReviewID DESC";
+
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
+
+            ps.setInt(
+                    1,
+                    roomTypeId
+            );
+
+            try (ResultSet rs
+                    = ps.executeQuery()) {
+
+                while (rs.next()) {
+
+                    list.add(
+                            mapReview(
+                                    conn,
+                                    rs
+                            )
+                    );
+                }
+            }
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
     /*
      * =========================================================
      * 4. AVERAGE STAR FOR ROOM
@@ -357,22 +436,28 @@ public class ReviewDAO extends DBContext {
     }
 
     public int[] getApprovedRatingCounts() {
-        int[] counts = new int[6];
 
-        String sql = "SELECT CAST(Star AS INT) AS Rating, "
-           + "COUNT(*) AS Total "
-           + "FROM Review "
-           + "WHERE LOWER(LTRIM(RTRIM(ReviewStatus))) = 'approved' "
-           + "GROUP BY CAST(Star AS INT)";
+        int[] counts = new int[11];
+
+        String sql
+                = "SELECT CAST(Star AS DECIMAL(3,1)) AS Rating, "
+                + "COUNT(*) AS Total "
+                + "FROM Review "
+                + "WHERE LOWER(LTRIM(RTRIM(ReviewStatus))) = 'approved' "
+                + "GROUP BY CAST(Star AS DECIMAL(3,1))";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                int rating = rs.getInt("Rating");
+                BigDecimal rating = rs.getBigDecimal("Rating");
                 int total = rs.getInt("Total");
 
-                if (rating >= 1 && rating <= 5) {
-                    counts[rating] = total;
+                int index = rating.multiply(
+                        BigDecimal.valueOf(2)
+                ).intValue();
+
+                if (index >= 2 && index <= 10) {
+                    counts[index] += total;
                 }
             }
 
@@ -799,4 +884,32 @@ public class ReviewDAO extends DBContext {
                 || "approved".equals(status)
                 || "rejected".equals(status);
     }
+
+    public String getApprovedReviewAvatar(int reviewId) {
+        String sql
+                = "SELECT c.Avatar "
+                + "FROM Review r "
+                + "JOIN Booking b ON r.BookingID = b.BookingID "
+                + "JOIN Customer c ON b.CustomerID = c.CustomerID "
+                + "WHERE r.ReviewID = ? "
+                + "AND r.ReviewStatus = 'approved'";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, reviewId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("Avatar");
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "Unable to load review avatar", e);
+        }
+
+        return null;
+    }
+
 }

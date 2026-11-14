@@ -29,6 +29,7 @@ import util.ReportPeriod;
 
 @WebServlet(name = "DetailsServlet", urlPatterns = {"/details"})
 public class DetailsServlet extends HttpServlet {
+
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final int MAX_GUESTS = 1000;
 
@@ -135,7 +136,7 @@ public class DetailsServlet extends HttpServlet {
         int maxGuests = (int) Math.min(MAX_GUESTS, (long) displayQuantity * type.getCapacity());
         String error = !validDates ? "room.details.dates.error"
                 : !validQuantity ? "room.quantity.error"
-                : !canBook ? "room.details.stock.error" : "";
+                        : !canBook ? "room.details.stock.error" : "";
         if (quoteOnly) {
             response.setContentType("application/json");
             JSON.writeValue(response.getOutputStream(), Map.of(
@@ -167,38 +168,89 @@ public class DetailsServlet extends HttpServlet {
             }
         }
 
+        ReviewDAO reviewDAO = new ReviewDAO();
+
+        List<Review> approved;
+
         if (room != null) {
-            ReviewDAO reviews = new ReviewDAO();
-            List<Review> approved = reviews.getReviewsByRoomNumber(room.getRoomNumber());
-            request.setAttribute("reviews", approved);
-            request.setAttribute("averageStar", approved.isEmpty() ? BigDecimal.ZERO
-                    : reviews.getAverageStarByRoomNumber(room.getRoomNumber()));
-            request.setAttribute("staffRoomAvailable", validDates && validQuantity
-                    && guests <= type.getCapacity()
-                    && "available".equalsIgnoreCase(room.getStatus())
-                    && !new BookingDAO().isRoomBookedInRange(room.getRoomNumber(), checkIn, checkOut));
+            approved = reviewDAO.getReviewsByRoomNumber(
+                    room.getRoomNumber()
+            );
+        } else {
+            approved = reviewDAO.getReviewsByRoomTypeId(
+                    type.getId()
+            );
         }
-        request.setAttribute("room", room);
-        request.setAttribute("roomType", type);
+
+        request.setAttribute("reviews", approved);
+
+        BigDecimal averageStar = BigDecimal.ZERO;
+
+        if (!approved.isEmpty()) {
+
+            BigDecimal sum = BigDecimal.ZERO;
+
+            for (Review r : approved) {
+                sum = sum.add(r.getStar());
+            }
+
+            averageStar = sum.divide(
+                    BigDecimal.valueOf(approved.size()),
+                    1,
+                    java.math.RoundingMode.HALF_UP
+            );
+        }
+
+        request.setAttribute("averageStar", averageStar);
+        boolean staffRoomAvailable = room != null
+                && validDates
+                && validQuantity
+                && guests <= type.getCapacity()
+                && "available".equalsIgnoreCase(room.getStatus())
+                && !new BookingDAO().isRoomBookedInRange(
+                        room.getRoomNumber(), checkIn, checkOut
+                );
+
+        request.setAttribute("staffRoomAvailable", staffRoomAvailable);
+
+        request.setAttribute(
+                "room", room);
+        request.setAttribute(
+                "roomType", type);
         try {
             request.setAttribute("roomSpecifications", new RoomTypeDAO().getSpecifications(type.getId()));
         } catch (SQLException ex) {
             throw new ServletException("Unable to load room specifications", ex);
         }
-        request.setAttribute("amenities", new AmenityDAO().getAmenitiesByRoomTypeId(type.getId()));
-        request.setAttribute("checkInDate", checkIn);
-        request.setAttribute("checkOutDate", checkOut);
-        request.setAttribute("dateRange", validDates ? OnlineStayDates.formatSearchRange(checkIn, checkOut) : "");
-        request.setAttribute("quantity", displayQuantity);
-        request.setAttribute("guestCount", Math.max(displayQuantity, Math.min(guests, maxGuests)));
-        request.setAttribute("maxRooms", maxRooms);
-        request.setAttribute("maxGuests", maxGuests);
-        request.setAttribute("nights", nights);
-        request.setAttribute("totalStayPrice", total);
-        request.setAttribute("available", available);
-        request.setAttribute("canBook", canBook);
-        request.setAttribute("stayError", error);
-        request.getRequestDispatcher("/WEB-INF/details/details.jsp").forward(request, response);
+
+        request.setAttribute(
+                "amenities", new AmenityDAO().getAmenitiesByRoomTypeId(type.getId()));
+        request.setAttribute(
+                "checkInDate", checkIn);
+        request.setAttribute(
+                "checkOutDate", checkOut);
+        request.setAttribute(
+                "dateRange", validDates ? OnlineStayDates.formatSearchRange(checkIn, checkOut) : "");
+        request.setAttribute(
+                "quantity", displayQuantity);
+        request.setAttribute(
+                "guestCount", Math.max(displayQuantity, Math.min(guests, maxGuests)));
+        request.setAttribute(
+                "maxRooms", maxRooms);
+        request.setAttribute(
+                "maxGuests", maxGuests);
+        request.setAttribute(
+                "nights", nights);
+        request.setAttribute(
+                "totalStayPrice", total);
+        request.setAttribute(
+                "available", available);
+        request.setAttribute(
+                "canBook", canBook);
+        request.setAttribute(
+                "stayError", error);
+        request.getRequestDispatcher(
+                "/WEB-INF/details/details.jsp").forward(request, response);
     }
 
     private static int number(String value, int fallback) {
