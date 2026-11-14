@@ -70,81 +70,107 @@
                     <div class="col-md-3"><div class="card p-3"><strong><ui:text key="screen.87b42e40c2a290e0"/></strong><h3>${approvedCount}</h3></div></div>
                     <div class="col-md-3"><div class="card p-3"><strong><ui:text key="screen.0bcdff77493ef760"/></strong><h3>${pendingCount} / ${rejectedCount}</h3></div></div>
                     <div class="col-md-3"><div class="card p-3"><strong><ui:text key="screen.a3ee576b0504de9f"/></strong><h3><c:choose><c:when test="${approvedCount > 0}"><fmt:formatNumber value="${starTotal / approvedCount}" maxFractionDigits="1" minFractionDigits="1"/> / 5</c:when><c:otherwise><ui:text key="screen.e2f79e5b60330bba"/></c:otherwise></c:choose></h3></div></div>
-                </div>
-                <div class="mt-3">
-    <strong><ui:text key="screen.0f6484cf8b5d3961"/></strong>
+                        </div>
 
-    5★ ${approvedRatingCounts[5]} ·
-    4★ ${approvedRatingCounts[4]} ·
-    3★ ${approvedRatingCounts[3]} ·
-    2★ ${approvedRatingCounts[2]} ·
-    1★ ${approvedRatingCounts[1]}
-</div>
+                        <div class="rating-distribution">
+                            <div class="rating-distribution-header">
+                                <strong>Approved rating distribution</strong>
+                                    <span>${approvedCount} approved reviews</span>
+                    </div>
+
+                    <c:forEach var="i" begin="2" end="10">
+                        <c:set var="index" value="${12 - i}" />
+                        <c:set var="ratingValue" value="${index / 2.0}" />
+                        <c:set var="ratingCount"
+                               value="${approvedRatingCounts[index]}" />
+
+                        <c:if test="${ratingCount > 0}">
+                            <div class="rating-distribution-row">
+                                <span class="rating-distribution-label">
+                                    <fmt:formatNumber
+                                        value="${ratingValue}"
+                                        pattern="0.0" /> ★
+                                </span>
+
+                                <div class="rating-distribution-track">
+                                    <div class="rating-distribution-fill"
+                                         style="width: ${approvedCount > 0
+                                                         ? ratingCount * 100.0 / approvedCount
+                                                         : 0}%;">
+                                    </div>
+                                </div>
+
+                                <strong>${ratingCount}</strong>
+                            </div>
+                        </c:if>
+                    </c:forEach>
+                </div>
+
                 <c:if test="${not reportIsAdmin}"><small><ui:text key="screen.4bfc5c616de51c80"/></small></c:if>
-            </section>
+                </section>
             <c:choose>
                 <c:when test="${reportIsAdmin}">
-            <div class="report-heading">
-                <div>
-                    <p class="report-eyebrow">
-                        <ui:text key="screen.b11fef0048e7eff8"/>
-                    </p>
+                    <div class="report-heading">
+                        <div>
+                            <p class="report-eyebrow">
+                                <ui:text key="screen.b11fef0048e7eff8"/>
+                            </p>
 
-                    <h1>
+                            <h1>
+                                <c:choose>
+                                    <c:when test="${reportIsAdmin}">
+                                        <ui:text key="screen.47bf4e92fa8a67be"/>
+                                    </c:when>
+
+                                    <c:otherwise>
+                                        <ui:text key="screen.d515fdd22c1437ff"/>
+                                    </c:otherwise>
+                                </c:choose>
+                            </h1>
+
+                            <p class="report-description">
+                                <ui:text key="screen.326be3a3dda19299"/>
+                            </p>
+                        </div>
+
                         <c:choose>
                             <c:when test="${reportIsAdmin}">
-                                <ui:text key="screen.47bf4e92fa8a67be"/>
+                                <a class="report-button" href="${ctx}/">
+                                    <ui:text key="screen.74fcd10c9e772c3e"/>
+                                </a>
                             </c:when>
 
                             <c:otherwise>
-                                <ui:text key="screen.d515fdd22c1437ff"/>
+                                <a class="report-button" href="${ctx}/dashboard">
+                                    <ui:text key="screen.a7750c2b09f60f0b"/>
+                                </a>
                             </c:otherwise>
                         </c:choose>
-                    </h1>
+                    </div>
 
-                    <p class="report-description">
-                        <ui:text key="screen.326be3a3dda19299"/>
-                    </p>
-                </div>
+                    <%-- Manager report navigation. --%>
+                    <c:if test="${not reportIsAdmin}">
+                        <div class="report-tabs" aria-label="${requestScope.i18n['screen.19025f8911e31c54']}" data-i18n-aria-label="screen.19025f8911e31c54">
 
-                <c:choose>
-                    <c:when test="${reportIsAdmin}">
-                        <a class="report-button" href="${ctx}/">
-                            <ui:text key="screen.74fcd10c9e772c3e"/>
-                        </a>
-                    </c:when>
+                            <a href="${ctx}/reports?view=bookings&amp;page-index=1">
+                                <ui:text key="screen.4e5f81ada70c344e"/>
+                            </a>
 
-                    <c:otherwise>
-                        <a class="report-button" href="${ctx}/dashboard">
-                            <ui:text key="screen.a7750c2b09f60f0b"/>
-                        </a>
-                    </c:otherwise>
-                </c:choose>
-            </div>
+                            <a href="${ctx}/reports?view=payments&amp;page-index=1">
+                                <ui:text key="screen.632e1c5839411a10"/>
+                            </a>
 
-            <%-- Manager report navigation. --%>
-            <c:if test="${not reportIsAdmin}">
-                <div class="report-tabs" aria-label="${requestScope.i18n['screen.19025f8911e31c54']}" data-i18n-aria-label="screen.19025f8911e31c54">
+                            <a href="${ctx}/reports?view=reviews"
+                               aria-current="page">
+                                <ui:text key="screen.84cb7871b741c32e"/>
+                            </a>
 
-                    <a href="${ctx}/reports?view=bookings&amp;page-index=1">
-                        <ui:text key="screen.4e5f81ada70c344e"/>
-                    </a>
+                            <a href="${ctx}/reports?view=month">
+                                <ui:text key="screen.c4b7330bd91e0c97"/>
+                            </a>
 
-                    <a href="${ctx}/reports?view=payments&amp;page-index=1">
-                        <ui:text key="screen.632e1c5839411a10"/>
-                    </a>
-
-                    <a href="${ctx}/reports?view=reviews"
-                       aria-current="page">
-                        <ui:text key="screen.84cb7871b741c32e"/>
-                    </a>
-
-                    <a href="${ctx}/reports?view=month">
-                        <ui:text key="screen.c4b7330bd91e0c97"/>
-                    </a>
-
-                </div>
-            </c:if>
+                        </div>
+                    </c:if>
 
                 </c:when>
                 <c:otherwise>
@@ -311,7 +337,6 @@
 
                                                     <td>
                                                         <c:choose>
-
                                                             <c:when test="${not empty r.booking.customer.user.displayName}">
                                                                 <c:out value="${r.booking.customer.user.displayName}" />
                                                             </c:when>
@@ -325,7 +350,6 @@
                                                             <c:otherwise>
                                                                 <ui:text key="screen.641d305570b93564"/>${r.booking.customer.customerID}
                                                             </c:otherwise>
-
                                                         </c:choose>
 
                                                         <span class="report-muted">
@@ -333,14 +357,26 @@
                                                         </span>
                                                     </td>
 
+
                                                     <td>
-                                                        <span class="report-rating">
-                                                            <fmt:formatNumber
-                                                                value="${r.star}"
-                                                                pattern="0.##" />
-                                                            ★ / 5
-                                                        </span>
+                                                        <div class="review-rating-cell">
+                                                            <div class="review-stars"
+                                                                 role="img"
+                                                                 aria-label="${r.star} out of 5 stars">
+                                                                <span class="review-stars-bg">★★★★★</span>
+                                                                <span class="review-stars-active"
+                                                                      style="width: ${r.star * 20}%;">★★★★★</span>
+                                                            </div>
+
+                                                            <div class="review-rating-score">
+                                                                <fmt:formatNumber
+                                                                    value="${r.star}"
+                                                                    pattern="0.0" />
+                                                                <span>/ 5</span>
+                                                            </div>
+                                                        </div>
                                                     </td>
+
 
                                                     <td>
                                                         <div class="report-comment"><c:out value="${empty r.comment ? 'No comment' : r.comment}" /></div>

@@ -12,23 +12,22 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
+import dao.UserDAO;
 import model.Customer;
 import model.User;
 
-/**
- *
- * @author Đặng Hoàng Vũ
- */
+
 @WebServlet(name = "ProfileServlet", urlPatterns = {"/profile"})
 public class ProfileServlet extends HttpServlet {
 
     /**
-     * Processes both HTTP GET and POST requests.
-     * Currently used as a placeholder with sample HTML output.
+     * Processes both HTTP GET and POST requests. Currently used as a
+     * placeholder with sample HTML output.
      *
-     * @param request the HttpServletRequest object that contains the request the client made
-     * @param response the HttpServletResponse object that contains the response the servlet returns
+     * @param request the HttpServletRequest object that contains the request
+     * the client made
+     * @param response the HttpServletResponse object that contains the response
+     * the servlet returns
      * @throws ServletException if a servlet-specific error occurs
      * @throws IOException if an input or output error is detected
      */
@@ -51,11 +50,12 @@ public class ProfileServlet extends HttpServlet {
     }
 
     /**
-     * Handles the HTTP GET method.
-     * Retrieves the current logged-in user's customer profile and forwards it to the profile JSP page.
+     * Handles the HTTP GET method. Retrieves the current logged-in user's
+     * customer profile and forwards it to the profile JSP page.
      *
      * @param request the HttpServletRequest object with session information
-     * @param response the HttpServletResponse object used to forward or redirect
+     * @param response the HttpServletResponse object used to forward or
+     * redirect
      * @throws ServletException if servlet-specific error occurs
      * @throws IOException if an input/output error occurs
      */
@@ -81,10 +81,11 @@ public class ProfileServlet extends HttpServlet {
     }
 
     /**
-     * Handles the HTTP POST method.
-     * Updates the profile of the logged-in user with the provided form data.
+     * Handles the HTTP POST method. Updates the profile of the logged-in user
+     * with the provided form data.
      *
-     * @param request the HttpServletRequest containing form data for profile update
+     * @param request the HttpServletRequest containing form data for profile
+     * update
      * @param response the HttpServletResponse used to redirect after update
      * @throws ServletException if servlet-specific error occurs
      * @throws IOException if an input/output error occurs
@@ -92,22 +93,23 @@ public class ProfileServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Ensure request encoding handles UTF-8 characters (for Vietnamese input, etc.)
+        
         request.setCharacterEncoding("UTF-8");
 
-        // Get logged-in user from session
+        
         User loggedUser = (User) request.getSession().getAttribute("loggedUser");
 
-        // If user not logged in, redirect to login
+        
         if (loggedUser == null) {
             response.sendRedirect("./login");
             return;
         }
 
-        // Get the user ID
+        
         int userId = loggedUser.getId();
 
         // Retrieve updated profile fields from request
+        String displayName = request.getParameter("displayName");
         String firstName = request.getParameter("firstName");
         String lastName = request.getParameter("lastName");
         String email = request.getParameter("email");
@@ -116,12 +118,55 @@ public class ProfileServlet extends HttpServlet {
         String city = request.getParameter("city");
         String street = request.getParameter("street");
 
-        // Update customer information in database
-        CustomerDAO dao = new CustomerDAO();
-        dao.updateCustomer(userId, firstName, lastName, email, phone, country, city, street);
+        if (displayName == null
+                || displayName.trim().isEmpty()
+                || displayName.trim().length() > 100) {
+            response.sendError(
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    "Invalid display name"
+            );
+            return;
+        }
 
-        // Redirect back to profile page after update
-        response.sendRedirect("profile");
+        
+        UserDAO userDAO = new UserDAO();
+
+        boolean updated = userDAO.updateDisplayName(
+                userId, displayName.trim()
+        );
+
+        if (!updated) {
+            response.sendError(
+                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Failed to update display name"
+            );
+            return;
+        }
+
+
+        CustomerDAO customerDAO = new CustomerDAO();
+
+        customerDAO.updateCustomer(
+                userId,
+                firstName,
+                lastName,
+                email,
+                phone,
+                country,
+                city,
+                street
+        );
+
+
+        loggedUser.setDisplayName(displayName.trim());
+
+        request.getSession().setAttribute(
+                "loggedUser", loggedUser
+        );
+
+
+        response.sendRedirect(request.getContextPath() + "/profile");
+        return;
     }
 
     /**

@@ -6,7 +6,7 @@
     // Get customer object from request (used to render user profile)
     Customer customer = (Customer) request.getAttribute("customer");
     if (customer == null) {
-        customer = new Customer(); // fallback if null to avoid null pointer exceptions
+        customer = new Customer();
     }
 %>
 <!DOCTYPE html>
@@ -29,7 +29,7 @@
     </head>
 
     <body>
-        <!-- Include common site header -->
+
         <%@include file="/WEB-INF/include/header.jsp" %>
 
         <div class="profile-container">
@@ -49,7 +49,7 @@
                         src="<%= request.getContextPath()
                                 + (hasAvatar
                                         ? "/avatar/image"
-                    : "/assets/img/avatar.jpg")%>"
+                                        : "/assets/img/avatar.jpg")%>"
                         alt="Avatar"
                         class="img-thumbnail"
                         width="150"
@@ -88,7 +88,13 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label"><ui:text key="screen.18d67c992b71ce69"/></label>
-                                <input type="text" class="form-control" name="display-name" value="${loggedUser.displayName}">
+                                <input type="text"
+                                       class="form-control input_type"
+                                       name="displayName"
+                                       value="${loggedUser.displayName}"
+                                       maxlength="100"
+                                       required
+                                       readonly>
                             </div>
                         </div>
 
