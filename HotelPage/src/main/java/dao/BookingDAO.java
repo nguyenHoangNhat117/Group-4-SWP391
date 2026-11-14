@@ -535,7 +535,7 @@ public class BookingDAO extends DBContext {
     /*
      * Internal method to reuse an existing connection.
      */
-    private List<BookingDetail> getBookingDetails(
+    List<BookingDetail> getBookingDetails(
             Connection conn,
             int bookingId)
             throws SQLException {

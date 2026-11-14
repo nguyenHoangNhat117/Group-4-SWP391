@@ -6,12 +6,16 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -766,32 +770,27 @@ public class PaymentDAO extends DBContext {
      * CUSTOMER PAYMENT HISTORY
      * =========================================================
      */
-    public List<Payment> getPaymentsByCustomerId(
-            int customerId) {
+    private static final String PAYMENT_HISTORY_FROM = "FROM Payment p "
+            + "JOIN Booking b ON b.BookingID = p.BookingID "
+            + "JOIN Customer c ON c.CustomerID = b.CustomerID "
+            + "LEFT JOIN Discount d ON d.DiscountID = p.DiscountID "
+            + "OUTER APPLY (SELECT COALESCE(SUM(other.Amount - COALESCE(other.RefundedAmount, 0)), 0) AS NetPaid "
+            + "FROM Payment other WHERE other.BookingID = b.BookingID AND other.PaymentStatus = 'paid') totals "
+            + "CROSS APPLY (SELECT CASE WHEN p.PaymentStatus = 'refunded' OR "
+            + "(p.PaymentStatus = 'paid' AND p.RefundedAmount > 0 AND p.RefundedAmount >= p.Amount) THEN 'refunded' "
+            + "WHEN p.PaymentStatus = 'paid' AND p.RefundedAmount > 0 THEN 'partially_refunded' "
+            + "WHEN p.PaymentStatus = 'paid' AND totals.NetPaid > 0 AND totals.NetPaid < b.TotalPrice THEN 'partial' "
+            + "ELSE p.PaymentStatus END AS DisplayStatus) paymentState "
+            + "WHERE b.CustomerID = ? ";
 
-        return getPaymentsByCustomerId(
-                customerId,
-                1,
-                Integer.MAX_VALUE
-        );
-    }
+    private static final String PAYMENT_HISTORY_SEARCH =
+            "AND (p.TransactionCode LIKE ? ESCAPE '~' OR d.Code LIKE ? ESCAPE '~') ";
 
-    public List<Payment> getPaymentsByCustomerId(
-            int customerId,
-            int page,
-            int pageSize) {
-
-        List<Payment> list
-                = new ArrayList<>();
-
-        if (page < 1) {
-            page = 1;
-        }
-
-        if (pageSize <= 0) {
-            pageSize = 5;
-        }
-
+    public List<Payment> getPaymentsByCustomerId(int customerId, String search, String method,
+            String status, LocalDate date, int page, int pageSize)
+            throws SQLException {
+        List<Payment> payments = new ArrayList<>();
+        Map<Integer, Booking> bookings = new LinkedHashMap<>();
         String sql
                 = "SELECT "
                 + "p.PaymentID, "
@@ -801,6 +800,10 @@ public class PaymentDAO extends DBContext {
                 + "p.PaymentStatus, "
                 + "p.TransactionCode, "
                 + "p.DiscountID, "
+                + "p.DiscountAmount, "
+                + "p.RefundedAmount, "
+                + "paymentState.DisplayStatus, "
+                + "totals.NetPaid, "
                 + "b.BookingID, "
                 + "b.BookingDate, "
                 + "b.Status AS BookingStatus, "
@@ -819,54 +822,43 @@ public class PaymentDAO extends DBContext {
                 + "d.MinimumAmount, "
                 + "d.MaximumDiscount, "
                 + "d.IsActive "
-                + "FROM Payment p "
-                + "JOIN Booking b "
-                + "ON b.BookingID = p.BookingID "
-                + "JOIN Customer c "
-                + "ON c.CustomerID = b.CustomerID "
-                + "LEFT JOIN Discount d "
-                + "ON d.DiscountID = p.DiscountID "
-                + "WHERE b.CustomerID = ? "
+                + PAYMENT_HISTORY_FROM
+                + paymentHistoryFilters(search, method, status, date)
                 + "ORDER BY "
                 + "p.PaymentDate DESC, "
                 + "p.PaymentID DESC "
                 + "OFFSET ? ROWS "
                 + "FETCH NEXT ? ROWS ONLY";
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection()) {
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                int index = bindPaymentHistory(ps, customerId, search, method, status, date);
+                ps.setLong(index++, (page - 1L) * pageSize);
+                ps.setInt(index, pageSize);
 
-            ps.setInt(
-                    1,
-                    customerId
-            );
-
-            ps.setInt(
-                    2,
-                    (page - 1) * pageSize
-            );
-
-            ps.setInt(
-                    3,
-                    pageSize
-            );
-
-            try (ResultSet rs
-                    = ps.executeQuery()) {
-
-                while (rs.next()) {
-
-                    list.add(
-                            mapPayment(rs)
-                    );
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        Payment payment = mapPaymentFields(rs);
+                        payment.setDiscountAmount(rs.getBigDecimal("DiscountAmount"));
+                        payment.setRefundedAmount(rs.getBigDecimal("RefundedAmount"));
+                        payment.setHistoryStatus(rs.getString("DisplayStatus"));
+                        Booking booking = payment.getBooking();
+                        payment.setHistoryRemainingAmount(booking.getTotalPrice()
+                                .subtract(rs.getBigDecimal("NetPaid")).max(BigDecimal.ZERO));
+                        bookings.putIfAbsent(booking.getId(), booking);
+                        payment.setBooking(bookings.get(booking.getId()));
+                        payments.add(payment);
+                    }
                 }
             }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
+            BookingDAO bookingDAO = new BookingDAO();
+            for (Booking booking : bookings.values()) {
+                booking.setDetails(bookingDAO.getBookingDetails(conn, booking.getId()));
+            }
         }
 
-        return list;
+        return payments;
     }
 
     /*
@@ -874,39 +866,54 @@ public class PaymentDAO extends DBContext {
      * COUNT CUSTOMER PAYMENTS
      * =========================================================
      */
-    public int countPaymentsByCustomerId(
-            int customerId) {
-
-        String sql
-                = "SELECT COUNT(*) AS Total "
-                + "FROM Payment p "
-                + "JOIN Booking b "
-                + "ON b.BookingID = p.BookingID "
-                + "WHERE b.CustomerID = ?";
-
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
-            ps.setInt(
-                    1,
-                    customerId
-            );
-
-            try (ResultSet rs
-                    = ps.executeQuery()) {
-
-                if (rs.next()) {
-                    return rs.getInt(
-                            "Total"
-                    );
-                }
+    public int countPaymentsByCustomerId(int customerId, String search, String method,
+            String status, LocalDate date) throws SQLException {
+        String sql = "SELECT COUNT(*) " + PAYMENT_HISTORY_FROM
+                + paymentHistoryFilters(search, method, status, date);
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindPaymentHistory(ps, customerId, search, method, status, date);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
             }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
+    }
 
-        return 0;
+    private static String paymentHistoryFilters(String search, String method, String status, LocalDate date) {
+        String keywordFilter = "";
+        if (!search.isEmpty()) {
+            keywordFilter = search.matches("[0-9]+")
+                    ? "AND b.BookingID = TRY_CONVERT(int, ?) " : PAYMENT_HISTORY_SEARCH;
+        }
+        return keywordFilter
+                + (method.isEmpty() ? "" : "AND p.PaymentMethod = ? ")
+                + (status.isEmpty() ? "" : "AND paymentState.DisplayStatus = ? ")
+                + (date == null ? "" : "AND p.PaymentDate >= ? AND p.PaymentDate < ? ");
+    }
+
+    private static int bindPaymentHistory(PreparedStatement ps, int customerId, String search,
+            String method, String status, LocalDate date) throws SQLException {
+        ps.setInt(1, customerId);
+        int index = 2;
+        if (search.matches("[0-9]+")) {
+            ps.setString(index++, search);
+        } else if (!search.isEmpty()) {
+            String pattern = "%" + search.replace("~", "~~").replace("%", "~%")
+                    .replace("_", "~_").replace("[", "~[") + "%";
+            ps.setNString(index++, pattern);
+            ps.setNString(index++, pattern);
+        }
+        if (!method.isEmpty()) {
+            ps.setString(index++, method);
+        }
+        if (!status.isEmpty()) {
+            ps.setString(index++, status);
+        }
+        if (date != null) {
+            ps.setDate(index++, Date.valueOf(date));
+            ps.setDate(index++, Date.valueOf(date.plusDays(1)));
+        }
+        return index;
     }
 
     /*
@@ -984,7 +991,13 @@ public class PaymentDAO extends DBContext {
     private Payment mapPayment(
             ResultSet rs)
             throws SQLException {
+        Payment payment = mapPaymentFields(rs);
+        Booking booking = payment.getBooking();
+        booking.setDetails(new BookingDAO().getBookingDetails(booking.getId()));
+        return payment;
+    }
 
+    private Payment mapPaymentFields(ResultSet rs) throws SQLException {
         Booking booking
                 = new Booking();
 
@@ -1061,18 +1074,6 @@ public class PaymentDAO extends DBContext {
 
         booking.setCustomer(
                 customer
-        );
-
-        /*
-         * Load BookingDetail(s).
-         */
-        BookingDAO bookingDAO
-                = new BookingDAO();
-
-        booking.setDetails(
-                bookingDAO.getBookingDetails(
-                        booking.getId()
-                )
         );
 
         Payment payment

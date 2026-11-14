@@ -387,7 +387,7 @@
                             <div class="mb-2">
 
                                 <strong>
-                                    ${promotion.code}
+                                    <c:out value="${promotion.code}"/>
                                 </strong>
 
                                 -
