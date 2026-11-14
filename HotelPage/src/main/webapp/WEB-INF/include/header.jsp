@@ -33,7 +33,7 @@
 
 
 <link rel="stylesheet"
-      href="${pageContext.request.contextPath}/assets/css/header-layout.css?v=header-row-1">
+      href="${pageContext.request.contextPath}/assets/css/header-layout.css?v=header-row-2">
 <header class="luxe-shared-header luxe-header-v4 luxe-header-v5"
         data-luxe-header
         data-context-path="${pageContext.request.contextPath}">
@@ -54,7 +54,7 @@
             </a>
         </span>
 
-        <ul id="navbar">
+        <ul id="navbar" class="${empty sessionScope.loggedUser or sessionScope.loggedUser.role == 'customer' ? 'luxe-guest-nav' : ''}">
             <c:choose>
                 <c:when test="${sessionScope.loggedUser.role == 'admin'}">
                     <li>

@@ -1,0 +1,273 @@
+/* Home-only presentation layer. Keep the JSP and carousel hooks intact. */
+html.luxe-home-page { background: #fff; }
+
+body.luxe-home {
+    --home-paper: #fff;
+    --home-ink: #28221e;
+    --home-ivory: #f4f0e8;
+    --home-muted: #635950;
+    --home-gold: #cbb58c;
+    --home-bronze: #785b36;
+    --home-line: #e7ded2;
+    --home-gutter: clamp(24px, 7vw, 112px);
+    --home-serif: 'Cormorant Garamond', Georgia, serif;
+    --home-sans: 'Montserrat', sans-serif;
+    background: var(--home-paper);
+    color: var(--home-ink);
+    font-family: var(--home-sans);
+    line-height: 1.8;
+}
+body.luxe-home .main-wrapper { max-width: none; padding: 0; }
+body.luxe-home header.luxe-shared-header,
+body.luxe-home header.luxe-shared-header.is-scrolled {
+    background: var(--home-paper) !important;
+    border-bottom: 1px solid var(--home-line);
+    box-shadow: none;
+}
+body.luxe-home header.luxe-shared-header #nav-heading > a,
+body.luxe-home header.luxe-shared-header #navbar > li > a {
+    color: var(--home-ink) !important;
+    background: none;
+    -webkit-text-fill-color: currentColor;
+}
+body.luxe-home header.luxe-shared-header #nav-heading > a {
+    font-family: 'Cinzel', Georgia, serif;
+    font-weight: 400;
+}
+body.luxe-home header.luxe-shared-header #navbar > li > a:hover { color: var(--home-bronze) !important; }
+body.luxe-home .home-motion-control { margin: 0 auto; padding-block: 8px; }
+body.luxe-home .home-motion-control button { background: transparent; border-color: var(--home-line); color: var(--home-bronze); }
+
+/* Full-bleed photograph with a separate, stationary contrast overlay. */
+body.luxe-home section#hero {
+    position: relative;
+    isolation: isolate;
+    background: #24201c;
+    min-height: 100svh;
+    height: auto;
+    margin: 0;
+    padding: clamp(100px, 15vh, 180px) 24px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+}
+body.luxe-home section#hero::before {
+    inset: 0;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    background: linear-gradient(180deg, rgba(19, 15, 12, .31), rgba(19, 15, 12, .56) 55%, rgba(19, 15, 12, .37));
+    filter: none;
+    animation: none;
+    z-index: 1;
+}
+body.luxe-home section#hero::after { display: none; }
+body.luxe-home #hero-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    z-index: 0;
+}
+body.luxe-home #hero .hero-wrapper {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0;
+    align-items: center;
+    gap: 32px;
+    text-align: center;
+}
+body.luxe-home #hero-heading { margin: 0; font-weight: 400; }
+body.luxe-home #hero-heading .hero-greeting {
+    font: 400 clamp(1.4rem, 2.5vw, 2rem)/1.5 var(--home-serif);
+    letter-spacing: .12em;
+    color: var(--home-gold);
+    margin-bottom: 24px;
+}
+body.luxe-home #hero-heading .hero-brand {
+    font: 400 clamp(2rem, 8vw, 7.5rem)/1.2 'Cinzel', Georgia, serif;
+    letter-spacing: .12em;
+    padding-left: .12em;
+    width: auto;
+    background: none;
+    color: var(--home-ivory);
+    -webkit-text-fill-color: currentColor;
+}
+body.luxe-home #hero-content { flex-direction: column; gap: 30px; width: 100%; max-width: 620px; }
+body.luxe-home #hero-text p { color: #e2ded6; font-size: clamp(.85rem, 1.2vw, 1rem); line-height: 2; font-weight: 400; }
+body.luxe-home .cta-button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: fit-content;
+    min-height: 50px;
+    padding: 16px 32px;
+    border: 1px solid var(--home-bronze);
+    border-radius: 2px;
+    background: transparent !important;
+    color: var(--home-ink) !important;
+    font: 500 .7rem/1.6 var(--home-sans);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    box-shadow: none;
+    transition: background-color .9s ease, color .9s ease, border-color .9s ease;
+}
+body.luxe-home .cta-button::before,
+body.luxe-home .cta-button::after { display: none; }
+body.luxe-home .cta-button:hover { background: #efe5d6 !important; color: var(--home-ink) !important; transform: none; box-shadow: none; }
+body.luxe-home #hero-cta {
+    align-self: center;
+    border-color: var(--home-gold);
+    background: rgba(19, 15, 12, .35) !important;
+    color: var(--home-ivory) !important;
+}
+body.luxe-home #hero-cta:hover { background: var(--home-gold) !important; color: var(--home-ink) !important; }
+
+/* Three complete cards at desktop sizes; native scrolling also works without JS. */
+body.luxe-home section#rooms,
+body.luxe-home section#restaurant {
+    width: min(100% - 2 * var(--home-gutter), 1360px);
+    margin: 0 auto;
+    padding: clamp(72px, 9vw, 140px) 0;
+    scroll-margin-top: 100px;
+}
+body.luxe-home .home-rooms-header { align-items: center; margin-bottom: clamp(24px, 3vw, 40px); gap: 20px; }
+body.luxe-home #rooms-heading,
+body.luxe-home #restaurant-heading {
+    font: 400 clamp(2.6rem, 4.5vw, 4.6rem)/1.1 var(--home-serif);
+    letter-spacing: -.025em;
+    color: var(--home-ink);
+}
+body.luxe-home #rooms-heading::before,
+body.luxe-home #restaurant-heading::before { content: none; }
+body.luxe-home .home-room-controls button {
+    background: transparent;
+    border-color: #ccbea9;
+    color: var(--home-bronze);
+    transition: border-color .8s ease, background-color .8s ease;
+}
+body.luxe-home .home-room-controls button:hover { background: #f3ede4; border-color: var(--home-bronze); }
+body.luxe-home #room-container {
+    --room-gap: clamp(18px, 2.5vw, 36px);
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--room-gap);
+    height: auto;
+    padding: 0 0 24px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #9b8261 #f3ede4;
+}
+body.luxe-home #room-container::-webkit-scrollbar { height: 5px; }
+body.luxe-home #room-container::-webkit-scrollbar-track { background: #f3ede4; }
+body.luxe-home #room-container::-webkit-scrollbar-thumb { background: #9b8261; border: 0; }
+body.luxe-home #room-container .room-card {
+    flex: 0 0 calc((100% - 2 * var(--room-gap)) / 3);
+    min-width: 0;
+    flex-direction: column;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    scroll-snap-align: start;
+    overflow: hidden;
+}
+body.luxe-home #room-container .room-card:hover,
+body.luxe-home #room-container .room-card:focus-visible { transform: none; box-shadow: none; }
+body.luxe-home #room-container .room-card > img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 5px;
+    margin: 0;
+    transition: filter 1s ease;
+}
+body.luxe-home #room-container .room-card:hover > img { transform: none; opacity: 1; filter: brightness(1.12); }
+body.luxe-home #room-container .home-room-caption { background: transparent; padding: 22px 0 8px; align-items: flex-start; }
+body.luxe-home #room-container .room-name {
+    font: 400 clamp(1.5rem, 2.3vw, 2rem)/1.35 var(--home-serif);
+    color: var(--home-ink);
+    padding-bottom: 4px;
+    border-bottom: 1px solid #baa484;
+}
+body.luxe-home .home-room-arrow { display: none; }
+body.luxe-home #rooms-content {
+    margin-top: 32px;
+    padding: 28px 0 0;
+    border-top: 1px solid var(--home-line);
+    border-radius: 0;
+    background: transparent;
+    flex-direction: row;
+    align-items: center;
+    gap: 32px;
+}
+body.luxe-home #rooms-content p { max-width: 650px; margin: 0; color: var(--home-muted); font-size: .9rem; line-height: 1.9; }
+body.luxe-home #rooms-cta { flex-shrink: 0; margin: 0; }
+body.luxe-home .home-room-empty { color: var(--home-muted); }
+
+/* Editorial dining spread. */
+body.luxe-home section#restaurant { border-top: 1px solid var(--home-line); }
+body.luxe-home #restaurant-leap { height: 0; margin: 0; }
+body.luxe-home .restaurant-grid { grid-template-columns: .85fr 1.15fr; grid-template-rows: auto; gap: clamp(32px, 7vw, 100px); align-items: center; }
+body.luxe-home .restaurant-wrap { padding: 24px 0; background: transparent !important; border: 0 !important; border-radius: 0; gap: 36px; }
+body.luxe-home #restaurant-heading { width: 100%; margin-bottom: 28px; }
+body.luxe-home .restaurant-content p { width: 100%; color: var(--home-muted); font-size: .9rem; line-height: 2; }
+body.luxe-home .restaurant-grid .img-wrapper { min-height: 0; aspect-ratio: 5 / 6; border: 0; border-radius: 5px; box-shadow: none; }
+body.luxe-home .restaurant-grid img { border-radius: 0; }
+body.luxe-home section#restaurant img:hover { transform: scale(1.035) !important; }
+
+body.luxe-home section#call-to-action {
+    width: min(100% - 2 * var(--home-gutter), 1360px);
+    margin: 0 auto clamp(72px, 9vw, 130px);
+    padding: clamp(48px, 6vw, 88px) clamp(24px, 5vw, 80px);
+    gap: 28px;
+    background: linear-gradient(120deg, #2a241d, #1a1713);
+    border: 1px solid var(--home-line);
+    border-radius: 12px;
+    box-shadow: none;
+    text-align: center;
+}
+body.luxe-home section#call-to-action h2 { max-width: 850px; margin: 0; font: 400 clamp(2rem, 4vw, 3.8rem)/1.2 var(--home-serif); }
+body.luxe-home #cta-button { margin: 0; border-color: var(--home-gold); background: transparent !important; color: var(--home-ivory) !important; }
+body.luxe-home #cta-button:hover { background: var(--home-gold) !important; color: #161511 !important; transform: none; }
+body.luxe-home footer.luxe-shared-footer { background: #f8f5ef; border-top: 1px solid var(--home-line); color: var(--home-muted); }
+body.luxe-home footer.luxe-shared-footer a,
+body.luxe-home footer.luxe-shared-footer h2 { color: var(--home-ink); }
+body.luxe-home footer.luxe-shared-footer p,
+body.luxe-home footer .luxe-footer-info,
+body.luxe-home footer .luxe-footer-bottom { color: var(--home-muted); }
+body.luxe-home .home-reveal { transition-duration: 1s; }
+body.luxe-home :is(.cta-button, .room-card, .home-room-controls button):focus-visible,
+body.luxe-home #room-container:focus-visible { outline: 2px solid var(--home-bronze); outline-offset: -2px; }
+body.luxe-home :is(#hero-cta, #cta-button):focus-visible { outline-color: var(--home-gold); }
+@media (max-width: 991px) {
+    body.luxe-home #room-container .room-card { flex-basis: calc((100% - var(--room-gap)) / 2); }
+    body.luxe-home #rooms-content { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 600px) {
+    body.luxe-home #room-container .room-card { flex-basis: 100%; }
+    body.luxe-home .restaurant-grid { grid-template-columns: 1fr; }
+    body.luxe-home .restaurant-grid .img-wrapper { aspect-ratio: 4 / 3; }
+    body.luxe-home .home-rooms-header { align-items: flex-start; }
+    body.luxe-home #hero-heading .hero-brand { font-size: clamp(1.75rem, 8vw, 3rem); letter-spacing: .06em; }
+}
+body.luxe-home.disable-animation *,
+body.luxe-home.disable-animation *::before,
+body.luxe-home.disable-animation *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+@media (prefers-reduced-motion: reduce) {
+    html.luxe-home-page { scroll-behavior: auto; }
+    body.luxe-home *, body.luxe-home *::before, body.luxe-home *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+    body.luxe-home section#restaurant img:hover { transform: none !important; }
+}

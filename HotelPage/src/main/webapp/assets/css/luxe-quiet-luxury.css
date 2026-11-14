@@ -1,0 +1,451 @@
+/* ==========================================================================
+   LUXESCAPE — QUIET LUXURY & DARK ELEGANCE DESIGN SYSTEM (FIXED)
+   ========================================================================== */
+
+:root {
+    /* Color Palette */
+    --luxe-obsidian: #08080A;
+    --luxe-charcoal: #101115;
+    --luxe-charcoal-elevated: #16181E;
+    --luxe-gold: #C5A059;
+    --luxe-gold-bright: #DFBD78;
+    --luxe-gold-subtle: rgba(197, 160, 89, 0.22);
+    --luxe-ivory: #F4F0EA;
+    --luxe-ivory-muted: #B0AAA0;
+    --luxe-stone: #7E7970;
+
+    /* Typography */
+    --font-display: 'Cinzel', 'Cormorant Garamond', Georgia, serif;
+    --font-editorial: 'Cormorant Garamond', Georgia, serif;
+    --font-sans: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+
+    /* Spacing */
+    --section-space-y: clamp(5rem, 10vw, 9rem);
+    --container-max: 1440px;
+
+    /* Motion */
+    --ease-luxury: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-slow: 1.2s;
+    --duration-medium: 0.75s;
+}
+
+/* ==========================================================================
+   1. GLOBAL & CONTAINER
+   ========================================================================== */
+html.luxe-home-page {
+    scroll-behavior: smooth;
+    background-color: var(--luxe-obsidian);
+}
+
+body.luxe-home {
+    background-color: var(--luxe-obsidian) !important;
+    color: var(--luxe-ivory) !important;
+    font-family: var(--font-sans);
+    font-weight: 300;
+    line-height: 1.8;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+.luxe-container {
+    width: 100%;
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 clamp(1.5rem, 5vw, 5rem);
+}
+
+.luxe-section {
+    padding: var(--section-space-y) 0;
+    position: relative;
+}
+
+.luxe-index-number {
+    display: block; /* Sửa thành block để nằm trên một dòng riêng */
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--luxe-gold);
+    margin-bottom: 0.75rem;
+}
+
+/* ==========================================================================
+   2. CTA BUTTONS
+   ========================================================================== */
+.cta-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none !important;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 1rem 2.5rem;
+    border-radius: 4px; /* Bo góc nhẹ để mềm mại hơn */
+    transition: all var(--duration-medium) var(--ease-luxury);
+    cursor: pointer;
+    z-index: 1;
+}
+
+.luxe-btn-gold {
+    background-color: var(--luxe-gold);
+    color: var(--luxe-obsidian) !important;
+    border: 1px solid var(--luxe-gold);
+}
+
+.luxe-btn-gold:hover {
+    background-color: var(--luxe-gold-bright);
+    color: var(--luxe-obsidian) !important;
+    box-shadow: 0 8px 25px rgba(197, 160, 89, 0.3);
+    transform: translateY(-2px);
+}
+
+.luxe-btn-outline {
+    background-color: transparent;
+    color: var(--luxe-ivory) !important;
+    border: 1px solid var(--luxe-gold);
+}
+
+.luxe-btn-outline:hover {
+    background-color: var(--luxe-gold);
+    color: var(--luxe-obsidian) !important;
+}
+
+/* ==========================================================================
+   3. FIX: HERO SECTION (Chữ đè lên ảnh)
+   ========================================================================== */
+#hero.luxe-hero-section {
+    position: relative;
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* Xóa padding để ảnh tràn viền hoàn toàn */
+    overflow: hidden;
+    margin-top: -80px; /* Bù trừ cho chiều cao của Header nếu Header có fixed/absolute */
+}
+
+/* FIX: Đảm bảo class chứa ảnh bao phủ toàn bộ Hero */
+.luxe-hero-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+#hero-img.luxe-hero-bg-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Đảm bảo ảnh lấp đầy mà không bị méo */
+    object-position: center;
+    border: none !important;
+    border-radius: 0 !important;
+    transform: scale(1.05); /* Zoom nhẹ để làm hiệu ứng parallax/animation nếu cần */
+}
+
+/* Overlay làm tối ảnh để chữ nổi lên */
+.luxe-hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 8, 10, 0.6); /* Lớp phủ đen trong suốt 60% */
+    z-index: 2;
+}
+
+/* Nội dung chữ đè lên trên */
+#hero .hero-wrapper {
+    position: relative;
+    z-index: 3; /* Quan trọng: z-index cao hơn overlay và media */
+    text-align: center;
+    width: 100%;
+    max-width: 1000px;
+    padding: 0 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 80px; /* Đẩy nội dung xuống một chút nếu bị dính header */
+}
+
+#hero-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+#hero-heading .hero-greeting {
+    font-family: var(--font-editorial);
+    font-style: italic;
+    font-size: clamp(1.2rem, 2vw, 1.8rem);
+    color: var(--luxe-ivory-muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+}
+
+#hero-heading .hero-brand {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(3rem, 7vw, 6rem);
+    letter-spacing: 0.15em;
+    line-height: 1.1;
+    color: var(--luxe-ivory);
+    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); /* Tạo bóng để chữ rõ hơn */
+    margin-right: -0.15em;
+}
+
+#hero-content {
+    max-width: 600px;
+}
+
+#hero-text {
+    margin-bottom: 2.5rem;
+}
+
+#hero-text p {
+    font-family: var(--font-sans);
+    font-size: clamp(0.9rem, 1.1vw, 1rem);
+    color: var(--luxe-ivory);
+    line-height: 1.8;
+}
+
+/* ==========================================================================
+   4. FIX: ROOMS SECTION (Ảnh dàn ngang, tối đa 3 ảnh/hàng, có thể vuốt)
+   ========================================================================== */
+.luxe-rooms-section {
+    background-color: var(--luxe-obsidian); /* Sửa lại nền đen cho hợp với chữ sáng */
+    padding-top: 5rem;
+}
+
+.home-rooms-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 3rem;
+}
+
+#rooms-heading {
+    font-family: var(--font-display); /* Đổi sang Serif cho tiêu đề sang trọng */
+    font-size: clamp(2rem, 3.5vw, 3rem);
+    font-weight: 400;
+    color: var(--luxe-ivory);
+    letter-spacing: 0.05em;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+/* Mũi tên điều hướng */
+.home-room-controls {
+    display: flex;
+    gap: 1rem;
+}
+
+.luxe-slider-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--luxe-gold-subtle);
+    color: var(--luxe-ivory);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.luxe-slider-btn:hover {
+    border-color: var(--luxe-gold);
+    color: var(--luxe-gold);
+}
+
+/* FIX: CSS Grid ngang (Slider/Carousel) */
+#room-container.luxe-room-gallery {
+    display: flex; /* Dùng flex thay vì grid cho hiệu ứng cuộn ngang mượt mà */
+    gap: 2rem;
+    overflow-x: auto; /* Cho phép cuộn ngang */
+    scroll-snap-type: x mandatory; /* Bắt điểm dừng khi cuộn */
+    padding-bottom: 2rem;
+    -webkit-overflow-scrolling: touch;
+    
+    /* Ẩn thanh cuộn (Scrollbar) cho đẹp */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+#room-container.luxe-room-gallery::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+/* Thẻ phòng đơn lẻ */
+.room-card.luxe-room-card {
+    /* Đảm bảo hiển thị 3 thẻ trên 1 màn hình lớn. (100% - 2*gap) / 3 */
+    flex: 0 0 calc((100% - 4rem) / 3); 
+    min-width: 320px; /* Chiều rộng tối thiểu để thẻ không bị quá nhỏ trên mobile */
+    scroll-snap-align: start; /* Điểm dừng khi cuộn */
+    
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--luxe-obsidian) !important;
+    border: none !important;
+    border-radius: 12px !important; /* Thêm bo góc nhẹ như trong ảnh mẫu */
+    overflow: hidden;
+    text-decoration: none !important;
+    transition: transform 0.4s ease;
+}
+
+.room-card.luxe-room-card:hover {
+    transform: translateY(-10px);
+}
+
+/* Khung ảnh của thẻ phòng */
+.luxe-room-media {
+    width: 100%;
+    aspect-ratio: 4 / 3; /* Tỷ lệ ảnh chữ nhật nằm ngang giống mẫu */
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.room-card.luxe-room-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s ease;
+}
+
+.room-card.luxe-room-card:hover img {
+    transform: scale(1.08);
+}
+
+/* Phần Text bên dưới ảnh */
+.room-card.luxe-room-card .home-room-caption {
+    padding: 1.25rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.luxe-room-tag {
+    font-family: var(--font-sans);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--luxe-gold);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+
+.room-card.luxe-room-card .room-name {
+    font-family: var(--font-editorial);
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--luxe-ivory);
+    margin: 0;
+    line-height: 1.3;
+    border-bottom: 1px solid var(--luxe-ivory-muted); /* Thêm gạch chân như trong ảnh mẫu */
+    padding-bottom: 4px;
+}
+
+.home-room-arrow {
+    display: none; /* Ẩn mũi tên chéo đi cho giống ảnh mẫu hơn */
+}
+
+/* Khung Footer của Rooms */
+#rooms-content.luxe-rooms-footer {
+    margin-top: 3rem;
+    background-color: var(--luxe-charcoal-elevated);
+    padding: 2rem 3rem;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid rgba(244, 240, 234, 0.1);
+}
+
+#rooms-content p {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    color: var(--luxe-ivory-muted);
+    margin: 0;
+    max-width: 60%;
+    text-align: left;
+}
+
+/* ==========================================================================
+   5. FIX: CALL TO ACTION SECTION (Khung hình chữ nhật dài)
+   ========================================================================== */
+#call-to-action.luxe-cta-banner {
+    padding: 4rem 0;
+    background-color: var(--luxe-obsidian);
+}
+
+.luxe-cta-inner {
+    background: linear-gradient(135deg, #2A241D 0%, #1A1713 100%); /* Nền nâu tối giống ảnh mẫu */
+    border-radius: 12px;
+    padding: 4rem 3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+}
+
+.luxe-cta-inner .luxe-index-number {
+    color: var(--luxe-gold-bright);
+}
+
+#call-to-action h2.text.left {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 3.5vw, 3rem);
+    font-weight: 400;
+    color: #FFFFFF;
+    margin-bottom: 2.5rem;
+    text-transform: uppercase;
+    text-align: center !important;
+}
+
+/* ==========================================================================
+   6. RESPONSIVE (Hiển thị trên Mobile & Tablet)
+   ========================================================================== */
+@media (max-width: 991px) {
+    /* Tablet: Hiển thị 2 thẻ phòng trên 1 hàng */
+    .room-card.luxe-room-card {
+        flex: 0 0 calc((100% - 2rem) / 2); 
+    }
+    
+    #rooms-content.luxe-rooms-footer {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+    }
+    
+    #rooms-content p {
+        max-width: 100%;
+        text-align: center;
+    }
+}
+
+@media (max-width: 767px) {
+    /* Mobile: Hiển thị 1 thẻ phòng trên 1 hàng */
+    .room-card.luxe-room-card {
+        flex: 0 0 100%; 
+        min-width: 100%;
+    }
+    
+    #hero-heading .hero-brand {
+        font-size: 2.5rem;
+    }
+    
+    .luxe-cta-inner {
+        padding: 3rem 1.5rem;
+    }
+    
+    #call-to-action h2.text.left {
+        font-size: 1.8rem;
+    }
+}

@@ -96,24 +96,37 @@
 }
 .luxe-shared-footer{
     display:block!important;
-    background:#302720!important;
+    position:relative;
+    margin-top:3rem;
+    background:radial-gradient(ellipse at 8% 0%,#38281c,transparent 52%),#1c1511!important;
+    border-top:2px solid #a48256;
     color:#f4eae1!important;
     height:auto!important;
     min-height:0!important
 }
 .luxe-shared-footer .luxe-footer-inner{
-    width:min(1260px,calc(100% - 50px));
+    width:min(1300px,calc(100% - 2 * clamp(18px,6vw,80px)));
     margin:auto;
-    padding:48px 0 38px;
+    padding:clamp(2.5rem,5vw,4.5rem) 0 clamp(2rem,4vw,3.25rem);
     display:grid;
-    grid-template-columns:1.25fr .7fr 1.15fr;
-    gap:50px
+    grid-template-columns:minmax(0,1.1fr) minmax(0,.7fr) minmax(0,1.25fr);
+    gap:clamp(1.75rem,4vw,4rem)
 }
 .luxe-shared-footer .luxe-footer-logo{
-    font-family:Georgia,'Times New Roman',serif;
-    font-size:1.8rem;
+    display:inline-block;
+    font-family:var(--lx-serif,Georgia,'Times New Roman',serif);
+    font-size:clamp(1.85rem,3.3vw,2.8rem);
     font-weight:700;
-    color:#f3d4a6
+    line-height:1.2;
+    color:#f3d4a6;
+    text-decoration:none
+}
+@supports (background-clip: text){
+    .luxe-shared-footer .luxe-footer-logo{
+        background:linear-gradient(115deg,#fff0d0,#d9b582 58%,#eacda4);
+        background-clip:text;
+        color:transparent
+    }
 }
 .luxe-shared-footer .luxe-footer-brand p{
     margin:13px 0 0;
@@ -128,40 +141,53 @@
     display:flex;
     flex-direction:column;
     align-items:flex-start;
-    gap:11px
+    gap:.65rem
 }
 .luxe-shared-footer .luxe-footer-group h2{
-    margin:0 0 8px;
-    font-size:1rem;
+    margin:0 0 .45rem;
+    font-family:var(--lx-sans,Inter,Arial,sans-serif);
+    font-size:.8rem;
     font-weight:700;
-    color:#f3d4a6
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:#e9c99d
 }
 .luxe-shared-footer .luxe-footer-group a{
     color:#e2d5ca;
-    text-decoration:none;
+    text-decoration:none!important;
     font-size:.94rem
 }
 .luxe-shared-footer .luxe-footer-group a:hover{
-    color:#fff;
-    text-decoration:underline
+    color:#ffe7c2
+}
+.luxe-shared-footer .luxe-footer-contact{
+    border-inline-start:1px solid #614a34;
+    padding-inline-start:clamp(1rem,3vw,2.5rem)
 }
 .luxe-shared-footer .luxe-footer-info{
-    display:flex;
-    align-items:flex-start;
-    gap:11px;
+    display:grid;
+    grid-template-columns:1.15rem minmax(0,1fr);
+    align-items:start;
+    gap:.65rem;
     color:#e2d5ca;
     font-size:.92rem;
     line-height:1.6
 }
 .luxe-shared-footer .luxe-footer-info ion-icon{
-    flex:0 0 18px;
-    margin-top:3px;
-    color:#eac08b;
-    font-size:18px
+    width:1rem;
+    height:1rem;
+    margin-top:.2rem;
+    color:#eac08b
+}
+.luxe-shared-footer .luxe-footer-info > a,
+.luxe-shared-footer .luxe-footer-info > span{
+    min-width:0;
+    overflow-wrap:anywhere
 }
 .luxe-shared-footer .luxe-footer-bottom{
-    border-top:1px solid #665347;
-    padding:18px 20px;
+    border-top:1px solid #4d3b2d;
+    background:#17110e;
+    padding:1.15rem 1.25rem;
     text-align:center;
     color:#c1afa0;
     font-size:.82rem
@@ -179,9 +205,16 @@
         flex-wrap:wrap;
         justify-content:center
     }
+}
+@media(max-width:760px){
     .luxe-shared-footer .luxe-footer-inner{
-        grid-template-columns:1fr 1fr;
-        gap:30px
+        grid-template-columns:1fr;
+        gap:1.5rem
+    }
+    .luxe-shared-footer .luxe-footer-contact{
+        border-inline-start:0;
+        border-top:1px solid #614a34;
+        padding:1.5rem 0 0
     }
 }
 @media(max-width:650px){
@@ -190,11 +223,6 @@
     }
     .luxe-shared-header .auth-nav{
         flex-wrap:wrap
-    }
-    .luxe-shared-footer .luxe-footer-inner{
-        grid-template-columns:1fr;
-        padding:34px 0;
-        gap:28px
     }
 }
 @media(prefers-reduced-motion:reduce){

@@ -69,8 +69,120 @@
     padding: 0;
 }
 
+.booking-detail-page {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .booking-detail-shell {
     max-width: 1160px;
+}
+
+.booking-detail-shell section {
+    scroll-snap-align: none;
+}
+
+.booking-detail-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .9rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.booking-detail-heading h1 {
+    margin: 0 0 .35rem;
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    font-weight: 700;
+}
+
+.booking-detail-heading p {
+    margin: 0;
+    color: #675b50;
+    font-size: .9rem;
+}
+
+.booking-detail-heading time {
+    color: var(--lx-ink);
+    font-weight: 600;
+}
+
+.booking-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+    gap: .75rem;
+    max-width: 44rem;
+}
+
+.booking-status-panel {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    align-content: center;
+    gap: .5rem .75rem;
+    padding: .85rem 1rem;
+    border: 1px solid #e8dfd4;
+    border-radius: .85rem;
+    background: #fffdf9;
+}
+
+.booking-status-panel h2,
+.booking-detail-shell .booking-data-card .card-header {
+    margin: 0;
+    font: 700 1rem/1.35 var(--lx-sans);
+}
+
+.booking-status-panel h2 {
+    font-size: .875rem;
+}
+
+.booking-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .25rem .65rem;
+    border-radius: 999px;
+    font-size: .8125rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.booking-pill::before {
+    flex: 0 0 .375rem;
+    width: .375rem;
+    height: .375rem;
+    border-radius: 50%;
+    background: currentColor;
+    content: "";
+}
+
+.booking-pill--success { background: #e4f4e9; color: #165c3d; }
+.booking-pill--warning { background: #fff0d3; color: #784906; }
+.booking-pill--danger { background: #fae8e5; color: #9a3028; }
+.booking-pill--info { background: #e8effb; color: #284e88; }
+.booking-pill--neutral { background: #eeeae6; color: #554a40; }
+
+.booking-success {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    padding: .75rem 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid #c9e8d5;
+    border-radius: .85rem;
+    background: #edf8f1;
+    color: #165c3d;
+}
+
+.booking-success-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: #165c3d;
+    color: #fff;
 }
 
 .booking-detail-shell .card {
@@ -91,10 +203,159 @@
     padding: clamp(1rem, 2.4vw, 1.5rem);
 }
 
-.booking-detail-shell .table {
-    margin-bottom: 0;
+.booking-detail-shell .booking-data-card {
+    box-shadow: var(--lx-shadow-sm);
 }
 
-.booking-detail-shell .room-type-name {
-    min-width: 10rem;
+.booking-detail-shell .booking-data-card .card-header {
+    padding: 1rem 1.25rem;
+    background: #fffdf9;
+    color: var(--lx-ink);
+}
+
+.booking-detail-shell .booking-table-scroll {
+    border-radius: 0;
+}
+
+.booking-table-scroll:focus-visible {
+    outline: 2px solid #8a7152;
+    outline-offset: -2px;
+}
+
+.booking-detail-table {
+    margin: 0;
+    vertical-align: middle;
+    --bs-table-bg: transparent;
+    --bs-table-color: #4a4037;
+    --bs-table-border-color: #ebe4da;
+}
+
+.booking-detail-table > :not(caption) > * > * {
+    padding: .8rem .85rem;
+}
+
+.booking-detail-table tr > :first-child { padding-left: 1.25rem; }
+.booking-detail-table tr > :last-child { padding-right: 1.25rem; }
+
+.booking-detail-table thead th {
+    --bs-table-bg: #f7f2ea;
+    --bs-table-color: #5d5043;
+    font-size: .8125rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.booking-detail-table tbody tr:nth-child(even) > * { --bs-table-bg: #fbf8f3; }
+.booking-detail-table tbody tr:last-child > * { border-bottom: 0; }
+
+.booking-detail-table tbody {
+    font-size: .875rem;
+}
+
+.booking-detail-table time,
+.booking-money,
+.booking-table-id {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.booking-table-id { color: var(--lx-ink) !important; }
+.booking-room { min-width: 9rem; }
+
+.booking-room-type {
+    display: block;
+    margin-top: .15rem;
+    color: #72501e;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.booking-detail-table .booking-stay-date {
+    color: #284e88;
+    font-weight: 600;
+}
+
+.booking-money {
+    color: #165c3d;
+    font-weight: 700;
+}
+
+.booking-money small { font-size: .72em; }
+.booking-total { font-size: 1.35rem; }
+
+.booking-table-reference,
+.booking-table-note {
+    min-width: 7rem;
+    overflow-wrap: anywhere;
+}
+
+.booking-table-empty {
+    padding: 1.25rem;
+    margin: 0;
+    color: #675b50;
+}
+
+.booking-status-dialog {
+    width: min(30rem, calc(100% - 2rem));
+    max-height: calc(100% - 2rem);
+    margin: auto;
+    padding: 0;
+    border: 1px solid #e8dfd4;
+    border-radius: 1.15rem;
+    background: #fffdf9;
+    color: var(--lx-text);
+    box-shadow: var(--lx-shadow-lg);
+}
+
+.booking-status-dialog::backdrop {
+    background: rgb(36 29 23 / .52);
+}
+
+.booking-dialog-content {
+    padding: clamp(1.125rem, 5vw, 1.75rem);
+}
+
+.booking-dialog-content h2 {
+    margin: 0 0 .5rem;
+    font-size: 1.45rem;
+    font-weight: 700;
+}
+
+.booking-dialog-content p {
+    margin-bottom: 1rem;
+    color: #675b50;
+}
+
+.booking-dialog-transition {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem .75rem;
+    margin-bottom: 1.25rem;
+    padding: .75rem .9rem;
+    border-radius: .65rem;
+    background: #f7f2ea;
+    font-size: .9rem;
+}
+
+.booking-dialog-transition strong { color: #284e88; }
+.booking-dialog-transition.is-cancellation strong { color: #9a3028; }
+
+.booking-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .5rem;
+}
+
+#booking-status-form .btn-primary,
+.booking-dialog-actions .btn-primary {
+    background: #694b30;
+    border-color: #694b30;
+}
+
+#booking-status-form .btn-primary:hover,
+.booking-dialog-actions .btn-primary:hover {
+    background: #503722;
+    border-color: #503722;
 }
