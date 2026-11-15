@@ -74,7 +74,7 @@ public class ForgotPasswordServlet extends HttpServlet {
 
                 req.setAttribute("enteredEmail", email);
 
-                if (!AuthSupport.validEmail(email)) {
+                if (!util.AuthUcPolicy.validEmail(email)) {
                     fail(req, res,
                             "Enter a valid email address "
                             + "with a maximum of 100 characters.");

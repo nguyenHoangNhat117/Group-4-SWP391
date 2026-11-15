@@ -3,9 +3,9 @@ package dao;
 import db.DBContext;
 import model.ReportStatistic;
 import model.OccupancyEstimate;
-import util.ReportPeriod;
 import model.RevenueReport;
 import model.ReviewStatistics;
+import util.ReportPeriod;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -19,80 +19,55 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Retrieves revenue and management statistics for reports and dashboards.
- */
 public class ReportDAO extends DBContext {
 
-    /*
-     * Reporting period convention:
-     *
-     * Both fromDate and toDate are inclusive.
-     *
-     * Example:
-     * fromDate = 2025-07-01
-     * toDate   = 2025-07-31
-     *
-     * SQL uses:
-     * date >= 2025-07-01
-     * date <  2025-08-01
-     */
+    private static final String MONEY_COLUMNS =
+            "SUM(Amount) AS Collected, "
+            + "SUM(CASE WHEN PaymentStatus='refunded' THEN Amount "
+            + "ELSE COALESCE(RefundedAmount,0) END) AS Refunded ";
 
-    // =========================================================
-    // 1. MONTHLY REVENUE
-    // =========================================================
+    private static final String SUCCESSFUL =
+            "PaymentStatus IN ('paid','refunded') ";
 
-    /**
-     * Returns paid revenue for all twelve months of the selected year.
-     * Months without successful payments have zero revenue.
-     */
     public List<RevenueReport> getRevenueByMonth(int year) {
-
         validateYear(year);
 
         String sql =
                 "SELECT MONTH(PaymentDate) AS ReportMonth, "
-                + "SUM(Amount-RefundedAmount) AS Revenue "
+                + MONEY_COLUMNS
                 + "FROM Payment "
-                + "WHERE PaymentStatus = 'paid' "
-                + "AND PaymentDate >= ? "
-                + "AND PaymentDate < ? "
+                + "WHERE " + SUCCESSFUL
+                + "AND PaymentDate >= ? AND PaymentDate < ? "
                 + "GROUP BY MONTH(PaymentDate) "
                 + "ORDER BY ReportMonth";
 
-        Date from = Date.valueOf(LocalDate.of(year, 1, 1));
-        Date until = Date.valueOf(LocalDate.of(year + 1, 1, 1));
-
-        List<RevenueReport> existing = query(
+        List<RevenueReport> rows = query(
                 sql,
                 rs -> new RevenueReport(
                         String.valueOf(rs.getInt("ReportMonth")),
-                        rs.getBigDecimal("Revenue")
+                        rs.getBigDecimal("Collected"),
+                        rs.getBigDecimal("Refunded")
                 ),
-                from,
-                until
+                Date.valueOf(LocalDate.of(year, 1, 1)),
+                Date.valueOf(LocalDate.of(year + 1, 1, 1))
         );
 
-        Map<String, BigDecimal> monthlyRevenue =
-                new LinkedHashMap<>();
+        Map<String, RevenueReport> indexed = new LinkedHashMap<>();
 
-        for (RevenueReport item : existing) {
-            monthlyRevenue.put(
-                    item.getTimeUnit(),
-                    item.getTotalRevenue()
-            );
+        for (RevenueReport row : rows) {
+            indexed.put(row.getTimeUnit(), row);
         }
 
         List<RevenueReport> result = new ArrayList<>();
 
         for (int month = 1; month <= 12; month++) {
-
             String label = String.valueOf(month);
 
-            result.add(new RevenueReport(
+            result.add(indexed.getOrDefault(
                     label,
-                    monthlyRevenue.getOrDefault(
+                    new RevenueReport(
                             label,
+                            BigDecimal.ZERO,
                             BigDecimal.ZERO
                     )
             ));
@@ -101,20 +76,12 @@ public class ReportDAO extends DBContext {
         return result;
     }
 
-    // =========================================================
-    // 2. YEARLY REVENUE
-    // =========================================================
-
-    /**
-     * Returns successful payment revenue grouped by calendar year.
-     */
     public List<RevenueReport> getRevenueByYear() {
-
         String sql =
                 "SELECT YEAR(PaymentDate) AS ReportYear, "
-                + "SUM(Amount-RefundedAmount) AS Revenue "
+                + MONEY_COLUMNS
                 + "FROM Payment "
-                + "WHERE PaymentStatus = 'paid' "
+                + "WHERE " + SUCCESSFUL
                 + "AND PaymentDate IS NOT NULL "
                 + "GROUP BY YEAR(PaymentDate) "
                 + "ORDER BY ReportYear";
@@ -123,41 +90,23 @@ public class ReportDAO extends DBContext {
                 sql,
                 rs -> new RevenueReport(
                         String.valueOf(rs.getInt("ReportYear")),
-                        rs.getBigDecimal("Revenue")
+                        rs.getBigDecimal("Collected"),
+                        rs.getBigDecimal("Refunded")
                 )
         );
     }
 
-    // =========================================================
-    // 3. AVAILABLE REPORT YEARS
-    // =========================================================
-
-    /**
-     * Returns years containing successful payments, in ascending order.
-     */
     public List<Integer> getAvailableYears() {
-
         String sql =
                 "SELECT DISTINCT YEAR(PaymentDate) AS ReportYear "
                 + "FROM Payment "
-                + "WHERE PaymentStatus = 'paid' "
+                + "WHERE " + SUCCESSFUL
                 + "AND PaymentDate IS NOT NULL "
                 + "ORDER BY ReportYear";
 
-        return query(
-                sql,
-                rs -> rs.getInt("ReportYear")
-        );
+        return query(sql, rs -> rs.getInt("ReportYear"));
     }
 
-    // =========================================================
-    // 4. TOTAL REVENUE WITHIN A REPORTING PERIOD
-    // =========================================================
-
-    /**
-     * Calculates revenue from paid transactions within the selected period.
-     * Revenue is based on payment amounts rather than booking totals.
-     */
     public BigDecimal getTotalRevenue(
             LocalDate fromDate,
             LocalDate toDate) {
@@ -165,30 +114,20 @@ public class ReportDAO extends DBContext {
         Date[] dates = getPeriodBounds(fromDate, toDate);
 
         String sql =
-                "SELECT COALESCE(SUM(Amount-RefundedAmount), 0) AS Revenue "
+                "SELECT COALESCE("
+                + "SUM(Amount-COALESCE(RefundedAmount,0)),0) AS Revenue "
                 + "FROM Payment "
-                + "WHERE PaymentStatus = 'paid' "
-                + "AND PaymentDate >= ? "
-                + "AND PaymentDate < ?";
+                + "WHERE PaymentStatus='paid' "
+                + "AND PaymentDate >= ? AND PaymentDate < ?";
 
-        List<BigDecimal> result = query(
+        return query(
                 sql,
                 rs -> rs.getBigDecimal("Revenue"),
                 dates[0],
                 dates[1]
-        );
-
-        return result.get(0);
+        ).get(0);
     }
 
-    // =========================================================
-    // 5. BOOKING STATISTICS BY STATUS
-    // =========================================================
-
-    /**
-     * Counts bookings by status using their creation dates.
-     * All supported statuses are returned, including those with zero bookings.
-     */
     public List<ReportStatistic> getBookingStatistics(
             LocalDate fromDate,
             LocalDate toDate) {
@@ -198,11 +137,10 @@ public class ReportDAO extends DBContext {
         String sql =
                 "SELECT Status, COUNT_BIG(*) AS TotalCount "
                 + "FROM Booking "
-                + "WHERE BookingDate >= ? "
-                + "AND BookingDate < ? "
+                + "WHERE BookingDate >= ? AND BookingDate < ? "
                 + "GROUP BY Status";
 
-        List<ReportStatistic> existing = query(
+        List<ReportStatistic> rows = query(
                 sql,
                 rs -> new ReportStatistic(
                         rs.getString("Status"),
@@ -214,7 +152,7 @@ public class ReportDAO extends DBContext {
         );
 
         return completeStatuses(
-                existing,
+                rows,
                 "pending",
                 "confirmed",
                 "cancelled",
@@ -224,45 +162,17 @@ public class ReportDAO extends DBContext {
         );
     }
 
-    // =========================================================
-    // 6. CURRENT TOTAL CUSTOMER COUNT
-    // =========================================================
-
-    /**
-     * Returns the current total number of registered customers.
-     * This value is not restricted to the selected reporting period.
-     */
     public long getCustomerCount() {
-
-        String sql =
-                "SELECT COUNT_BIG(*) AS TotalCustomers "
-                + "FROM Customer";
-
-        List<Long> result = query(
-                sql,
+        return query(
+                "SELECT COUNT_BIG(*) AS TotalCustomers FROM Customer",
                 rs -> rs.getLong("TotalCustomers")
-        );
-
-        return result.get(0);
+        ).get(0);
     }
 
-    // =========================================================
-    // 7. CURRENT ROOM STATUS STATISTICS
-    // =========================================================
-
-    /**
-     * Counts rooms by their current operational status.
-     * These values do not represent historical room statuses.
-     */
     public List<ReportStatistic> getRoomStatusStatistics() {
-
-        String sql =
+        List<ReportStatistic> rows = query(
                 "SELECT Status, COUNT_BIG(*) AS TotalCount "
-                + "FROM Room "
-                + "GROUP BY Status";
-
-        List<ReportStatistic> existing = query(
-                sql,
+                + "FROM Room GROUP BY Status",
                 rs -> new ReportStatistic(
                         rs.getString("Status"),
                         rs.getLong("TotalCount"),
@@ -271,52 +181,28 @@ public class ReportDAO extends DBContext {
         );
 
         return completeStatuses(
-                existing,
+                rows,
                 "available",
                 "maintenance",
                 "out_of_service"
         );
     }
 
-    // =========================================================
-    // 8. APPROVED REVIEW STATISTICS
-    // =========================================================
-
-    /**
-     * Returns the total number of approved reviews and their average rating.
-     * As specified in the SDS, these are overall statistics.
-     */
     public ReviewStatistics getReviewStatistics() {
-
         String sql =
                 "SELECT COUNT_BIG(*) AS TotalReviews, "
-                + "AVG(CAST(Star AS DECIMAL(10, 2))) "
-                + "AS AverageRating "
-                + "FROM Review "
-                + "WHERE ReviewStatus = 'approved'";
+                + "AVG(CAST(Star AS DECIMAL(10,2))) AS AverageRating "
+                + "FROM Review WHERE ReviewStatus='approved'";
 
-        List<ReviewStatistics> result = query(
+        return query(
                 sql,
                 rs -> new ReviewStatistics(
                         rs.getLong("TotalReviews"),
                         rs.getBigDecimal("AverageRating")
                 )
-        );
-
-        return result.get(0);
+        ).get(0);
     }
 
-    // =========================================================
-    // 9. PAYMENT STATISTICS BY STATUS
-    // =========================================================
-
-    /**
-     * Counts transactions and sums their amounts by payment status.
-     *
-     * Filtering uses PaymentDate.
-     * Transactions with a null PaymentDate are excluded.
-     * Amounts for different statuses must not be combined as paid revenue.
-     */
     public List<ReportStatistic> getPaymentStatistics(
             LocalDate fromDate,
             LocalDate toDate) {
@@ -324,15 +210,13 @@ public class ReportDAO extends DBContext {
         Date[] dates = getPeriodBounds(fromDate, toDate);
 
         String sql =
-                "SELECT PaymentStatus, "
-                + "COUNT_BIG(*) AS TotalCount, "
-                + "COALESCE(SUM(Amount), 0) AS TotalAmount "
+                "SELECT PaymentStatus, COUNT_BIG(*) AS TotalCount, "
+                + "COALESCE(SUM(Amount),0) AS TotalAmount "
                 + "FROM Payment "
-                + "WHERE PaymentDate >= ? "
-                + "AND PaymentDate < ? "
+                + "WHERE PaymentDate >= ? AND PaymentDate < ? "
                 + "GROUP BY PaymentStatus";
 
-        List<ReportStatistic> existing = query(
+        List<ReportStatistic> rows = query(
                 sql,
                 rs -> new ReportStatistic(
                         rs.getString("PaymentStatus"),
@@ -344,7 +228,7 @@ public class ReportDAO extends DBContext {
         );
 
         return completeStatuses(
-                existing,
+                rows,
                 "pending",
                 "paid",
                 "failed",
@@ -352,89 +236,165 @@ public class ReportDAO extends DBContext {
         );
     }
 
-    // =========================================================
-    // 10. ESTIMATED ROOM OCCUPANCY RATE
-    // =========================================================
+    public OccupancyEstimate getOccupancyEstimate(
+            LocalDate from,
+            LocalDate to,
+            LocalDate today) {
 
-    /** Returns elapsed scheduled room-night utilization on total current inventory.
-     * Current operational status is intentionally NOT used as historical evidence.
-     */
-    public OccupancyEstimate getOccupancyEstimate(LocalDate from, LocalDate to, LocalDate today) {
         ReportPeriod.validate(from, to);
+
         List<OccupancyEstimate.Stay> stays = new ArrayList<>();
         long rooms;
-        LocalDate until = to.plusDays(1).isBefore(today) ? to.plusDays(1) : today;
-        // Read inventory and stays in one serializable transaction for a consistent capacity.
+
+        LocalDate until = to.plusDays(1).isBefore(today)
+                ? to.plusDays(1) : today;
+
         try (Connection connection = getConnection()) {
-            connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+            connection.setTransactionIsolation(
+                    Connection.TRANSACTION_SERIALIZABLE
+            );
             connection.setAutoCommit(false);
+
             try {
-                try (PreparedStatement ps = connection.prepareStatement("SELECT COUNT_BIG(*) FROM Room");
-                     ResultSet rs = ps.executeQuery()) {
-                    rs.next(); rooms=rs.getLong(1);
+                try (PreparedStatement statement =
+                             connection.prepareStatement(
+                                     "SELECT COUNT_BIG(*) FROM Room"
+                             );
+                     ResultSet rs = statement.executeQuery()) {
+
+                    rs.next();
+                    rooms = rs.getLong(1);
                 }
+
                 if (from.isBefore(until)) {
-                    String sql = "SELECT bd.RoomNumber, bd.CheckInDate, bd.CheckOutDate "
-                            + "FROM BookingDetail bd JOIN Booking b ON b.BookingID=bd.BookingID "
-                            + "JOIN Room r ON r.RoomNumber=bd.RoomNumber "
-                            + "WHERE b.Status IN ('checked_in','checked_out','completed') "
-                            + "AND bd.CheckInDate < ? AND bd.CheckOutDate > ?";
-                    try (PreparedStatement ps=connection.prepareStatement(sql)) {
-                        ps.setDate(1, Date.valueOf(until)); ps.setDate(2, Date.valueOf(from));
-                        try (ResultSet rs=ps.executeQuery()) {
-                            while(rs.next()) stays.add(new OccupancyEstimate.Stay(rs.getInt(1),
-                                    rs.getDate(2).toLocalDate(), rs.getDate(3).toLocalDate()));
+                    String sql =
+                            "SELECT bd.RoomNumber, "
+                            + "bd.CheckInDate, bd.CheckOutDate "
+                            + "FROM BookingDetail bd "
+                            + "JOIN Booking b "
+                            + "ON b.BookingID=bd.BookingID "
+                            + "JOIN Room r "
+                            + "ON r.RoomNumber=bd.RoomNumber "
+                            + "WHERE b.Status IN "
+                            + "('checked_in','checked_out','completed') "
+                            + "AND bd.CheckInDate < ? "
+                            + "AND bd.CheckOutDate > ?";
+
+                    try (PreparedStatement statement =
+                                 connection.prepareStatement(sql)) {
+
+                        statement.setDate(1, Date.valueOf(until));
+                        statement.setDate(2, Date.valueOf(from));
+
+                        try (ResultSet rs = statement.executeQuery()) {
+                            while (rs.next()) {
+                                stays.add(new OccupancyEstimate.Stay(
+                                        rs.getInt(1),
+                                        rs.getDate(2).toLocalDate(),
+                                        rs.getDate(3).toLocalDate()
+                                ));
+                            }
                         }
                     }
                 }
+
                 connection.commit();
+
             } catch (SQLException | RuntimeException ex) {
-                connection.rollback(); throw ex;
+                connection.rollback();
+                throw ex;
             }
+
         } catch (SQLException ex) {
-            throw new IllegalStateException("Unable to load occupancy estimate.", ex);
+            throw new IllegalStateException(
+                    "Unable to load occupancy estimate.",
+                    ex
+            );
         }
-        return OccupancyEstimate.calculate(rooms, stays, from, to, today);
+
+        return OccupancyEstimate.calculate(
+                rooms,
+                stays,
+                from,
+                to,
+                today
+        );
     }
 
-    /** Compatibility method. UI must use isApplicable() rather than interpreting N/A as zero. */
     public double getOccupancyRate(LocalDate from, LocalDate to) {
-        return getOccupancyEstimate(from, to, ReportPeriod.today()).getRate().doubleValue();
+        return getOccupancyEstimate(
+                from,
+                to,
+                ReportPeriod.today()
+        ).getRate().doubleValue();
     }
 
-    /** Payment-date series; partial buckets include only the requested date range. */
-    public List<RevenueReport> getRevenueForPeriod(LocalDate from, LocalDate to) {
+    public List<RevenueReport> getRevenueForPeriod(
+            LocalDate from,
+            LocalDate to) {
+
         ReportPeriod.validate(from, to);
-        String group=ReportPeriod.grouping(from, to);
-        String expression = "day".equals(group) ? "CAST(PaymentDate AS date)"
-                : "month".equals(group) ? "DATEFROMPARTS(YEAR(PaymentDate), MONTH(PaymentDate), 1)"
-                : "DATEFROMPARTS(YEAR(PaymentDate), 1, 1)";
-        String sql="SELECT " + expression + " AS Bucket, SUM(Amount-RefundedAmount) AS Revenue FROM Payment "
-                + "WHERE PaymentStatus='paid' AND PaymentDate >= ? AND PaymentDate < ? "
-                + "GROUP BY " + expression + " ORDER BY Bucket";
-        List<RevenueReport> rows=query(sql,
-                rs -> new RevenueReport(ReportPeriod.label(rs.getDate("Bucket").toLocalDate(), group),
-                        rs.getBigDecimal("Revenue")), Date.valueOf(from), Date.valueOf(to.plusDays(1)));
-        Map<String, BigDecimal> amounts=new LinkedHashMap<>();
-        for (RevenueReport row:rows) amounts.put(row.getTimeUnit(), row.getTotalRevenue());
-        List<RevenueReport> result=new ArrayList<>();
-        for (LocalDate bucket=ReportPeriod.bucket(from, group); !bucket.isAfter(to);
-                bucket=ReportPeriod.next(bucket, group)) {
-            String label=ReportPeriod.label(bucket, group);
-            result.add(new RevenueReport(label, amounts.getOrDefault(label, BigDecimal.ZERO)));
+
+        String group = ReportPeriod.grouping(from, to);
+
+        String expression =
+                "day".equals(group)
+                ? "CAST(PaymentDate AS date)"
+                : "month".equals(group)
+                        ? "DATEFROMPARTS(YEAR(PaymentDate),MONTH(PaymentDate),1)"
+                        : "DATEFROMPARTS(YEAR(PaymentDate),1,1)";
+
+        String sql =
+                "SELECT " + expression + " AS Bucket, "
+                + MONEY_COLUMNS
+                + "FROM Payment "
+                + "WHERE " + SUCCESSFUL
+                + "AND PaymentDate >= ? AND PaymentDate < ? "
+                + "GROUP BY " + expression
+                + " ORDER BY Bucket";
+
+        List<RevenueReport> rows = query(
+                sql,
+                rs -> new RevenueReport(
+                        ReportPeriod.label(
+                                rs.getDate("Bucket").toLocalDate(),
+                                group
+                        ),
+                        rs.getBigDecimal("Collected"),
+                        rs.getBigDecimal("Refunded")
+                ),
+                Date.valueOf(from),
+                Date.valueOf(to.plusDays(1))
+        );
+
+        Map<String, RevenueReport> indexed = new LinkedHashMap<>();
+
+        for (RevenueReport row : rows) {
+            indexed.put(row.getTimeUnit(), row);
         }
+
+        List<RevenueReport> result = new ArrayList<>();
+
+        for (LocalDate bucket = ReportPeriod.bucket(from, group);
+                !bucket.isAfter(to);
+                bucket = ReportPeriod.next(bucket, group)) {
+
+            String label = ReportPeriod.label(bucket, group);
+
+            result.add(indexed.getOrDefault(
+                    label,
+                    new RevenueReport(
+                            label,
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO
+                    )
+            ));
+        }
+
         return result;
     }
 
-    // =========================================================
-    // HELPER METHODS
-    // =========================================================
-
-    /**
-     * Validates the year and reserves room for the exclusive upper bound.
-     */
     private void validateYear(int year) {
-
         if (year < 1 || year > 9998) {
             throw new IllegalArgumentException(
                     "Report year must be between 1 and 9998."
@@ -442,10 +402,6 @@ public class ReportDAO extends DBContext {
         }
     }
 
-    /**
-     * Converts an inclusive date range into SQL query boundaries.
-     * The returned end boundary is exclusive.
-     */
     private Date[] getPeriodBounds(
             LocalDate fromDate,
             LocalDate toDate) {
@@ -471,46 +427,32 @@ public class ReportDAO extends DBContext {
         };
     }
 
-    /**
-     * Adds zero-valued entries for statuses without matching records.
-     * Results follow the order of the supplied status names.
-     */
     private List<ReportStatistic> completeStatuses(
-            List<ReportStatistic> existing,
+            List<ReportStatistic> rows,
             String... statuses) {
 
-        Map<String, ReportStatistic> indexed =
-                new LinkedHashMap<>();
+        Map<String, ReportStatistic> indexed = new LinkedHashMap<>();
 
-        for (ReportStatistic item : existing) {
-            indexed.put(item.getStatus(), item);
+        for (ReportStatistic row : rows) {
+            indexed.put(row.getStatus(), row);
         }
 
         List<ReportStatistic> result = new ArrayList<>();
 
         for (String status : statuses) {
-
-            ReportStatistic item = indexed.get(status);
-
-            if (item == null) {
-                item = new ReportStatistic(
-                        status,
-                        0,
-                        BigDecimal.ZERO
-                );
-            }
-
-            result.add(item);
+            result.add(indexed.getOrDefault(
+                    status,
+                    new ReportStatistic(
+                            status,
+                            0,
+                            BigDecimal.ZERO
+                    )
+            ));
         }
 
         return result;
     }
 
-    /**
-     * Executes a parameterized query and maps its result rows.
-     * JDBC resources are closed automatically.
-     * SQL failures are propagated for the servlet to handle.
-     */
     private <T> List<T> query(
             String sql,
             RowMapper<T> mapper,
@@ -527,14 +469,12 @@ public class ReportDAO extends DBContext {
             }
 
             try (ResultSet rs = statement.executeQuery()) {
-
                 while (rs.next()) {
                     result.add(mapper.map(rs));
                 }
             }
 
         } catch (SQLException ex) {
-
             throw new IllegalStateException(
                     "Unable to load report data.",
                     ex
@@ -544,12 +484,8 @@ public class ReportDAO extends DBContext {
         return result;
     }
 
-    /**
-     * Maps the current result-set row to a model or value.
-     */
     @FunctionalInterface
     private interface RowMapper<T> {
-
         T map(ResultSet rs) throws SQLException;
     }
 }

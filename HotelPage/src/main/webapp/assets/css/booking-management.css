@@ -25,9 +25,96 @@
     padding: clamp(1rem, 2vw, 1.5rem);
 }
 
-.booking-filter-card .form-control,
-.booking-filter-card .form-select {
-    min-height: 2.75rem;
+.luxe-admin-bookings .booking-filter-card .form-control,
+.luxe-admin-bookings .booking-filter-card .form-select {
+    min-height: 50px;
+}
+
+.booking-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+    gap: .8rem 1rem;
+}
+
+.booking-filter-grid > * {
+    min-width: 0;
+}
+
+.booking-filter-grid .form-label {
+    margin-bottom: .35rem;
+}
+
+.search-calendar-field {
+    position: relative;
+}
+
+.luxe-admin-bookings .booking-filter-grid .search-calendar-field > .form-control,
+.offline-booking-page .search-calendar-field > .ob-input {
+    padding: 12px 12px 12px 40px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    color: #333;
+    font-weight: 500;
+}
+
+.luxe-admin-bookings .booking-filter-grid .search-calendar-field > .form-control:focus,
+.offline-booking-page .search-calendar-field > .ob-input:focus {
+    background-color: #fff;
+    border-color: #b29575;
+    box-shadow: 0 0 0 .25rem rgba(178, 149, 117, .25);
+}
+
+.search-calendar-field > .bi-calendar3 {
+    position: absolute;
+    inset: 50% auto auto 15px;
+    transform: translateY(-50%);
+    color: #b29575;
+    font-size: 1.1rem;
+    pointer-events: none;
+}
+
+.booking-filter-keyword,
+.booking-filter-actions {
+    grid-column: 1 / -1;
+}
+
+.booking-filter-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+
+.booking-filter-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    min-height: 50px;
+    white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+    .booking-filter-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .booking-filter-keyword {
+        grid-column: auto;
+    }
+}
+
+@media (min-width: 1200px) {
+    .booking-filter-grid {
+        grid-template-columns: minmax(0, 1.35fr) minmax(4.5rem, .55fr)
+            repeat(2, minmax(7.5rem, 1fr)) repeat(2, minmax(9rem, 1fr)) auto;
+        column-gap: .65rem;
+    }
+
+    .booking-filter-actions {
+        grid-column: auto;
+        flex-wrap: nowrap;
+    }
 }
 
 .booking-results .table thead th {

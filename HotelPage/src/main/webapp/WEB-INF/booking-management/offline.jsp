@@ -13,6 +13,7 @@
 <%@taglib prefix="fn" uri="jakarta.tags.functions"%>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt"%>
 
+<fmt:setLocale value="${requestScope.uiLanguage == 'vi' ? 'vi_VN' : 'en_US'}" scope="page"/>
 <!DOCTYPE html>
 <html lang="${requestScope.uiLanguage}" class="uc09-page">
     <head>
@@ -30,18 +31,22 @@
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/assets/css/offline-booking.css?v=stable-1">
+              href="${pageContext.request.contextPath}/assets/css/offline-booking.css?v=room-picker-1">
+        <%@ include file="/WEB-INF/include/date-picker.jsp" %>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+        <link rel="stylesheet" href="<c:url value='/assets/css/booking-management.css?v=staff-calendar-2'/>">
+        <link rel="stylesheet" href="<c:url value='/assets/css/management.css'/>">
     </head>
 
-    <body class="offline-booking-page">
+    <body class="offline-booking-page management-page">
         <div class="body-wrapper">
             <%@include file="/WEB-INF/include/header.jsp"%>
 
             <main class="ob-page">
-                <div class="ob-heading">
+                <div class="management-hero">
                     <h1><ui:text key="screen.02c223c42181cf2b"/></h1>
 
-                    <a class="ob-back"
+                    <a class="btn btn-light"
                        href="${pageContext.request.contextPath}/booking-management">
                         <ui:text key="screen.c94d50d55899f838"/>
                     </a>
@@ -54,14 +59,20 @@
                 </c:if>
 
 
+                <p class="ob-note">Khách tại quầy chưa có tài khoản có thể xác minh email để kích hoạt và giữ lịch sử đặt phòng:
+                    <a href="${pageContext.request.contextPath}/walkin-account" target="_blank" rel="noopener">Liên kết kích hoạt gửi cho khách</a>.
+                    Khách mở liên kết trên thiết bị của mình, chưa đăng nhập. Không tự tạo tài khoản thay khách.
+                </p>
                 <form action="${pageContext.request.contextPath}/offline-booking"
                       method="post"
-                      id="offlineForm">
+                      id="offlineForm" data-reviewed="${not empty quote}" data-uncertain="${uncertain}" data-quote-age="${quoteRemainingMillis}" data-search-key="${fn:escapeXml(searchedStay)}" data-quote-signature="${fn:escapeXml(quoteSignature)}">
 
                     <input type="hidden"
                            name="csrfToken"
                            value="${sessionScope.csrfToken}">
                     <input type="hidden" name="submissionToken" value="${submissionToken}">
+                    <input type="hidden" name="quoteToken" value="${quoteToken}">
+                    <p id="obSearchChanged" class="alert alert-warning" hidden>Ngày hoặc số khách đã đổi. Tìm lại phòng để tiếp tục.</p>
 
                     <div class="ob-grid">
                         <div class="ob-stack">
@@ -69,7 +80,6 @@
                             <section class="ob-panel">
                                 <div class="ob-panel-top">
                                     <h2><ui:text key="screen.8a25de2296303d74"/></h2>
-                                    <span class="ob-number">01</span>
                                 </div>
 
                                 <div class="ob-fields">
@@ -78,13 +88,16 @@
                                             <ui:text key="screen.5d7b2d63203faae8"/>
                                         </label>
 
-                                        <input class="ob-input"
-                                               type="date"
-                                               id="checkIn"
-                                               name="checkIn"
-                                               required
-                                               min="${today}"
-                                               value="${fn:escapeXml(form.checkIn)}">
+                                        <div class="search-calendar-field">
+                                            <i class="bi bi-calendar3" aria-hidden="true"></i>
+                                            <input class="ob-input" data-booking-calendar
+                                                   type="date"
+                                                   id="checkIn"
+                                                   name="checkIn"
+                                                   required
+                                                   min="${today}"
+                                                   value="${fn:escapeXml(form.checkIn)}">
+                                        </div>
                                     </div>
 
                                     <div class="ob-field">
@@ -92,13 +105,16 @@
                                             <ui:text key="screen.1a51b94f713b1ee9"/>
                                         </label>
 
-                                        <input class="ob-input"
-                                               type="date"
-                                               id="checkOut"
-                                               name="checkOut"
-                                               required
-                                               min="${today}"
-                                               value="${fn:escapeXml(form.checkOut)}">
+                                        <div class="search-calendar-field">
+                                            <i class="bi bi-calendar3" aria-hidden="true"></i>
+                                            <input class="ob-input" data-booking-calendar data-after-date="checkIn"
+                                                   type="date"
+                                                   id="checkOut"
+                                                   name="checkOut"
+                                                   required
+                                                   min="${today}"
+                                                   value="${fn:escapeXml(form.checkOut)}">
+                                        </div>
                                     </div>
 
                                     <div class="ob-search ob-full">
@@ -134,39 +150,41 @@
                                     </p>
                                 </c:if>
 
-                                <div class="ob-field ob-room-field">
-                                    <label for="roomNumber"><ui:text key="screen.7c2d837276e934c7"/></label>
-
-                                    <select class="ob-input"
-                                            id="roomNumber"
-                                            name="roomNumber"
-                                            required>
-
-                                        <option value="" data-i18n="screen.2ccbf4a8c0509a35">
-                                            ${requestScope.i18n['screen.2ccbf4a8c0509a35']}
-                                        </option>
-
-                                        <c:forEach items="${rooms}" var="room">
-                                            <option value="${room.roomNumber}"
-                                                    data-price="${room.roomType.pricePerNight}"
-                                                    data-label="${fn:escapeXml(room.roomType.name)}"
-                                                    ${form.roomNumber == room.roomNumber
-                                                      ? 'selected' : ''}>
-
-                                                ${requestScope.i18n['screen.911ea89c43d9dbb8']} ${room.roomNumber}
-                                                · <c:out value="${room.roomType.name}"/>
-                                                · ${room.roomType.capacity} ${requestScope.i18n['screen.45f69c6d7bebdee3']} <fmt:formatNumber value="${room.roomType.pricePerNight}"/>
-                                                ${requestScope.i18n['screen.0d48d80c52b5c1ef']}
-                                            </option>
-                                        </c:forEach>
-                                    </select>
-                                </div>
+                                <c:if test="${not empty rooms}">
+                                    <fieldset class="ob-room-field" id="obRoomPicker">
+                                        <legend><ui:text key="screen.7c2d837276e934c7"/></legend>
+                                        <label class="visually-hidden" for="obRoomSearch"><ui:text key="offline.roomSearch"/></label>
+                                        <input class="ob-input" type="search" id="obRoomSearch" autocomplete="off"
+                                               placeholder="${requestScope.i18n['offline.roomSearch']}" data-i18n-placeholder="offline.roomSearch">
+                                        <div class="ob-room-results" id="obRoomResults">
+                                            <c:forEach items="${rooms}" var="room">
+                                                <label class="ob-room-choice">
+                                                    <input type="radio" name="roomNumber" required
+                                                           value="${room.roomNumber}" data-price="${room.roomType.pricePerNight}"
+                                                           data-label="${fn:escapeXml(room.roomType.name)}"
+                                                           ${form.roomNumber == room.roomNumber ? 'checked' : ''}>
+                                                    <span class="ob-room-name">
+                                                        <strong>#${room.roomNumber}</strong>
+                                                        <c:out value="${room.roomType.name}"/>
+                                                    </span>
+                                                    <span class="ob-room-capacity">${room.roomType.capacity} <ui:text key="offline.guests"/></span>
+                                                    <span class="ob-room-price"><ui:money amount="${room.roomType.pricePerNight}"/> <ui:text key="screen.f8b08898c2e4a561"/></span>
+                                                </label>
+                                            </c:forEach>
+                                        </div>
+                                        <p class="ob-note" id="obNoMatchingRooms" hidden><ui:text key="offline.noMatchingRooms"/></p>
+                                        <div class="ob-room-pagination">
+                                            <button type="button" class="ob-button ob-secondary" id="obRoomsPrevious" aria-controls="obRoomResults"><ui:text key="screen.a57b08a480b822a0"/></button>
+                                            <span id="obRoomRange" role="status"></span>
+                                            <button type="button" class="ob-button ob-secondary" id="obRoomsNext" aria-controls="obRoomResults"><ui:text key="screen.1ff57a29d7c9d11b"/></button>
+                                        </div>
+                                    </fieldset>
+                                </c:if>
                             </section>
 
                             <section class="ob-panel">
                                 <div class="ob-panel-top">
                                     <h2><ui:text key="screen.bf3763383aaf4306"/></h2>
-                                    <span class="ob-number">02</span>
                                 </div>
 
                                 <div class="ob-mode"
@@ -315,7 +333,6 @@
                             <section class="ob-panel">
                                 <div class="ob-panel-top">
                                     <h2><ui:text key="screen.a42f24143514fb13"/></h2>
-                                    <span class="ob-number">03</span>
                                 </div>
 
                                 <div class="ob-fields">
@@ -324,12 +341,17 @@
                                             <ui:text key="screen.fd947a841a798fb7"/>
                                         </label>
 
-                                        <input class="ob-input"
-                                               name="promotionCode"
-                                               id="promotionCode"
-                                               maxlength="50"
-                                               value="${fn:escapeXml(form.promotionCode)}"
-                                               placeholder="${requestScope.i18n['screen.16be5a510aa9cbab']}" data-i18n-placeholder="screen.16be5a510aa9cbab">
+                                        <select class="ob-input" name="promotionCode" id="promotionCode"
+                                                aria-describedby="obPromotionHint">
+                                            <option value="" data-i18n="offline.noPromotion">${requestScope.i18n['offline.noPromotion']}</option>
+                                            <c:forEach var="promotion" items="${promotions}">
+                                                <option value="${fn:escapeXml(promotion.code)}" data-minimum="${promotion.minimum}"
+                                                        ${form.promotionCode eq promotion.code ? 'selected' : ''}>
+                                                    <c:out value="${promotion.code}"/> · <fmt:formatNumber value="${promotion.percent}"/>%
+                                                </option>
+                                            </c:forEach>
+                                        </select>
+                                        <p class="ob-note mb-0" id="obPromotionHint"><ui:text key="offline.promotionEligibility"/></p>
                                     </div>
 
                                     <div class="ob-field ob-full">
@@ -396,17 +418,90 @@
                                     </strong>
                                 </div>
 
-                                <button type="submit"
-                                        name="action"
-                                        value="create"
-                                        class="ob-button ob-primary"
-                                        ${empty rooms ? 'disabled' : ''}>
-                                    <ui:text key="screen.58982c7a6d7fdc02"/>
-                                    <span aria-hidden="true">→</span>
-                                </button>
+                                <c:if test="${not empty quote}">
+                                    <div id="obReviewedQuote" class="ob-quote" role="status">
+                                        <div class="ob-quote-title">
+                                            <h3>Chi tiết báo giá</h3>
+                                            <span class="ob-quote-badge">Đã kiểm tra giá</span>
+                                        </div>
 
-                                <p class="ob-note">
-                                    Tiền phòng tạm tính chưa trừ mã giảm. Hệ thống kiểm tra mã khi tạo đơn; số tiền chính thức hiển thị ở hồ sơ trước khi thu tiền.
+                                        <div class="ob-quote-customer">
+                                            <span class="ob-customer-mark" aria-hidden="true">KH</span>
+                                            <div>
+                                                <span class="ob-customer-label">Khách lưu trú</span>
+                                                <strong><c:out value="${quote.customerName}"/></strong>
+                                            </div>
+                                        </div>
+
+                                        <dl class="ob-quote-lines">
+                                            <div class="ob-summary-row">
+                                                <dt>Đơn giá / đêm</dt>
+                                                <dd>
+                                                    <fmt:formatNumber value="${quote.nightly}"
+                                                                      maxFractionDigits="2"/> ₫
+                                                </dd>
+                                            </div>
+
+                                            <div class="ob-summary-row">
+                                                <dt>Tiền phòng (${quote.nights} đêm)</dt>
+                                                <dd>
+                                                    <fmt:formatNumber value="${quote.gross}"
+                                                                      maxFractionDigits="2"/> ₫
+                                                </dd>
+                                            </div>
+
+                                            <c:if test="${quote.gross > quote.payable}">
+                                                <div class="ob-summary-row ob-discount-row">
+                                                    <dt>Giảm dự kiến</dt>
+                                                    <dd>
+                                                        −<fmt:formatNumber value="${quote.gross - quote.payable}"
+                                                                          maxFractionDigits="2"/> ₫
+                                                    </dd>
+                                                </div>
+                                            </c:if>
+                                        </dl>
+
+                                        <div class="ob-quote-total">
+                                            <span>Tổng dự kiến</span>
+                                            <strong>
+                                                <fmt:formatNumber value="${quote.payable}"
+                                                                  maxFractionDigits="2"/>
+                                                <small>₫</small>
+                                            </strong>
+                                        </div>
+
+                                        <div class="ob-quote-deposit">
+                                            <div>
+                                                <span>Cọc dự kiến</span>
+                                                <small>${depositPercent}% tổng tiền</small>
+                                            </div>
+                                            <strong>
+                                                <fmt:formatNumber value="${quotedDeposit}"
+                                                                  maxFractionDigits="2"/> ₫
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    <p id="obQuoteChanged" class="alert alert-warning" hidden>Thông tin đã thay đổi hoặc báo giá hết hạn. Xem và kiểm tra giá lại trước khi tạo.</p>
+                                </c:if>
+                                <c:if test="${not uncertain}">
+                                    <button type="submit" name="action" value="preview"
+                                            class="ob-button ob-secondary" ${empty rooms ? 'disabled' : ''}>
+                                        <c:choose>
+                                            <c:when test="${not empty quote}">Cập nhật báo giá</c:when>
+                                            <c:otherwise>Xem và kiểm tra giá</c:otherwise>
+                                        </c:choose>
+                                    </button>
+                                    <c:if test="${not empty quote}">
+                                        <button type="submit" name="action" value="create"
+                                                class="ob-button ob-primary mt-3" disabled>
+                                            Xác nhận tạo đặt phòng
+                                        </button>
+                                    </c:if>
+                                </c:if>
+                                <p class="ob-note mt-3">
+                                    Xem giá chưa giữ phòng. Báo giá có hiệu lực xác nhận trong 5 phút;
+                                    hệ thống kiểm tra lại khi tạo. Khuyến mãi vẫn được kiểm tra ở bước thu tiền.
+                                    Tạo đơn chưa ghi nhận thanh toán.
                                 </p>
 
                                 <a class="ob-cancel"
@@ -417,13 +512,23 @@
                         </aside>
                     </div>
                 </form>
-
+                <c:if test="${uncertain}">
+                    <section class="ob-panel mt-3" role="status">
+                        <p>Chưa rõ yêu cầu trước đã tạo đơn hay chưa. Kiểm tra lịch sử trước, hoặc kiểm tra lại đúng yêu cầu cũ.</p>
+                        <form method="post" action="${pageContext.request.contextPath}/offline-booking">
+                            <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                            <input type="hidden" name="submissionToken" value="${submissionToken}">
+                            <input type="hidden" name="quoteToken" value="${quoteToken}">
+                            <button class="ob-button ob-primary" type="submit" name="action" value="retry">Kiểm tra lại yêu cầu cũ</button>
+                        </form>
+                    </section>
+                </c:if>
             </main>
 
             <%@include file="/WEB-INF/include/footer.jsp"%>
         </div>
 
         <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js"></script>
-        <script src="${pageContext.request.contextPath}/assets/js/offline-booking.js?v=staff-direct-1" defer></script>
+        <script src="${pageContext.request.contextPath}/assets/js/offline-booking.js?v=room-picker-1" defer></script>
     </body>
 </html>

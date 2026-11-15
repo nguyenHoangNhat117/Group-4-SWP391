@@ -1,10 +1,4 @@
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
-<%-- 
-    Document   : update
-    Created on : May 26, 2025, 9:46:21 AM
-    Author     : Đặng Hoàng Vũ
---%>
-
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 
@@ -29,19 +23,20 @@
 
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
 </head>
 
-    <body class="bg-light">
+    <body class="management-page bg-light">
 
         <div class="body-wrapper">
 
             <%@include file="/WEB-INF/include/header.jsp" %>
 
             <main
-                class="min-vh-50 d-flex flex-column
-                       align-items-center justify-content-center">
+                class="management-edit">
 
-                <!-- Error Messages -->
+                <div class="management-hero"><div><div class="eyebrow">LUXE ESCAPE</div><h1><ui:text key="screen.9181744d5adbd775"/> #${room.roomNumber}</h1></div></div>
+<!-- Error Messages -->
                 <c:choose>
 
                     <c:when test="${param.error == 'active-booking'}">
@@ -112,7 +107,7 @@
                 </c:choose>
 
                 <div
-                    class="shadow rounded-4 bg-white
+                    class="management-edit-card shadow rounded-4 bg-white
                            p-5 w-50">
 
                     <form
@@ -249,7 +244,7 @@
                         </div>
 
                         <!-- Submit -->
-                        <div class="text-end">
+                        <div class="d-flex justify-content-between gap-3"><a class="btn btn-outline-secondary" href="${pageContext.request.contextPath}/room"><ui:text key="management.back"/></a>
 
                             <button
                                 type="submit"
@@ -276,6 +271,7 @@
             src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js">
         </script>
 
-    </body>
+    <script src="${pageContext.request.contextPath}/assets/js/management.js"></script>
+</body>
 
 </html>

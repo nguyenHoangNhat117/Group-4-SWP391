@@ -190,9 +190,9 @@ public class BookingDAO extends DBContext {
                 util.ReportPeriod.today()
         );
 
-        BigDecimal currentPrice = lockAvailableRoom(
-                conn, roomNumber, checkIn, checkOut, guests
-        );
+        BigDecimal currentPrice = actor == null
+                ? lockAvailableRoom(conn, roomNumber, checkIn, checkOut, guests)
+                : lockAvailableOfflineRoom(conn, roomNumber, checkIn, checkOut, guests);
 
         long nights = java.time.temporal.ChronoUnit.DAYS.between(
                 checkIn, checkOut
@@ -374,6 +374,18 @@ public class BookingDAO extends DBContext {
 
     private static BigDecimal lockAvailableRoom(Connection conn, int roomNumber,
             LocalDate from, LocalDate to, int guests, Integer expectedType) throws SQLException {
+        return lockAvailableRoom(conn, roomNumber, from, to, guests, expectedType, true);
+    }
+
+    static BigDecimal lockAvailableOfflineRoom(Connection conn, int roomNumber,
+            LocalDate from, LocalDate to, int guests) throws SQLException {
+        return lockAvailableRoom(conn, roomNumber, from, to, guests, null,
+                !from.isAfter(util.ReportPeriod.today()));
+    }
+
+    private static BigDecimal lockAvailableRoom(Connection conn, int roomNumber,
+            LocalDate from, LocalDate to, int guests, Integer expectedType,
+            boolean requireClean) throws SQLException {
         BigDecimal price;
 
         String roomSql
@@ -382,15 +394,16 @@ public class BookingDAO extends DBContext {
                 + "JOIN RoomType rt WITH(HOLDLOCK) "
                 + "ON rt.RoomTypeID=r.RoomTypeID "
                 + "WHERE r.RoomNumber=? "
-                + "AND r.Status='available' AND r.NeedsCleaning=0 "
+                + "AND r.Status='available' AND (?=0 OR r.NeedsCleaning=0) "
                 + "AND rt.IsActive=1 "
                 + "AND rt.Capacity>=? AND (? IS NULL OR r.RoomTypeID=?)";
 
         try (PreparedStatement ps = conn.prepareStatement(roomSql)) {
             ps.setInt(1, roomNumber);
-            ps.setInt(2, guests);
-            ps.setObject(3, expectedType, java.sql.Types.INTEGER);
+            ps.setInt(2, requireClean ? 1 : 0);
+            ps.setInt(3, guests);
             ps.setObject(4, expectedType, java.sql.Types.INTEGER);
+            ps.setObject(5, expectedType, java.sql.Types.INTEGER);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
@@ -1269,6 +1282,12 @@ public class BookingDAO extends DBContext {
             return false;
         }
 
+        // Deposit-policy stays must settle through the counter checkout transaction.
+        if (booking.isOnlineDepositPolicy()
+                && ("checked_out".equals(newStatus) || "completed".equals(newStatus))) {
+            return false;
+        }
+
         if (!isValidStatusTransition(
                 booking.getStatus(),
                 newStatus)) {
@@ -1496,7 +1515,13 @@ public class BookingDAO extends DBContext {
      * - Stay date range and room number
  * =========================================================
      */
-    private static void appendStayFilter(StringBuilder sql, LocalDate fromDate, LocalDate toDate, Integer roomNumber) {
+    private static void appendBookingFilters(StringBuilder sql, LocalDate fromDate, LocalDate toDate,
+            Integer roomNumber, String source) {
+        if ("online".equals(source)) {
+            sql.append("AND b.CreatedByUserID IS NULL ");
+        } else if ("offline".equals(source)) {
+            sql.append("AND b.CreatedByUserID IS NOT NULL ");
+        }
         if (fromDate == null && toDate == null && roomNumber == null) {
             return;
         }
@@ -1533,8 +1558,14 @@ public class BookingDAO extends DBContext {
             LocalDate fromDate,
             LocalDate toDate,
             Integer roomNumber,
+            String source,
             int page,
             int pageSize) {
+        return searchBookings(keyword, status, fromDate, toDate, roomNumber, source, page, pageSize, null);
+    }
+
+    public List<Booking> searchBookings(String keyword, String status, LocalDate fromDate, LocalDate toDate, Integer roomNumber, String source, int page, int pageSize, String sort) {
+
 
         List<Booking> bookings
                 = new ArrayList<>();
@@ -1553,6 +1584,7 @@ public class BookingDAO extends DBContext {
         sql.append(
                 "SELECT "
                 + "b.BookingID, "
+                + "b.CreatedByUserID, "
                 + "b.BookingDate, "
                 + "b.Status, "
                 + "b.TotalPrice, "
@@ -1617,10 +1649,11 @@ public class BookingDAO extends DBContext {
             );
         }
 
-        appendStayFilter(sql, fromDate, toDate, roomNumber);
+        appendBookingFilters(sql, fromDate, toDate, roomNumber, source);
 
         sql.append(
                 "ORDER BY "
+                + ("asc".equals(sort) ? "b.TotalPrice ASC, " : "desc".equals(sort) ? "b.TotalPrice DESC, " : "")
                 + "b.BookingDate DESC, "
                 + "b.BookingID DESC "
                 + "OFFSET ? ROWS "
@@ -1753,6 +1786,7 @@ public class BookingDAO extends DBContext {
                     Booking booking
                             = mapBooking(rs);
 
+                    booking.setOffline(rs.getObject("CreatedByUserID") != null);
                     booking.setCustomer(
                             customer
                     );
@@ -1794,7 +1828,8 @@ public class BookingDAO extends DBContext {
             String status,
             LocalDate fromDate,
             LocalDate toDate,
-            Integer roomNumber) {
+            Integer roomNumber,
+            String source) {
 
         StringBuilder sql
                 = new StringBuilder();
@@ -1843,7 +1878,7 @@ public class BookingDAO extends DBContext {
             );
         }
 
-        appendStayFilter(sql, fromDate, toDate, roomNumber);
+        appendBookingFilters(sql, fromDate, toDate, roomNumber, source);
 
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(

@@ -3,15 +3,19 @@
          pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
+<c:set var="withdrawalDateFormat" value='<%= DateTimeFormatter.ofPattern("dd/MM/uuuu HH:mm") %>'/>
 
 <!DOCTYPE html>
-<html>
+<html lang="${requestScope.uiLanguage}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1">
 
-        <title>Withdrawal Management - Luxe Escape</title>
+        <title data-i18n="management.withdrawals">${requestScope.i18n['management.withdrawals']}</title>
 
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -23,36 +27,21 @@
               href="${pageContext.request.contextPath}/assets/css/luxe-shared-shell.css">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/assets/css/management.css">
+        <%@ include file="/WEB-INF/include/date-picker.jsp" %>
 
         <style>
-            body {
-                background: #faf7f2;
-                color: #32291f;
-            }
-
-            .management-container {
-                max-width: 1300px;
-                margin: 50px auto;
-                padding: 20px;
-            }
-
-            .management-title {
-                font-family: Georgia, serif;
-                font-size: 40px;
-                margin-bottom: 20px;
-            }
-
             .management-card {
                 background: white;
-                border: 1px solid #e7ded1;
+                border: 1px solid #e3e9e4;
                 border-radius: 18px;
-                padding: 25px;
-                margin-bottom: 25px;
+                box-shadow: 0 10px 24px #18392f0d;
             }
 
             .management-table th {
-                background: #f6f0e8;
-                color: #79644f;
+                background: #edf3ef;
+                color: #345749;
                 white-space: nowrap;
             }
 
@@ -62,34 +51,32 @@
                 vertical-align: middle;
             }
 
-            .approve-btn {
-                background: #b49a78;
-                border: none;
-                color: white;
-                border-radius: 8px;
-                padding: 7px 14px;
+            .withdrawal-date {
+                white-space: nowrap;
+                font-variant-numeric: tabular-nums;
             }
 
-            .approve-btn:hover {
-                background: #967c5b;
-                color: white;
+            .withdrawal-actions {
+                min-width: 15rem;
             }
         </style>
     </head>
 
-    <body>
+    <body class="management-page bg-light">
 
         <jsp:include page="/WEB-INF/include/header.jsp"/>
 
-        <main class="management-container">
+        <main class="container management-container py-4 py-lg-5">
 
-            <h1 class="management-title">
-                Withdrawal Management
-            </h1>
-
-            <p class="text-muted">
-                Review and manage customer withdrawal requests.
-            </p>
+            <div class="management-hero">
+                <div>
+                    <h1><ui:text key="management.withdrawals"/></h1>
+                    <p><ui:text key="management.withdrawalsDescription"/></p>
+                </div>
+                <a class="btn btn-light" href="${pageContext.request.contextPath}/hotel-wallet">
+                    <ui:text key="management.wallet"/>
+                </a>
+            </div>
 
             <c:if test="${param.result == 'success'}">
                 <div class="alert alert-success">
@@ -104,18 +91,16 @@
                 </div>
             </c:if>
 
-            <section class="management-card">
-
                 <form action="${pageContext.request.contextPath}/withdrawal-management"
                       method="get"
-                      class="row g-3 align-items-end mb-4">
+                      class="management-filters">
 
-                    <div class="col-md-4">
-                        <label class="form-label">
+                    <div>
+                        <label for="withdrawal-status" class="form-label">
                             Filter by Status
                         </label>
 
-                        <select name="status"
+                        <select id="withdrawal-status" name="status"
                                 class="form-select">
 
                             <option value=""
@@ -145,24 +130,34 @@
                         </select>
                     </div>
 
-                    <div class="col-md-auto">
-                        <button type="submit"
-                                class="approve-btn">
-                            Apply Filter
-                        </button>
+                    <div>
+                        <label for="withdrawal-date"><ui:text key="management.withdrawalDate"/></label>
+                        <input id="withdrawal-date" class="form-control" name="date" type="date" value="${selectedDate}">
+                    </div>
+                    <div>
+                        <label for="withdrawal-keyword"><ui:text key="management.withdrawalAccount"/></label>
+                        <input id="withdrawal-keyword" class="form-control" name="q" type="search" maxlength="150"
+                               value="<c:out value='${keyword}'/>">
+                    </div>
+                    <div>
+                        <label for="withdrawal-bank"><ui:text key="management.withdrawalBank"/></label>
+                        <input id="withdrawal-bank" class="form-control" name="bank" type="search" maxlength="100"
+                               value="<c:out value='${bank}'/>">
                     </div>
 
-                    <div class="col-md-auto">
+                        <button type="submit" class="btn btn-success">
+                            Apply Filter
+                        </button>
                         <a href="${pageContext.request.contextPath}/withdrawal-management"
                            class="btn btn-outline-secondary">
                             Clear
                         </a>
-                    </div>
                 </form>
 
+            <section class="management-card overflow-hidden">
                 <div class="table-responsive">
 
-                    <table class="table management-table">
+                    <table class="table table-hover management-table mb-0">
 
                         <thead>
                             <tr>
@@ -198,11 +193,21 @@
                                     </td>
 
                                     <td>
-                                        <c:out value="${w.bankName}"/>
+                                        <strong class="d-block"><c:out value="${w.bankName}"/></strong>
+                                        <span class="small text-muted"><c:out value="${w.accountHolder}"/></span>
+                                        <c:if test="${fn:length(w.accountNumber) gt 4}">
+                                            <span class="small text-muted text-nowrap">· ••••<c:out value="${fn:substring(w.accountNumber, fn:length(w.accountNumber) - 4, fn:length(w.accountNumber))}"/></span>
+                                        </c:if>
                                     </td>
 
-                                    <td>
-                                        <c:out value="${w.createdAt}"/>
+                                    <td class="withdrawal-date">
+                                        <c:choose>
+                                            <c:when test="${not empty w.createdAt}">
+                                                <c:set var="submitted" value="${w.createdAt.atOffset(utcOffset).atZoneSameInstant(hotelZone)}"/>
+                                                <time datetime="${submitted.toOffsetDateTime()}">${submitted.format(withdrawalDateFormat)}</time>
+                                            </c:when>
+                                            <c:otherwise>—</c:otherwise>
+                                        </c:choose>
                                     </td>
 
                                     <td>
@@ -239,7 +244,7 @@
                                         </c:choose>
                                     </td>
 
-                                    <td>
+                                    <td class="withdrawal-actions">
                                         <c:if test="${w.status == 'pending'}">
 
                                             <div class="d-flex flex-column gap-2">
@@ -261,7 +266,7 @@
                                                            value="approve">
 
                                                     <button type="submit"
-                                                            class="approve-btn">
+                                                            class="btn btn-success btn-sm">
                                                         Approve
                                                     </button>
 
@@ -286,6 +291,7 @@
                                                            name="rejectReason"
                                                            class="form-control form-control-sm mb-2"
                                                            placeholder="Reason for rejection"
+                                                           aria-label="Reason for rejection"
                                                            maxlength="500"
                                                            required>
 
@@ -298,9 +304,7 @@
                                             </div>
                                         </c:if>
 
-                                        <c:if test="${w.status == 'approved'
-                                                      and (sessionScope.loggedUser.role == 'admin'
-                                                      or sessionScope.loggedUser.role == 'manager')}">
+                                        <c:if test="${w.status == 'approved'}">
 
                                               <form action="${pageContext.request.contextPath}/withdrawal-action"
                                                     method="post">
@@ -317,12 +321,12 @@
                                                          name="action"
                                                          value="markPaid">
 
-                                                  <label class="form-label small">
+                                                  <label for="payout-reference-${w.withdrawalId}" class="form-label small">
                                                       Verified Payout Reference
                                                   </label>
 
                                                   <input type="text"
-                                                         name="paymentReference"
+                                                         id="payout-reference-${w.withdrawalId}" name="paymentReference"
                                                          class="form-control form-control-sm mb-2"
                                                          maxlength="100"
                                                          required>
@@ -378,7 +382,7 @@
 
                 <c:if test="${totalPages > 1}">
                     <nav class="d-flex justify-content-center
-                         align-items-center gap-3 mt-4"
+                         align-items-center flex-wrap gap-3 p-3 border-top"
                          aria-label="Withdrawal pages">
 
                         <c:choose>
@@ -387,6 +391,9 @@
                                        value="/withdrawal-management">
                                     <c:param name="status"
                                              value="${selectedStatus}"/>
+                                    <c:param name="date" value="${selectedDate}"/>
+                                    <c:param name="q" value="${keyword}"/>
+                                    <c:param name="bank" value="${bank}"/>
                                     <c:param name="page"
                                              value="${currentPage - 1}"/>
                                 </c:url>
@@ -417,6 +424,9 @@
                                        value="/withdrawal-management">
                                     <c:param name="status"
                                              value="${selectedStatus}"/>
+                                    <c:param name="date" value="${selectedDate}"/>
+                                    <c:param name="q" value="${keyword}"/>
+                                    <c:param name="bank" value="${bank}"/>
                                     <c:param name="page"
                                              value="${currentPage + 1}"/>
                                 </c:url>

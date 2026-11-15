@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
 package controller;
 
 import dao.CustomerDAO;
@@ -73,7 +69,15 @@ public class ProfileServlet extends HttpServlet {
 
         // Get customer information based on user's ID
         CustomerDAO dao = new CustomerDAO();
-        Customer customer = dao.getCustomerByUserID(loggedUser.getId());
+        Customer customer;
+        util.AuthSupport.token(request.getSession());
+        try {
+            customer = "customer".equals(loggedUser.getRole())
+                    ? dao.getCustomerByUserID(loggedUser.getId())
+                    : new ProfileDAO().getStaffProfile(loggedUser.getId());
+        } catch (java.sql.SQLException ex) {
+            throw new ServletException("Unable to load profile", ex);
+        }
 
         // Set customer object as request attribute and forward to JSP
         request.setAttribute("customer", customer);
@@ -107,6 +111,7 @@ public class ProfileServlet extends HttpServlet {
             return;
         }
 
+        if (!util.AuthSupport.checkCsrf(request, response)) return;
         int userId = loggedUser.getId();
 
         String displayName = trim(
@@ -146,10 +151,17 @@ public class ProfileServlet extends HttpServlet {
             return;
         }
 
+        if (firstName.length() > 50 || lastName.length() > 50 || email.length() > 100
+                || phone.length() > 20 || country.length() > 50 || city.length() > 50 || street.length() > 100) {
+            response.sendRedirect(request.getContextPath() + "/profile?error=invalid-name");
+            return;
+        }
         // Save both tables in one transaction
         ProfileDAO profileDAO = new ProfileDAO();
 
-        boolean success = profileDAO.updateProfile(
+        boolean success = !"customer".equals(loggedUser.getRole())
+                ? profileDAO.updateStaffProfile(userId, displayName, firstName, lastName, email, phone, country, city, street)
+                : profileDAO.updateProfile(
                 userId,
                 displayName,
                 firstName,

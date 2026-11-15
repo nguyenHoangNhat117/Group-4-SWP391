@@ -265,6 +265,7 @@
                 }
             }
         </style>
+    <%@ include file="/WEB-INF/include/date-picker.jsp" %>
     </head>
 
     <body class="wallet-page">

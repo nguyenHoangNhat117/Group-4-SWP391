@@ -8,7 +8,7 @@
 
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<!DOCTYPE html><html lang="${requestScope.uiLanguage}"><head><title data-i18n="screen.334944f2020670d6">${creating ? requestScope.i18n['screen.4759498ac2a719c6'] : requestScope.i18n['screen.464c4ffd019e1e96']} ${requestScope.i18n['screen.334944f2020670d6']}</title><%@ include file="head.jsp" %></head>
+<!DOCTYPE html><html lang="${requestScope.uiLanguage}"><head><title data-i18n="screen.334944f2020670d6">${creating ? requestScope.i18n['screen.4759498ac2a719c6'] : requestScope.i18n['screen.464c4ffd019e1e96']} ${requestScope.i18n['screen.334944f2020670d6']}</title><%@ include file="head.jsp" %><%@ include file="/WEB-INF/include/auth-password-toggle.jsp" %></head>
     <body class="ua-page"><%@ include file="/WEB-INF/include/header.jsp" %><main class="ua-main">
             <div class="ua-top"><div><div class="ua-eyebrow"><ui:text key="screen.6228800b0a8d2f21"/></div><h1>${creating ? 'Create Account' : requestScope.i18n['screen.1915995d4b16bd05']}</h1></div>
                 <a href="${pageContext.request.contextPath}/admin/users"><ui:text key="screen.db94081a9019f53c"/></a></div>
@@ -42,7 +42,7 @@
                     <c:if test="${not creating and account.id == sessionScope.loggedUser.id}"><input type="hidden" name="role" value="admin"><input type="hidden" name="status" value="active"><p class="ua-wide ua-muted"><ui:text key="screen.4be8e339e5ec7000"/></p></c:if>
                     <c:if test="${creating}"><div class="ua-wide"><label for="password"><ui:text key="screen.8d3e2a011f48dea8"/></label><div class="ua-password">
                                 <input id="password" name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required aria-describedby="password-help">
-                                <button type="button" class="ua-secondary" id="generate-password"><ui:text key="screen.49e49bb4401e67bd"/></button><button type="button" class="ua-secondary" id="toggle-password" aria-pressed="false"><ui:text key="screen.0df6f1cad36c49da"/></button></div>
+                                <button type="button" class="ua-secondary" id="generate-password"><ui:text key="screen.49e49bb4401e67bd"/></button><button type="button" class="ua-secondary" id="toggle-password" data-password-toggle><ui:text key="screen.6aeaa6a53d09dcad"/></button></div>
                             <p class="ua-muted" id="password-help"><ui:text key="screen.79cea24d1ea9e3a2"/></p>
                             <p class="ua-field-error"><c:out value="${errors.password}"/></p></div></c:if>
                 </div><div class="ua-actions" style="margin-top:24px"><button type="submit">${creating ? 'Create Account' : 'Save Changes'}</button>

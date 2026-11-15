@@ -53,6 +53,13 @@ public class OfflineOperationsDAO extends DBContext {
         return money(c,"SELECT COALESCE(SUM(Amount-COALESCE(RefundedAmount,0)),0) FROM Payment WITH(UPDLOCK,HOLDLOCK) WHERE BookingID=? AND PaymentStatus='paid'",id);
     }
 
+    private static void requireSettledPayments(Connection c, int id) throws SQLException {
+        require(money(c,"SELECT COUNT_BIG(*) FROM Payment WITH(UPDLOCK,HOLDLOCK) WHERE BookingID=? AND PaymentStatus='pending'",id).signum()==0,
+                "Đang có giao dịch chờ. Cần đối soát trước khi thao tác.");
+        require(money(c,"SELECT COUNT_BIG(*) FROM CounterQrCheckout WITH(HOLDLOCK) WHERE BookingID=? AND (Active=1 OR State='review')",id).signum()==0,
+                "QR đang chờ hoặc cần đối soát.");
+    }
+
     private static void actor(Connection c,int staff) throws SQLException {
         try (PreparedStatement ps=c.prepareStatement("SELECT 1 FROM [User] WITH(HOLDLOCK) WHERE UserID=? AND Role IN ('staff','admin') AND AccountStatus='active'")) {
             ps.setInt(1,staff);
@@ -65,17 +72,27 @@ public class OfflineOperationsDAO extends DBContext {
         BigDecimal total;
         int percent;
         boolean expired;
+        boolean offline;
     }
 
     private static BookingRow booking(Connection c,int id) throws SQLException {
-        try (PreparedStatement ps=c.prepareStatement("SELECT Status,TotalPrice,OfflineDepositPercent,OfflinePromotionCode, CASE WHEN HoldExpiresAt IS NULL OR HoldExpiresAt<=SYSUTCDATETIME() THEN 1 ELSE 0 END Expired FROM Booking WITH(UPDLOCK,HOLDLOCK) WHERE BookingID=? AND CreatedByUserID IS NOT NULL")) {
+        return booking(c,id,false);
+    }
+
+    private static BookingRow booking(Connection c,int id,boolean includeOnline) throws SQLException {
+        String sql = "SELECT Status,TotalPrice,OfflineDepositPercent,OfflinePromotionCode,CreatedByUserID, "
+                + "CASE WHEN HoldExpiresAt IS NULL OR HoldExpiresAt<=SYSUTCDATETIME() THEN 1 ELSE 0 END Expired "
+                + "FROM Booking WITH(UPDLOCK,HOLDLOCK) WHERE BookingID=? AND "
+                + (includeOnline ? "(CreatedByUserID IS NOT NULL OR OnlineDepositPolicy=1)" : "CreatedByUserID IS NOT NULL");
+        try (PreparedStatement ps=c.prepareStatement(sql)) {
             ps.setInt(1,id);
             try (ResultSet rs=ps.executeQuery()) {
                 require(rs.next(),"Không tìm thấy đặt phòng tại quầy.");
                 BookingRow b=new BookingRow();
                 b.status=rs.getString(1); b.total=rs.getBigDecimal(2); b.percent=rs.getInt(3);
-                b.promotion=rs.getString(4); b.expired=rs.getBoolean(5);
-                require(b.percent>=1 && b.percent<=100,"Chính sách tiền cọc chưa hợp lệ.");
+                b.promotion=rs.getString(4); b.expired=rs.getBoolean("Expired");
+                b.offline=rs.getObject("CreatedByUserID")!=null;
+                require(!b.offline || (b.percent>=1 && b.percent<=100),"Chính sách tiền cọc chưa hợp lệ.");
                 return b;
             }
         }
@@ -119,9 +136,11 @@ public class OfflineOperationsDAO extends DBContext {
             BigDecimal quotedTotal,BigDecimal quotedPayable,String bankReference) throws SQLException {
         final String token=requestKey(key), ref=reference(method,bankReference);
         transaction(c -> {
-            actor(c,staff); BookingRow b=booking(c,id);
+            actor(c,staff); BookingRow b=booking(c,id,true);
             if(already(c,id,staff,token,"payment")) return null;
             require(Arrays.asList("pending","confirmed","checked_in").contains(b.status),"Trạng thái không cho phép thu tiền.");
+            require(b.offline || (percent==100 && !"pending".equals(b.status)),
+                    "Chỉ thu phần còn lại cho đơn online đã xác nhận.");
             require(!"pending".equals(b.status)||!b.expired,"Đã hết hạn giữ phòng; không được thu tiền cho đơn này.");
             BigDecimal received=paid(c,id);
             BigDecimal payable=received.signum()==0 && "pending".equals(b.status)
@@ -130,7 +149,7 @@ public class OfflineOperationsDAO extends DBContext {
                     && received.compareTo(quotedPaid)==0 && b.total.compareTo(quotedTotal)==0
                     && payable.compareTo(quotedPayable)==0,"Số tiền hoặc khuyến mãi đã thay đổi. Tải lại màn thu tiền.");
             require(percent==100 || (received.signum()==0 && percent==b.percent),"Tỷ lệ thu tiền không đúng chính sách của đơn.");
-            require(money(c,"SELECT COUNT_BIG(*) FROM Payment WITH(UPDLOCK,HOLDLOCK) WHERE BookingID=? AND PaymentStatus='pending'",id).signum()==0,"Đang có giao dịch online chờ xác nhận. Hãy đối soát trước khi thu tại quầy.");
+            requireSettledPayments(c,id);
             BigDecimal amount=percent==100 ? payable.subtract(received)
                     : payable.multiply(BigDecimal.valueOf(percent)).divide(BigDecimal.valueOf(100),0,RoundingMode.CEILING);
             require((amount.signum()>0 || (amount.signum()==0 && payable.signum()==0 && "pending".equals(b.status)))
@@ -189,15 +208,13 @@ public class OfflineOperationsDAO extends DBContext {
     public void checkOut(int id,int staff,String key,boolean earlyCheckoutAccepted) throws SQLException {
         final String token=requestKey(key);
         transaction(c -> {
-            actor(c,staff); BookingRow b=booking(c,id);
+            actor(c,staff); BookingRow b=booking(c,id,true);
             if(already(c,id,staff,token,"check_out")) return null;
             require("checked_in".equals(b.status),"Đơn chưa nhận phòng.");
-            // Chặn cả giao dịch chờ và khoản cần đối soát, kể cả request từ tab cũ.
-            require(money(c,"SELECT COUNT_BIG(*) FROM Payment WITH(UPDLOCK,HOLDLOCK) WHERE BookingID=? AND PaymentStatus='pending'",id).signum()==0,
-                    "Đang có giao dịch chờ. Đối soát xong trước khi trả phòng.");
-            require(money(c,"SELECT COUNT_BIG(*) FROM CounterQrCheckout WITH(HOLDLOCK) WHERE BookingID=? AND (Active=1 OR State='review')",id).signum()==0,
-                    "QR đang chờ hoặc cần đối soát. Chưa thể trả phòng.");
-            require(paid(c,id).compareTo(b.total)>=0,"Còn công nợ. Thu đủ tiền trước khi trả phòng.");
+            requireSettledPayments(c,id);
+            BigDecimal remaining = b.total.subtract(paid(c,id));
+            require(remaining.signum()<=0,"Còn công nợ " + remaining.stripTrailingZeros().toPlainString()
+                    + " VND. Thu đủ tiền trước khi trả phòng.");
             LocalDate today=ReportPeriod.today();
             boolean early=false;
             int roomCount=0;
@@ -219,7 +236,8 @@ public class OfflineOperationsDAO extends DBContext {
             require(!early || earlyCheckoutAccepted,
                     "Khách trả sớm. Cần xác nhận đã thông báo chính sách giữ nguyên tiền phòng trước khi trả.");
             execute(c,"UPDATE r SET NeedsCleaning=1 FROM Room r JOIN BookingDetail d ON d.RoomNumber=r.RoomNumber WHERE d.BookingID=?",id);
-            execute(c,"UPDATE Booking SET Status='checked_out',ActualCheckOutAt=SYSUTCDATETIME() WHERE BookingID=?",id);
+            String finalStatus = b.offline ? "checked_out" : "completed";
+            execute(c,"UPDATE Booking SET Status=?,ActualCheckOutAt=SYSUTCDATETIME() WHERE BookingID=?",finalStatus,id);
             event(c,id,staff,token,"check_out",early
                     ? "Khách trả sớm ngày "+today+"; đã thông báo giữ nguyên tiền phòng. Phòng chờ dọn."
                     : "Đã quyết toán và trả phòng ngày "+today+"; phòng chờ dọn.",BigDecimal.ZERO);
@@ -230,8 +248,9 @@ public class OfflineOperationsDAO extends DBContext {
     public void complete(int id,int staff,String key) throws SQLException {
         final String token=requestKey(key);
         transaction(c -> {
-            actor(c,staff); BookingRow b=booking(c,id);
+            actor(c,staff); BookingRow b=booking(c,id,true);
             if(already(c,id,staff,token,"complete")) return null;
+            requireSettledPayments(c,id);
             require("checked_out".equals(b.status)&&paid(c,id).compareTo(b.total)>=0,"Chỉ hoàn tất sau khi trả phòng và thanh toán đủ.");
             execute(c,"UPDATE Booking SET Status='completed' WHERE BookingID=?",id);
             event(c,id,staff,token,"complete","Hoàn tất hồ sơ lưu trú.",BigDecimal.ZERO);
@@ -307,7 +326,7 @@ public class OfflineOperationsDAO extends DBContext {
     public void clean(int id,int staff,String key) throws SQLException {
         final String token=requestKey(key);
         transaction(c -> {
-            actor(c,staff); BookingRow b=booking(c,id);
+            actor(c,staff); BookingRow b=booking(c,id,true);
             if(already(c,id,staff,token,"clean")) return null;
             require("checked_out".equals(b.status)||"completed".equals(b.status),"Chỉ xác nhận dọn phòng sau khi khách trả phòng.");
             // Lock every affected room. A stale page cannot clear a room occupied by a later stay.

@@ -670,7 +670,7 @@ public class PaymentDAO extends DBContext {
     public BigDecimal getTotalPaidAmount(int bookingId) {
 
         String sql
-                = "SELECT COALESCE(SUM(Amount), 0) AS TotalPaid "
+                = "SELECT COALESCE(SUM(Amount-COALESCE(RefundedAmount,0)), 0) AS TotalPaid "
                 + "FROM Payment "
                 + "WHERE BookingID = ? AND PaymentStatus = 'paid'";
 
@@ -697,7 +697,7 @@ public class PaymentDAO extends DBContext {
         String sql
                 = "SELECT b.TotalPrice, "
                 + "COALESCE(SUM(CASE WHEN p.PaymentStatus = 'paid' "
-                + "THEN p.Amount ELSE 0 END), 0) AS TotalPaid "
+                + "THEN p.Amount-COALESCE(p.RefundedAmount,0) ELSE 0 END), 0) AS TotalPaid "
                 + "FROM Booking b "
                 + "LEFT JOIN Payment p ON p.BookingID = b.BookingID "
                 + "WHERE b.BookingID = ? "

@@ -1,0 +1,228 @@
+html:has(.customer-bookings-page) {
+    scroll-snap-type: none;
+}
+
+.customer-bookings-page {
+    background: #f8f6f0;
+}
+
+.customer-bookings-heading .btn {
+    white-space: nowrap;
+}
+
+.customer-bookings-list {
+    background: #fff;
+    border: 1px solid #e2e9e3;
+}
+
+.customer-bookings-list .table th {
+    --bs-table-bg: #edf3ef;
+    color: #345749;
+    white-space: nowrap;
+}
+
+.customer-bookings-list .table th,
+.customer-booking-row > td {
+    padding: 14px;
+}
+
+.customer-booking-row td:nth-child(3) {
+    min-width: 10rem;
+}
+
+.customer-booking-cell {
+    min-width: 0;
+}
+
+.customer-booking-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.customer-booking-mobile-label {
+    display: none;
+}
+
+.customer-booking-details {
+    background: #f5f8f5;
+    overflow-wrap: anywhere;
+}
+
+.customer-bookings-page .customer-booking-pagination .pagination {
+    gap: 5px;
+}
+
+.customer-bookings-page .customer-booking-pagination .page-link {
+    min-width: 42px;
+    text-align: center;
+}
+
+.customer-bookings-page .customer-booking-pagination .active > .page-link {
+    background: #245940;
+    color: #fff;
+}
+
+.customer-bookings-empty,
+.booking-cancel-panel {
+    background: #fff;
+    border: 1px solid #e2e9e3;
+    border-radius: 18px;
+    padding: clamp(18px, 3vw, 28px);
+    box-shadow: 0 12px 28px -20px #18392f55;
+}
+
+.customer-bookings-empty {
+    text-align: center;
+    padding-block: 44px;
+}
+
+.customer-bookings-empty h2,
+.booking-cancel-panel h2 {
+    color: #18392f;
+    font-size: 1.3rem;
+    margin-bottom: 18px;
+}
+
+.booking-cancel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    gap: 20px;
+}
+
+.booking-cancel-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 26px;
+    margin: 0;
+}
+
+.booking-cancel-facts dt {
+    color: #58685f;
+    font-size: .85rem;
+    margin-bottom: 3px;
+}
+
+.booking-cancel-facts dd {
+    color: #213a2e;
+    margin: 0;
+    font-weight: 600;
+}
+
+.booking-cancel-rooms {
+    display: grid;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.booking-cancel-room {
+    background: #f3f7f4;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.booking-cancel-room h3 {
+    color: #213a2e;
+    font-size: 1rem;
+    margin-bottom: 12px;
+}
+
+.booking-cancel-refund {
+    padding: 16px 18px;
+    margin-bottom: 22px;
+    background: #f7f1e6;
+    border-radius: 12px;
+    color: #665133;
+}
+
+.booking-cancel-refund.has-refund {
+    background: #eaf4ed;
+    color: #245940;
+}
+
+.booking-cancel-refund strong {
+    display: block;
+    font-size: 1.5rem;
+    margin-top: 5px;
+}
+
+.booking-cancel-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 14px;
+    border-top: 1px solid #e2e9e3;
+}
+
+@media (max-width: 991px) {
+    .customer-bookings-list {
+        background: transparent;
+        border: 0;
+        box-shadow: none !important;
+    }
+
+    .customer-bookings-list thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+
+    .customer-bookings-list :is(table, tbody, tr) {
+        display: block;
+    }
+
+    .customer-booking-row {
+        background: #fff;
+        border: 1px solid #e2e9e3;
+        border-radius: 14px;
+        padding: 8px 14px;
+        margin-top: 12px;
+    }
+
+    .customer-booking-row > td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+    }
+
+    .customer-booking-row > td:last-child {
+        border-bottom: 0;
+    }
+
+    .customer-booking-mobile-label {
+        display: inline;
+        color: #58685f;
+        font-size: .85rem;
+        font-weight: 600;
+    }
+
+    .customer-booking-cell {
+        text-align: right;
+    }
+
+    .customer-booking-details-row > td {
+        display: block;
+    }
+
+    .customer-booking-details {
+        border-radius: 0 0 14px 14px;
+        border: 1px solid #e2e9e3;
+    }
+}
+
+@media (max-width: 767px) {
+    .booking-cancel-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .booking-cancel-actions > * {
+        flex: 1 1 160px;
+    }
+}

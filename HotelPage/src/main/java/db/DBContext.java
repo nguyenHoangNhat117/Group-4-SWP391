@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package db;
 
 import java.sql.Connection;
@@ -12,10 +8,6 @@ import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- *
- * @author
- */
 public class DBContext {
 
     private final String DB_URL = "jdbc:sqlserver://127.0.0.1:1433;databaseName=HotelDB;encrypt=false";

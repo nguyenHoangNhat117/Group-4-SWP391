@@ -42,6 +42,7 @@
                             <strong>${roomType.id}</strong>?
                         </p>
 
+                        <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
                         <input type="hidden"
                                name="id"
                                value="${roomType.id}">

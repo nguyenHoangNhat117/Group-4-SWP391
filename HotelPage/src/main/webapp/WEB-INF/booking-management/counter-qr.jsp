@@ -38,9 +38,7 @@
                         <c:param name="view" value="qr-status"/>
                         <c:param name="orderCode" value="${qr.OrderCode}"/>
                     </c:url>
-                    <c:url var="backUrl" value="/counter-payment">
-                        <c:param name="bookingId" value="${qr.BookingID}"/>
-                    </c:url>
+                    <c:set var="backUrl" value="${counterBackUrl}"/>
                     <div id="counterQr" data-status-url="<c:out value='${statusUrl}'/>"
                          data-back-url="<c:out value='${backUrl}'/>"
                          data-state="<c:out value='${qrAvailable ? qr.State : "unavailable"}'/>">

@@ -34,8 +34,7 @@ public class HotelWalletServlet extends HttpServlet {
 
         String role = user.getRole();
 
-        if (!"admin".equalsIgnoreCase(role)
-                && !"staff".equalsIgnoreCase(role)) {
+        if (!"manager".equalsIgnoreCase(role)) {
             response.sendError(403, "Access denied");
             return;
         }
@@ -72,8 +71,37 @@ public class HotelWalletServlet extends HttpServlet {
                 = "SELECT COALESCE(SUM(Balance), 0) AS TotalBalance "
                 + "FROM Wallet";
 
+        List<Object> filters = new ArrayList<>();
+        StringBuilder where = new StringBuilder(" WHERE 1=1 ");
+        String[] keys = {"paymentId", "method", "paymentStatus", "bookingStatus"};
+        String[] columns = {"p.PaymentID", "p.PaymentMethod", "p.PaymentStatus", "b.Status"};
+        for (int i=0;i<keys.length;i++) {
+            String value = request.getParameter(keys[i]);
+            if (value != null && !value.isBlank()) {
+                if (value.length()>80 || (i==0 && !value.matches("[0-9]{1,9}"))) {
+                    response.sendError(400, "Invalid payment filter"); return;
+                }
+                where.append(" AND ").append(columns[i]).append("=? ");
+                filters.add(i==0 ? Integer.valueOf(value) : value);
+            }
+        }
+        String date = request.getParameter("date");
+        if (date != null && !date.isBlank()) {
+            try {
+                java.time.LocalDate day = java.time.LocalDate.parse(date);
+                where.append(" AND p.PaymentDate>=? AND p.PaymentDate<? ");
+                filters.add(java.sql.Date.valueOf(day));
+                filters.add(java.sql.Date.valueOf(day.plusDays(1)));
+            } catch (java.time.DateTimeException ex) { response.sendError(400, "Invalid payment date"); return; }
+        }
+        int page = 1;
+        try { page = Math.max(1, Integer.parseInt(request.getParameter("page"))); }
+        catch (NumberFormatException ignored) {}
+        String sort = request.getParameter("sort");
+        String order = "asc".equals(sort) ? "p.Amount ASC, p.PaymentID DESC" :
+                "desc".equals(sort) ? "p.Amount DESC, p.PaymentID DESC" : "p.PaymentID DESC";
         String paymentSql
-                = "SELECT TOP (100) "
+                = "SELECT "
                 + "p.PaymentID, "
                 + "p.BookingID, "
                 + "p.Amount, "
@@ -83,7 +111,7 @@ public class HotelWalletServlet extends HttpServlet {
                 + "b.Status AS BookingStatus "
                 + "FROM Payment p "
                 + "JOIN Booking b ON p.BookingID = b.BookingID "
-                + "ORDER BY p.PaymentID DESC";
+                + where + " ORDER BY " + order + " OFFSET ? ROWS FETCH NEXT 30 ROWS ONLY";
 
         try (Connection conn
                 = new DBContext().getConnection()) {
@@ -118,8 +146,36 @@ public class HotelWalletServlet extends HttpServlet {
                 }
             }
 
-            try (PreparedStatement ps
-                    = conn.prepareStatement(paymentSql); ResultSet rs = ps.executeQuery()) {
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT COUNT(*) FROM Payment p JOIN Booking b ON b.BookingID=p.BookingID " + where)) {
+                for (int i=0;i<filters.size();i++) ps.setObject(i+1, filters.get(i));
+                try (ResultSet rs=ps.executeQuery()) {
+                    rs.next();
+                    int total=rs.getInt(1), pages=Math.max(1,(total+29)/30);
+                    page=Math.min(page,pages);
+                    request.setAttribute("totalPaymentsCount",total);
+                    request.setAttribute("totalPages",pages);
+                    request.setAttribute("currentPage",page);
+                }
+            }
+            String[] optionSql = {
+                "SELECT DISTINCT PaymentMethod FROM Payment WHERE PaymentMethod IS NOT NULL ORDER BY PaymentMethod",
+                "SELECT DISTINCT PaymentStatus FROM Payment WHERE PaymentStatus IS NOT NULL ORDER BY PaymentStatus",
+                "SELECT DISTINCT Status FROM Booking WHERE Status IS NOT NULL ORDER BY Status"
+            };
+            String[] optionNames={"paymentMethods","paymentStatuses","bookingStatuses"};
+            for (int i=0;i<optionSql.length;i++) {
+                List<String> options=new ArrayList<>();
+                try (PreparedStatement ps=conn.prepareStatement(optionSql[i]);ResultSet rs=ps.executeQuery()) {
+                    while(rs.next()) options.add(rs.getString(1));
+                }
+                request.setAttribute(optionNames[i], options);
+            }
+            try (PreparedStatement ps = conn.prepareStatement(paymentSql)) {
+                int i=0;
+                for (Object value:filters) ps.setObject(++i,value);
+                ps.setInt(++i,(page-1)*30);
+                try (ResultSet rs=ps.executeQuery()) {
 
                 while (rs.next()) {
                     Map<String, Object> item
@@ -147,6 +203,7 @@ public class HotelWalletServlet extends HttpServlet {
                             rs.getTimestamp("PaymentDate"));
 
                     payments.add(item);
+                }
                 }
             }
 

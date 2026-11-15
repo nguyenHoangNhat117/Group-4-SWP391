@@ -3,7 +3,7 @@
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
 <!DOCTYPE html>
-<html>
+<html lang="${requestScope.uiLanguage}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,39 +13,35 @@
               rel="stylesheet">
         <link href="${pageContext.request.contextPath}/assets/css/general.css"
               rel="stylesheet">
-        <link href="${pageContext.request.contextPath}/assets/css/admin-list.css"
-              rel="stylesheet">
-    
-    <link href="${pageContext.request.contextPath}/assets/css/luxe-admin-suite.css" rel="stylesheet">
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
-</head>
+        <link href="${pageContext.request.contextPath}/assets/css/luxe-admin-suite.css" rel="stylesheet">
+        <link href="${pageContext.request.contextPath}/assets/css/luxe-shared-shell.css" rel="stylesheet">
+        <link href="${pageContext.request.contextPath}/assets/css/luxe-ui.css" rel="stylesheet">
+        <link href="${pageContext.request.contextPath}/assets/css/admin-room-types.css" rel="stylesheet">
+        <link href="${pageContext.request.contextPath}/assets/css/management.css" rel="stylesheet">
+    </head>
 
     <body class="luxe-admin-suite luxe-admin-types">
         <div class="body-wrapper">
             <%@include file="../include/header.jsp" %>
 
-            <main class="admin-list">
-        <div class="luxe-admin-banner" aria-label="${requestScope.i18n['screen.15bb8d1ae99d691e']}" data-i18n-aria-label="screen.15bb8d1ae99d691e">
-          <span class="luxe-admin-banner-eyebrow">LUXE ESCAPE <span aria-hidden="true">/</span> <ui:text key="screen.4b39ac62e788aec4"/></span>
-          <span class="luxe-admin-banner-title"><ui:text key="screen.15bb8d1ae99d691e"/></span>
-          <span class="luxe-admin-banner-art" aria-hidden="true"></span>
-        </div>
+            <main class="room-types-page">
+                <c:url var="createUrl" value="/room-type">
+                    <c:param name="view" value="create"/>
+                </c:url>
 
-                <div class="list-heading">
-                    <div>
+                <div class="room-types-hero">
+                    <div class="room-types-hero-copy">
                         <h1><ui:text key="screen.c797cf9b6771ad9e"/></h1>
-                        <p class="text-muted mb-0">
-                            <ui:text key="screen.189f9b42d65eb4f1"/>
-                        </p>
+                        <p><ui:text key="screen.189f9b42d65eb4f1"/></p>
+                        <a class="btn room-types-hero-button" href="<c:out value='${createUrl}'/>">
+                            <ui:text key="screen.dd593edcde22d368"/>
+                        </a>
                     </div>
-
-                    <a class="btn btn-primary"
-                       href="${pageContext.request.contextPath}/room-type?view=create">
-                        <ui:text key="screen.dd593edcde22d368"/>
-                    </a>
                 </div>
 
+                <c:if test="${param.deleted == '1'}">
+                    <p class="alert alert-success" role="status"><ui:text key="room.type.delete.success"/></p>
+                </c:if>
                 <c:choose>
                     <c:when test="${param.error == 'in-use'}">
                         <p class="alert alert-danger" role="alert"><ui:text key="room.type.delete.inUse"/></p>
@@ -54,92 +50,93 @@
                         <p class="alert alert-danger" role="alert"><ui:text key="room.type.delete.failed"/></p>
                     </c:when>
                 </c:choose>
-                <div class="table-panel">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
+                <c:choose>
+                    <c:when test="${empty roomTypes}">
+                        <div class="room-types-panel room-types-empty">
+                            <p class="mb-0"><ui:text key="screen.072ba368d69fd3d8"/></p>
+                        </div>
+                    </c:when>
+                    <c:otherwise>
+                        <table class="room-types-table room-types-panel" role="table">
                             <caption class="visually-hidden">
                                 <ui:text key="screen.b1f907e35229d4b8"/>
                             </caption>
 
-                            <thead>
-                                <tr>
-                                    <th scope="col"><ui:text key="screen.3843971dcfdee508"/></th>
-                                    <th scope="col"><ui:text key="screen.1aa4cb0bcca76e92"/></th>
-                                    <th scope="col"><ui:text key="screen.dcd1d5223f73b3a9"/></th>
-                                    <th scope="col"><ui:text key="screen.526e0087cc3f254d"/></th>
-                                    <th scope="col"><ui:text key="screen.2de469ee4cd7c680"/></th>
-                                    <th scope="col"><ui:text key="screen.2e2a3cd1a00809d3"/></th>
-                                    <th scope="col"><ui:text key="screen.ae65d096550ff4eb"/></th>
-                                    <th scope="col"><ui:text key="screen.ff8059dc6752afdd"/></th>
+                            <thead role="rowgroup">
+                                <tr role="row">
+                                    <th scope="col" role="columnheader"><ui:text key="screen.741b94aab7248c7b"/></th>
+                                    <th scope="col" role="columnheader"><ui:text key="screen.2de469ee4cd7c680"/></th>
+                                    <th scope="col" role="columnheader"><ui:text key="screen.2e2a3cd1a00809d3"/></th>
+                                    <th scope="col" role="columnheader"><ui:text key="screen.ae65d096550ff4eb"/></th>
+                                    <th scope="col" role="columnheader"><ui:text key="screen.ff8059dc6752afdd"/></th>
                                 </tr>
                             </thead>
 
-                            <tbody>
+                            <tbody role="rowgroup">
                                 <c:forEach var="roomType" items="${roomTypes}">
                                     <c:url var="pictureUrl"
                                            value="/assets/img/${empty roomType.picture ? 'avatar.jpg' : roomType.picture}"/>
 
-                                    <c:url var="deleteUrl" value="/room-type">
-                                        <c:param name="view" value="delete"/>
+                                    <c:url var="editUrl" value="/room-type">
+                                        <c:param name="view" value="update"/>
                                         <c:param name="id" value="${roomType.id}"/>
+                                        <c:param name="page-index" value="${pageIndex}"/>
                                     </c:url>
 
-                                    <tr>
-                                        <td class="fw-semibold">
-                                            #${roomType.id}
+                                    <tr role="row">
+                                        <th scope="row" role="rowheader" class="room-types-identity">
+                                            <div class="room-types-record">
+                                                <img class="room-types-thumbnail" src="<c:out value='${pictureUrl}'/>"
+                                                     alt="" width="112" height="84" loading="lazy">
+                                                <div>
+                                                    <span class="room-types-id">#${roomType.id}</span>
+                                                    <span class="room-types-name"><c:out value="${roomType.name}"/></span>
+                                                    <p class="room-types-description"><c:out value="${roomType.description}"/></p>
+                                                </div>
+                                            </div>
+                                        </th>
+                                        <td role="cell" class="room-types-price">
+                                            <span class="room-types-mobile-label" aria-hidden="true"><ui:text key="screen.2de469ee4cd7c680"/></span>
+                                            <ui:money amount="${roomType.pricePerNight}"/>
                                         </td>
-
-                                        <td>
-                                            <img class="room-thumbnail"
-                                                 src="<c:out value='${pictureUrl}'/>"
-                                                 alt="${requestScope.i18n['screen.800a7c505ba7c476']}"
-                                                 loading="lazy" data-i18n-alt="screen.800a7c505ba7c476">
+                                        <td role="cell">
+                                            <span class="room-types-mobile-label" aria-hidden="true"><ui:text key="screen.2e2a3cd1a00809d3"/></span>
+                                            ${roomType.beds}
                                         </td>
-
-                                        <td class="fw-semibold">
-                                            <c:out value="${roomType.name}"/>
+                                        <td role="cell">
+                                            <span class="room-types-mobile-label" aria-hidden="true"><ui:text key="screen.ae65d096550ff4eb"/></span>
+                                            ${roomType.capacity}
                                         </td>
-
-                                        <td class="description">
-                                            <c:out value="${roomType.description}"/>
-                                        </td>
-
-                                        <td><ui:money amount="${roomType.pricePerNight}"/></td>
-                                        <td>${roomType.beds}</td>
-                                        <td>${roomType.capacity}</td>
-
-                                        <td>
-                                            <div class="row-actions">
-                                                <a class="btn btn-outline-primary btn-sm"
-                                                   href="${pageContext.request.contextPath}/room-type?view=update&id=${roomType.id}"
-                                                   aria-label="Edit room type ${roomType.id}">
+                                        <td role="cell" class="room-types-actions-cell">
+                                            <div class="room-types-actions">
+                                                <a class="btn room-types-secondary" href="<c:out value='${editUrl}'/>">
                                                     <ui:text key="screen.464c4ffd019e1e96"/>
+                                                    <span class="visually-hidden"><c:out value="${roomType.name}"/></span>
                                                 </a>
 
-                                                <a class="btn btn-outline-danger btn-sm"
-                                                   href="<c:out value='${deleteUrl}'/>"
-                                                   aria-label="Delete room type ${roomType.id}">
-                                                    <ui:text key="screen.e2d0a54968ead24e"/>
-                                                </a>
+                                                <form method="post" action="${pageContext.request.contextPath}/room-type?action=delete"
+                                                      data-confirm="<c:out value="${requestScope.i18n['room.type.delete.prompt']}"/>"
+                                                      data-confirm-key="room.type.delete.prompt"
+                                                      data-confirm-target="<c:out value='${roomType.name}'/>">
+                                                    <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                                                    <input type="hidden" name="id" value="${roomType.id}">
+                                                    <input type="hidden" name="page-index" value="${pageIndex}">
+                                                    <button type="button" class="btn room-types-danger" data-confirm-trigger>
+                                                        <ui:text key="screen.e2d0a54968ead24e"/>
+                                                        <span class="visually-hidden"><c:out value="${roomType.name}"/></span>
+                                                    </button>
+                                                </form>
                                             </div>
                                         </td>
                                     </tr>
                                 </c:forEach>
-
-                                <c:if test="${empty roomTypes}">
-                                    <tr>
-                                        <td colspan="8" class="empty-list">
-                                            <ui:text key="screen.072ba368d69fd3d8"/>
-                                        </td>
-                                    </tr>
-                                </c:if>
                             </tbody>
                         </table>
-                    </div>
-                </div>
+                    </c:otherwise>
+                </c:choose>
 
                 <c:if test="${totalPages > 1}">
-                    <nav class="list-pagination" aria-label="${requestScope.i18n['screen.7b3f674b625e7226']}" data-i18n-aria-label="screen.7b3f674b625e7226">
+                    <nav class="room-types-pagination" aria-label="${requestScope.i18n['screen.7b3f674b625e7226']}" data-i18n-aria-label="screen.7b3f674b625e7226">
                         <ul class="pagination mb-0">
                             <li class="page-item ${pageIndex <= 1 ? 'disabled' : ''}">
                                 <c:choose>
@@ -195,5 +192,6 @@
         </div>
 
         <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js"></script>
+        <script src="${pageContext.request.contextPath}/assets/js/management.js" defer></script>
     </body>
 </html>

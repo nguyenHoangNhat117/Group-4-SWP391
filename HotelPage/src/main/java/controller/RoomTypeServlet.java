@@ -55,6 +55,7 @@ public class RoomTypeServlet extends HttpServlet {
                 Math.min(pageIndex, Math.max(1, totalPages))
         );
 
+        util.AuthSupport.token(request.getSession());
         request.setAttribute("pageIndex", pageIndex);
         request.setAttribute("roomTypes", rtDAO.getPage(pageIndex));
 
@@ -118,6 +119,7 @@ public class RoomTypeServlet extends HttpServlet {
                         return;
                     }
 
+                    util.AuthSupport.token(session);
                     request.setAttribute("roomType", roomType);
 
                     request.getRequestDispatcher(
@@ -267,6 +269,7 @@ public class RoomTypeServlet extends HttpServlet {
                 }
 
                 case "delete": {
+                    if (!util.AuthSupport.checkCsrf(request, response)) return;
                     int id;
                     try {
                         id = Integer.parseInt(request.getParameter("id"));
@@ -274,13 +277,21 @@ public class RoomTypeServlet extends HttpServlet {
                         response.sendError(HttpServletResponse.SC_BAD_REQUEST);
                         return;
                     }
-                    RoomTypeDAO.DeleteResult result = rtDAO.deleteRoomType(id);
-                    if (result != RoomTypeDAO.DeleteResult.DELETED) {
-                        String error = result == RoomTypeDAO.DeleteResult.IN_USE ? "in-use" : "delete-failed";
-                        response.sendRedirect("./room-type?error=" + error);
-                        return;
+                    int page = 1;
+                    try {
+                        page = Math.max(1, Integer.parseInt(request.getParameter("page-index")));
+                    } catch (NumberFormatException ignored) {
+                        // Older confirmation URLs do not carry a page index.
                     }
-                    break;
+                    RoomTypeDAO.DeleteResult result = rtDAO.deleteRoomType(id);
+                    String listUrl = request.getContextPath() + "/room-type?page-index=" + page;
+                    if (result == RoomTypeDAO.DeleteResult.DELETED) {
+                        listUrl += "&deleted=1";
+                    } else {
+                        listUrl += result == RoomTypeDAO.DeleteResult.IN_USE ? "&error=in-use" : "&error=delete-failed";
+                    }
+                    response.sendRedirect(listUrl);
+                    return;
                 }
 
                 case "update": {

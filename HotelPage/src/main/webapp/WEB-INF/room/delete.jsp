@@ -1,10 +1,4 @@
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
-<%-- 
-    Document   : create
-    Created on : May 26, 2025, 9:46:21 AM
-    Author     : Đặng Hoàng Vũ
---%>
-
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
@@ -34,7 +28,7 @@
                             <ui:text key="screen.a3eb9e3d9b982ad1"/> <strong>${param.roomNumber}</strong>?
                         </p>
 
-                        <input type="hidden" name="room-number" value="${param.roomNumber}"/>
+                        <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}"><input type="hidden" name="room-number" value="${param.roomNumber}"/>
 
                         <div class="d-flex justify-content-center gap-3">
                             <button type="submit" class="btn btn-danger btn-lg px-4 rounded-3"><ui:text key="screen.85a39ab345d672ff"/></button>

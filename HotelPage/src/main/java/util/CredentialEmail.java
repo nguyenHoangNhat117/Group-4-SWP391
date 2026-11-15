@@ -24,8 +24,9 @@ public final class CredentialEmail {
         return v.trim();
     }
 
-    public static void send(String email, String username, String password, String role) throws MessagingException {
-        String from = setting("SMTP_USER"), secret = setting("SMTP_APP_PASSWORD").replace(" ", "");
+    public static void validateConfiguration() throws MessagingException {
+        new InternetAddress(setting("SMTP_USER"), true);
+        setting("SMTP_APP_PASSWORD");
         String base = setting("APP_BASE_URL");
         try {
             URI u = URI.create(base);
@@ -35,6 +36,12 @@ public final class CredentialEmail {
         } catch (IllegalArgumentException e) {
             throw new MessagingException("APP_BASE_URL must be the application base URL.");
         }
+    }
+
+    public static void send(String email, String username, String password, String role) throws MessagingException {
+        validateConfiguration();
+        String from = setting("SMTP_USER"), secret = setting("SMTP_APP_PASSWORD").replace(" ", "");
+        String base = setting("APP_BASE_URL");
         Properties p = new Properties();
         p.setProperty("mail.smtp.host", "smtp.gmail.com");
         p.setProperty("mail.smtp.port", "587");

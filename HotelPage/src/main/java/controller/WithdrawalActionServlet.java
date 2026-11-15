@@ -51,13 +51,7 @@ public class WithdrawalActionServlet
 
         String role = user.getRole();
 
-        boolean isAdmin
-                = "admin".equalsIgnoreCase(role);
-
-        boolean isManager
-                = "manager".equalsIgnoreCase(role);
-
-        if (!isAdmin && !isManager) {
+        if (!"manager".equalsIgnoreCase(role)) {
             response.sendError(
                     403, "Access denied");
             return;
@@ -137,13 +131,6 @@ public class WithdrawalActionServlet
                     break;
 
                 case "markPaid":
-
-                    if (!isAdmin && !isManager) {
-                        response.sendError(
-                                403,
-                                "Payout confirmation access denied");
-                        return;
-                    }
 
                     if (!"yes".equals(
                             request.getParameter("payoutConfirmed"))) {

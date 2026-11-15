@@ -23,14 +23,20 @@
               href="${pageContext.request.contextPath}/assets/css/luxe-shared-shell.css">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
-        <link rel="stylesheet" href="<c:url value='/assets/css/booking-management.css'/>">
-    </head>
+        <%@ include file="/WEB-INF/include/date-picker.jsp" %>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+        <c:url var="bookingListStyles" value="/assets/css/booking-management.css">
+            <c:param name="v" value="staff-calendar-2"/>
+        </c:url>
+        <link rel="stylesheet" href="${bookingListStyles}">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
+</head>
 
-    <body class="luxe-admin-suite luxe-admin-bookings">
+    <body class="management-page luxe-admin-suite luxe-admin-bookings">
         <div class="body-wrapper">
             <%@include file="/WEB-INF/include/header.jsp"%>
 
-            <main>
+            <main><div class="container booking-list-shell py-4 py-lg-5">
                 <div class="luxe-admin-banner" aria-label="${requestScope.i18n['screen.687cac03f6dbbfad']}" data-i18n-aria-label="screen.687cac03f6dbbfad">
                     <span class="luxe-admin-banner-eyebrow">
                         LUXE ESCAPE
@@ -45,10 +51,10 @@
                     <span class="luxe-admin-banner-art" aria-hidden="true"></span>
                 </div>
 
-                <div class="container booking-list-shell py-4 py-lg-5">
+
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                         <div>
-                            <h1 class="h2 fw-bold mb-2"><ui:text key="screen.60bbdeefb7640eb4"/></h1>
+
                             <span class="booking-result-count">
                                 <ui:text key="screen.18e872be2359d76e"/> ${totalBookings} <ui:text key="screen.1576870e601b1e12"/>
                             </span>
@@ -79,11 +85,11 @@
                         <div class="card-body">
                             <form action="${pageContext.request.contextPath}/booking-management"
                                   method="get"
-                                  class="row g-3 align-items-end">
+                                  class="booking-filter-grid">
 
                                 <input type="hidden" name="view" value="list">
 
-                                <div class="col-xl-4 col-md-6">
+                                <div class="booking-filter-keyword">
                                     <label for="keyword"
                                            class="form-label fw-semibold">
                                         <ui:text key="screen.49c266baaaa70981"/>
@@ -97,14 +103,14 @@
                                            placeholder="${requestScope.i18n['screen.47077267c183fca4']}" data-i18n-placeholder="screen.47077267c183fca4">
                                 </div>
 
-                                <div class="col-xl-2 col-md-6">
+                                <div class="booking-filter-room">
                                     <label for="room-number" class="form-label fw-semibold"><ui:text key="booking.list.room"/></label>
                                     <input type="text" inputmode="numeric" pattern="[0-9]+" maxlength="10"
                                            id="room-number" name="room-number" class="form-control ${invalidRoom ? 'is-invalid' : ''}"
                                            value="${fn:escapeXml(roomInput)}">
                                 </div>
 
-                                <div class="col-lg-2 col-md-6">
+                                <div class="booking-filter-field">
                                     <label for="status"
                                            class="form-label fw-semibold">
                                         <ui:text key="screen.920e413c7d411b61"/>
@@ -147,37 +153,52 @@
                                     </select>
                                 </div>
 
-                                <div class="col-lg-2 col-md-6">
+                                <div class="booking-filter-field">
+                                    <input type="hidden" name="sort" value="${param.sort == 'asc' ? 'asc' : param.sort == 'desc' ? 'desc' : ''}"><label for="source" class="form-label fw-semibold"><ui:text key="booking.list.source"/></label>
+                                    <select id="source" name="source" class="form-select">
+                                        <option value="" data-i18n="screen.a52ace420f2175d0">${requestScope.i18n['screen.a52ace420f2175d0']}</option>
+                                        <option value="online" ${selectedSource eq 'online' ? 'selected' : ''}>Online</option>
+                                        <option value="offline" ${selectedSource eq 'offline' ? 'selected' : ''}>Offline</option>
+                                    </select>
+                                </div>
+
+                                <div class="booking-filter-field">
                                     <label for="from-date"
                                            class="form-label fw-semibold">
                                         <ui:text key="booking.list.stay.from"/>
                                     </label>
 
-                                    <input type="date"
-                                           id="from-date"
-                                           name="from-date"
-                                           class="form-control"
-                                           value="${fromDate}">
+                                    <div class="search-calendar-field">
+                                        <i class="bi bi-calendar3" aria-hidden="true"></i>
+                                        <input type="date"
+                                               id="from-date"
+                                               name="from-date" data-booking-calendar
+                                               class="form-control"
+                                               value="${fromDate}">
+                                    </div>
                                 </div>
 
-                                <div class="col-lg-2 col-md-6">
+                                <div class="booking-filter-field">
                                     <label for="to-date"
                                            class="form-label fw-semibold">
                                         <ui:text key="booking.list.stay.to"/>
                                     </label>
 
-                                    <input type="date"
-                                           id="to-date"
-                                           name="to-date"
-                                           class="form-control"
-                                           value="${toDate}">
+                                    <div class="search-calendar-field">
+                                        <i class="bi bi-calendar3" aria-hidden="true"></i>
+                                        <input type="date"
+                                               id="to-date"
+                                               name="to-date" data-booking-calendar
+                                               class="form-control"
+                                               value="${toDate}">
+                                    </div>
                                 </div>
 
-                                <div class="col-12 d-flex flex-wrap align-items-center gap-3">
-                                    <button type="submit" class="btn btn-primary px-4">
+                                <div class="booking-filter-actions">
+                                    <button type="submit" class="btn btn-primary">
                                         <ui:text key="screen.49c266baaaa70981"/>
                                     </button>
-                                    <c:if test="${not empty keyword || not empty selectedStatus || not empty roomInput
+                                    <c:if test="${not empty keyword || not empty selectedStatus || not empty selectedSource || not empty roomInput
                                                   || not empty fromDate || not empty toDate || invalidDates}">
                                         <a href="<c:url value='/booking-management'/>" class="btn btn-outline-secondary">
                                             <ui:text key="screen.5776503c1a52f4fa"/>
@@ -195,10 +216,11 @@
                                     <thead>
                                         <tr>
                                             <th><ui:text key="screen.a85aca2f532a24ab"/></th>
+                                            <th scope="col"><ui:text key="booking.list.source"/></th>
                                             <th><ui:text key="screen.bf3763383aaf4306"/></th>
                                             <th><ui:text key="screen.011519b48fd7ae0a"/></th>
                                             <th><ui:text key="screen.fe43f0a1373a3d68"/></th>
-                                            <th><ui:text key="screen.3cb3f0517ef0da8b"/></th>
+                                            <th><button type="button" class="management-sort" data-sort><ui:text key="screen.3cb3f0517ef0da8b"/></button></th>
                                             <th><ui:text key="screen.920e413c7d411b61"/></th>
                                             <th class="text-center"><ui:text key="screen.64cff1319d2fd2cb"/></th>
                                         </tr>
@@ -208,6 +230,7 @@
                                         <c:forEach var="booking" items="${bookings}">
                                             <tr>
                                                 <td class="fw-semibold">#${booking.id}</td>
+                                                <td><span class="badge rounded-pill ${booking.offline ? 'text-bg-secondary' : 'text-bg-primary'}">${booking.offline ? 'Offline' : 'Online'}</span></td>
 
                                                 <td>
                                                     <c:choose>
@@ -343,6 +366,7 @@
                             <c:param name="page" value="${currentPage - 1}"/>
                             <c:param name="keyword" value="${keyword}"/>
                             <c:param name="room-number" value="${roomInput}"/>
+                            <c:param name="source" value="${selectedSource}"/><c:param name="sort" value="${param.sort == 'asc' ? 'asc' : param.sort == 'desc' ? 'desc' : ''}"/>
                             <c:param name="status" value="${selectedStatus}"/>
                             <c:param name="from-date" value="${fromDate}"/>
                             <c:param name="to-date" value="${toDate}"/>
@@ -353,6 +377,7 @@
                             <c:param name="page" value="${currentPage + 1}"/>
                             <c:param name="keyword" value="${keyword}"/>
                             <c:param name="room-number" value="${roomInput}"/>
+                            <c:param name="source" value="${selectedSource}"/><c:param name="sort" value="${param.sort == 'asc' ? 'asc' : param.sort == 'desc' ? 'desc' : ''}"/>
                             <c:param name="status" value="${selectedStatus}"/>
                             <c:param name="from-date" value="${fromDate}"/>
                             <c:param name="to-date" value="${toDate}"/>
@@ -373,6 +398,7 @@
                                         <c:param name="page" value="${i}"/>
                                         <c:param name="keyword" value="${keyword}"/>
                                         <c:param name="room-number" value="${roomInput}"/>
+                                        <c:param name="source" value="${selectedSource}"/><c:param name="sort" value="${param.sort == 'asc' ? 'asc' : param.sort == 'desc' ? 'desc' : ''}"/>
                                         <c:param name="status" value="${selectedStatus}"/>
                                         <c:param name="from-date" value="${fromDate}"/>
                                         <c:param name="to-date" value="${toDate}"/>
@@ -402,5 +428,6 @@
         </div>
 
         <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js"></script>
-    </body>
+    <script src="${pageContext.request.contextPath}/assets/js/management.js"></script>
+</body>
 </html>

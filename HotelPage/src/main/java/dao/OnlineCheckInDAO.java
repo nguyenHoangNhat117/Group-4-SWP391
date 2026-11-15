@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import util.ReportPeriod;
+import util.RoomOccupancySql;
 
 public class OnlineCheckInDAO extends DBContext {
     public enum Result {
@@ -111,7 +112,7 @@ public class OnlineCheckInDAO extends DBContext {
 
         String conflictSql = "SELECT TOP 1 b.Status FROM BookingDetail d JOIN Booking b WITH (HOLDLOCK)"
                 + " ON d.BookingID=b.BookingID WHERE d.RoomNumber=? AND b.BookingID<>?"
-                + " AND (b.Status='checked_in' OR (b.Status<>'cancelled' AND d.CheckInDate<? AND d.CheckOutDate>?))"
+                + " AND (b.Status='checked_in' OR (" + RoomOccupancySql.overlaps("b", "d") + "))"
                 + " ORDER BY CASE WHEN b.Status='checked_in' THEN 0 ELSE 1 END";
         try (PreparedStatement statement = connection.prepareStatement(conflictSql)) {
             statement.setInt(1, room.number);

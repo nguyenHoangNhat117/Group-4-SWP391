@@ -19,31 +19,28 @@ import util.ReportPeriod;
 
 @WebServlet("/offline-booking")
 public class OfflineBookingServlet extends HttpServlet {
-    private static final String FORMS="uc09DirectFormsV1";
+    private static final String FORMS="uc09ReviewedFormsV2";
     private static final long MAX_AGE=30*60*1000L;
-    private static final String[] FIELDS={
-        "checkIn","checkOut","guests","roomNumber","customerMode","customerId","q",
-        "firstName","lastName","email","phone","promotionCode","specialRequest"
-    };
+    private static final long QUOTE_AGE=5*60*1000L;
+    private static final String[] FIELDS={"checkIn","checkOut","guests","roomNumber",
+        "customerMode","customerId","q","firstName","lastName","email","phone",
+        "promotionCode","specialRequest"};
 
-    // Giữ kiểu Pending để các session cũ có thể được hủy an toàn khi triển khai lại.
     private static final class Pending implements Serializable {
-        private static final long serialVersionUID=1L;
+        private static final long serialVersionUID=2L;
         final Quote quote;
         final Map<String,String> form;
+        final String token=UUID.randomUUID().toString();
         final long created=System.currentTimeMillis();
-        Pending(Quote quote,Map<String,String> form){
-            this.quote=quote;
-            this.form=new LinkedHashMap<>(form);
-        }
+        Pending(Quote quote,Map<String,String> form){this.quote=quote;this.form=new LinkedHashMap<>(form);}
     }
-
     private static final class DirectForm implements Serializable {
-        private static final long serialVersionUID=1L;
+        private static final long serialVersionUID=2L;
         final String token=UUID.randomUUID().toString();
         final int staffId;
         final long created=System.currentTimeMillis();
         Pending pending;
+        boolean uncertain;
         int bookingId;
         DirectForm(int staffId){this.staffId=staffId;}
     }
@@ -66,91 +63,97 @@ public class OfflineBookingServlet extends HttpServlet {
         return user;
     }
 
-    @Override
-    protected void doGet(HttpServletRequest r,HttpServletResponse s)throws ServletException,IOException {
+    @Override protected void doGet(HttpServletRequest r,HttpServletResponse s)throws ServletException,IOException {
         r.setCharacterEncoding("UTF-8");
-        User user=staff(r,s);
-        if(user==null)return;
-        DirectForm state=newForm(r.getSession(false),user.getId());
-        render(r,s,read(r),state);
-    }
-
-    @Override
-    protected void doPost(HttpServletRequest r,HttpServletResponse s)throws ServletException,IOException {
-        r.setCharacterEncoding("UTF-8");
-        User user=staff(r,s);
-        if(user==null || !AuthSupport.checkCsrf(r,s))return;
-        Map<String,String> form=read(r);
-        DirectForm state=findForm(r.getSession(false),r.getParameter("submissionToken"));
-        if(state==null || state.staffId!=user.getId()){
-            s.setStatus(409);
-            r.setAttribute("error","Form đã hết hạn hoặc thuộc phiên khác. Kiểm tra lịch sử nếu đã bấm tạo, rồi thử lại trên form mới này.");
-            render(r,s,form,newForm(r.getSession(false),user.getId()));
-            return;
-        }
-
-        String action=AuthSupport.text(r.getParameter("action"));
-        if("search".equals(action)){
-            render(r,s,form,state);
-            return;
-        }
-        if(!"create".equals(action)){
-            s.setStatus(409);
-            r.setAttribute("error","Form cũ không còn dùng bước xem tóm tắt. Kiểm tra thông tin rồi bấm Tạo đặt phòng.");
-            render(r,s,form,state);
-            return;
-        }
-
         try {
-            // Chỉ tuần tự hóa các lần bấm trên cùng một form, không khóa mọi tab.
+            User user=staff(r,s);if(user==null)return;
+            render(r,s,read(r),newForm(r.getSession(false),user.getId()));
+        }catch(IllegalStateException ex){expired(s);}
+    }
+    @Override protected void doPost(HttpServletRequest r,HttpServletResponse s)throws ServletException,IOException {
+        r.setCharacterEncoding("UTF-8");
+        try {
+            User user=staff(r,s);if(user==null || !AuthSupport.checkCsrf(r,s))return;
+            DirectForm state=findForm(r.getSession(false),r.getParameter("submissionToken"));
+            Map<String,String> form=read(r);
+            if(state==null || state.staffId!=user.getId()){
+                s.setStatus(409);
+                r.setAttribute("error","Form đã hết hạn. Kiểm tra lịch sử nếu đã xác nhận tạo đơn, rồi mở form mới.");
+                render(r,s,form,newForm(r.getSession(false),user.getId()));return;
+            }
             synchronized(state){
                 if(state.bookingId>0){redirect(s,r,state.bookingId);return;}
-                OfflineBookingDAO dao=new OfflineBookingDAO();
-                if(state.pending!=null && !state.pending.form.equals(form)){
-                    throw new IllegalArgumentException("Yêu cầu trước chưa xác định được kết quả. Giữ nguyên thông tin để thử lại cùng yêu cầu, hoặc kiểm tra lịch sử rồi mở form mới.");
-                }
-                if(state.pending==null){
-                    OfflineBookingDraft draft=draft(form);
-                    // Giữ nguyên kiểm tra và tính giá của DAO, chỉ bỏ màn preview riêng.
-                    Quote checked=dao.preview(user.getId(),draft);
-                    state.pending=new Pending(checked,form);
-                }
+                String action=AuthSupport.text(r.getParameter("action"));
                 try {
-                    state.bookingId=dao.create(user.getId(),state.pending.quote);
-                } catch(IllegalArgumentException ex){
-                    // DAO đã rollback yêu cầu bị từ chối; cho phép sửa dữ liệu và thử lại.
-                    state.pending=null;
-                    throw ex;
-                } catch(SQLException ex){
-                    if(ex.getErrorCode()==2601 || ex.getErrorCode()==2627)state.pending=null;
-                    // Kết quả SQL chưa rõ: giữ quote/requestKey để retry không sinh đơn khác.
-                    throw ex;
+                    if(state.uncertain && !"retry".equals(action)){
+                        throw new IllegalArgumentException("Yêu cầu trước chưa rõ kết quả. Kiểm tra lịch sử hoặc bấm Kiểm tra lại yêu cầu cũ; không tạo yêu cầu mới.");
+                    }
+                    if("search".equals(action)){
+                        state.pending=null;
+                    }else if("preview".equals(action)){
+                        state.pending=null;
+                        OfflineBookingDraft draft=draft(form);
+                        Quote quote=new OfflineBookingDAO().preview(user.getId(),draft);
+                        state.pending=new Pending(quote,form);
+                    }else if("create".equals(action) || "retry".equals(action)){
+                        boolean retry="retry".equals(action);
+                        if(state.pending==null || !state.pending.token.equals(r.getParameter("quoteToken"))){
+                            throw new IllegalArgumentException("Báo giá không còn hợp lệ. Bấm Xem và kiểm tra giá trước khi xác nhận.");
+                        }
+                        if(retry && !state.uncertain){
+                            throw new IllegalArgumentException("Không có yêu cầu đang chờ kiểm tra kết quả.");
+                        }
+                        if(retry){
+                            form=new LinkedHashMap<>(state.pending.form);
+                            if(System.currentTimeMillis()-state.pending.created>=QUOTE_AGE){
+                                Integer known=new OfflineBookingDAO().findCreatedRequest(user.getId(),state.pending.quote.draft.requestKey);
+                                if(known!=null){state.bookingId=known;state.uncertain=false;redirect(s,r,known);return;}
+                                state.pending=null;state.uncertain=false;
+                                throw new IllegalArgumentException("Chưa tìm thấy đơn của yêu cầu cũ và báo giá đã hết hạn. Vui lòng xem giá mới; chưa tạo thêm đơn.");
+                            }
+                        }
+                        if(!retry && (!sameBooking(state.pending.form,form)
+                                || System.currentTimeMillis()-state.pending.created>=QUOTE_AGE)){
+                            state.pending=null;
+                            throw new IllegalArgumentException("Thông tin đã đổi hoặc báo giá quá 5 phút. Vui lòng xem lại giá.");
+                        }
+                        try {
+                            state.bookingId=new OfflineBookingDAO().create(user.getId(),state.pending.quote);
+                            state.uncertain=false;
+                        }catch(IllegalArgumentException ex){
+                            state.pending=null;state.uncertain=false;throw ex;
+                        }catch(SQLException ex){
+                            // Giữ nguyên requestKey, kể cả lỗi mạng sau COMMIT.
+                            state.uncertain=true;throw ex;
+                        }
+                        redirect(s,r,state.bookingId);return;
+                    }else{
+                        throw new IllegalArgumentException("Thao tác không hợp lệ. Vui lòng xem và xác nhận báo giá.");
+                    }
+                }catch(DateTimeParseException | NumberFormatException ex){
+                    s.setStatus(400);r.setAttribute("error","Nhập đủ ngày, số khách và chọn phòng/khách hàng hợp lệ.");
+                }catch(IllegalArgumentException ex){
+                    s.setStatus(409);r.setAttribute("error",ex.getMessage());
+                }catch(SQLException ex){
+                    log("UC09 request failed",ex);s.setStatus(503);
+                    r.setAttribute("error",state.uncertain
+                        ? "Chưa xác nhận được kết quả. Kiểm tra lịch sử trước; nút Kiểm tra lại yêu cầu cũ sẽ không sinh mã yêu cầu khác."
+                        : "Chưa thể kiểm tra dữ liệu. Vui lòng thử lại, chưa tạo đơn.");
                 }
-                redirect(s,r,state.bookingId);
-                return;
+                render(r,s,state.uncertain && state.pending!=null?state.pending.form:form,state);
             }
-        } catch(DateTimeParseException | NumberFormatException ex){
-            s.setStatus(400);
-            r.setAttribute("error","Vui lòng nhập ngày hợp lệ, số khách và chọn phòng/khách hàng.");
-        } catch(IllegalArgumentException ex){
-            s.setStatus(409);
-            r.setAttribute("error",ex.getMessage());
-        } catch(SQLException ex){
-            log("UC09 direct create failed",ex);
-            s.setStatus(503);
-            boolean duplicate=ex.getErrorCode()==2601 || ex.getErrorCode()==2627;
-            r.setAttribute("error",duplicate
-                    ? "Thông tin bị trùng. Tìm khách có sẵn hoặc kiểm tra lịch sử booking trước khi tạo lại."
-                    : "Chưa xác nhận được kết quả tạo đơn. Kiểm tra lịch sử trước; nếu thử lại cùng form, hệ thống sẽ dùng lại yêu cầu cũ.");
-        }
-        render(r,s,form,state);
+        }catch(IllegalStateException ex){expired(s);}
     }
-
+    private void expired(HttpServletResponse s)throws IOException {
+        if(!s.isCommitted())s.sendError(403,"Phiên đã hết hạn. Đăng nhập lại và kiểm tra lịch sử trước khi tạo lại.");
+    }
     private void redirect(HttpServletResponse s,HttpServletRequest r,int id){
-        s.setStatus(303);
-        s.setHeader("Location",r.getContextPath()+"/counter-payment?bookingId="+id+"&created=1");
+        s.setStatus(303);s.setHeader("Location",r.getContextPath()+"/counter-payment?bookingId="+id+"&created=1");
     }
-
+    private boolean sameBooking(Map<String,String> a,Map<String,String> b){
+        for(String key:FIELDS){if(!"q".equals(key) && !Objects.equals(a.get(key),b.get(key)))return false;}
+        return true;
+    }
     private OfflineBookingDraft draft(Map<String,String> form){
         String mode=form.get("customerMode");
         if(!Arrays.asList("existing","new").contains(mode)){
@@ -172,36 +175,44 @@ public class OfflineBookingServlet extends HttpServlet {
         return values;
     }
 
-    private void render(HttpServletRequest r,HttpServletResponse s,Map<String,String> form,DirectForm state)
-            throws ServletException,IOException {
-        r.setAttribute("form",form);
-        r.setAttribute("submissionToken",state.token);
-        r.setAttribute("today",ReportPeriod.today());
-        r.setAttribute("holdMinutes",OfflineBookingPolicy.HOLD_MINUTES);
+    private void render(HttpServletRequest r,HttpServletResponse s,Map<String,String> form,DirectForm state)throws ServletException,IOException {
+        r.setAttribute("form",form);r.setAttribute("submissionToken",state.token);
+        r.setAttribute("searchedStay",new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(
+                Arrays.asList(form.get("checkIn"),form.get("checkOut"),form.get("guests"))));
+        r.setAttribute("today",ReportPeriod.today());r.setAttribute("holdMinutes",OfflineBookingPolicy.HOLD_MINUTES);
         r.setAttribute("depositPercent",OfflineBookingPolicy.DEPOSIT_PERCENT);
+        r.setAttribute("uncertain",state.uncertain);
+        if(state.pending!=null){
+            r.setAttribute("quote",state.pending.quote);r.setAttribute("quoteToken",state.pending.token);
+            r.setAttribute("quoteRemainingMillis",Math.max(0,QUOTE_AGE-(System.currentTimeMillis()-state.pending.created)));
+            java.util.List<String> quotedValues=new java.util.ArrayList<>();
+            for(String key:FIELDS)if(!"q".equals(key))quotedValues.add(state.pending.form.get(key));
+            r.setAttribute("quoteSignature",new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(quotedValues));
+            r.setAttribute("quotedDeposit",state.pending.quote.getPayable().multiply(java.math.BigDecimal.valueOf(OfflineBookingPolicy.DEPOSIT_PERCENT))
+                .divide(java.math.BigDecimal.valueOf(100),0,java.math.RoundingMode.CEILING));
+        }
         try {
             OfflineBookingDAO dao=new OfflineBookingDAO();
             if(!form.get("q").isEmpty())r.setAttribute("customers",dao.searchCustomers(form.get("q")));
             if(!form.get("checkIn").isEmpty() || !form.get("checkOut").isEmpty()){
-                r.setAttribute("rooms",dao.availableRooms(LocalDate.parse(form.get("checkIn")),
-                        LocalDate.parse(form.get("checkOut")),Integer.parseInt(form.get("guests"))));
+                List<model.Room> rooms = dao.availableRooms(LocalDate.parse(form.get("checkIn")),
+                        LocalDate.parse(form.get("checkOut")), Integer.parseInt(form.get("guests")));
+                r.setAttribute("rooms", rooms);
+                if (!rooms.isEmpty()) {
+                    r.setAttribute("promotions", dao.availablePromotions());
+                }
                 r.setAttribute("searched",true);
             }
-        } catch(DateTimeParseException | NumberFormatException ex){
-            if(r.getAttribute("error")==null){
-                s.setStatus(400);
-                r.setAttribute("error","Vui lòng nhập đủ ngày nhận/trả và số khách hợp lệ.");
-            }
-        } catch(IllegalArgumentException ex){
+        }catch(DateTimeParseException | NumberFormatException ex){
+            if(r.getAttribute("error")==null){s.setStatus(400);r.setAttribute("error","Nhập đủ ngày và số khách hợp lệ.");}
+        }catch(IllegalArgumentException ex){
             if(r.getAttribute("error")==null){s.setStatus(400);r.setAttribute("error",ex.getMessage());}
-        } catch(SQLException ex){
-            log("UC09 search failed",ex);
-            s.setStatus(503);
+        }catch(SQLException ex){
+            log("UC09 search failed",ex);s.setStatus(503);
             if(r.getAttribute("error")==null)r.setAttribute("error","Không thể tải dữ liệu. Vui lòng thử lại.");
         }
         r.getRequestDispatcher("/WEB-INF/booking-management/offline.jsp").forward(r,s);
     }
-
     @SuppressWarnings("unchecked")
     private Map<String,DirectForm> forms(HttpSession session){
         Object existing=session.getAttribute(FORMS);

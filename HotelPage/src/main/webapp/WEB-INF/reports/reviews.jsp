@@ -1,4 +1,4 @@
-v<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
@@ -38,15 +38,18 @@ v<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
         <link rel="stylesheet" href="${ctx}/assets/css/luxe-shared-shell.css">
         <link rel="stylesheet" href="${ctx}/assets/css/luxe-ui.css">
         <link rel="stylesheet" href="${ctx}/assets/css/hotel-reports.css">
-    </head>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
+    <%@ include file="/WEB-INF/include/date-picker.jsp" %>
+</head>
 
-    <body class="hotel-reports-body ${cookie.animation.value == 'disable' ? 'disable-animation' : ''}">
+    <body class="management-page hotel-reports-body ${cookie.animation.value == 'disable' ? 'disable-animation' : ''}">
 
         <%@ include file="/WEB-INF/include/header.jsp" %>
 
-        <main class="hotel-reports">
+        <main class="hotel-reports"><c:if test="${reportIsAdmin}"><div class="management-hero"><div><div class="eyebrow">LUXE ESCAPE</div><h1><ui:text key="screen.47bf4e92fa8a67be"/></h1><p><ui:text key="screen.326be3a3dda19299"/></p></div><a class="btn btn-light" href="${ctx}/"><ui:text key="management.back"/></a></div></c:if>
 
-            <%-- Review summary for the currently loaded result set. Manager filters/pages apply. --%>
+            <c:if test="${reportIsAdmin}"><form method="get" action="${ctx}/admin/reviews" class="management-filters"><div><label for="rating"><ui:text key="management.rating"/></label><select id="rating" name="rating" class="form-select"><option value="" data-i18n="management.all">${requestScope.i18n['management.all']}</option><c:forEach var="i" begin="2" end="10"><option value="${i / 2}" ${param.rating == i / 2 ? 'selected' : ''}>${i / 2} ★</option></c:forEach></select></div><div><label for="roomStatus"><ui:text key="management.roomStatus"/></label><select id="roomStatus" name="roomStatus" class="form-select"><option value="" data-i18n="management.all">${requestScope.i18n['management.all']}</option><option value="available" ${param.roomStatus == 'available' ? 'selected' : ''} data-i18n="management.available">${requestScope.i18n['management.available']}</option><option value="maintenance" ${param.roomStatus == 'maintenance' ? 'selected' : ''} data-i18n="management.maintenance">${requestScope.i18n['management.maintenance']}</option><option value="out_of_service" ${param.roomStatus == 'out_of_service' ? 'selected' : ''} data-i18n="management.out_of_service">${requestScope.i18n['management.out_of_service']}</option></select></div><div><label for="reviewStatus"><ui:text key="management.reviewStatus"/></label><select id="reviewStatus" name="reviewStatus" class="form-select"><option value="" data-i18n="management.all">${requestScope.i18n['management.all']}</option><option value="pending" ${param.reviewStatus == 'pending' ? 'selected' : ''} data-i18n="management.pending">${requestScope.i18n['management.pending']}</option><option value="approved" ${param.reviewStatus == 'approved' ? 'selected' : ''} data-i18n="management.approved">${requestScope.i18n['management.approved']}</option><option value="rejected" ${param.reviewStatus == 'rejected' ? 'selected' : ''} data-i18n="management.rejected">${requestScope.i18n['management.rejected']}</option></select></div><button type="submit" class="btn btn-primary"><ui:text key="room.admin.applyFilters"/></button><a class="btn btn-outline-secondary" href="${ctx}/admin/reviews"><ui:text key="room.admin.clearFilters"/></a></form></c:if>
+<%-- Review summary for the currently loaded result set. Manager filters/pages apply. --%>
             <c:set var="approvedCount" value="0" />
             <c:set var="pendingCount" value="0" />
             <c:set var="rejectedCount" value="0" />
@@ -110,44 +113,6 @@ v<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
                 </section>
             <c:choose>
                 <c:when test="${reportIsAdmin}">
-                    <div class="report-heading">
-                        <div>
-                            <p class="report-eyebrow">
-                                <ui:text key="screen.b11fef0048e7eff8"/>
-                            </p>
-
-                            <h1>
-                                <c:choose>
-                                    <c:when test="${reportIsAdmin}">
-                                        <ui:text key="screen.47bf4e92fa8a67be"/>
-                                    </c:when>
-
-                                    <c:otherwise>
-                                        <ui:text key="screen.d515fdd22c1437ff"/>
-                                    </c:otherwise>
-                                </c:choose>
-                            </h1>
-
-                            <p class="report-description">
-                                <ui:text key="screen.326be3a3dda19299"/>
-                            </p>
-                        </div>
-
-                        <c:choose>
-                            <c:when test="${reportIsAdmin}">
-                                <a class="report-button" href="${ctx}/">
-                                    <ui:text key="screen.74fcd10c9e772c3e"/>
-                                </a>
-                            </c:when>
-
-                            <c:otherwise>
-                                <a class="report-button" href="${ctx}/dashboard">
-                                    <ui:text key="screen.a7750c2b09f60f0b"/>
-                                </a>
-                            </c:otherwise>
-                        </c:choose>
-                    </div>
-
                     <%-- Manager report navigation. --%>
                     <c:if test="${not reportIsAdmin}">
                         <div class="report-tabs" aria-label="${requestScope.i18n['screen.19025f8911e31c54']}" data-i18n-aria-label="screen.19025f8911e31c54">
@@ -403,12 +368,12 @@ v<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
                                                     <%-- Server-side authorization remains enforced by the filter and servlet. --%>
                                                     <c:if test="${reportIsAdmin}">
                                                         <td>
-                                                            <div class="report-actions">
+                                                            <div class="report-actions"><a class="report-button" href="${ctx}/booking-management?view=detail&amp;id=${r.booking.id}"><ui:text key="management.viewBooking"/></a>
 
                                                                 <c:if test="${r.reviewStatus == 'pending'}">
 
                                                                     <form action="${ctx}/admin/reviews/moderate"
-                                                                          method="post">
+                                                                          method="post" data-confirm="${requestScope.i18n['management.moderateConfirm']}">
                                                                         <input type="hidden"
                                                                                name="csrfToken"
                                                                                value="${sessionScope.reviewModerationCsrfToken}">
@@ -422,8 +387,7 @@ v<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
                                                                                value="approve">
 
                                                                         <button type="submit"
-                                                                                class="report-button approve"
-                                                                                onclick="return confirm('Approve this review?');">
+                                                                                class="report-button approve">
                                                                             <ui:text key="screen.6007acbe30b2cd98"/>
                                                                         </button>
 
@@ -434,7 +398,7 @@ v<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
                                                                 <c:if test="${r.reviewStatus == 'pending'}">
 
                                                                     <form action="${ctx}/admin/reviews/moderate"
-                                                                          method="post">
+                                                                          method="post" data-confirm="${requestScope.i18n['management.moderateConfirm']}"><input type="hidden" name="csrfToken" value="${sessionScope.reviewModerationCsrfToken}">
 
                                                                         <input type="hidden"
                                                                                name="reviewID"
@@ -445,8 +409,7 @@ v<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
                                                                                value="reject">
 
                                                                         <button type="submit"
-                                                                                class="report-button reject"
-                                                                                onclick="return confirm('Reject this review?');">
+                                                                                class="report-button reject">
                                                                             <ui:text key="screen.ab604a360777735f"/>
                                                                         </button>
 
@@ -493,5 +456,6 @@ v<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 
         <script src="${ctx}/assets/js/bootstrap.bundle.min.js"></script>
 
-    </body>
+    <script src="${pageContext.request.contextPath}/assets/js/management.js"></script>
+</body>
 </html>

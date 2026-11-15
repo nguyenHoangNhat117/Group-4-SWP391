@@ -10,17 +10,51 @@
 <%-- Updated by Nguyen Hoang Nhat --%>
 
 <style>
-    /*
-     * Reduce right padding so the existing password reveal control
-     * appears closer to the right edge.
-     */
-    .input-box.auth-password-field input {
-        padding-right: 12px !important;
+    .input-box.auth-password-field > input {
+        padding-inline-end: 52px !important;
     }
 
-    /* Hide custom eye buttons left by an older implementation. */
-    .input-box .auth-password-toggle {
-        display: none !important;
+    input.auth-password-input::-ms-reveal {
+        display: none;
+    }
+
+    .input-box > button.auth-password-toggle {
+        position: absolute;
+        inset-inline-end: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        padding: 0;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+    }
+
+    .input-box > button.auth-password-toggle:hover {
+        background: rgba(255, 255, 255, .16);
+    }
+
+    .input-box > button.auth-password-toggle:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: -3px;
+    }
+
+    .auth-password-toggle svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .auth-password-toggle .eye-slash {
+        visibility: hidden;
+    }
+
+    .auth-password-toggle[data-visible="true"] .eye-slash {
+        visibility: visible;
     }
 
     .auth-message {
@@ -39,17 +73,46 @@
 <script>
     (() => {
         function initializePasswordFields() {
-            // Keep the existing reveal control instead of adding another eye.
-            document.querySelectorAll(
-                    ".input-box input[type='password']"
-                    ).forEach(input => {
-                const box = input.closest(".input-box");
+            const labels = {
+                show: ${msg:js("Show password", requestScope.uiLanguage)},
+                hide: ${msg:js("Hide password", requestScope.uiLanguage)}
+            };
 
-                box.classList.add("auth-password-field");
+            document.querySelectorAll('.input-box input[type="password"], .ua-password input[type="password"]').forEach(input => {
+                if (input.classList.contains('auth-password-input')) return;
+                const box = input.parentElement;
+                const existingButton = box.querySelector('[data-password-toggle]');
+                const button = existingButton || document.createElement('button');
 
-                // Remove custom buttons created by the older shared script.
-                box.querySelectorAll(".auth-password-toggle")
-                        .forEach(button => button.remove());
+                input.classList.add('auth-password-input');
+                box.classList.add('auth-password-field');
+                button.type = 'button';
+                button.setAttribute('aria-controls', input.id);
+                if (!existingButton) {
+                    button.className = 'auth-password-toggle';
+                    button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'
+                            + '<path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"/>'
+                            + '<circle cx="12" cy="12" r="2.5"/><path class="eye-slash" d="m4 4 16 16"/></svg>';
+                    box.append(button);
+                }
+
+                function updateToggle() {
+                    const visible = input.type === 'text';
+                    const key = visible ? 'screen.a60a56c584b3b05b' : 'screen.6aeaa6a53d09dcad';
+                    const translated = window.HotelLanguage?.text(key);
+                    const label = translated && translated !== key ? translated : labels[visible ? 'hide' : 'show'];
+                    button.dataset.visible = String(visible);
+                    button.setAttribute('aria-label', label);
+                    button.title = label;
+                    if (existingButton) button.textContent = label;
+                }
+
+                button.addEventListener('click', () => {
+                    input.type = input.type === 'password' ? 'text' : 'password';
+                    updateToggle();
+                });
+                document.addEventListener('hotel:languagechange', updateToggle);
+                updateToggle();
             });
 
             // Add confirmation feedback without changing server validation.

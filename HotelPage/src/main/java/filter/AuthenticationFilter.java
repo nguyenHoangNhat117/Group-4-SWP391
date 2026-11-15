@@ -40,6 +40,10 @@ import java.util.Objects;
             "/toggle-animation",
             "/offline-booking",
             "/counter-payment",
+            "/hotel-wallet",
+            "/wallet-management",
+            "/withdrawal-management",
+            "/withdrawal-action",
             "/change-password"
         }
 )
@@ -154,7 +158,7 @@ public class AuthenticationFilter implements Filter {
         String role = current.getRole();
 
         // Change Password is available to all four supported roles.
-        if ("/change-password".equals(servletPath)) {
+        if ("/change-password".equals(servletPath) || "/profile".equals(servletPath)) {
             if (!isAnyRole(
                     role,
                     "customer",
@@ -227,7 +231,11 @@ public class AuthenticationFilter implements Filter {
         }
 
         if ("/reports".equals(servletPath)
-                || "/dashboard".equals(servletPath)) {
+                || "/dashboard".equals(servletPath)
+                || "/hotel-wallet".equals(servletPath)
+                || "/wallet-management".equals(servletPath)
+                || "/withdrawal-management".equals(servletPath)
+                || "/withdrawal-action".equals(servletPath)) {
 
             if (!isRole(role, "manager")) {
                 deny(res);

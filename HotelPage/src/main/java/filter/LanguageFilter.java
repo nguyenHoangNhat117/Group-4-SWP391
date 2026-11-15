@@ -67,10 +67,8 @@ public class LanguageFilter implements Filter {
 
         HttpSession session = req.getSession();
 
-        session.setAttribute(
-                LanguageSupport.SESSION_KEY,
-                language
-        );
+        // Đọc lựa chọn cho request này; không ghi lại ngôn ngữ cũ vào session.
+        // Chỉ ChangeLanguageServlet được lưu lựa chọn mới.
 
         req.setAttribute(
                 "uiLanguage",

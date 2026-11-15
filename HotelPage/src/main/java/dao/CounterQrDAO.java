@@ -78,9 +78,15 @@ public class CounterQrDAO extends DBContext {
 
     public Map<String,Object> find(long code) throws SQLException {
         try (Connection c = getConnection()) {
-            return row(c, "SELECT q.*,p.Amount FROM CounterQrCheckout q "
-                    + "JOIN Payment p ON p.PaymentID=q.PaymentID WHERE q.OrderCode=?", code);
+            return row(c, "SELECT q.*,p.Amount,b.CreatedByUserID FROM CounterQrCheckout q "
+                    + "JOIN Payment p ON p.PaymentID=q.PaymentID "
+                    + "JOIN Booking b ON b.BookingID=q.BookingID WHERE q.OrderCode=?", code);
         }
+    }
+
+    private static boolean canCollect(String status, boolean offline) {
+        return "confirmed".equals(status) || "checked_in".equals(status)
+                || (offline && "pending".equals(status));
     }
 
     public long start(int booking, int staff, String requestKey, int percent,
@@ -92,9 +98,10 @@ public class CounterQrDAO extends DBContext {
             require(row(c, "SELECT UserID FROM [User] WITH(HOLDLOCK) WHERE UserID=? "
                     + "AND Role IN ('staff','admin') AND AccountStatus='active'", staff) != null,
                     "Tài khoản không có quyền thu tại quầy.");
-            Map<String,Object> b = row(c, "SELECT *, DATEDIFF_BIG(SECOND,'19700101',"
+            Map<String,Object> b = row(c, "SELECT Status,TotalPrice,CreatedByUserID,OfflineDepositPercent,"
+                    + "OfflinePromotionCode,DATEDIFF_BIG(SECOND,'19700101',"
                     + "HoldExpiresAt) HoldEpoch FROM Booking WITH(UPDLOCK,HOLDLOCK) "
-                    + "WHERE BookingID=? AND CreatedByUserID IS NOT NULL", booking);
+                    + "WHERE BookingID=? AND (CreatedByUserID IS NOT NULL OR OnlineDepositPolicy=1)", booking);
             require(b != null, "Không tìm thấy booking tại quầy.");
             Map<String,Object> existing = row(c,
                     "SELECT * FROM CounterQrCheckout WHERE RequestKey=?", key);
@@ -110,10 +117,14 @@ public class CounterQrDAO extends DBContext {
                     "Booking có khoản chuyển cần đối soát. Không tạo QR thu thêm.");
 
             String status = (String) b.get("Status");
-            int policyPercent = ((Number) b.get("OfflineDepositPercent")).intValue();
-            require(policyPercent >= 1 && policyPercent <= 100, "Chính sách tiền cọc chưa hợp lệ.");
-            require(Arrays.asList("pending","confirmed","checked_in").contains(status),
+            boolean offline = b.get("CreatedByUserID") != null;
+            Integer policyPercent = (Integer) b.get("OfflineDepositPercent");
+            require(!offline || (policyPercent != null && policyPercent >= 1 && policyPercent <= 100),
+                    "Chính sách tiền cọc chưa hợp lệ.");
+            require(canCollect(status, offline),
                     "Trạng thái booking không cho phép thu tiền.");
+            require(offline || percent == 100,
+                    "Chỉ tạo QR phần còn lại cho đơn online đã xác nhận.");
             long now = Instant.now().getEpochSecond();
             long expires = now + 600;
             if ("pending".equals(status)) {
@@ -130,7 +141,7 @@ public class CounterQrDAO extends DBContext {
                     && received.compareTo(quotedPaid) == 0 && total.compareTo(quotedTotal) == 0
                     && payable.compareTo(quotedPayable) == 0,
                     "Số tiền hoặc mã giảm đã thay đổi. Tải lại trang trước khi tạo QR.");
-            require(percent == 100 || (received.signum() == 0
+            require(percent == 100 || (offline && received.signum() == 0
                     && percent == policyPercent),
                     "Tỷ lệ thu không đúng chính sách booking.");
             BigDecimal amount = amountDue(payable, received, percent);
@@ -277,8 +288,10 @@ public class CounterQrDAO extends DBContext {
             int payment = ((Number) q.get("PaymentID")).intValue();
             if ("paid".equals(state)) {
                 BigDecimal received = paid(c, booking);
-                boolean matches = b != null && b.get("CreatedByUserID") != null
-                        && Arrays.asList("pending","confirmed","checked_in").contains(b.get("Status"))
+                boolean offline = b != null && b.get("CreatedByUserID") != null;
+                boolean matches = b != null
+                        && (offline || Boolean.TRUE.equals(b.get("OnlineDepositPolicy")))
+                        && canCollect((String) b.get("Status"), offline)
                         && ((BigDecimal) b.get("TotalPrice")).compareTo((BigDecimal) q.get("OriginalTotal")) == 0
                         && received.compareTo((BigDecimal) q.get("PreviouslyPaid")) == 0;
                 if (!matches) {

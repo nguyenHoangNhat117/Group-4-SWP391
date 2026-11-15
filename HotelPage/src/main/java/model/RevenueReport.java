@@ -2,29 +2,35 @@ package model;
 
 import java.math.BigDecimal;
 
-/**
- * Stores revenue aggregated by a time unit, such as a month or year.
- */
 public class RevenueReport {
 
     private String timeUnit;
     private BigDecimal totalRevenue;
+    private BigDecimal collectedAmount = BigDecimal.ZERO;
+    private BigDecimal refundedAmount = BigDecimal.ZERO;
 
     public RevenueReport(
             String timeUnit,
-            BigDecimal totalRevenue) {
+            BigDecimal collected,
+            BigDecimal refunded) {
 
+        this.timeUnit = timeUnit;
+        this.collectedAmount = collected == null
+                ? BigDecimal.ZERO : collected;
+        this.refundedAmount = refunded == null
+                ? BigDecimal.ZERO : refunded;
+
+        setTotalRevenue(
+                this.collectedAmount.subtract(this.refundedAmount)
+        );
+    }
+
+    public RevenueReport(String timeUnit, BigDecimal totalRevenue) {
         this.timeUnit = timeUnit;
         setTotalRevenue(totalRevenue);
     }
 
-    /**
-     * Preserves compatibility with existing code that passes a double.
-     */
-    public RevenueReport(
-            String timeUnit,
-            double totalRevenue) {
-
+    public RevenueReport(String timeUnit, double totalRevenue) {
         this(timeUnit, BigDecimal.valueOf(totalRevenue));
     }
 
@@ -36,14 +42,21 @@ public class RevenueReport {
         this.timeUnit = timeUnit;
     }
 
+    public BigDecimal getCollectedAmount() {
+        return collectedAmount;
+    }
+
+    public BigDecimal getRefundedAmount() {
+        return refundedAmount;
+    }
+
     public BigDecimal getTotalRevenue() {
         return totalRevenue;
     }
 
     public void setTotalRevenue(BigDecimal totalRevenue) {
         this.totalRevenue = totalRevenue == null
-                ? BigDecimal.ZERO
-                : totalRevenue;
+                ? BigDecimal.ZERO : totalRevenue;
     }
 
     public void setTotalRevenue(double totalRevenue) {
