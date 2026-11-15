@@ -1,18 +1,6 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package model;
 
-/**
- *
- * @author Trần Nguyễn
- */
-/**
- * Represents a customer entity with personal information, contact details,
- * address, and associated user account. This class models customer data for
- * hotel management systems.
- */
+
 public class Customer {
     private int customerID;      // Unique identifier for the customer
     private String firstName;   // Customer's first name

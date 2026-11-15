@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package util;
 
 import jakarta.servlet.http.Part;
@@ -11,10 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-/**
- *
- * @author Đặng Hoàng Vũ
- */
 public class FileUploadUtil {
 
     public static final String UPLOAD_LOCATION = "D:/SU25/PRJ/HotelPage/src/main/webapp/assets/img";

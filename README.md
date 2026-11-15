@@ -52,6 +52,8 @@ HotelPage/
 HotelDB.sql
 ```
 
+Dữ liệu mẫu liên kết: [`HotelDB.seed.sql`](HotelDB.seed.sql). Xem tài khoản, tình huống và cách chạy tại [`DATABASE_SAMPLE.md`](DATABASE_SAMPLE.md).
+
 ## 3. Main Components
 
 - Controller: Handle HTTP requests and application flow
