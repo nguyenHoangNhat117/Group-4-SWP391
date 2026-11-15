@@ -4,7 +4,8 @@ import dao.ReviewDAO;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,8 +32,8 @@ public class DeleteReviewServlet
                 "UTF-8"
         );
 
-        HttpSession session =
-                request.getSession(false);
+        HttpSession session
+                = request.getSession(false);
 
         /*
          * Authentication.
@@ -48,8 +49,8 @@ public class DeleteReviewServlet
             return;
         }
 
-        User user =
-                (User) session.getAttribute(
+        User user
+                = (User) session.getAttribute(
                         "loggedUser"
                 );
 
@@ -66,13 +67,33 @@ public class DeleteReviewServlet
             return;
         }
 
+        String sessionToken = (String) session.getAttribute(
+                "reviewModerationCsrfToken"
+        );
+
+        String requestToken = request.getParameter("csrfToken");
+
+        if (sessionToken == null || requestToken == null
+                || sessionToken.isEmpty()
+                || !MessageDigest.isEqual(
+                        sessionToken.getBytes(StandardCharsets.UTF_8),
+                        requestToken.getBytes(StandardCharsets.UTF_8))) {
+
+            response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN,
+                    "Invalid or missing CSRF token."
+            );
+            return;
+        }
+
+
         /*
          * ===============================================
          * 1. REVIEW ID
          * ===============================================
          */
-        Integer reviewId =
-                parsePositiveInt(
+        Integer reviewId
+                = parsePositiveInt(
                         request.getParameter(
                                 "reviewID"
                         )
@@ -86,8 +107,8 @@ public class DeleteReviewServlet
          * reject
          * ===============================================
          */
-        String action =
-                request.getParameter(
+        String action
+                = request.getParameter(
                         "action"
                 );
 
@@ -104,8 +125,8 @@ public class DeleteReviewServlet
             return;
         }
 
-        ReviewDAO reviewDAO =
-                new ReviewDAO();
+        ReviewDAO reviewDAO
+                = new ReviewDAO();
 
         boolean success;
 
@@ -113,8 +134,8 @@ public class DeleteReviewServlet
 
             case "approve":
 
-                success =
-                        reviewDAO.approveReview(
+                success
+                        = reviewDAO.approveReview(
                                 reviewId
                         );
 
@@ -122,8 +143,8 @@ public class DeleteReviewServlet
 
             case "reject":
 
-                success =
-                        reviewDAO.rejectReview(
+                success
+                        = reviewDAO.rejectReview(
                                 reviewId
                         );
 
@@ -145,11 +166,26 @@ public class DeleteReviewServlet
          */
         if (!success) {
 
-            redirect(
-                    request,
-                    response,
-                    "update-failed"
-            );
+            String currentStatus
+                    = reviewDAO.getReviewStatusById(reviewId);
+
+            if ("approved".equalsIgnoreCase(currentStatus)
+                    || "rejected".equalsIgnoreCase(currentStatus)) {
+
+                redirect(
+                        request,
+                        response,
+                        "already-processed"
+                );
+
+            } else {
+
+                redirect(
+                        request,
+                        response,
+                        "update-failed"
+                );
+            }
 
             return;
         }
@@ -198,8 +234,8 @@ public class DeleteReviewServlet
 
         try {
 
-            int id =
-                    Integer.parseInt(
+            int id
+                    = Integer.parseInt(
                             value.trim()
                     );
 

@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.security.SecureRandom;
+import java.util.Base64;
 
 import java.io.IOException;
 
@@ -46,6 +48,21 @@ public class AdminReviewServlet extends HttpServlet {
                     HttpServletResponse.SC_FORBIDDEN
             );
             return;
+        }
+
+        if (session.getAttribute("reviewModerationCsrfToken") == null) {
+
+            byte[] randomBytes = new byte[32];
+            new SecureRandom().nextBytes(randomBytes);
+
+            String token = Base64.getUrlEncoder()
+                    .withoutPadding()
+                    .encodeToString(randomBytes);
+
+            session.setAttribute(
+                    "reviewModerationCsrfToken",
+                    token
+            );
         }
 
         try {
