@@ -10,9 +10,9 @@
 
 <%-- Shared heading, navigation and date filter for report pages. --%>
 
-<div class="report-heading">
+<div class="report-heading ${reportView == 'bookings' ? 'management-hero' : ''}">
     <div>
-        <p class="report-eyebrow"><ui:text key="screen.5f18b34f7d5f3244"/></p>
+        <p class="report-eyebrow eyebrow"><ui:text key="screen.5f18b34f7d5f3244"/></p>
 
         <h1>
             <c:choose>

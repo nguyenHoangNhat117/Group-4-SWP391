@@ -10,9 +10,9 @@
         <c:if test="${not empty summary}">
             <p class="mb-3">
                 <ui:text key="offline.total"/> <strong><ui:money amount="${summary.payable}"/></strong>
-                <span class="mx-2" aria-hidden="true">·</span>
+                <span class="mx-2" aria-hidden="true">&middot;</span>
                 <ui:text key="offline.paid"/> <strong><ui:money amount="${summary.paid}"/></strong>
-                <span class="mx-2" aria-hidden="true">·</span>
+                <span class="mx-2" aria-hidden="true">&middot;</span>
                 <ui:text key="offline.remaining"/> <strong><ui:money amount="${summary.remaining}"/></strong>
             </p>
         </c:if>

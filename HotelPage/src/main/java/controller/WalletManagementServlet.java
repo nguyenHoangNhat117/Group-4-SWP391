@@ -33,8 +33,7 @@ public class WalletManagementServlet extends HttpServlet {
 
         String role = user.getRole();
 
-        if (!"admin".equalsIgnoreCase(role)
-                && !"staff".equalsIgnoreCase(role)) {
+        if (!"manager".equalsIgnoreCase(role)) {
             response.sendError(403, "Access denied");
             return;
         }

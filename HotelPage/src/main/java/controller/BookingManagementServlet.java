@@ -216,7 +216,8 @@ public class BookingManagementServlet
                         roomNumber,
                         source,
                         currentPage,
-                        PAGE_SIZE
+                        PAGE_SIZE,
+                        request.getParameter("sort")
                 );
 
         request.setAttribute(

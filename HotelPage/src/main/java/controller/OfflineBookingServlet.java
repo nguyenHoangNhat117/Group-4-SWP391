@@ -195,7 +195,12 @@ public class OfflineBookingServlet extends HttpServlet {
             OfflineBookingDAO dao=new OfflineBookingDAO();
             if(!form.get("q").isEmpty())r.setAttribute("customers",dao.searchCustomers(form.get("q")));
             if(!form.get("checkIn").isEmpty() || !form.get("checkOut").isEmpty()){
-                r.setAttribute("rooms",dao.availableRooms(LocalDate.parse(form.get("checkIn")),LocalDate.parse(form.get("checkOut")),Integer.parseInt(form.get("guests"))));
+                List<model.Room> rooms = dao.availableRooms(LocalDate.parse(form.get("checkIn")),
+                        LocalDate.parse(form.get("checkOut")), Integer.parseInt(form.get("guests")));
+                r.setAttribute("rooms", rooms);
+                if (!rooms.isEmpty()) {
+                    r.setAttribute("promotions", dao.availablePromotions());
+                }
                 r.setAttribute("searched",true);
             }
         }catch(DateTimeParseException | NumberFormatException ex){

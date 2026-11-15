@@ -133,3 +133,34 @@ html.uc09-page {
     }
 }
 
+.counter-payment-page .oc-money > div {
+    background: #fff;
+    border-color: #e3e9e4;
+    box-shadow: 0 10px 24px #18392f0d;
+}
+
+.counter-payment-page .oc-money > .oc-balance {
+    background: #edf3ef;
+    border-color: #d9e5de;
+}
+
+.counter-payment-page .oc-overview small,
+.counter-payment-page .oc-money small {
+    color: #486053;
+}
+
+.counter-payment-page .oc-money strong {
+    color: #18392f;
+    font-variant-numeric: tabular-nums;
+}
+
+.counter-payment-page .oc-table th {
+    background: #edf3ef;
+    color: #345749;
+}
+
+.counter-payment-page .oc-table th,
+.counter-payment-page .oc-table td {
+    border-color: #e3e9e4;
+}
+

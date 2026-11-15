@@ -1,3 +1,4 @@
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%-- 
     Document   : index.jsp
@@ -50,119 +51,53 @@
                 <section id="rooms">
                     <div class="rooms-header">
                         <h2 id="rooms-heading" class="text left"><ui:text key="screen.261fa3456965d5d4"/></h2>
-                        <div class="rooms-navigation" hidden>
-                            <button type="button" data-room-prev aria-controls="room-container" aria-disabled="true">
-                                <span aria-hidden="true">&larr;</span>
-                                <ui:text key="screen.a57b08a480b822a0"/>
-                            </button>
-                            <button type="button" data-room-next aria-controls="room-container">
-                                <ui:text key="screen.1ff57a29d7c9d11b"/>
-                                <span aria-hidden="true">&rarr;</span>
-                            </button>
-                        </div>
+                        <c:if test="${not empty roomTypes}">
+                            <div class="rooms-navigation" hidden>
+                                <button type="button" data-room-prev aria-controls="room-container" aria-disabled="true">
+                                    <span aria-hidden="true">&larr;</span>
+                                    <ui:text key="screen.a57b08a480b822a0"/>
+                                </button>
+                                <button type="button" data-room-next aria-controls="room-container">
+                                    <ui:text key="screen.1ff57a29d7c9d11b"/>
+                                    <span aria-hidden="true">&rarr;</span>
+                                </button>
+                            </div>
+                        </c:if>
                     </div>
 
-                    <div id="room-container" class="rooms-carousel" role="region" aria-labelledby="rooms-heading" tabindex="0">
-                        <!-- 1. Deluxe City View -->
-                        <div class="room-card card">
-                            <div class="room-img-wrap">
-                                <img src="${pageContext.request.contextPath}/assets/img/roomType/standard-room.jpg"
-                                     class="zoom-in-hover" 
-                                     alt="Deluxe City View" />
+                    <c:choose>
+                        <c:when test="${empty roomTypes}">
+                            <p><ui:text key="home.rooms.empty"/></p>
+                        </c:when>
+                        <c:otherwise>
+                            <div id="room-container" class="rooms-carousel" role="region" aria-labelledby="rooms-heading" tabindex="0">
+                                <c:forEach var="roomType" items="${roomTypes}">
+                                    <c:url var="pictureUrl" value="/assets/img/${empty roomType.picture ? 'avatar.jpg' : roomType.picture}"/>
+                                    <c:url var="detailsUrl" value="/details">
+                                        <c:param name="roomTypeId" value="${roomType.id}"/>
+                                    </c:url>
+                                    <div class="room-card card">
+                                        <div class="room-img-wrap">
+                                            <img src="<c:out value='${pictureUrl}'/>" class="zoom-in-hover"
+                                                 alt="<c:out value='${roomType.name}'/>" loading="lazy">
+                                        </div>
+                                        <div class="room-description">
+                                            <p class="room-name"><c:out value="${roomType.name}"/></p>
+                                            <p class="room-short-desc"><ui:catalogText group="room.catalog.description" value="${roomType.description}"/></p>
+                                            <a href="<c:out value='${detailsUrl}'/>" class="view-room">
+                                                <img src="${pageContext.request.contextPath}/assets/icons/arrow-up-right.svg"
+                                                     width="30" height="30"
+                                                     alt="${requestScope.i18n['screen.1c6333509debf060']}"
+                                                     class="arrow-up-right"
+                                                     data-i18n-alt="screen.1c6333509debf060"/>
+                                                <span class="visually-hidden"><c:out value="${roomType.name}"/></span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </c:forEach>
                             </div>
-                            <div class="room-description">
-                                <p class="room-name">Deluxe City View</p>
-                                <p class="room-short-desc">Panoramic skyline views with modern bespoke interiors.</p>
-                                <a href="${pageContext.request.contextPath}/booking?type=deluxe-city" class="view-room">
-                                    <img src="${pageContext.request.contextPath}/assets/icons/arrow-up-right.svg" 
-                                         width="30" height="30" 
-                                         alt="${requestScope.i18n['screen.1c6333509debf060']}" 
-                                         class="arrow-up-right" 
-                                         data-i18n-alt="screen.1c6333509debf060"/>
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- 2. Premium Ocean View -->
-                        <div class="room-card card">
-                            <div class="room-img-wrap">
-                                <img src="${pageContext.request.contextPath}/assets/img/roomType/junior-1.jpg"
-                                     class="zoom-in-hover" 
-                                     alt="Premium Ocean View" />
-                            </div>
-                            <div class="room-description">
-                                <p class="room-name">Premium Ocean View</p>
-                                <p class="room-short-desc">Private balcony overlooking the tranquil turquoise sea.</p>
-                                <a href="${pageContext.request.contextPath}/booking?type=premium-ocean" class="view-room">
-                                    <img src="${pageContext.request.contextPath}/assets/icons/arrow-up-right.svg" 
-                                         width="30" height="30" 
-                                         alt="${requestScope.i18n['screen.1c6333509debf060']}" 
-                                         class="arrow-up-right" 
-                                         data-i18n-alt="screen.1c6333509debf060"/>
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- 3. Executive Club Room -->
-                        <div class="room-card card">
-                            <div class="room-img-wrap">
-                                <img src="${pageContext.request.contextPath}/assets/img/roomType/junior-3.jpg"
-                                     class="zoom-in-hover" 
-                                     alt="Executive Club Room" />
-                            </div>
-                            <div class="room-description">
-                                <p class="room-name">Executive Club Room</p>
-                                <p class="room-short-desc">Exclusive lounge access paired with refined workspace.</p>
-                                <a href="${pageContext.request.contextPath}/booking?type=executive-club" class="view-room">
-                                    <img src="${pageContext.request.contextPath}/assets/icons/arrow-up-right.svg" 
-                                         width="30" height="30" 
-                                         alt="${requestScope.i18n['screen.1c6333509debf060']}" 
-                                         class="arrow-up-right" 
-                                         data-i18n-alt="screen.1c6333509debf060"/>
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- 4. Grand Family Suite -->
-                        <div class="room-card card">
-                            <div class="room-img-wrap">
-                                <img src="${pageContext.request.contextPath}/assets/img/roomType/family-suite-1.jpg"
-                                     class="zoom-in-hover" 
-                                     alt="Grand Family Suite" />
-                            </div>
-                            <div class="room-description">
-                                <p class="room-name">Grand Family Suite</p>
-                                <p class="room-short-desc">Spacious interconnected living area for family comfort.</p>
-                                <a href="${pageContext.request.contextPath}/booking?type=grand-family" class="view-room">
-                                    <img src="${pageContext.request.contextPath}/assets/icons/arrow-up-right.svg" 
-                                         width="30" height="30" 
-                                         alt="${requestScope.i18n['screen.1c6333509debf060']}" 
-                                         class="arrow-up-right" 
-                                         data-i18n-alt="screen.1c6333509debf060"/>
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- 5. Presidential Suite -->
-                        <div class="room-card card">
-                            <div class="room-img-wrap">
-                                <img src="${pageContext.request.contextPath}/assets/img/roomType/VipProMaxRoom.jpg"
-                                     class="zoom-in-hover" 
-                                     alt="Presidential Suite" />
-                            </div>
-                            <div class="room-description">
-                                <p class="room-name">Presidential Suite</p>
-                                <p class="room-short-desc">Unrivaled penthouse luxury with private butler service.</p>
-                                <a href="${pageContext.request.contextPath}/booking?type=presidential" class="view-room">
-                                    <img src="${pageContext.request.contextPath}/assets/icons/arrow-up-right.svg" 
-                                         width="30" height="30" 
-                                         alt="${requestScope.i18n['screen.1c6333509debf060']}" 
-                                         class="arrow-up-right" 
-                                         data-i18n-alt="screen.1c6333509debf060"/>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+                        </c:otherwise>
+                    </c:choose>
                 </section>
                 <section id="restaurant">
                     <div id="restaurant-leap"></div>

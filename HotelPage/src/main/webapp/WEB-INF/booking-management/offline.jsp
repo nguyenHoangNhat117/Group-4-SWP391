@@ -31,21 +31,22 @@
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/assets/css/offline-booking.css?v=summary-2">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css">
+              href="${pageContext.request.contextPath}/assets/css/offline-booking.css?v=room-picker-1">
+        <%@ include file="/WEB-INF/include/date-picker.jsp" %>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
         <link rel="stylesheet" href="<c:url value='/assets/css/booking-management.css?v=staff-calendar-2'/>">
+        <link rel="stylesheet" href="<c:url value='/assets/css/management.css'/>">
     </head>
 
-    <body class="offline-booking-page">
+    <body class="offline-booking-page management-page">
         <div class="body-wrapper">
             <%@include file="/WEB-INF/include/header.jsp"%>
 
             <main class="ob-page">
-                <div class="ob-heading">
+                <div class="management-hero">
                     <h1><ui:text key="screen.02c223c42181cf2b"/></h1>
 
-                    <a class="ob-back"
+                    <a class="btn btn-light"
                        href="${pageContext.request.contextPath}/booking-management">
                         <ui:text key="screen.c94d50d55899f838"/>
                     </a>
@@ -79,7 +80,6 @@
                             <section class="ob-panel">
                                 <div class="ob-panel-top">
                                     <h2><ui:text key="screen.8a25de2296303d74"/></h2>
-                                    <span class="ob-number">01</span>
                                 </div>
 
                                 <div class="ob-fields">
@@ -150,39 +150,41 @@
                                     </p>
                                 </c:if>
 
-                                <div class="ob-field ob-room-field">
-                                    <label for="roomNumber"><ui:text key="screen.7c2d837276e934c7"/></label>
-
-                                    <select class="ob-input"
-                                            id="roomNumber"
-                                            name="roomNumber"
-                                            required>
-
-                                        <option value="" data-i18n="screen.2ccbf4a8c0509a35">
-                                            ${requestScope.i18n['screen.2ccbf4a8c0509a35']}
-                                        </option>
-
-                                        <c:forEach items="${rooms}" var="room">
-                                            <option value="${room.roomNumber}"
-                                                    data-price="${room.roomType.pricePerNight}"
-                                                    data-label="${fn:escapeXml(room.roomType.name)}"
-                                                    ${form.roomNumber == room.roomNumber
-                                                      ? 'selected' : ''}>
-
-                                                ${requestScope.i18n['screen.911ea89c43d9dbb8']} ${room.roomNumber}
-                                                · <c:out value="${room.roomType.name}"/>
-                                                · ${room.roomType.capacity} ${requestScope.i18n['screen.45f69c6d7bebdee3']} <fmt:formatNumber value="${room.roomType.pricePerNight}"/>
-                                                ${requestScope.i18n['screen.0d48d80c52b5c1ef']}
-                                            </option>
-                                        </c:forEach>
-                                    </select>
-                                </div>
+                                <c:if test="${not empty rooms}">
+                                    <fieldset class="ob-room-field" id="obRoomPicker">
+                                        <legend><ui:text key="screen.7c2d837276e934c7"/></legend>
+                                        <label class="visually-hidden" for="obRoomSearch"><ui:text key="offline.roomSearch"/></label>
+                                        <input class="ob-input" type="search" id="obRoomSearch" autocomplete="off"
+                                               placeholder="${requestScope.i18n['offline.roomSearch']}" data-i18n-placeholder="offline.roomSearch">
+                                        <div class="ob-room-results" id="obRoomResults">
+                                            <c:forEach items="${rooms}" var="room">
+                                                <label class="ob-room-choice">
+                                                    <input type="radio" name="roomNumber" required
+                                                           value="${room.roomNumber}" data-price="${room.roomType.pricePerNight}"
+                                                           data-label="${fn:escapeXml(room.roomType.name)}"
+                                                           ${form.roomNumber == room.roomNumber ? 'checked' : ''}>
+                                                    <span class="ob-room-name">
+                                                        <strong>#${room.roomNumber}</strong>
+                                                        <c:out value="${room.roomType.name}"/>
+                                                    </span>
+                                                    <span class="ob-room-capacity">${room.roomType.capacity} <ui:text key="offline.guests"/></span>
+                                                    <span class="ob-room-price"><ui:money amount="${room.roomType.pricePerNight}"/> <ui:text key="screen.f8b08898c2e4a561"/></span>
+                                                </label>
+                                            </c:forEach>
+                                        </div>
+                                        <p class="ob-note" id="obNoMatchingRooms" hidden><ui:text key="offline.noMatchingRooms"/></p>
+                                        <div class="ob-room-pagination">
+                                            <button type="button" class="ob-button ob-secondary" id="obRoomsPrevious" aria-controls="obRoomResults"><ui:text key="screen.a57b08a480b822a0"/></button>
+                                            <span id="obRoomRange" role="status"></span>
+                                            <button type="button" class="ob-button ob-secondary" id="obRoomsNext" aria-controls="obRoomResults"><ui:text key="screen.1ff57a29d7c9d11b"/></button>
+                                        </div>
+                                    </fieldset>
+                                </c:if>
                             </section>
 
                             <section class="ob-panel">
                                 <div class="ob-panel-top">
                                     <h2><ui:text key="screen.bf3763383aaf4306"/></h2>
-                                    <span class="ob-number">02</span>
                                 </div>
 
                                 <div class="ob-mode"
@@ -331,7 +333,6 @@
                             <section class="ob-panel">
                                 <div class="ob-panel-top">
                                     <h2><ui:text key="screen.a42f24143514fb13"/></h2>
-                                    <span class="ob-number">03</span>
                                 </div>
 
                                 <div class="ob-fields">
@@ -340,12 +341,17 @@
                                             <ui:text key="screen.fd947a841a798fb7"/>
                                         </label>
 
-                                        <input class="ob-input"
-                                               name="promotionCode"
-                                               id="promotionCode"
-                                               maxlength="50"
-                                               value="${fn:escapeXml(form.promotionCode)}"
-                                               placeholder="${requestScope.i18n['screen.16be5a510aa9cbab']}" data-i18n-placeholder="screen.16be5a510aa9cbab">
+                                        <select class="ob-input" name="promotionCode" id="promotionCode"
+                                                aria-describedby="obPromotionHint">
+                                            <option value="" data-i18n="offline.noPromotion">${requestScope.i18n['offline.noPromotion']}</option>
+                                            <c:forEach var="promotion" items="${promotions}">
+                                                <option value="${fn:escapeXml(promotion.code)}" data-minimum="${promotion.minimum}"
+                                                        ${form.promotionCode eq promotion.code ? 'selected' : ''}>
+                                                    <c:out value="${promotion.code}"/> · <fmt:formatNumber value="${promotion.percent}"/>%
+                                                </option>
+                                            </c:forEach>
+                                        </select>
+                                        <p class="ob-note mb-0" id="obPromotionHint"><ui:text key="offline.promotionEligibility"/></p>
                                     </div>
 
                                     <div class="ob-field ob-full">
@@ -523,8 +529,6 @@
         </div>
 
         <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js" defer></script>
-        <script src="<c:url value='/assets/js/booking-management-calendar.js?v=staff-calendar-2'/>" defer></script>
-        <script src="${pageContext.request.contextPath}/assets/js/offline-booking.js?v=reviewed-2" defer></script>
+        <script src="${pageContext.request.contextPath}/assets/js/offline-booking.js?v=room-picker-1" defer></script>
     </body>
 </html>

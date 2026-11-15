@@ -100,6 +100,10 @@ public class AdminUserDAO extends DBContext {
     }
 
     public AdminAccount.Page search(String keyword, String role, String status, int page) throws SQLException {
+        return search(keyword, role, status, page, null);
+    }
+
+    public AdminAccount.Page search(String keyword, String role, String status, int page, java.time.LocalDate date) throws SQLException {
         AdminAccount.Page result = new AdminAccount.Page();
         List<Object> args = new ArrayList<>();
         String where = " WHERE u.Role IN ('customer','staff','manager','admin') ";
@@ -107,6 +111,11 @@ public class AdminUserDAO extends DBContext {
             where += " AND (u.Username LIKE ? ESCAPE '~' OR (CASE WHEN c.CustomerID IS NULL THEN p.Email ELSE c.Email END) LIKE ? ESCAPE '~' OR u.DisplayName LIKE ? ESCAPE '~')";
             String k = "%" + keyword.replace("~", "~~").replace("%", "~%").replace("_", "~_").replace("[", "~[") + "%";
             Collections.addAll(args, k, k, k);
+        }
+        if (date != null) {
+            where += " AND u.CreatedAt >= ? AND u.CreatedAt < ?";
+            args.add(java.sql.Date.valueOf(date));
+            args.add(java.sql.Date.valueOf(date.plusDays(1)));
         }
         if (!role.isEmpty()) {
             where += " AND u.Role=?";

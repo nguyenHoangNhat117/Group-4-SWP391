@@ -11,6 +11,10 @@ import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import util.AuthSupport;
+import util.ReportPeriod;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -50,11 +54,7 @@ public class WithdrawalManagementServlet
 
         String role = user.getRole();
 
-        boolean authorized
-                = "admin".equalsIgnoreCase(role)
-                || "manager".equalsIgnoreCase(role);
-
-        if (!authorized) {
+        if (!"manager".equalsIgnoreCase(role)) {
             response.sendError(
                     403, "Access denied");
             return;
@@ -84,6 +84,34 @@ public class WithdrawalManagementServlet
             return;
         }
 
+        String keyword = AuthSupport.text(request.getParameter("q"));
+        String bank = AuthSupport.text(request.getParameter("bank"));
+        String dateInput = AuthSupport.text(request.getParameter("date"));
+        LocalDate date = null;
+        try {
+            if (!dateInput.isEmpty()) {
+                date = LocalDate.parse(dateInput);
+                if (date.getYear() < 2 || date.getYear() > 9998) {
+                    response.sendError(400, "Invalid date");
+                    return;
+                }
+            }
+        } catch (DateTimeParseException e) {
+            response.sendError(400, "Invalid date");
+            return;
+        }
+        if (keyword.length() > 150 || bank.length() > 100) {
+            response.sendError(400, "Invalid search filters");
+            return;
+        }
+
+        WithdrawalDAO.ManagementFilter filter = new WithdrawalDAO.ManagementFilter(status, date, keyword, bank);
+        request.setAttribute("selectedDate", date);
+        request.setAttribute("keyword", keyword);
+        request.setAttribute("bank", bank);
+        request.setAttribute("hotelZone", ReportPeriod.HOTEL_ZONE);
+        request.setAttribute("utcOffset", java.time.ZoneOffset.UTC);
+
         int page = 1;
         String pageParam
                 = request.getParameter("page");
@@ -111,7 +139,7 @@ public class WithdrawalManagementServlet
                     = withdrawalDAO.countManageableRequests(
                             user.getId(),
                             role,
-                            status
+                            filter
                     );
 
             int totalPages = Math.max(
@@ -128,7 +156,7 @@ public class WithdrawalManagementServlet
                     = withdrawalDAO.listManageableRequests(
                             user.getId(),
                             role,
-                            status,
+                            filter,
                             page,
                             PAGE_SIZE
                     );

@@ -34,6 +34,7 @@
 
 <link rel="stylesheet"
       href="${pageContext.request.contextPath}/assets/css/header-layout.css?v=header-row-2">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/form-controls.css">
 <header class="luxe-shared-header luxe-header-v4 luxe-header-v5"
         data-luxe-header
         data-context-path="${pageContext.request.contextPath}">
@@ -100,17 +101,6 @@
                         </a>
                     </li>
 
-                    <li>
-                        <a href="${pageContext.request.contextPath}/hotel-wallet">
-                            <ui:text key="nav.hotelWallet"/>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="${pageContext.request.contextPath}/withdrawal-management">
-                            Withdrawal Management
-                        </a>
-                    </li>
-
                 </c:when>
 
                 <c:when test="${sessionScope.loggedUser.role == 'staff'}">
@@ -138,11 +128,6 @@
                         </a>
                     </li>
 
-                    <li>
-                        <a href="${pageContext.request.contextPath}/hotel-wallet">
-                            <ui:text key="nav.hotelWallet"/>
-                        </a>
-                    </li>
 
 
                 </c:when>
@@ -161,8 +146,14 @@
                     </li>
 
                     <li>
+                        <a href="${pageContext.request.contextPath}/hotel-wallet">
+                            <ui:text key="nav.hotelWallet"/>
+                        </a>
+                    </li>
+
+                    <li>
                         <a href="${pageContext.request.contextPath}/withdrawal-management">
-                            Withdrawal Management
+                            <ui:text key="management.withdrawals"/>
                         </a>
                     </li>
 
@@ -350,9 +341,8 @@
                                     </span>
                                 </div>
 
-                                <c:if test="${sessionScope.loggedUser.role == 'customer'}">
                                     <a class="luxe-account-item"
-                                       href="${pageContext.request.contextPath}/profile?id=${sessionScope.loggedUser.id}">
+                                       href="${pageContext.request.contextPath}/profile">
 
                                         <svg viewBox="0 0 24 24"
                                              aria-hidden="true">
@@ -364,6 +354,7 @@
                                         <ui:text key="account.profile"/>
                                     </a>
 
+                                <c:if test="${sessionScope.loggedUser.role == 'customer'}">
                                     <a class="luxe-account-item"
                                        href="${pageContext.request.contextPath}/history?view=bookings">
 
@@ -428,9 +419,7 @@
                                               or sessionScope.loggedUser.role == 'admin'
                                               or sessionScope.loggedUser.role == 'manager'}">
 
-                                      <%-- Wallet Management for Admin and Staff --%>
-                                      <c:if test="${sessionScope.loggedUser.role == 'admin'
-                                                    or sessionScope.loggedUser.role == 'staff'}">
+                                      <c:if test="${sessionScope.loggedUser.role == 'manager'}">
 
                                             <a class="luxe-account-item"
                                                href="${pageContext.request.contextPath}/wallet-management">

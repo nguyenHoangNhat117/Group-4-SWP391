@@ -1,5 +1,6 @@
 package controller;
 
+import dao.RoomTypeDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -13,6 +14,7 @@ public class HomeServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        request.setAttribute("roomTypes", new RoomTypeDAO().getAllActive());
         request.getRequestDispatcher("/WEB-INF/home/index.jsp").forward(request, response);
     }
 }

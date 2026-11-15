@@ -1,5 +1,5 @@
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
-<%-- 
+<%--
     Document   : index
     Created on : Nov 4, 2026, 10:49:03 PM
     Author     : Nguyen Hoang Nhat
@@ -81,11 +81,12 @@
 <%
     String ctx = request.getContextPath(), base = ctx + "/admin/users";
     String q = (String) request.getAttribute("q"), rf = (String) request.getAttribute("roleFilter"), sf = (String) request.getAttribute("statusFilter");
-    String search = "q=" + enc(q) + "&role=" + enc(rf) + "&status=" + enc(sf);
+    String search = "q=" + enc(q) + "&role=" + enc(rf) + "&status=" + enc(sf) + "&date=" + enc(request.getParameter("date"));
     AdminAccount.Page data = (AdminAccount.Page) request.getAttribute("pageData");
     User actor = (User) session.getAttribute("loggedUser");
     String csrf = AuthSupport.token(session);
     String state = "<input type=\"hidden\" name=\"csrfToken\" value=\"" + h(csrf) + "\"><input type=\"hidden\" name=\"q\" value=\"" + h(q) + "\"><input type=\"hidden\" name=\"role\" value=\"" + h(rf) + "\"><input type=\"hidden\" name=\"status\" value=\"" + h(sf) + "\"><input type=\"hidden\" name=\"page\" value=\"" + data.page + "\">";
+    state += "<input type=\"hidden\" name=\"date\" value=\"" + h(request.getAttribute("dateFilter")) + "\">";
     AdminAccount form = (AdminAccount) request.getAttribute("form"), inspect = (AdminAccount) request.getAttribute("inspectAccount");
     boolean creating = "create".equals(request.getAttribute("formMode"));
     Map<String, String> errors = (Map<String, String>) request.getAttribute("errors");
@@ -96,8 +97,11 @@
 %>
 <!DOCTYPE html><html lang="${requestScope.uiLanguage}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
                 <title data-i18n="screen.954c1d17b9babe2d">${requestScope.i18n['screen.954c1d17b9babe2d']}</title>
-                <link rel="stylesheet" href="<%=ctx%>/assets/css/bootstrap.min.css"><link rel="stylesheet" href="<%=ctx%>/assets/css/admin-users.css?v=readable-en-v3"></head>
-                        <body>
+                <link rel="stylesheet" href="<%=ctx%>/assets/css/bootstrap.min.css"><link rel="stylesheet" href="<%=ctx%>/assets/css/admin-users.css?v=readable-en-v3"><link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/form-controls.css">
+<%@ include file="/WEB-INF/include/date-picker.jsp" %>
+</head>
+                        <body class="management-page ">
                             <svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
                                     <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.87M16 3a4 4 0 0 1 0 8"/><circle cx="9" cy="7" r="4"/></symbol>
                                     <symbol id="i-customer" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></symbol>
@@ -117,11 +121,9 @@
                                     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
                                 </defs></svg>
                             <div class="admin-shell">
-                                <aside class="side-rail"><a href="<%=ctx%>/" class="brand-mark" title="Luxe Escape">LE<span></span></a><nav aria-label="${requestScope.i18n['screen.3e761ea146251014']}" data-i18n-aria-label="screen.3e761ea146251014">
-                                        <a href="<%=ctx%>/" title="${requestScope.i18n['screen.5c02b7f62d4b05d0']}" data-i18n-title="screen.5c02b7f62d4b05d0"><%=icon("home")%></a><a class="current" href="<%=base%>" title="${requestScope.i18n['screen.5a35ce25a2bd3791']}" aria-current="page" data-i18n-title="screen.5a35ce25a2bd3791"><%=icon("users")%></a>
-                                    </nav><span class="rail-caption">LUXE</span></aside>
+
                                 <main class="workspace">
-                                    <header class="page-heading"><div><div class="eyebrow"><ui:text key="screen.4427ea865524d3e6"/></div><h1><ui:text key="screen.5a35ce25a2bd3791"/></h1></div><div class="admin-chip"><span class="avatar small"><%=h(actor.getDisplayName() == null ? "A" : actor.getDisplayName().substring(0, 1).toUpperCase(Locale.ROOT))%></span><div><strong><%=h(actor.getDisplayName())%></strong><small><ui:text key="screen.e7d3e769f3f593da"/></small></div></div></header>
+                                    <div class="d-flex justify-content-between align-items-center mb-4"><a class="btn btn-outline-secondary" href="<%=ctx%>/"><ui:text key="management.back"/></a><jsp:include page="/WEB-INF/include/language-switcher.jsp"/></div><header class="page-heading"><div><div class="eyebrow"><ui:text key="screen.4427ea865524d3e6"/></div><h1><ui:text key="screen.5a35ce25a2bd3791"/></h1></div><div class="admin-chip"><span class="avatar small"><%=h(actor.getDisplayName() == null ? "A" : actor.getDisplayName().substring(0, 1).toUpperCase(Locale.ROOT))%></span><div><strong><%=h(actor.getDisplayName())%></strong><small><ui:text key="screen.e7d3e769f3f593da"/></small></div></div></header>
                                     <% if (request.getAttribute("flash") != null) {%><div class="alert alert-<%="warning".equals(request.getAttribute("flashKind")) ? "warning" : "success"%> border-0 d-flex gap-2 align-items-center" role="status"><%=icon("warning".equals(request.getAttribute("flashKind")) ? "mail" : "check")%><span><%=uiMessage(request.getAttribute("flash"), request.getAttribute("uiLanguage"))%></span></div><% }%>
                                     <section class="metric-grid" aria-label="${requestScope.i18n['screen.34434a148c791cb8']}" data-i18n-aria-label="screen.34434a148c791cb8">
                                         <div class="metric"><span class="metric-icon violet"><%=icon("users")%></span><div><small><ui:text key="screen.a002e72ab6bc743b"/></small><strong><%=data.total%></strong></div><div class="mini-donut" style="--chart:conic-gradient(#21a574 0% <%=aPct%>%,#e8a02e <%=aPct%>% <%=Math.min(100, aPct + lPct)%>%,#df6570 <%=Math.min(100, aPct + lPct)%>% 100%)" aria-label="${requestScope.i18n['screen.2c40ec887904c71f']}" data-i18n-aria-label="screen.2c40ec887904c71f"></div></div>
@@ -133,6 +135,12 @@
                                         <form class="toolbar" method="get" action="<%=base%>"><div class="search-box"><%=icon("search")%><input type="search" name="q" value="<%=h(q)%>" maxlength="100" placeholder="${requestScope.i18n['screen.ca579193c3907b86']}" aria-label="${requestScope.i18n['screen.054efefc16c2724e']}" data-i18n-placeholder="screen.ca579193c3907b86" data-i18n-aria-label="screen.054efefc16c2724e"><button type="submit" class="search-go" title="${requestScope.i18n['screen.49c266baaaa70981']}" aria-label="${requestScope.i18n['screen.49c266baaaa70981']}" data-i18n-title="screen.49c266baaaa70981" data-i18n-aria-label="screen.49c266baaaa70981"><%=icon("arrow")%></button></div>
                                             <select name="role" class="form-select" aria-label="${requestScope.i18n['screen.4feaf3f04060514a']}" data-i18n-aria-label="screen.4feaf3f04060514a"><option value="" data-i18n="screen.78f133afd3ec55cd">${requestScope.i18n['screen.78f133afd3ec55cd']}</option><%for (String r : AdminAccount.ROLES) {%><option value="<%=r%>" <%=r.equals(rf) ? "selected" : ""%> data-i18n="<%= util.MessageTranslations.key(r.substring(0, 1).toUpperCase() + r.substring(1)) %>"><%= util.AuthSupport.html(util.MessageTranslations.text(r.substring(0, 1).toUpperCase() + r.substring(1), request.getAttribute("uiLanguage"))) %></option><%}%></select>
                                             <select name="status" class="form-select" aria-label="${requestScope.i18n['screen.5adb288134e7cecb']}" data-i18n-aria-label="screen.5adb288134e7cecb"><option value="" data-i18n="screen.8ee57323a6f24cc7">${requestScope.i18n['screen.8ee57323a6f24cc7']}</option><%for (String st : AdminAccount.STATUSES) {%><option value="<%=st%>" <%=st.equals(sf) ? "selected" : ""%> data-i18n="<%= util.MessageTranslations.key(st.substring(0, 1).toUpperCase() + st.substring(1)) %>"><%= util.AuthSupport.html(util.MessageTranslations.text(st.substring(0, 1).toUpperCase() + st.substring(1), request.getAttribute("uiLanguage"))) %></option><%}%></select>
+                                            <div class="account-created-date">
+                                                <label class="visually-hidden" for="account-created-date"><ui:text key="management.createdDate"/></label>
+                                                <input id="account-created-date" class="form-control" type="date" name="date"
+                                                       data-date-placeholder="management.createdDate"
+                                                       value="<%=h(request.getAttribute("dateFilter"))%>">
+                                            </div>
                                             <button class="btn btn-filter" type="submit"><ui:text key="screen.638e249f4a15ebb8"/></button><a href="<%=base%>" class="reset-link" title="${requestScope.i18n['screen.10afa98480f2d06c']}" data-i18n-title="screen.10afa98480f2d06c"><ui:text key="screen.daee7606b339f3c3"/></a>
                                             <a class="btn btn-luxe add-user" href="<%=h(base + "?" + search + "&page=" + data.page + "&mode=create")%>"><%=icon("plus")%> <ui:text key="screen.8512bf96fff6c1b4"/></a></form>
                                         <div class="table-responsive"><table class="table user-table align-middle"><thead><tr><th><ui:text key="screen.b512d97e7cbf97c2"/></th><th><ui:text key="screen.2b5c3d26721ae9c3"/></th><th><ui:text key="screen.14736a2eb9f4159f"/></th><th><ui:text key="screen.920e413c7d411b61"/></th><th><ui:text key="screen.69318b0c6a928e7e"/></th><th class="text-end"><ui:text key="screen.ff8059dc6752afdd"/></th></tr></thead><tbody>
@@ -151,7 +159,7 @@
                                                             </div></td></tr><%}%>
                                                     <%if (data.rows.isEmpty()) {%><tr><td colspan="6"><div class="empty-state"><%=icon("search")%><strong><ui:text key="screen.bf1e104fb3c88c51"/></strong><span><ui:text key="screen.1441bc9c75a0a4ca"/></span></div></td></tr><%}%>
                                                 </tbody></table></div>
-                                        <footer class="table-footer"><span><%=data.total == 0 ? 0 : (data.page - 1) * 10 + 1%>–<%=Math.min(data.page * 10, data.total)%> <ui:text key="screen.28391d3bc64ec15c"/> <%=data.total%> <ui:text key="screen.7dfb4cf67742cb06"/></span><nav aria-label="${requestScope.i18n['screen.eced10e84a5bfa55']}" data-i18n-aria-label="screen.eced10e84a5bfa55"><%if (data.page > 1) {%><a class="page-button" href="<%=h(base + "?" + search + "&page=" + (data.page - 1))%>" aria-label="${requestScope.i18n['screen.1208ec01f223c616']}" data-i18n-aria-label="screen.1208ec01f223c616">‹</a><%}%><span class="page-current"><%=data.page%> / <%=data.pages%></span><%if (data.page < data.pages) {%><a class="page-button" href="<%=h(base + "?" + search + "&page=" + (data.page + 1))%>" aria-label="${requestScope.i18n['screen.c08ac736a5e29c29']}" data-i18n-aria-label="screen.c08ac736a5e29c29">›</a><%}%></nav></footer></section>
+                                        <footer class="table-footer"><span><%=data.total == 0 ? 0 : (data.page - 1) * 10 + 1%>–<%=Math.min(data.page * 10, data.total)%> <ui:text key="screen.28391d3bc64ec15c"/> <%=data.total%> <ui:text key="screen.7dfb4cf67742cb06"/></span><nav aria-label="${requestScope.i18n['screen.eced10e84a5bfa55']}" data-i18n-aria-label="screen.eced10e84a5bfa55"><%if (data.page > 1) {%><a class="page-button" href="<%=h(base + "?" + search + "&page=" + (data.page - 1))%>" aria-label="${requestScope.i18n['screen.1208ec01f223c616']}" data-i18n-aria-label="screen.1208ec01f223c616">‹</a><%}%><% for (int n=Math.max(1,data.page-2);n<=Math.min(data.pages,data.page+2);n++) { %><a class="page-button <%=n==data.page ? "page-current" : ""%>" <%=n==data.page ? "aria-current=\"page\"" : ""%> href="<%=h(base + "?" + search + "&page=" + n)%>"><%=n%></a><% } %><span class="page-current"><%=data.page%> / <%=data.pages%></span><%if (data.page < data.pages) {%><a class="page-button" href="<%=h(base + "?" + search + "&page=" + (data.page + 1))%>" aria-label="${requestScope.i18n['screen.c08ac736a5e29c29']}" data-i18n-aria-label="screen.c08ac736a5e29c29">›</a><%}%></nav></footer></section>
                                     <div class="workspace-footer"><span>Luxe Escape Hotel</span><span><ui:text key="screen.9621c0b657699a7b"/></span></div>
                                 </main></div>
                                 <%if (form != null) {%>
@@ -191,4 +199,5 @@
                                                                     <div class="modal-footer justify-content-between"><form method="post" action="<%=base%>" data-confirm="${requestScope.i18n['screen.b8719d0b5e47dbee']}" data-i18n-data-confirm="screen.b8719d0b5e47dbee"><%=state%><input type="hidden" name="action" value="resend"><input type="hidden" name="id" value="<%=inspect.id%>"><input type="hidden" name="version" value="<%=h(inspect.version)%>"><button class="btn btn-outline-secondary btn-sm" type="submit" <%=inspect.id == actor.getId() ? "disabled" : ""%>><%=icon("mail")%> <ui:text key="screen.77a911f6c4622fe1"/></button></form><button type="button" class="btn btn-light border" data-bs-dismiss="modal"><ui:text key="screen.7d9eb7acb13e2462"/></button></div>
                                                                                         </div></div></div><%}%>
                                                                                         <script src="<%=ctx%>/assets/js/bootstrap.bundle.min.js"></script><script src="<%=ctx%>/assets/js/admin-users.js"></script>
-                                                                                        </body></html>
+                                                                                        <script src="${pageContext.request.contextPath}/assets/js/management.js"></script>
+</body></html>

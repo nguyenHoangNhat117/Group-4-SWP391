@@ -5,6 +5,9 @@ import model.WithdrawalRequest;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import util.ReportPeriod;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -171,7 +174,7 @@ public class WithdrawalDAO {
             try {
                 // Admin only until manager scope is configured.
 
-                if (!isAdminOrManager(conn, managerId)) {
+                if (!isHotelManager(conn, managerId)) {
                     conn.rollback();
                     return false;
                 }
@@ -232,7 +235,7 @@ public class WithdrawalDAO {
 
             try {
 
-                if (!isAdminOrManager(conn, managerId)) {
+                if (!isHotelManager(conn, managerId)) {
                     conn.rollback();
                     return false;
                 }
@@ -325,7 +328,7 @@ public class WithdrawalDAO {
             try {
 
                 // 1. Verify operator is an Admin.
-                if (!isAdminOrManager(conn, operatorId)) {
+                if (!isHotelManager(conn, operatorId)) {
                     conn.rollback();
                     return false;
                 }
@@ -479,43 +482,83 @@ public class WithdrawalDAO {
         }
     }
 
+    public static final class ManagementFilter {
+        private final String where;
+        private final List<Object> values = new ArrayList<>();
+
+        public ManagementFilter(String status, LocalDate date, String keyword, String bank) {
+            List<String> conditions = new ArrayList<>();
+            if (!status.isEmpty()) {
+                conditions.add("Status = ?");
+                values.add(status);
+            }
+            if (date != null) {
+                conditions.add("CreatedAt >= ? AND CreatedAt < ?");
+                values.add(date.atStartOfDay(ReportPeriod.HOTEL_ZONE)
+                        .withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime());
+                values.add(date.plusDays(1).atStartOfDay(ReportPeriod.HOTEL_ZONE)
+                        .withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime());
+            }
+            if (!keyword.isEmpty()) {
+                conditions.add("(AccountHolder LIKE ? ESCAPE '~' OR AccountNumber LIKE ? ESCAPE '~')");
+                String pattern = contains(keyword);
+                values.add(pattern);
+                values.add(pattern);
+            }
+            if (!bank.isEmpty()) {
+                conditions.add("BankName LIKE ? ESCAPE '~'");
+                values.add(contains(bank));
+            }
+            where = conditions.isEmpty() ? "" : "WHERE " + String.join(" AND ", conditions) + " ";
+        }
+
+        private static String contains(String text) {
+            return "%" + text.replace("~", "~~").replace("%", "~%").replace("_", "~_").replace("[", "~[") + "%";
+        }
+
+        private int bind(PreparedStatement statement) throws SQLException {
+            int index = 1;
+            for (Object value : values) {
+                if (value instanceof String) {
+                    statement.setNString(index++, (String) value);
+                } else {
+                    statement.setObject(index++, value);
+                }
+            }
+            return index;
+        }
+    }
+
     // =====================================================
     // 6. COUNT MANAGEABLE REQUESTS
     // =====================================================
     public int countManageableRequests(
             int userId,
             String role,
-            String status)
+            ManagementFilter filter)
             throws SQLException {
 
-        if (!"admin".equalsIgnoreCase(role)
-                && !"manager".equalsIgnoreCase(role)) {
+        if (!"manager".equalsIgnoreCase(role)) {
 
             throw new SecurityException("Access denied");
         }
 
-        String selectedStatus = normalizeStatus(status);
-
         String sql
                 = "SELECT COUNT(*) "
                 + "FROM dbo.WithdrawalRequest "
-                + (selectedStatus.isEmpty()
-                ? ""
-                : "WHERE Status = ?");
+                + filter.where;
 
         try (Connection conn
                 = new DBContext().getConnection()) {
 
-            if (!isAdminOrManager(conn, userId)) {
+            if (!isHotelManager(conn, userId)) {
                 throw new SecurityException("Access denied");
             }
 
             try (PreparedStatement ps
                     = conn.prepareStatement(sql)) {
 
-                if (!selectedStatus.isEmpty()) {
-                    ps.setString(1, selectedStatus);
-                }
+                filter.bind(ps);
 
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
@@ -534,13 +577,12 @@ public class WithdrawalDAO {
     public List<WithdrawalRequest> listManageableRequests(
             int userId,
             String role,
-            String status,
+            ManagementFilter filter,
             int page,
             int pageSize)
             throws SQLException {
 
-        if (!"admin".equalsIgnoreCase(role)
-                && !"manager".equalsIgnoreCase(role)) {
+        if (!"manager".equalsIgnoreCase(role)) {
 
             throw new SecurityException("Access denied");
         }
@@ -549,8 +591,6 @@ public class WithdrawalDAO {
             throw new IllegalArgumentException(
                     "Invalid pagination");
         }
-
-        String selectedStatus = normalizeStatus(status);
 
         long offset = ((long) page - 1) * pageSize;
 
@@ -566,9 +606,7 @@ public class WithdrawalDAO {
                 + "ReviewedAt, PaidBy, PaidAt, "
                 + "PaymentReference, CreatedAt "
                 + "FROM dbo.WithdrawalRequest "
-                + (selectedStatus.isEmpty()
-                ? ""
-                : "WHERE Status = ? ")
+                + filter.where
                 + "ORDER BY CreatedAt DESC, WithdrawalID DESC "
                 + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
@@ -578,18 +616,14 @@ public class WithdrawalDAO {
         try (Connection conn
                 = new DBContext().getConnection()) {
 
-            if (!isAdminOrManager(conn, userId)) {
+            if (!isHotelManager(conn, userId)) {
                 throw new SecurityException("Access denied");
             }
 
             try (PreparedStatement ps
                     = conn.prepareStatement(sql)) {
 
-                int index = 1;
-
-                if (!selectedStatus.isEmpty()) {
-                    ps.setString(index++, selectedStatus);
-                }
+                int index = filter.bind(ps);
 
                 ps.setInt(index++, (int) offset);
                 ps.setInt(index, pageSize);
@@ -664,9 +698,8 @@ public class WithdrawalDAO {
                 = new DBContext().getConnection()) {
 
             boolean admin
-                    = ("admin".equalsIgnoreCase(role)
-                    || "manager".equalsIgnoreCase(role))
-                    && isAdminOrManager(conn, userId);
+                    = "manager".equalsIgnoreCase(role)
+                    && isHotelManager(conn, userId);
 
             boolean customer
                     = "customer".equalsIgnoreCase(role)
@@ -789,34 +822,7 @@ public class WithdrawalDAO {
         return w;
     }
 
-    // =====================================================
-    // HELPER: VALIDATE STATUS FILTER
-    // =====================================================
-    private String normalizeStatus(String status) {
-
-        String value
-                = status == null
-                        ? ""
-                        : status.trim().toLowerCase(
-                                java.util.Locale.ROOT);
-
-        if (!value.isEmpty()
-                && !"pending".equals(value)
-                && !"approved".equals(value)
-                && !"rejected".equals(value)
-                && !"paid".equals(value)) {
-
-            throw new IllegalArgumentException(
-                    "Invalid withdrawal status");
-        }
-
-        return value;
-    }
-
-    // =====================================================
-    // HELPER: CHECK ADMIN FROM DATABASE
-    // =====================================================
-    private boolean isAdminOrManager(
+    private boolean isHotelManager(
             Connection conn,
             int userId)
             throws SQLException {
@@ -838,8 +844,7 @@ public class WithdrawalDAO {
 
                 String role = rs.getString("Role");
 
-                return "admin".equalsIgnoreCase(role)
-                        || "manager".equalsIgnoreCase(role);
+                return "manager".equalsIgnoreCase(role);
             }
         }
     }

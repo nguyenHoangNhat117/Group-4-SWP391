@@ -24,7 +24,8 @@
         </div>
         <div class="row g-4">
             <div class="col-lg-7">
-                <img class="stay-photo" src="${pageContext.request.contextPath}/assets/img/<c:out value='${roomType.picture}'/>"
+                <c:url var="pictureUrl" value="/assets/img/${empty roomType.picture ? 'avatar.jpg' : roomType.picture}"/>
+                <img class="stay-photo" src="<c:out value='${pictureUrl}'/>"
                      alt="<c:out value='${roomType.name}'/>">
                 <div class="stay-room-info">
                 <p class="stay-description"><c:out value="${roomType.description}"/></p>

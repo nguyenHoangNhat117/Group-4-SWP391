@@ -100,6 +100,63 @@ public class ProfileDAO extends DBContext {
         }
     }
 
+
+    public model.Customer getStaffProfile(int userId) throws SQLException {
+        model.Customer profile = new model.Customer();
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "SELECT FirstName,LastName,Email,Phone,Country,City,Street FROM AccountContact WHERE UserID=?")) {
+            ps.setInt(1, userId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    profile.setFirstName(rs.getString("FirstName"));
+                    profile.setLastName(rs.getString("LastName"));
+                    profile.setEmail(rs.getString("Email"));
+                    profile.setPhone(rs.getString("Phone"));
+                    profile.setCountry(rs.getString("Country"));
+                    profile.setCity(rs.getString("City"));
+                    profile.setStreet(rs.getString("Street"));
+                }
+            }
+        }
+        return profile;
+    }
+
+    public boolean updateStaffProfile(int userId, String displayName, String firstName, String lastName,
+            String email, String phone, String country, String city, String street) {
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE [User] SET DisplayName=? WHERE UserID=? AND Role IN ('admin','staff','manager')")) {
+                    ps.setString(1, displayName);
+                    ps.setInt(2, userId);
+                    if (ps.executeUpdate() != 1) { conn.rollback(); return false; }
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "IF NOT EXISTS (SELECT 1 FROM AccountContact WITH (UPDLOCK,HOLDLOCK) WHERE UserID=?) "
+                        + "INSERT INTO AccountContact(UserID) VALUES (?)")) {
+                    ps.setInt(1, userId); ps.setInt(2, userId); ps.executeUpdate();
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE AccountContact SET FirstName=?,LastName=?,Email=?,Phone=?,Country=?,City=?,Street=? WHERE UserID=?")) {
+                    String[] values = {firstName,lastName,email,phone,country,city,street};
+                    for (int i=0;i<values.length;i++) ps.setString(i+1, emptyToNull(values[i]));
+                    ps.setInt(8,userId);
+                    if (ps.executeUpdate()!=1) { conn.rollback(); return false; }
+                }
+                conn.commit();
+                return true;
+            } catch (SQLException ex) {
+                conn.rollback();
+                LOG.log(Level.WARNING, "Staff profile update failed", ex);
+                return false;
+            }
+        } catch (SQLException ex) {
+            LOG.log(Level.WARNING, "Staff profile unavailable", ex);
+            return false;
+        }
+    }
+
     private String emptyToNull(String value) {
         if (value == null || value.trim().isEmpty()) {
             return null;
