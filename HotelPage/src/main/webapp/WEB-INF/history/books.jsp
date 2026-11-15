@@ -8,7 +8,7 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="${requestScope.uiLanguage}">
 
 <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,9 +30,13 @@
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+    <c:if test="${ownHistory}">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/customer-bookings.css">
+    </c:if>
 </head>
 
-<body>
+<body class="${ownHistory ? 'customer-bookings-page' : ''}">
 
 <div class="body-wrapper">
 
@@ -40,7 +44,7 @@
 
     <main>
 
-        <div class="container py-4">
+        <div class="container py-4 py-lg-5">
 
             <!-- ================================================= -->
             <!-- PAGE TITLE                                        -->
@@ -59,9 +63,19 @@
 
                 <c:otherwise>
 
-                    <h2 class="fw-bold text-center mb-4">
-                        <ui:text key="screen.b997c2047fd25834"/>
-                    </h2>
+                    <div class="management-hero customer-bookings-heading">
+                        <div>
+                            <div class="eyebrow">LUXE ESCAPE</div>
+                            <h1><ui:text key="screen.b997c2047fd25834"/></h1>
+                            <p><ui:text key="history.bookings.intro"/></p>
+                        </div>
+                        <div class="customer-bookings-links">
+                            <c:url var="paymentHistoryUrl" value="/history">
+                                <c:param name="view" value="payments"/>
+                            </c:url>
+                            <a class="btn btn-light" href="<c:out value='${paymentHistoryUrl}'/>"><ui:text key="account.paymentHistory"/></a>
+                        </div>
+                    </div>
 
                 </c:otherwise>
 
@@ -124,9 +138,9 @@
             <!-- BOOKING LIST: compact table with expandable details -->
             <c:choose>
                 <c:when test="${not empty requestScope.bookings}">
-                    <div class="table-responsive shadow-sm rounded-3">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
+                    <div class="table-responsive shadow-sm rounded-3 customer-bookings-list">
+                        <table class="table table-hover align-middle mb-0" role="table">
+                            <thead class="table-light" role="rowgroup">
                                 <tr>
                                     <th scope="col"><ui:text key="screen.948e03e7054b919e"/></th>
                                     <th scope="col"><ui:text key="screen.011519b48fd7ae0a"/></th>
@@ -137,24 +151,35 @@
                                     <th scope="col" class="text-end"><ui:text key="screen.ff8059dc6752afdd"/></th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody role="rowgroup">
                                 <c:forEach var="booking" items="${requestScope.bookings}">
-                                    <tr>
-                                        <td class="fw-semibold">#${booking.id}</td>
-                                        <td>${fn:substring(booking.bookingDate, 8, 10)}/${fn:substring(booking.bookingDate, 5, 7)}/${fn:substring(booking.bookingDate, 0, 4)}</td>
-                                        <td>
-                                            <c:choose>
+                                    <tr class="customer-booking-row" role="row">
+                                        <td role="cell" class="fw-semibold">
+                                            <c:if test="${ownHistory}"><span class="customer-booking-mobile-label" aria-hidden="true"><ui:text key="screen.948e03e7054b919e"/></span></c:if>
+                                            <div class="customer-booking-cell">#${booking.id}</div>
+                                        </td>
+                                        <td role="cell">
+                                            <c:if test="${ownHistory}"><span class="customer-booking-mobile-label" aria-hidden="true"><ui:text key="screen.011519b48fd7ae0a"/></span></c:if>
+                                            <div class="customer-booking-cell">${fn:substring(booking.bookingDate, 8, 10)}/${fn:substring(booking.bookingDate, 5, 7)}/${fn:substring(booking.bookingDate, 0, 4)}</div>
+                                        </td>
+                                        <td role="cell">
+                                            <c:if test="${ownHistory}"><span class="customer-booking-mobile-label" aria-hidden="true"><ui:text key="screen.e5ba03fca518b20d"/></span></c:if>
+                                            <div class="customer-booking-cell"><c:choose>
                                                 <c:when test="${not empty booking.details}">
                                                     ${fn:substring(booking.details[0].checkInDate, 8, 10)}/${fn:substring(booking.details[0].checkInDate, 5, 7)}/${fn:substring(booking.details[0].checkInDate, 0, 4)}
                                                     <span class="text-muted"><ui:text key="screen.663ea1bfffe5038f"/></span>
                                                     ${fn:substring(booking.details[0].checkOutDate, 8, 10)}/${fn:substring(booking.details[0].checkOutDate, 5, 7)}/${fn:substring(booking.details[0].checkOutDate, 0, 4)}
                                                 </c:when>
                                                 <c:otherwise><span class="text-muted"><ui:text key="screen.67a926f7008e2b0e"/></span></c:otherwise>
-                                            </c:choose>
+                                            </c:choose></div>
                                         </td>
-                                        <td class="fw-bold text-success text-nowrap"><ui:money amount="${booking.totalPrice}"/></td>
-                                        <td>
-                                            <c:choose>
+                                        <td role="cell" class="fw-bold text-success text-nowrap">
+                                            <c:if test="${ownHistory}"><span class="customer-booking-mobile-label" aria-hidden="true"><ui:text key="screen.c9b3c38247f744e1"/></span></c:if>
+                                            <div class="customer-booking-cell"><ui:money amount="${booking.totalPrice}"/></div>
+                                        </td>
+                                        <td role="cell">
+                                            <c:if test="${ownHistory}"><span class="customer-booking-mobile-label" aria-hidden="true"><ui:text key="screen.ea50259543e17999"/></span></c:if>
+                                            <div class="customer-booking-cell"><c:choose>
                                                 <c:when test="${booking.status == 'pending'}"><span class="badge bg-warning text-dark"><ui:text key="screen.331551b0de4157c9"/></span></c:when>
                                                 <c:when test="${booking.status == 'confirmed'}"><span class="badge bg-primary"><ui:text key="screen.fe00b67b6dd1143f"/></span></c:when>
                                                 <c:when test="${booking.status == 'cancelled'}"><span class="badge bg-danger"><ui:text key="screen.d353a99eb4556847"/></span></c:when>
@@ -162,10 +187,11 @@
                                                 <c:when test="${booking.status == 'checked_out'}"><span class="badge bg-secondary"><ui:text key="screen.cbe2b33735c6335c"/></span></c:when>
                                                 <c:when test="${booking.status == 'completed'}"><span class="badge bg-success"><ui:text key="screen.22a970d2e5b1cc23"/></span></c:when>
                                                 <c:otherwise><span class="badge bg-secondary"><ui:message text="${booking.status}"/></span></c:otherwise>
-                                            </c:choose>
+                                            </c:choose></div>
                                         </td>
-                                        <td>
-                                            <c:set var="paidAmount" value="${paidAmountMap[booking.id]}" />
+                                        <td role="cell">
+                                            <c:if test="${ownHistory}"><span class="customer-booking-mobile-label" aria-hidden="true"><ui:text key="screen.7048f38b33f135df"/></span></c:if>
+                                            <div class="customer-booking-cell"><c:set var="paidAmount" value="${paidAmountMap[booking.id]}" />
                                             <c:set var="remainingAmount" value="${remainingAmountMap[booking.id]}" />
                                             <c:choose>
                                                 <c:when test="${not empty lateRefundMessageMap[booking.id]}">
@@ -186,17 +212,17 @@
                                                 </c:when>
                                                 <c:when test="${remainingAmount <= 0}">
                                                     <span class="badge bg-success"><ui:text key="screen.ba9054bc0354df6e"/></span>
-                                                    <div class="small text-muted mt-1"><ui:text key="screen.52d848993f1b098b"/>${paidAmount}</div>
+                                                    <div class="small text-muted mt-1"><ui:text key="screen.52d848993f1b098b"/> <ui:money amount="${paidAmount}"/></div>
                                                 </c:when>
                                                 <c:otherwise>
                                                     <span class="badge bg-info text-dark"><ui:text key="screen.1390db305695537e"/></span>
-                                                    <div class="small text-muted mt-1"><ui:text key="screen.52d848993f1b098b"/>${paidAmount}<br><ui:text key="screen.86e401cbd3861223"/>${remainingAmount}</div>
+                                                    <div class="small text-muted mt-1"><ui:text key="screen.52d848993f1b098b"/> <ui:money amount="${paidAmount}"/><br><ui:text key="screen.86e401cbd3861223"/> <ui:money amount="${remainingAmount}"/></div>
                                                 </c:otherwise>
-                                            </c:choose>
-
+                                            </c:choose></div>
                                         </td>
-                                        <td class="text-end text-nowrap">
-                                            <button class="btn btn-outline-primary btn-sm"
+                                        <td role="cell" class="text-end text-nowrap">
+                                            <c:if test="${ownHistory}"><span class="customer-booking-mobile-label" aria-hidden="true"><ui:text key="screen.ff8059dc6752afdd"/></span></c:if>
+                                            <div class="customer-booking-cell customer-booking-actions"><button class="btn btn-outline-primary btn-sm"
                                                     type="button"
                                                     data-bs-toggle="collapse"
                                                     data-bs-target="#booking-details-${booking.id}"
@@ -204,12 +230,17 @@
                                                     aria-controls="booking-details-${booking.id}">
                                                 <ui:text key="screen.90789c12d0731b44"/>
                                             </button>
+                                                <c:if test="${ownHistory and cancellableMap[booking.id]}">
+                                                    <a href="${pageContext.request.contextPath}/history/cancel-booking?id=${booking.id}"
+                                                       class="btn btn-outline-danger btn-sm"><ui:text key="screen.dcd0884db34dcece"/></a>
+                                                </c:if>
+                                            </div>
                                         </td>
                                     </tr>
-                                    <tr class="table-light">
-                                        <td colspan="7" class="p-0 border-0">
+                                    <tr class="table-light customer-booking-details-row" role="row">
+                                        <td colspan="7" class="p-0 border-0" role="cell">
                                             <div class="collapse" id="booking-details-${booking.id}">
-                                                <div class="p-3 p-md-4 border-bottom">
+                                                <div class="p-3 p-md-4 border-bottom customer-booking-details">
                                                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
                                                         <div>
                                                             <h5 class="mb-2"><ui:text key="screen.8e9d3e1467f7cc3f"/>${booking.id} <ui:text key="screen.45989de49fb7f66d"/></h5>
@@ -274,20 +305,9 @@
                                 <span class="small text-muted"><ui:text key="room.checkout.hotel.balance"/>
                                     <ui:money amount="${remainingAmountMap[booking.id]}"/></span>
                             </c:if>
-                            <c:if test="${booking.status == 'pending' || booking.status == 'confirmed'
-                                          || booking.status == 'checked_in'}">
-                                <c:choose>
-                                    <c:when test="${cancellableMap[booking.id]}">
-                                        <a href="${pageContext.request.contextPath}/history/cancel-booking?id=${booking.id}"
-                                           class="btn btn-danger btn-sm"><ui:text key="screen.dcd0884db34dcece"/></a>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <span class="d-inline-block"
-                                              title="${requestScope.i18n['screen.b0ebf4bfbb10b71b']}" data-i18n-title="screen.b0ebf4bfbb10b71b">
-                                            <button type="button" class="btn btn-outline-danger btn-sm" disabled><ui:text key="screen.dcd0884db34dcece"/></button>
-                                        </span>
-                                    </c:otherwise>
-                                </c:choose>
+                            <c:if test="${not cancellableMap[booking.id]
+                                          and (booking.status == 'pending' or booking.status == 'confirmed' or booking.status == 'checked_in')}">
+                                <span class="small text-muted"><ui:text key="screen.b0ebf4bfbb10b71b"/></span>
                             </c:if>
                             <c:if test="${booking.status == 'completed' && not empty booking.details}">
                                 <a href="${pageContext.request.contextPath}/review?booking-id=${booking.id}&amp;room-number=${booking.details[0].roomNumber}"
@@ -312,12 +332,10 @@
 
                         <nav
                             aria-label="${requestScope.i18n['screen.a7f23a9c7133cfc6']}"
-                            class="d-flex
-                                   justify-content-center
-                                   mt-4" data-i18n-aria-label="screen.a7f23a9c7133cfc6">
+                            class="d-flex justify-content-center w-100 p-0 mt-4 customer-booking-pagination" data-i18n-aria-label="screen.a7f23a9c7133cfc6">
 
 
-                            <ul class="pagination">
+                            <ul class="pagination flex-wrap justify-content-center mb-0">
 
 
                                 <!-- Previous -->
@@ -355,6 +373,7 @@
 
                                         <a
                                             class="page-link"
+                                            ${currentPage == i ? 'aria-current="page"' : ''}
                                             href="${pageContext.request.contextPath}/history?id=${requestScope.historyCustomerId}&view=bookings&page=${i}">
 
                                             ${i}
@@ -398,7 +417,7 @@
 
                 <c:otherwise>
 
-                    <div class="alert alert-info text-center mt-5">
+                    <div class="${ownHistory ? 'customer-bookings-empty' : 'alert alert-info text-center mt-5'}">
 
                         <c:choose>
 
@@ -411,7 +430,8 @@
 
                             <c:otherwise>
 
-                                <ui:text key="screen.7f7bf65f662348a7"/>
+                                <h2><ui:text key="screen.7f7bf65f662348a7"/></h2>
+                                <a href="${pageContext.request.contextPath}/booking" class="btn btn-success"><ui:text key="nav.search"/></a>
 
                             </c:otherwise>
 

@@ -1,10 +1,4 @@
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
-<%-- 
-    Document   : update
-    Created on : May 26, 2025, 9:46:21 AM
-    Author     : Đặng Hoàng Vũ
---%>
-
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 

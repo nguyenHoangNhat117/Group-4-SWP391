@@ -1,17 +1,6 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package model;
 
-/**
- *
- * @author Đặng Hoàng Vũ
- */
-/**
- * Represents a hotel room with its current status and type information. This
- * class models the physical room entity in the hotel management system.
- */
 public class Room {
     private int roomNumber;     // Unique identifier for the room (e.g., 101, 202)
     private String status;      // Current availability status (e.g., "Available", "Occupied")

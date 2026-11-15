@@ -1,11 +1,5 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
-<%-- 
-    Document   : index.jsp
-    Created on : Jun 14, 2025, 4:08:24 PM
-    Author     : Đặng Hoàng Vũ
---%>
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html>

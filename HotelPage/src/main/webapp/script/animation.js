@@ -1,8 +1,3 @@
-/* 
- Created on : Jun 14, 2025, 14:30:25 PM
- Author     : Đặng Hoàng Vũ
- */
-
 export default function addObserver() {
     const cards = document.querySelectorAll(".card");
     const texts = document.querySelectorAll(".text");

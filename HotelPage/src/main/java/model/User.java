@@ -2,11 +2,6 @@ package model;
 
 import java.time.LocalDateTime;
 
-/**
- * Represents a system user account.
- *
- * Matches the current HotelDB [User] table.
- */
 public class User {
 
     private int id;

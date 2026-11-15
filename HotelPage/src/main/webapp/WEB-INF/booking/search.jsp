@@ -2,7 +2,7 @@
 <%-- 
     Document   : booking (Search Rooms)
     Created on : Oct 19, 2026, 8:42:03 PM
-    Author     : Lương Thành Đạt (Remastered for Luxury UI)
+    Author     : Lương Thành Đạt
 --%>
 
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>

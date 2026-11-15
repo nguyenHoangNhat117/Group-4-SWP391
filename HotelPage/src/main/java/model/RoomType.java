@@ -1,21 +1,9 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package model;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- *
- * @author Đặng Hoàng Vũ
- */
-/**
- * Represents a category of hotel rooms with shared characteristics. Defines the
- * properties, amenities and pricing for a type of room.
- */
 public class RoomType {
     private int Id;                 // Unique identifier for the room type
     private String name;            // Category name (e.g., "Deluxe", "Executive Suite")

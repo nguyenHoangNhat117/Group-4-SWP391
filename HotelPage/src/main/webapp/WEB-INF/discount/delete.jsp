@@ -1,10 +1,4 @@
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
-<%-- 
-    Document   : delete.jsp
-    Created on : Jun 23, 2025, 4:28:15 PM
-    Author     : Đặng Hoàng Vũ
---%>
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html>
