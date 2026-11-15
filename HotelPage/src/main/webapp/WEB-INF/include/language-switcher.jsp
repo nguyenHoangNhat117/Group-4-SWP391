@@ -32,21 +32,18 @@
         <div class="hotel-language__panel">
             <span class="hotel-language__heading"
                   data-i18n="language.choose">
-
                 <c:out value="${requestScope.i18n['language.choose']}"/>
             </span>
 
             <button type="button"
                     data-language-option="vi"
                     aria-pressed="${requestScope.uiLanguage == 'vi'}">
-
                 <span lang="vi">Tiếng Việt</span>
             </button>
 
             <button type="button"
                     data-language-option="en"
                     aria-pressed="${requestScope.uiLanguage == 'en'}">
-
                 <span lang="en">English</span>
             </button>
         </div>
@@ -64,9 +61,9 @@
 </div>
 
 <script defer
-        src="${pageContext.request.contextPath}/assets/js/language.js?v=uc24-6">
+        src="${pageContext.request.contextPath}/assets/js/language.js?v=uc24-20261115-2">
 </script>
 
 <script defer
-        src="${pageContext.request.contextPath}/assets/js/language-ui.js?v=site-2">
+        src="${pageContext.request.contextPath}/assets/js/language-ui.js?v=uc24-20261115-2">
 </script>

@@ -12,7 +12,7 @@
     const selector = markers.map(name => `[${name}]`).join(",");
     const state = {
         language: host.dataset.language || "en", token: host.dataset.languageToken || "",
-        messages: Object.create(null), signature: "", busy: false
+        messages: Object.create(null), lookup: null, signature: "", busy: false
     };
     let queue = Promise.resolve();
     let lastRefresh = 0;
@@ -72,10 +72,13 @@
         document.documentElement.lang = state.language;
         host.dataset.language = state.language;
         document.querySelectorAll("[data-language-current]").forEach(node => {
-            node.textContent = state.language.toUpperCase();
+            if (node.textContent !== state.language.toUpperCase())
+                node.textContent = state.language.toUpperCase();
         });
         document.querySelectorAll("[data-language-option]").forEach(button => {
-            button.setAttribute("aria-pressed", String(button.dataset.languageOption === state.language));
+            const pressed = String(button.dataset.languageOption === state.language);
+            if (button.getAttribute("aria-pressed") !== pressed)
+                button.setAttribute("aria-pressed", pressed);
         });
     }
     function commit(data) {
@@ -89,7 +92,10 @@
             document.dispatchEvent(new CustomEvent("hotel:languagechange", {detail: {lang: state.language}}));
     }
     async function payload(options = {}) {
-        const response = await fetch(endpoint, {
+        const url = new URL(endpoint, location.href);
+        if (!state.lookup && !options.method)
+            url.searchParams.set("catalog", "1");
+        const response = await fetch(url, {
             credentials: "same-origin", cache: "no-store", redirect: "error",
             headers: {Accept: "application/json"}, ...options
         });
@@ -104,6 +110,13 @@
         if (!["en", "vi"].includes(data.lang) || !data.messages || typeof data.messages !== "object"
                 || Array.isArray(data.messages) || Object.values(data.messages).some(value => typeof value !== "string")) {
             throw new Error(failure());
+        }
+        if (!state.lookup) {
+            if (!data.lookup || typeof data.lookup !== "object" || Array.isArray(data.lookup)
+                    || Object.values(data.lookup).some(value => typeof value !== "string")) {
+                throw new Error(failure());
+            }
+            state.lookup = Object.assign(Object.create(null), data.lookup);
         }
         return data;
     }
@@ -139,7 +152,7 @@
         return schedule(async () => {
             state.busy = true;
             host.setAttribute("aria-busy", "true");
-            showStatus("");
+            showStatus(text("language.loading") || (state.language === "vi" ? "Đang đổi ngôn ngữ…" : "Changing language…"));
             document.querySelectorAll("[data-language-option]").forEach(button => {
                 button.disabled = true;
             });
@@ -158,6 +171,7 @@
                     }
                 }
                 commit(data);
+                showStatus("");
                 notifyOtherTabs();
                 host.querySelector("details")?.removeAttribute("open");
             } catch (error) {
@@ -213,7 +227,16 @@
             syncVisible();
     });
     document.addEventListener("visibilitychange", syncVisible);
-    window.HotelLanguage = {change, apply, refresh, text(key) {
+    window.HotelLanguage = {change, apply, refresh,
+        key(value) {
+            return state.lookup?.[String(value).trim().replace(/\s+/g, " ").toLowerCase()] || null;
+        },
+        translate(value, args = {}) {
+            const key = this.key(value);
+            const translated = key ? text(key) : null;
+            return (translated ?? String(value)).replace(/\{(\w+)\}/g,
+                    (match, name) => Object.prototype.hasOwnProperty.call(args, name) ? String(args[name]) : match);
+        }, text(key) {
             return text(key) ?? key;
         }, get language() {
             return state.language;
