@@ -31,7 +31,7 @@
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/assets/css/offline-booking.css?v=summary-2"
+              href="${pageContext.request.contextPath}/assets/css/offline-booking.css?v=summary-2">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
         <link rel="stylesheet" href="<c:url value='/assets/css/booking-management.css?v=staff-calendar-2'/>">
