@@ -6,12 +6,8 @@
     String contextPath = request.getContextPath();
     String error = (String) request.getAttribute("error");
 
-    // Consume the one-time success message.
-    String success = (String) session.getAttribute("registrationSuccess");
-
-    if (success != null) {
-        session.removeAttribute("registrationSuccess");
-    }
+    String success =
+        (String) request.getAttribute("registrationSuccess");
 
     String enteredUsername
             = (String) request.getAttribute("enteredUsername");

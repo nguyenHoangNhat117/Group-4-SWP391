@@ -4,12 +4,16 @@ import db.DBContext;
 import model.AdminAccount;
 import java.sql.*;
 import java.util.*;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class AdminUserDAO extends DBContext {
 
     private static final String HISTORY = "EXISTS(SELECT 1 FROM Booking b JOIN Customer bc ON bc.CustomerID=b.CustomerID WHERE bc.UserID=u.UserID)";
     private static final String FROM = " FROM [User] u LEFT JOIN AccountContact p ON p.UserID=u.UserID LEFT JOIN Customer c ON c.UserID=u.UserID ";
-    private static final String FIELDS = "u.UserID,u.Username,u.Role,u.AccountStatus,u.DisplayName,u.CreatedAt,c.CustomerID,p.FirstName,p.LastName,p.Email,p.Phone,p.Country,p.City,p.Street,sys.fn_varbintohexstr(u.AccountVersion) UV,sys.fn_varbintohexstr(p.ContactVersion) PV,CASE WHEN " + HISTORY + " THEN 1 ELSE 0 END HasHistory";
+    private static final String FIELDS = "u.UserID,u.Username,u.Role,u.AccountStatus,u.DisplayName,u.CreatedAt,c.CustomerID,p.FirstName,p.LastName,p.Email,p.Phone,p.Country,p.City,p.Street,c.FirstName C_FirstName,c.LastName C_LastName,c.Email C_Email,c.Phone C_Phone,c.Country C_Country,c.City C_City,c.Street C_Street,sys.fn_varbintohexstr(u.AccountVersion) UV,sys.fn_varbintohexstr(p.ContactVersion) PV,CASE WHEN " + HISTORY + " THEN 1 ELSE 0 END HasHistory";
 
     public static class Rejected extends Exception {
 
@@ -30,17 +34,41 @@ public class AdminUserDAO extends DBContext {
         a.role = r.getString("Role");
         a.status = r.getString("AccountStatus");
         a.displayName = r.getString("DisplayName");
-        a.firstName = nz(r.getString("FirstName"));
-        a.lastName = nz(r.getString("LastName"));
-        a.email = nz(r.getString("Email"));
-        a.phone = nz(r.getString("Phone"));
-        a.country = nz(r.getString("Country"));
-        a.city = nz(r.getString("City"));
-        a.street = nz(r.getString("Street"));
-        a.version = r.getString("UV") + ":" + nz(r.getString("PV"));
+        a.firstName = contact(r, "FirstName");
+        a.lastName = contact(r, "LastName");
+        a.email = contact(r, "Email");
+        a.phone = contact(r, "Phone");
+        a.country = contact(r, "Country");
+        a.city = contact(r, "City");
+        a.street = contact(r, "Street");
+        a.version = r.getString("UV") + ":" + nz(r.getString("PV")) + ":" + customerVersion(r);
         a.hasHistory = r.getBoolean("HasHistory");
         a.createdAt = r.getTimestamp("CreatedAt").toLocalDateTime();
         return a;
+    }
+
+    private String contact(ResultSet r, String field) throws SQLException {
+        return nz(r.getString(r.getObject("CustomerID") == null ? field : "C_" + field));
+    }
+
+    // Customer chưa có rowversion: chụp đúng các trường UC18 có thể ghi đè.
+    private String customerVersion(ResultSet r) throws SQLException {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            digest.update(ByteBuffer.allocate(4).putInt(r.getInt("CustomerID")).array());
+            for (String field : Arrays.asList("FirstName", "LastName", "Email", "Phone", "Country", "City", "Street")) {
+                String value = r.getString("C_" + field);
+                digest.update((byte) (value == null ? 0 : 1));
+                if (value != null) {
+                    byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+                    digest.update(ByteBuffer.allocate(4).putInt(bytes.length).array());
+                    digest.update(bytes);
+                }
+            }
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(digest.digest());
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
     }
 
     private void bind(PreparedStatement s, Object... values) throws SQLException {
@@ -76,7 +104,7 @@ public class AdminUserDAO extends DBContext {
         List<Object> args = new ArrayList<>();
         String where = " WHERE u.Role IN ('customer','staff','manager','admin') ";
         if (!keyword.isEmpty()) {
-            where += " AND (u.Username LIKE ? ESCAPE '~' OR p.Email LIKE ? ESCAPE '~' OR u.DisplayName LIKE ? ESCAPE '~')";
+            where += " AND (u.Username LIKE ? ESCAPE '~' OR (CASE WHEN c.CustomerID IS NULL THEN p.Email ELSE c.Email END) LIKE ? ESCAPE '~' OR u.DisplayName LIKE ? ESCAPE '~')";
             String k = "%" + keyword.replace("~", "~~").replace("%", "~%").replace("_", "~_").replace("[", "~[") + "%";
             Collections.addAll(args, k, k, k);
         }
@@ -178,6 +206,10 @@ public class AdminUserDAO extends DBContext {
             bind(s, id);
             s.executeQuery().close();
         }
+        try (PreparedStatement s = c.prepareStatement("SELECT CustomerID FROM Customer WITH(UPDLOCK,HOLDLOCK) WHERE UserID=?")) {
+            bind(s, id);
+            s.executeQuery().close();
+        }
         AdminAccount a = find(c, id);
         if (a == null || !AdminAccount.ROLES.contains(a.role)) {
             throw new Rejected("Tài khoản không tồn tại hoặc ngoài phạm vi UC18.");
@@ -189,18 +221,37 @@ public class AdminUserDAO extends DBContext {
     }
 
     private void unique(Connection c, AdminAccount a) throws SQLException, Rejected {
-        String sql = "SELECT 1 FROM [User] u LEFT JOIN AccountContact p ON p.UserID=u.UserID WHERE u.UserID<>? AND (u.Username=? OR p.Email=? OR u.Username=? OR p.Email=?)";
-        try (PreparedStatement s = c.prepareStatement(sql)) {
-            bind(s, a.id, a.username, a.email, a.email, a.username);
-            try (ResultSet r = s.executeQuery()) {
-                if (r.next()) {
-                    throw new Rejected("Username hoặc Email đã được gán cho tài khoản khác.");
+        String[] queries = {
+            "SELECT 1 FROM [User] WITH(UPDLOCK,HOLDLOCK) WHERE UserID<>? AND Username IN (?,?)",
+            "SELECT 1 FROM AccountContact WITH(UPDLOCK,HOLDLOCK) WHERE UserID<>? AND Email IN (?,?)",
+            "SELECT 1 FROM Customer WITH(UPDLOCK,HOLDLOCK) WHERE (UserID IS NULL OR UserID<>?) AND Email IN (?,?)"
+        };
+        for (int i = 0; i < queries.length; i++) {
+            try (PreparedStatement s = c.prepareStatement(queries[i])) {
+                bind(s, a.id, a.username, a.email);
+                try (ResultSet r = s.executeQuery()) {
+                    if (r.next()) {
+                        throw new Rejected(i == 2
+                                ? "Email/định danh đã thuộc hồ sơ khách khác. Tìm hồ sơ có sẵn; khách tại quầy cần xác minh qua liên kết kích hoạt, không tạo tài khoản trùng."
+                                : "Username hoặc Email đã được gán cho tài khoản khác.");
+                    }
                 }
             }
         }
     }
 
+    private void saveContact(Connection c, int id, AdminAccount a) throws SQLException {
+        int changed = execute(c, "UPDATE AccountContact SET FirstName=?,LastName=?,Email=?,Phone=?,Country=?,City=?,Street=? WHERE UserID=?",
+                a.firstName, a.lastName, a.email, a.phone, a.country, a.city, a.street, id);
+        if (changed == 0) {
+            changed = execute(c, "INSERT AccountContact(UserID,FirstName,LastName,Email,Phone,Country,City,Street) VALUES(?,?,?,?,?,?,?,?)",
+                    id, a.firstName, a.lastName, a.email, a.phone, a.country, a.city, a.street);
+        }
+        if (changed != 1) throw new SQLException("Contact was not saved");
+    }
+
     public int create(int actor, AdminAccount a, String hash) throws SQLException, Rejected {
+        a.id = 0; // ID của form create không được dùng để bỏ qua kiểm tra trùng.
         if (!a.validate(true).isEmpty()) {
             throw new Rejected("Thông tin tài khoản không hợp lệ.");
         }
@@ -215,7 +266,7 @@ public class AdminUserDAO extends DBContext {
                     id = r.getInt(1);
                 }
             }
-            execute(c, "INSERT AccountContact(UserID,FirstName,LastName,Email,Phone,Country,City,Street) VALUES(?,?,?,?,?,?,?,?)", id, a.firstName, a.lastName, a.email, a.phone, a.country, a.city, a.street);
+            saveContact(c, id, a);
             if ("customer".equals(a.role)) {
                 ensureCustomer(c, id, a);
             }
@@ -240,7 +291,7 @@ public class AdminUserDAO extends DBContext {
             }
             unique(c, a);
             execute(c, "UPDATE [User] SET DisplayName=?,Role=?,AccountStatus=? WHERE UserID=?", a.lastName + " " + a.firstName, a.role, a.status, a.id);
-            execute(c, "UPDATE AccountContact SET FirstName=?,LastName=?,Email=?,Phone=?,Country=?,City=?,Street=? WHERE UserID=?", a.firstName, a.lastName, a.email, a.phone, a.country, a.city, a.street, a.id);
+            saveContact(c, a.id, a);
             if ("customer".equals(a.role)) {
                 ensureCustomer(c, a.id, a);
             }
@@ -272,7 +323,7 @@ public class AdminUserDAO extends DBContext {
             if (actor == id) {
                 throw new Rejected("Dùng Change Password cho tài khoản của bạn.");
             }
-            if (a.email.isBlank()) {
+            if (!util.AuthUcPolicy.validEmail(a.email)) {
                 throw new Rejected("Cần cập nhật Email trước.");
             }
             execute(c, "UPDATE [User] SET [Password]=? WHERE UserID=?", hash, id);

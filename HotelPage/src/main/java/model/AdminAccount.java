@@ -19,15 +19,25 @@ public class AdminAccount {
     public static final List<String> STATUSES = Collections.unmodifiableList(Arrays.asList("active", "locked", "inactive"));
 
     public Map<String, String> validate(boolean creating) {
+        username = AuthSupport.text(username);
+        firstName = AuthSupport.text(firstName);
+        lastName = AuthSupport.text(lastName);
+        email = AuthSupport.text(email);
+        phone = util.OfflineCustomerContact.phone(phone);
+        country = AuthSupport.text(country);
+        city = AuthSupport.text(city);
+        street = AuthSupport.text(street);
+        role = AuthSupport.text(role);
+        status = AuthSupport.text(status);
         Map<String, String> errors = new LinkedHashMap<>();
         if (creating && (!AuthSupport.validUsername(username) || username.contains("@"))) {
             errors.put("username", "Username: 3–50 ký tự, không chứa @ hoặc ký tự điều khiển.");
         }
-        if (!AuthSupport.validEmail(email)) {
+        if (!util.AuthUcPolicy.validEmail(email)) {
             errors.put("email", "Email không hợp lệ hoặc vượt 100 ký tự.");
         }
-        if (!AuthSupport.validPhone(phone)) {
-            errors.put("phone", "Số điện thoại cần 10–11 chữ số.");
+        if (!util.OfflineCustomerContact.validPhone(phone)) {
+            errors.put("phone", "Số điện thoại cần 7–15 chữ số, có thể bắt đầu bằng +.");
         }
         if (!validName(firstName) || !validName(lastName) || (lastName + " " + firstName).length() > 100) {
             errors.put("name", "Họ và tên bắt buộc, mỗi phần tối đa 50 ký tự, tổng tối đa 100.");

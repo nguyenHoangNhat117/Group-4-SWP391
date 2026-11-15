@@ -115,7 +115,10 @@ public class AdminUserServlet extends HttpServlet {
             r.setAttribute("historyPage", page);
         }
         Object flash = r.getSession().getAttribute("uc18Flash");
+        Object flashKind = r.getSession().getAttribute("uc18FlashKind");
         r.getSession().removeAttribute("uc18Flash");
+        r.getSession().removeAttribute("uc18FlashKind");
+        r.setAttribute("flashKind", "warning".equals(flashKind) ? "warning" : "success");
         if (flash != null) {
             r.setAttribute("flash", flash);
         }
@@ -139,18 +142,24 @@ public class AdminUserServlet extends HttpServlet {
         return a;
     }
 
-    private String email(AdminAccount a, String password) {
+    private String email(HttpServletRequest r, AdminAccount a, String password, boolean reset) {
         try {
             CredentialEmail.send(a.email, a.username, password, a.role);
-            return "Đã lưu tài khoản và gửi email thông tin đăng nhập.";
+            r.setAttribute("uc18Outcome", "success");
+            return reset ? "Đã đổi mật khẩu và gửi email thông tin đăng nhập."
+                    : "Đã tạo tài khoản và gửi email thông tin đăng nhập.";
         } catch (MessagingException | RuntimeException e) {
             LOG.warning("UC18 credential email failed; accountId=" + a.id + "; type=" + e.getClass().getSimpleName());
-            return "Đã lưu tài khoản nhưng chưa gửi được email. Kiểm tra SMTP/APP_BASE_URL, sau đó dùng nút gửi mật khẩu mới trong Inspect. Không tạo lại tài khoản.";
+            r.setAttribute("uc18Outcome", "warning");
+            return reset
+                    ? "Mật khẩu đã được đổi trong hệ thống, mật khẩu cũ không còn hiệu lực, nhưng chưa xác nhận gửi được email. Kiểm tra hộp thư và cấu hình gửi thư trước khi yêu cầu mật khẩu mới lần nữa."
+                    : "Đã tạo tài khoản nhưng chưa xác nhận gửi được email. Kiểm tra hộp thư/cấu hình gửi thư, sau đó dùng Inspect để gửi mật khẩu mới. Không tạo lại tài khoản.";
         }
     }
 
     private void redirect(HttpServletRequest r, HttpServletResponse s, String message) throws IOException {
         r.getSession().setAttribute("uc18Flash", message);
+        r.getSession().setAttribute("uc18FlashKind", "warning".equals(r.getAttribute("uc18Outcome")) ? "warning" : "success");
         StringBuilder url = new StringBuilder(r.getContextPath() + "/admin/users?");
         for (String key : Arrays.asList("q", "role", "status", "page")) {
             url.append(key).append('=').append(URLEncoder.encode(text(r, key), StandardCharsets.UTF_8)).append('&');
@@ -191,7 +200,7 @@ public class AdminUserServlet extends HttpServlet {
                 case "create": {
                     String password = PasswordUtil.generateInitialPassword();
                     a.id = dao.create(actor.getId(), a, PasswordUtil.hash(password));
-                    message = email(a, password);
+                    message = email(r, a, password, false);
                     break;
                 }
                 case "update":
@@ -205,9 +214,16 @@ public class AdminUserServlet extends HttpServlet {
                     message = "Đã xóa tài khoản chưa sử dụng.";
                     break;
                 case "resend": {
+                    try {
+                        CredentialEmail.validateConfiguration();
+                    } catch (MessagingException e) {
+                        r.setAttribute("uc18Outcome", "warning");
+                        redirect(r, s, "Cấu hình gửi thư chưa hợp lệ. Mật khẩu chưa thay đổi; kiểm tra cấu hình rồi thử lại.");
+                        return;
+                    }
                     String password = PasswordUtil.generateInitialPassword();
                     AdminAccount target = dao.resetInitialPassword(actor.getId(), a.id, a.version, PasswordUtil.hash(password));
-                    message = email(target, password);
+                    message = email(r, target, password, true);
                     break;
                 }
                 default:
@@ -219,7 +235,7 @@ public class AdminUserServlet extends HttpServlet {
         } catch (SQLException e) {
             LOG.log(Level.SEVERE, "UC18 database write failed", e);
             int code = e.getErrorCode();
-            String message = (code == 2601 || code == 2627 || code == 51002 || code == 51003) ? "Username hoặc Email đã được gán cho tài khoản khác." : code == 547 ? "Tài khoản còn dữ liệu liên quan nên không thể xóa." : code == 1205 ? "Có cập nhật đồng thời. Tải lại trang và thử lại." : "Không thể lưu thay đổi. Database đã rollback; hãy thử lại.";
+            String message = (code == 2601 || code == 2627 || code == 51002 || code == 51003) ? "Username hoặc Email đã được gán cho tài khoản khác." : code == 547 ? "Tài khoản còn dữ liệu liên quan nên không thể xóa." : code == 1205 ? "Có cập nhật đồng thời. Tải lại trang và thử lại." : "Chưa xác nhận được kết quả lưu. Tải lại danh sách và kiểm tra tài khoản trước khi thử lại.";
             failure(r, s, a, action, message);
         }
     }
@@ -229,6 +245,7 @@ public class AdminUserServlet extends HttpServlet {
             r.setAttribute("errors", Collections.singletonMap("general", message));
             showInvalid(r, s, a, action);
         } else {
+            r.setAttribute("uc18Outcome", "warning");
             redirect(r, s, message);
         }
     }

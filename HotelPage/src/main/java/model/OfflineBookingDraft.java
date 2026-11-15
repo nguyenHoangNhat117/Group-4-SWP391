@@ -49,7 +49,7 @@ public final class OfflineBookingDraft implements Serializable {
         this.firstName = AuthSupport.text(firstName);
         this.lastName = AuthSupport.text(lastName);
         this.email = AuthSupport.text(email);
-        this.phone = AuthSupport.text(phone).replace(" ", "").replace("-", "").replace("(", "").replace(")", "");
+        this.phone = util.OfflineCustomerContact.phone(phone);
         this.promotionCode = AuthSupport.text(promotionCode);
         this.specialRequest = AuthSupport.text(specialRequest);
 
@@ -78,7 +78,7 @@ public final class OfflineBookingDraft implements Serializable {
                 && (!validName(firstName)
                 || !validName(lastName)
                 || (lastName + " " + firstName).length() > 100
-                || (!email.isEmpty() && !AuthSupport.validEmail(email))
+                || (!email.isEmpty() && !util.AuthUcPolicy.validEmail(email))
                 || !validPhone(phone))) {
             throw new IllegalArgumentException(
                     "Khách mới cần họ, tên hợp lệ, email hợp lệ (nếu nhập) "
@@ -108,7 +108,7 @@ public final class OfflineBookingDraft implements Serializable {
     }
 
     public static boolean validPhone(String value) {
-        return value != null && value.matches("[+]?[0-9]{7,15}");
+        return util.OfflineCustomerContact.validPhone(value);
     }
 
     private static boolean validName(String value) {

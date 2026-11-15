@@ -117,7 +117,7 @@ public class OfflineBookingDAO extends DBContext {
                 + "rt.PricePerNight,rt.Capacity,rt.Beds "
                 + "FROM Room r "
                 + "JOIN RoomType rt ON rt.RoomTypeID=r.RoomTypeID "
-                + "WHERE r.Status='available' AND r.NeedsCleaning=0 "
+                + "WHERE r.Status='available' AND (r.NeedsCleaning=0 OR ?>?) "
                 + "AND rt.IsActive=1 AND rt.Capacity>=? "
                 + "AND NOT EXISTS("
                 + "SELECT 1 FROM BookingDetail bd "
@@ -127,9 +127,11 @@ public class OfflineBookingDAO extends DBContext {
                 + ") ORDER BY r.RoomNumber";
 
         try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, guests);
-            ps.setObject(2, to);
-            ps.setObject(3, from);
+            ps.setObject(1, from);
+            ps.setObject(2, ReportPeriod.today());
+            ps.setInt(3, guests);
+            ps.setObject(4, to);
+            ps.setObject(5, from);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -181,7 +183,7 @@ public class OfflineBookingDAO extends DBContext {
                 + "WHERE (c.UserID IS NULL OR "
                 + "(u.UserID IS NOT NULL "
                 + "AND LOWER(LTRIM(RTRIM(u.AccountStatus)))='active')) "
-                + "AND (c.Phone LIKE ? ESCAPE '~' "
+                + "AND (" + util.OfflineCustomerContact.phoneSql("c.Phone") + " LIKE ? ESCAPE '~' "
                 + "OR c.Email LIKE ? ESCAPE '~' "
                 + "OR u.Username LIKE ? ESCAPE '~') "
                 + "ORDER BY c.CustomerID DESC";
@@ -189,7 +191,9 @@ public class OfflineBookingDAO extends DBContext {
         try (Connection c = getConnection();
                 PreparedStatement ps = c.prepareStatement(sql)) {
 
-            ps.setNString(1, key);
+            String phone = util.OfflineCustomerContact.phone(query);
+            String phoneKey = phone.matches("[+]?[0-9]{1,15}") ? "%"+phone+"%" : key;
+            ps.setNString(1, phoneKey);
             ps.setNString(2, key);
             ps.setNString(3, key);
 
@@ -241,7 +245,7 @@ public class OfflineBookingDAO extends DBContext {
 
                 String name = customerName(c, draft);
 
-                BigDecimal nightly = BookingDAO.lockAvailableRoom(
+                BigDecimal nightly = BookingDAO.lockAvailableOfflineRoom(
                         c,
                         draft.roomNumber,
                         draft.checkIn,
@@ -268,6 +272,31 @@ public class OfflineBookingDAO extends DBContext {
             } catch (SQLException | RuntimeException e) {
                 c.rollback();
                 throw e;
+            }
+        }
+    }
+
+    public Integer findCreatedRequest(int actor, String requestKey) throws SQLException {
+        try (Connection c = getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                requireActor(c, actor);
+                Integer id = null;
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT BookingID,CreatedByUserID FROM Booking WITH(UPDLOCK,HOLDLOCK) WHERE OfflineRequestKey=?")) {
+                    ps.setString(1, requestKey);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            if (rs.getInt(2) != actor) throw new IllegalArgumentException("Yêu cầu thuộc nhân viên khác.");
+                            id = rs.getInt(1);
+                        }
+                    }
+                }
+                c.commit();
+                return id;
+            } catch (SQLException | RuntimeException ex) {
+                c.rollback();
+                throw ex;
             }
         }
     }
@@ -310,7 +339,7 @@ public class OfflineBookingDAO extends DBContext {
                 d.validate(ReportPeriod.today());
                 customerName(c, d);
 
-                BigDecimal nightly = BookingDAO.lockAvailableRoom(
+                BigDecimal nightly = BookingDAO.lockAvailableOfflineRoom(
                         c, d.roomNumber, d.checkIn,
                         d.checkOut, d.guests
                 );
@@ -762,7 +791,7 @@ public class OfflineBookingDAO extends DBContext {
 
     private int createCustomer(Connection c, OfflineBookingDraft d) throws SQLException {
         // A front-desk guest is a customer profile, not an automatically activated login.
-        String query = "SELECT TOP(1) CustomerID FROM Customer WITH(UPDLOCK,HOLDLOCK) WHERE Phone=? OR (?<>'' AND Email=?)";
+        String query = "SELECT TOP(1) CustomerID FROM Customer WITH(UPDLOCK,HOLDLOCK) WHERE " + util.OfflineCustomerContact.phoneSql("Phone") + "=? OR (?<>'' AND Email=?)";
         try (PreparedStatement ps=c.prepareStatement(query)) {
             ps.setString(1,d.phone); ps.setString(2,d.email); ps.setString(3,d.email);
             try (ResultSet rs=ps.executeQuery()) {
