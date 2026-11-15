@@ -143,22 +143,22 @@ public class WithdrawalServlet extends HttpServlet {
         BigDecimal amount;
 
         try {
+            if (amountParam == null || amountParam.isBlank()) {
+                throw new NumberFormatException();
+            }
+
             amount = new BigDecimal(amountParam);
 
             if (amount.scale() > 0
-                    || amount.compareTo(
-                            BigDecimal.ZERO) <= 0
+                    || amount.compareTo(BigDecimal.ZERO) <= 0
                     || amount.precision() > 18) {
-
                 throw new NumberFormatException();
             }
 
         } catch (NumberFormatException e) {
-            redirectError(request, response,
-                    "invalid-amount");
+            redirectError(request, response, "invalid-amount");
             return;
         }
-
         if (bankName.isEmpty()
                 || bankName.length() > 100
                 || accountNumber.isEmpty()

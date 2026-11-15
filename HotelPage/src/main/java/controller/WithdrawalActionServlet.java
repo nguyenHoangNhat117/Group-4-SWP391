@@ -106,16 +106,6 @@ public class WithdrawalActionServlet
 
                 case "approve":
 
-                    if (!"yes".equals(
-                            request.getParameter("payoutConfirmed"))) {
-
-                        response.sendError(
-                                400,
-                                "Confirm the payout before recording Paid"
-                        );
-                        return;
-                    }
-
                     success = withdrawalDAO.approve(
                             withdrawalId,
                             user.getId()
@@ -148,10 +138,20 @@ public class WithdrawalActionServlet
 
                 case "markPaid":
 
-                    if (!isAdmin) {
+                    if (!isAdmin && !isManager) {
                         response.sendError(
                                 403,
                                 "Payout confirmation access denied");
+                        return;
+                    }
+
+                    if (!"yes".equals(
+                            request.getParameter("payoutConfirmed"))) {
+
+                        response.sendError(
+                                400,
+                                "Confirm the payout before recording Paid"
+                        );
                         return;
                     }
 
