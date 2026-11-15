@@ -1,668 +1,1340 @@
-<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
-<fmt:setLocale value="vi_VN" scope="page" />
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
+<c:set var="vi" value="${requestScope.uiLanguage == 'vi'}"/>
+<fmt:setLocale value="${vi ? 'vi_VN' : 'en_US'}"/>
 
-<c:set var="ctx" value="${pageContext.request.contextPath}" />
+<c:set var="recordsView" value="${not empty reportView}"/>
+<c:set var="revenueView" value="${not recordsView and not empty view}"/>
+<c:set var="loadError" value="${recordsView ? reportError : dashboardError}"/>
+<c:set var="title" value="${vi ? 'Tổng quan khách sạn' : 'Hotel dashboard'}"/>
 
-<%-- Preserve the dashboard period when opening detailed records. --%>
-<c:url var="dashboardBookingsUrl" value="/reports">
-    <c:param name="view" value="bookings" />
-    <c:param name="page-index" value="1" />
-    <c:param name="fromDate" value="${fromDate}" />
-    <c:param name="toDate" value="${toDate}" />
-</c:url>
+<c:if test="${recordsView}">
+    <c:set var="title"
+           value="${reportView == 'bookings'
+                    ? (vi ? 'Báo cáo đặt phòng' : 'Booking report')
+                    : reportView == 'payments'
+                    ? (vi ? 'Báo cáo thanh toán' : 'Payment report')
+                    : (vi ? 'Báo cáo đánh giá' : 'Review report')}"/>
+</c:if>
 
-<c:url var="dashboardPaymentsUrl" value="/reports">
-    <c:param name="view" value="payments" />
-    <c:param name="page-index" value="1" />
-    <c:param name="fromDate" value="${fromDate}" />
-    <c:param name="toDate" value="${toDate}" />
-</c:url>
+<c:if test="${revenueView}">
+    <c:set var="title"
+           value="${vi ? 'Báo cáo doanh thu' : 'Revenue report'}"/>
+</c:if>
+
+<c:choose>
+    <c:when test="${revenueView}">
+        <c:set var="bookingsUrl" value="${revenueBookingsUrl}"/>
+        <c:set var="paymentsUrl" value="${revenuePaymentsUrl}"/>
+        <c:set var="reviewsUrl" value="${revenueReviewsUrl}"/>
+
+        <c:set var="gross" value="${0}"/>
+        <c:set var="refund" value="${0}"/>
+        <c:set var="net" value="${0}"/>
+        <c:set var="chartMax" value="${1}"/>
+
+        <c:forEach var="r" items="${reportData}">
+            <c:set var="gross" value="${gross + r.collectedAmount}"/>
+            <c:set var="refund" value="${refund + r.refundedAmount}"/>
+            <c:set var="net" value="${net + r.totalRevenue}"/>
+
+            <c:if test="${r.totalRevenue > chartMax}">
+                <c:set var="chartMax" value="${r.totalRevenue}"/>
+            </c:if>
+        </c:forEach>
+    </c:when>
+
+    <c:when test="${not recordsView}">
+        <c:url var="bookingsUrl" value="/reports">
+            <c:param name="view" value="bookings"/>
+            <c:param name="fromDate" value="${fromDate}"/>
+            <c:param name="toDate" value="${toDate}"/>
+        </c:url>
+
+        <c:url var="paymentsUrl" value="/reports">
+            <c:param name="view" value="payments"/>
+            <c:param name="fromDate" value="${fromDate}"/>
+            <c:param name="toDate" value="${toDate}"/>
+        </c:url>
+
+        <c:url var="reviewsUrl" value="/reports">
+            <c:param name="view" value="reviews"/>
+            <c:param name="fromDate" value="${fromDate}"/>
+            <c:param name="toDate" value="${toDate}"/>
+        </c:url>
+
+        <c:url var="revenueUrl" value="/reports">
+            <c:param name="view" value="period"/>
+            <c:param name="fromDate" value="${fromDate}"/>
+            <c:param name="toDate" value="${toDate}"/>
+        </c:url>
+
+        <c:set var="gross" value="${collectedTotal}"/>
+        <c:set var="refund" value="${refundedTotal}"/>
+        <c:set var="net" value="${totalRevenue}"/>
+        <c:set var="chartMax" value="${1}"/>
+
+        <c:forEach var="r" items="${monthlyRevenue}">
+            <c:if test="${r.totalRevenue > chartMax}">
+                <c:set var="chartMax" value="${r.totalRevenue}"/>
+            </c:if>
+        </c:forEach>
+    </c:when>
+
+    <c:otherwise>
+        <c:set var="gross" value="${paymentSummary.collectedAmount}"/>
+        <c:set var="refund" value="${paymentSummary.refundedAmount}"/>
+        <c:set var="net" value="${paymentSummary.totalRevenue}"/>
+    </c:otherwise>
+</c:choose>
 
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}" class="hotel-dashboard-page">
+<html lang="${uiLanguage}" class="hotel-reports-page">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><c:out value="${title}"/> | Luxe Escape</title>
 
-        <title data-i18n="screen.ed04e63239ea7aa8">${requestScope.i18n['screen.ed04e63239ea7aa8']}</title>
+    <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/general.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/luxe-modern.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/luxe-shared-shell.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/luxe-ui.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/hotel-reports.css">
 
-        <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
-        <link rel="stylesheet" href="${ctx}/assets/css/general.css">
-        <link rel="stylesheet" href="${ctx}/assets/css/luxe-modern.css">
-        <link rel="stylesheet" href="${ctx}/assets/css/luxe-shared-shell.css">
-        <link rel="stylesheet" href="${ctx}/assets/css/luxe-ui.css">
-        <link rel="stylesheet" href="${ctx}/assets/css/hotel-dashboard.css?v=3">
+    <style>
+        .uc23-cards {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
 
-        <script src="${ctx}/assets/js/hotel-dashboard.js?v=3" defer></script>
-    </head>
+        .uc23-cards > div {
+            min-width: 0;
+            background: #fffdfa;
+            border: 1px solid #e9ded0;
+            border-radius: 16px;
+            padding: 22px;
+            color: #49382b;
+        }
 
-    <body class="hotel-dashboard-body ${cookie.animation.value == 'disable' ? 'disable-animation' : ''}">
+        .uc23-cards span,
+        .uc23-cards small {
+            display: block;
+            color: #807365;
+        }
 
-        <%@ include file="/WEB-INF/include/header.jsp" %>
+        .uc23-cards strong {
+            display: block;
+            font-size: clamp(22px, 2.3vw, 32px);
+            margin: 8px 0;
+            overflow-wrap: anywhere;
+            font-variant-numeric: tabular-nums;
+        }
 
-        <main class="hd" id="hotel-dashboard" data-report-scope="period">
+        .uc23-scope {
+            color: #807365;
+            font-size: 14px;
+            line-height: 1.65;
+            margin: 12px 0 22px;
+        }
 
-            <div class="hd-wrap">
+        .uc23-period {
+            display: flex;
+            gap: 12px;
+            align-items: end;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: #fffdfa;
+            border: 1px solid #e9ded0;
+            border-radius: 16px;
+            margin: 20px 0;
+        }
 
-                <div class="hd-hero">
+        .uc23-period label {
+            display: block;
+            color: #807365;
+            margin-bottom: 6px;
+        }
+
+        .uc23-period input,
+        .uc23-period select {
+            border: 1px solid #e0d2bf;
+            border-radius: 10px;
+            padding: 10px;
+            background: white;
+        }
+
+        .uc23-columns {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        .uc23-columns .report-panel {
+            min-width: 0;
+            margin-top: 0;
+        }
+
+        .uc23-columns ul {
+            list-style: none;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .uc23-columns li {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0e9df;
+        }
+
+        .uc23-chart {
+            max-height: 430px;
+            overflow: auto;
+        }
+
+        .uc23-chart meter {
+            width: 100%;
+            min-width: 100px;
+            height: 20px;
+            accent-color: #b29a7b;
+        }
+
+        .uc23-rating-row {
+            display: grid;
+            grid-template-columns: 60px minmax(0, 1fr) 45px;
+            gap: 14px;
+            align-items: center;
+            margin: 12px 0;
+        }
+
+        .uc23-rating-row meter {
+            width: 100%;
+            accent-color: #b29a7b;
+        }
+
+        .hotel-reports .report-status.partially_refunded {
+            background: #f2e7d8;
+            color: #805b28;
+        }
+
+        @media (max-width: 700px) {
+            .uc23-cards,
+            .uc23-columns {
+                grid-template-columns: 1fr;
+            }
+
+            .uc23-period > div {
+                width: 100%;
+            }
+
+            .uc23-period input,
+            .uc23-period select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body class="hotel-reports-body ${cookie.animation.value == 'disable'
+                                  ? 'disable-animation' : ''}">
+
+<%@ include file="/WEB-INF/include/header.jsp" %>
+
+<main class="hotel-reports">
+
+    <c:choose>
+        <c:when test="${recordsView}">
+
+            <div class="report-heading">
+                <div>
+                    <p class="report-eyebrow">
+                        LUXE ESCAPE / ${vi ? 'BÁO CÁO' : 'REPORTS'}
+                    </p>
+
+                    <h1><c:out value="${title}"/></h1>
+                </div>
+
+                <a class="report-button"
+                   href="<c:out value='${dashboardUrl}'/>">
+                    ${vi ? 'Tổng quan' : 'Dashboard'}
+                </a>
+            </div>
+
+            <div class="report-tabs">
+                <a href="<c:out value='${bookingsUrl}'/>"
+                   aria-current="${reportView == 'bookings'
+                                   ? 'page' : 'false'}">
+                    ${vi ? 'Đặt phòng' : 'Bookings'}
+                </a>
+
+                <a href="<c:out value='${paymentsUrl}'/>"
+                   aria-current="${reportView == 'payments'
+                                   ? 'page' : 'false'}">
+                    ${vi ? 'Thanh toán' : 'Payments'}
+                </a>
+
+                <a href="<c:out value='${reviewsUrl}'/>"
+                   aria-current="${reportView == 'reviews'
+                                   ? 'page' : 'false'}">
+                    ${vi ? 'Đánh giá' : 'Reviews'}
+                </a>
+
+                <a href="<c:out value='${revenueUrl}'/>">
+                    ${vi ? 'Doanh thu' : 'Revenue'}
+                </a>
+            </div>
+
+            <form class="report-date-filter"
+                  action="${ctx}/reports"
+                  method="get">
+
+                <input type="hidden" name="view" value="${reportView}">
+                <input type="hidden" name="page-index" value="1">
+
+                <div>
+                    <label for="fromDate">
+                        ${vi ? 'Từ ngày' : 'From date'}
+                    </label>
+
+                    <input type="date"
+                           id="fromDate"
+                           name="fromDate"
+                           min="0001-01-01"
+                           max="9998-12-31"
+                           value="${fromDate}">
+                </div>
+
+                <div>
+                    <label for="toDate">
+                        ${vi ? 'Đến ngày' : 'To date'}
+                    </label>
+
+                    <input type="date"
+                           id="toDate"
+                           name="toDate"
+                           min="0001-01-01"
+                           max="9998-12-31"
+                           value="${toDate}">
+                </div>
+
+                <div>
+                    <label for="reportStatus">
+                        ${vi ? 'Trạng thái' : 'Status'}
+                    </label>
+
+                    <select id="reportStatus" name="status">
+                        <option value="">
+                            ${vi ? 'Tất cả' : 'All'}
+                        </option>
+
+                        <c:forEach var="option" items="${filter.statuses}">
+                            <option value="${option}"
+                                    ${filter.status == option
+                                      ? 'selected' : ''}>
+                                <c:out value="${fn:replace(option,'_',' ')}"/>
+                            </option>
+                        </c:forEach>
+                    </select>
+                </div>
+
+                <c:if test="${reportView == 'payments'}">
                     <div>
-                        <p class="hd-eyebrow">
-                            <ui:text key="screen.45ffb66e6ad7ba6c"/>
-                        </p>
+                        <label for="reportMethod">
+                            ${vi ? 'Phương thức' : 'Method'}
+                        </label>
 
-                        <h1><ui:text key="screen.509b3c4e5dad347d"/> <span><ui:text key="screen.94c116ee118a7299"/></span></h1>
+                        <select id="reportMethod" name="method">
+                            <option value="">
+                                ${vi ? 'Tất cả' : 'All'}
+                            </option>
 
-                        <p class="hd-subtitle">
-                            <ui:text key="screen.fab518b0efcf2bc8"/>
-                        </p>
+                            <c:forEach var="option" items="${filter.methods}">
+                                <option value="${option}"
+                                        ${filter.method == option
+                                          ? 'selected' : ''}>
+                                    <c:out value="${fn:replace(option,'_',' ')}"/>
+                                </option>
+                            </c:forEach>
+                        </select>
                     </div>
+                </c:if>
 
-                    <c:if test="${empty dashboardError}">
-                        <a class="hd-button hd-button-light"
-                           href="<c:out value='${dashboardBookingsUrl}' />">
-                            <ui:text key="screen.dd2c97d7ec4b29b7"/>
-                            <span aria-hidden="true">↗</span>
+                <div>
+                    <label for="reportBookingId">
+                        ${vi ? 'Mã đặt phòng' : 'Booking ID'}
+                    </label>
+
+                    <input id="reportBookingId"
+                           type="number"
+                           name="bookingId"
+                           min="1"
+                           max="2147483647"
+                           value="${filter.bookingId}">
+                </div>
+
+                <div>
+                    <label for="reportPageSize">
+                        ${vi ? 'Số dòng' : 'Rows'}
+                    </label>
+
+                    <select id="reportPageSize" name="pageSize">
+                        <c:forEach var="size" items="${[10,25,50]}">
+                            <option value="${size}"
+                                    ${filter.pageSize == size
+                                      ? 'selected' : ''}>
+                                ${size}
+                            </option>
+                        </c:forEach>
+                    </select>
+                </div>
+
+                <button class="report-button primary">
+                    ${vi ? 'Áp dụng' : 'Apply'}
+                </button>
+
+                <a class="report-button"
+                   href="<c:out value='${resetUrl}'/>">
+                    ${vi ? 'Hiện tất cả' : 'Reset'}
+                </a>
+            </form>
+
+            <p class="uc23-scope">
+                ${filterActive
+                  ? (vi ? 'Kỳ: ' : 'Period: ')
+                  : (vi ? 'Toàn bộ thời gian' : 'All periods')}
+
+                <c:if test="${filterActive}">
+                    ${fromDate} → ${toDate}
+                </c:if>
+            </p>
+
+        </c:when>
+
+        <c:otherwise>
+
+            <div class="report-heading">
+                <div>
+                    <p class="report-eyebrow">
+                        LUXE ESCAPE / ${vi ? 'BÁO CÁO' : 'REPORTS'}
+                    </p>
+
+                    <h1><c:out value="${title}"/></h1>
+
+                    <p class="report-description">
+                        ${vi
+                          ? 'Đối soát theo ngày thanh toán gốc và dữ liệu đã lưu.'
+                          : 'Reconcile original payment dates and stored records.'}
+                    </p>
+                </div>
+
+                <a class="report-button" href="${ctx}/dashboard">
+                    ${vi ? 'Tổng quan' : 'Dashboard'}
+                </a>
+            </div>
+
+            <div class="report-tabs">
+                <a href="<c:out value='${bookingsUrl}'/>">
+                    ${vi ? 'Đặt phòng' : 'Bookings'}
+                </a>
+
+                <a href="<c:out value='${paymentsUrl}'/>">
+                    ${vi ? 'Thanh toán' : 'Payments'}
+                </a>
+
+                <a href="<c:out value='${reviewsUrl}'/>">
+                    ${vi ? 'Đánh giá' : 'Reviews'}
+                </a>
+
+                <a href="${ctx}/reports?view=month">
+                    ${vi ? 'Doanh thu' : 'Revenue'}
+                </a>
+            </div>
+
+            <c:choose>
+                <c:when test="${revenueView}">
+
+                    <form class="uc23-period"
+                          action="${ctx}/reports"
+                          method="get">
+
+                        <input type="hidden" name="view" value="period">
+
+                        <div>
+                            <label for="fromDate">
+                                ${vi ? 'Từ ngày' : 'From date'}
+                            </label>
+
+                            <input id="fromDate"
+                                   type="date"
+                                   name="fromDate"
+                                   value="${fromDate}"
+                                   min="0001-01-01"
+                                   max="9998-12-31"
+                                   required>
+                        </div>
+
+                        <div>
+                            <label for="toDate">
+                                ${vi ? 'Đến ngày' : 'To date'}
+                            </label>
+
+                            <input id="toDate"
+                                   type="date"
+                                   name="toDate"
+                                   value="${toDate}"
+                                   min="0001-01-01"
+                                   max="9998-12-31"
+                                   required>
+                        </div>
+
+                        <button class="report-button primary">
+                            ${vi ? 'Xem theo kỳ' : 'View period'}
+                        </button>
+                    </form>
+
+                    <form class="uc23-period"
+                          action="${ctx}/reports"
+                          method="get">
+
+                        <input type="hidden" name="view" value="month">
+
+                        <div>
+                            <label for="year">
+                                ${vi ? 'Theo tháng của năm' : 'Months of year'}
+                            </label>
+
+                            <input id="year"
+                                   type="number"
+                                   name="year"
+                                   min="1"
+                                   max="9998"
+                                   value="${selectedYear}"
+                                   required>
+                        </div>
+
+                        <button class="report-button">
+                            ${vi ? 'Xem theo tháng' : 'View months'}
+                        </button>
+
+                        <a class="report-button"
+                           href="${ctx}/reports?view=year">
+                            ${vi ? 'So sánh các năm' : 'Compare years'}
                         </a>
-                    </c:if>
+                    </form>
+
+                    <p class="uc23-scope">
+                        ${view == 'year'
+                          ? (vi
+                              ? 'Toàn bộ các năm. Tab chi tiết mở toàn thời gian.'
+                              : 'All years. Detail tabs open all periods.')
+                          : view == 'month'
+                          ? (vi ? 'Theo năm: ' : 'Year: ')
+                          : (vi ? 'Theo kỳ: ' : 'Period: ')}
+
+                        <c:if test="${view == 'month'}">
+                            ${selectedYear}
+                        </c:if>
+
+                        <c:if test="${view == 'period'}">
+                            ${fromDate} → ${toDate}
+                        </c:if>
+                    </p>
+
+                </c:when>
+
+                <c:otherwise>
+
+                    <form class="uc23-period"
+                          action="${ctx}/dashboard"
+                          method="get">
+
+                        <div>
+                            <label for="fromDate">
+                                ${vi ? 'Từ ngày' : 'From date'}
+                            </label>
+
+                            <input id="fromDate"
+                                   type="date"
+                                   name="fromDate"
+                                   min="0001-01-01"
+                                   max="${today}"
+                                   value="${fromDate}"
+                                   required>
+                        </div>
+
+                        <div>
+                            <label for="toDate">
+                                ${vi ? 'Đến ngày' : 'To date'}
+                            </label>
+
+                            <input id="toDate"
+                                   type="date"
+                                   name="toDate"
+                                   min="0001-01-01"
+                                   max="${today}"
+                                   value="${toDate}"
+                                   required>
+                        </div>
+
+                        <button class="report-button primary">
+                            ${vi ? 'Áp dụng' : 'Apply'}
+                        </button>
+
+                        <a class="report-button" href="${ctx}/dashboard">
+                            ${vi ? 'Tháng hiện tại' : 'Current month'}
+                        </a>
+                    </form>
+
+                </c:otherwise>
+            </c:choose>
+
+        </c:otherwise>
+    </c:choose>
+
+    <c:choose>
+        <c:when test="${not empty loadError}">
+            <div class="report-note" role="alert">
+                <c:out value="${loadError}"/>
+
+                <c:if test="${recordsView}">
+                    <p>
+                        <a class="report-button"
+                           href="<c:out value='${reviewRetryUrl}'/>">
+                            ${vi ? 'Thử lại' : 'Retry'}
+                        </a>
+                    </p>
+                </c:if>
+            </div>
+        </c:when>
+
+        <c:otherwise>
+
+            <c:if test="${not recordsView or reportView == 'payments'}">
+                <section class="uc23-cards uc23-money">
+                    <div>
+                        <span>${vi ? 'Tổng đã thu' : 'Gross collected'}</span>
+                        <strong>
+                            <fmt:formatNumber
+                                value="${gross}"
+                                pattern="#,##0.##"/> ₫
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>${vi ? 'Đã hoàn' : 'Refunded'}</span>
+                        <strong>
+                            <fmt:formatNumber
+                                value="${refund}"
+                                pattern="#,##0.##"/> ₫
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            ${vi ? 'Còn lại sau hoàn' : 'Net after refunds'}
+                        </span>
+                        <strong>
+                            <fmt:formatNumber
+                                value="${net}"
+                                pattern="#,##0.##"/> ₫
+                        </strong>
+                    </div>
+                </section>
+
+                <p class="uc23-scope">
+                    ${vi
+                      ? 'Tiền hoàn là số lũy kế hiện tại của các giao dịch có ngày thanh toán gốc thuộc bộ lọc; không phải tiền hoàn phát sinh trong kỳ. Không trừ thêm tiền rút ví. Giao dịch chờ/thất bại không tính vào tổng đã thu.'
+                      : 'Refunds are current cumulative refunds of payments whose original dates match the filter, not refunds issued during the period. Wallet withdrawals are not deducted again. Pending/failed transactions do not contribute to gross collected.'}
+                </p>
+            </c:if>
+
+            <c:if test="${not recordsView and not revenueView}">
+
+                <section class="uc23-cards">
+                    <div>
+                        <span>
+                            ${vi
+                              ? 'Đơn tạo trong kỳ'
+                              : 'Bookings created in period'}
+                        </span>
+                        <strong>${totalBookings}</strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            ${vi
+                              ? 'Hồ sơ khách hiện tại'
+                              : 'Current customer profiles'}
+                        </span>
+                        <strong>${customerCount}</strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            ${vi
+                              ? 'Công suất ước tính'
+                              : 'Estimated occupancy'}
+                        </span>
+
+                        <strong>
+                            <c:choose>
+                                <c:when test="${occupancy.applicable}">
+                                    <fmt:formatNumber
+                                        value="${occupancy.rate}"
+                                        pattern="0.##"/>%
+                                </c:when>
+
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </strong>
+
+                        <small>
+                            <c:if test="${occupancy.applicable}">
+                                ${occupancy.roomNights}
+                                /
+                                ${occupancy.capacityNights}
+                                ${vi
+                                  ? 'đêm phòng; đến'
+                                  : 'room nights; through'}
+                                ${occupancy.throughDate}
+                            </c:if>
+                        </small>
+                    </div>
+                </section>
+
+                <p class="uc23-scope">
+                    ${vi
+                      ? 'Công suất dựa trên lịch lưu trú đã qua và số phòng hiện có; không phải lịch sử công suất thực tế đầy đủ. Khách, trạng thái phòng và đánh giá tổng hợp là số hiện tại/toàn hệ thống.'
+                      : 'Occupancy uses elapsed scheduled stays and current inventory, not a complete actual occupancy history. Customers, room statuses and overall reviews are current/all-time values.'}
+                </p>
+
+                <div class="uc23-columns">
+
+                    <section class="report-panel">
+                        <div class="report-panel-heading">
+                            <h2>
+                                ${vi
+                                  ? 'Đặt phòng theo trạng thái'
+                                  : 'Booking statuses'}
+                            </h2>
+                        </div>
+
+                        <ul>
+                            <c:forEach var="r" items="${bookingStatistics}">
+                                <li>
+                                    <span><c:out value="${r.status}"/></span>
+                                    <strong>${r.totalCount}</strong>
+                                </li>
+                            </c:forEach>
+                        </ul>
+                    </section>
+
+                    <section class="report-panel">
+                        <div class="report-panel-heading">
+                            <h2>
+                                ${vi
+                                  ? 'Trạng thái phòng hiện tại'
+                                  : 'Current room statuses'}
+                            </h2>
+                        </div>
+
+                        <ul>
+                            <c:forEach var="r" items="${roomStatistics}">
+                                <li>
+                                    <span><c:out value="${r.status}"/></span>
+                                    <strong>${r.totalCount}</strong>
+                                </li>
+                            </c:forEach>
+                        </ul>
+                    </section>
+
                 </div>
 
-                <form class="hd-filter"
-                      action="${ctx}/dashboard"
-                      method="get">
-
-                    <div class="hd-filter-intro">
-                        <span class="hd-overline"><ui:text key="screen.d4bd1581397c2210"/></span>
-                        <strong><ui:text key="screen.d81248f1cf996822"/></strong>
+                <section class="report-panel">
+                    <div class="report-panel-heading">
+                        <h2>
+                            ${vi
+                              ? 'Giao dịch theo trạng thái lưu trong DB'
+                              : 'Transactions by stored status'}
+                        </h2>
                     </div>
 
-                    <div class="hd-field">
-                        <label for="fromDate"><ui:text key="screen.218197693424e015"/></label>
+                    <div class="report-table-scroll">
+                        <table class="report-table">
+                            <thead>
+                            <tr>
+                                <th>${vi ? 'Trạng thái' : 'Status'}</th>
+                                <th>${vi ? 'Số giao dịch' : 'Count'}</th>
+                                <th class="numeric">
+                                    ${vi
+                                      ? 'Tiền giao dịch trước hoàn'
+                                      : 'Original transaction amount'}
+                                </th>
+                            </tr>
+                            </thead>
 
-                        <input type="date"
-                               id="fromDate"
-                               name="fromDate"
-                               min="0001-01-01"
-                               max="${today}"
-                               value="${fromDate}"
-                               required>
+                            <tbody>
+                            <c:forEach var="r" items="${paymentStatistics}">
+                                <tr>
+                                    <td><c:out value="${r.status}"/></td>
+                                    <td>${r.totalCount}</td>
+                                    <td class="numeric">
+                                        <fmt:formatNumber
+                                            value="${r.totalAmount}"
+                                            pattern="#,##0.##"/> ₫
+                                    </td>
+                                </tr>
+                            </c:forEach>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <p class="uc23-scope">
+                    ${vi
+                      ? 'Bảng trạng thái dùng số tiền gốc và ngày thanh toán; giao dịch chưa có ngày không nằm trong kỳ. Đây không phải tổng còn lại sau hoàn.'
+                      : 'Status totals use original amounts and payment dates; undated transactions are excluded from the period. These are not net-after-refund totals.'}
+                </p>
+
+                <section class="report-panel">
+                    <div class="report-panel-heading">
+                        <h2>
+                            ${vi
+                              ? 'Đánh giá đã duyệt toàn hệ thống'
+                              : 'All-time approved reviews'}
+                        </h2>
+
+                        <span>${reviewStatistics.totalReviews}</span>
                     </div>
 
-                    <div class="hd-field">
-                        <label for="toDate"><ui:text key="screen.f4b06ef6d3c81436"/></label>
+                    <div style="padding:22px">
+                        <c:choose>
+                            <c:when test="${reviewStatistics.hasReviews}">
+                                <strong>
+                                    <fmt:formatNumber
+                                        value="${reviewStatistics.averageRating}"
+                                        pattern="0.00"/> / 5
+                                </strong>
+                            </c:when>
 
-                        <input type="date"
-                               id="toDate"
-                               name="toDate"
-                               min="0001-01-01"
-                               max="${today}"
-                               value="${toDate}"
-                               required>
+                            <c:otherwise>N/A</c:otherwise>
+                        </c:choose>
+                    </div>
+                </section>
+
+            </c:if>
+
+            <c:if test="${not recordsView}">
+
+                <section class="report-panel">
+                    <div class="report-panel-heading">
+                        <h2>
+                            ${vi
+                              ? 'Còn lại sau hoàn theo ngày thanh toán gốc'
+                              : 'Net after refunds by original payment date'}
+                        </h2>
+
+                        <c:if test="${not revenueView}">
+                            <a class="report-button"
+                               href="<c:out value='${revenueUrl}'/>">
+                                ${vi ? 'Chi tiết' : 'Details'}
+                            </a>
+                        </c:if>
                     </div>
 
-                    <button type="submit" class="hd-button">
-                        <ui:text key="screen.04b6c8fb3080304b"/>
-                        <span aria-hidden="true">→</span>
-                    </button>
+                    <div class="report-table-scroll uc23-chart">
+                        <table class="report-table">
+                            <thead>
+                            <tr>
+                                <th>${vi ? 'Kỳ' : 'Period'}</th>
+                                <th class="numeric">VND</th>
+                                <th>${vi ? 'So sánh' : 'Comparison'}</th>
+                            </tr>
+                            </thead>
 
-                    <a class="hd-reset" href="${ctx}/dashboard">
-                        <ui:text key="screen.daee7606b339f3c3"/>
-                    </a>
+                            <tbody>
+                            <c:forEach var="r"
+                                       items="${revenueView
+                                                ? reportData
+                                                : monthlyRevenue}">
+                                <tr>
+                                    <td><c:out value="${r.timeUnit}"/></td>
 
-                </form>
+                                    <td class="numeric">
+                                        <fmt:formatNumber
+                                            value="${r.totalRevenue}"
+                                            pattern="#,##0.##"/> ₫
+                                    </td>
 
-                <div class="hd-period">
-                    <span class="hd-period-dot" aria-hidden="true"></span>
+                                    <td>
+                                        <meter min="0"
+                                               max="${chartMax}"
+                                               value="${r.totalRevenue}"
+                                               aria-label="Net after refunds ${r.timeUnit}">
+                                            <c:out value="${r.totalRevenue}"/>
+                                        </meter>
+                                    </td>
+                                </tr>
+                            </c:forEach>
+                            </tbody>
+                        </table>
 
-                    <ui:text key="screen.7aa351a109bd9c63"/>
-
-                    <strong>${fromDate} — ${toDate}</strong>
-
-                    <span><ui:text key="screen.10721c4ab77ee84e"/></span>
-                </div>
-
-                <c:choose>
-
-                    <c:when test="${not empty dashboardError}">
-                        <div class="hd-error" role="alert">
-                            <c:out value="${dashboardError}" />
-                        </div>
-                    </c:when>
-
-                    <c:otherwise>
-
-                        <%-- Chart inputs contain typed values from DashboardServlet. --%>
-                        <div id="hd-data" hidden>
-
-                            <div id="hd-month-data" data-grouping="${chartGrouping}">
-                                <c:forEach var="item" items="${monthlyRevenue}">
-                                    <span data-label="${item.timeUnit}"
-                                          data-value="${item.totalRevenue}">
-                                    </span>
-                                </c:forEach>
+                        <c:if test="${revenueView and empty reportData}">
+                            <div class="report-empty">
+                                ${vi
+                                  ? 'Không có giao dịch đã thanh toán.'
+                                  : 'No successful payments.'}
                             </div>
+                        </c:if>
+                    </div>
+                </section>
 
-                            <div id="hd-booking-data">
-                                <c:forEach var="item" items="${bookingStatistics}">
-                                    <span data-label="<c:out value='${item.status}' />"
-                                          data-value="${item.totalCount}">
-                                    </span>
-                                </c:forEach>
-                            </div>
+            </c:if>
 
-                            <div id="hd-payment-data">
-                                <c:forEach var="item" items="${paymentStatistics}">
-                                    <span data-label="<c:out value='${item.status}' />"
-                                          data-value="${item.totalAmount}"
-                                          data-count="${item.totalCount}">
-                                    </span>
-                                </c:forEach>
-                            </div>
+            <c:if test="${recordsView and reportView == 'reviews'}">
 
-                            <div id="hd-room-data">
-                                <c:forEach var="item" items="${roomStatistics}">
-                                    <span data-label="<c:out value='${item.status}' />"
-                                          data-value="${item.totalCount}">
-                                    </span>
-                                </c:forEach>
-                            </div>
+                <section class="uc23-review-summary">
 
-                        </div>
+                    <p class="uc23-scope">
+                        ${vi
+                          ? 'Thống kê toàn bộ kết quả theo bộ lọc, không đổi khi chuyển trang.'
+                          : 'Totals cover all filtered results, independent of pagination.'}
+                    </p>
 
-                        <div class="hd-kpis">
+                    <div class="uc23-cards uc23-money">
+                        <div>
+                            <span>
+                                ${vi ? 'Tổng đánh giá' : 'Total reviews'}
+                            </span>
 
-                            <section class="hd-kpi hd-kpi-dark">
+                            <strong>${reviewSummary.total}</strong>
 
-                                <div class="hd-kpi-top">
-                                    <span><ui:text key="screen.dc742a717fcb496d"/></span>
-                                    <span class="hd-symbol">₫</span>
-                                </div>
-
-                                <strong class="hd-kpi-value"
-                                        data-counter="${totalRevenue}"
-                                        data-format="money-number">
-                                    <fmt:formatNumber
-                                        value="${totalRevenue}"
-                                        pattern="#,##0.##" />
-                                </strong>
-
-                                <p><ui:text key="screen.dfc9d4b99d0210d2"/></p>
-
-                                <div class="hd-kpi-decoration"
-                                     aria-hidden="true"></div>
-                            </section>
-
-                            <section class="hd-kpi hd-kpi-gold">
-
-                                <div class="hd-kpi-top">
-                                    <span><ui:text key="screen.49a0995914d7f726"/></span>
-                                    <span class="hd-symbol">B</span>
-                                </div>
-
-                                <strong class="hd-kpi-value"
-                                        data-counter="${totalBookings}">
-                                    <fmt:formatNumber
-                                        value="${totalBookings}"
-                                        pattern="#,##0" />
-                                </strong>
-
-                                <p><ui:text key="screen.6de74abe0a94f115"/></p>
-
-                                <div class="hd-kpi-decoration"
-                                     aria-hidden="true"></div>
-                            </section>
-
-                            <section class="hd-kpi hd-kpi-sage">
-
-                                <div class="hd-kpi-top">
-                                    <span><ui:text key="screen.a6cd9d506db1c961"/></span>
-                                    <span class="hd-symbol">C</span>
-                                </div>
-
-                                <strong class="hd-kpi-value"
-                                        data-counter="${customerCount}">
-                                    <fmt:formatNumber
-                                        value="${customerCount}"
-                                        pattern="#,##0" />
-                                </strong>
-
-                                <p><ui:text key="screen.5ff03d865c9dabde"/></p>
-
-                                <div class="hd-kpi-decoration"
-                                     aria-hidden="true"></div>
-                            </section>
-
-                            <section class="hd-kpi hd-kpi-clay" title="${requestScope.i18n['screen.a1b1500acd196326']}" data-i18n-title="screen.a1b1500acd196326">
-
-                                <div class="hd-kpi-top">
-                                    <span><ui:text key="screen.6e34721d3ac699b2"/></span>
-                                    <span class="hd-symbol">%</span>
-                                </div>
-
-                                <div class="hd-occupancy-layout">
-
-                                    <div>
-                                        <strong class="hd-kpi-value">
-                                            <c:choose>
-                                                <c:when test="${availableRooms > 0}">
-                                                    <span data-counter="${occupancyRate}"
-                                                          data-format="percent">
-                                                        <fmt:formatNumber
-                                                            value="${occupancyRate}"
-                                                            pattern="0.##" />%
-                                                    </span>
-                                                </c:when>
-
-                                                <c:otherwise>
-                                                    <ui:text key="screen.e2f79e5b60330bba"/>
-                                                </c:otherwise>
-                                            </c:choose>
-                                        </strong>
-
-                                        <c:if test="${occupancy.applicable}">
-                                            <span class="hd-scope"><ui:text key="screen.f4b06ef6d3c81436"/> ${occupancy.throughDate}</span>
-                                        </c:if>
-                                    </div>
-
-                                    <svg class="hd-occupancy"
-                                         viewBox="0 0 100 100"
-                                         role="img"
-                                         aria-label="${requestScope.i18n['screen.6e34721d3ac699b2']}" data-i18n-aria-label="screen.6e34721d3ac699b2">
-
-                                    <circle cx="50"
-                                            cy="50"
-                                            r="39"
-                                            class="hd-ring-track" />
-
-                                    <circle id="hd-occupancy-ring"
-                                            cx="50"
-                                            cy="50"
-                                            r="39"
-                                            class="hd-ring-value"
-                                            stroke-dasharray="0 245.044"
-                                            data-value="${occupancyRate}"
-                                            data-available="${availableRooms}" />
-                                    </svg>
-
-                                </div>
-                            </section>
-
+                            <small>
+                                ${vi
+                                  ? 'Chờ / Từ chối'
+                                  : 'Pending / Rejected'}:
+                                ${reviewSummary.pending}
+                                /
+                                ${reviewSummary.rejected}
+                            </small>
                         </div>
 
-                        <div class="hd-primary-grid">
-
-                            <section class="hd-panel hd-revenue-panel">
-
-                                <div class="hd-panel-heading">
-                                    <div>
-                                        <p class="hd-overline">
-                                            <ui:text key="screen.3315afd97f7f2ebc"/>
-                                        </p>
-
-                                        <h2><ui:text key="screen.f08f9a759de6b4b0"/></h2>
-
-                                        <p class="hd-description">
-                                            <ui:text key="screen.dcdee6a81d4fd6a3"/>
-                                        </p>
-                                    </div>
-
-                                    <span class="hd-scope"><ui:text key="screen.170ac176d7972868"/></span>
-                                </div>
-
-                                <div class="hd-chart-toolbar">
-
-                                    <span class="hd-key">
-                                        <i class="hd-key-gold"></i>
-                                        <ui:text key="screen.64f087a27f90bba1"/>
-                                    </span>
-
-                                    <div class="hd-toggle"
-                                         role="group"
-                                         aria-label="${requestScope.i18n['screen.739f7bcad8792a71']}" data-i18n-aria-label="screen.739f7bcad8792a71">
-
-                                        <button type="button"
-                                                data-revenue-mode="bar"
-                                                aria-pressed="true">
-                                            <ui:text key="screen.53aade77cd69a77b"/>
-                                        </button>
-
-                                        <button type="button"
-                                                data-revenue-mode="area"
-                                                aria-pressed="false">
-                                            <ui:text key="screen.024dc204d7ba77a8"/>
-                                        </button>
-                                    </div>
-
-                                </div>
-
-                                <div class="hd-chart-scroll">
-                                    <svg id="hd-revenue-chart"
-                                         class="hd-chart hd-revenue-chart"
-                                         viewBox="0 0 800 310"
-                                         role="img"
-                                         aria-label="${requestScope.i18n['screen.0b831fa69085addd']}" data-i18n-aria-label="screen.0b831fa69085addd">
-                                    </svg>
-                                </div>
-
-                                <p class="hd-note">
-                                    <ui:text key="screen.993199c30e34feca"/>
-                                </p>
-
-                                <details class="hd-data-details">
-                                    <summary><ui:text key="screen.f26cec1171e24415"/></summary>
-
-                                    <div class="hd-table-scroll">
-                                        <table class="hd-table">
-
-                                            <thead>
-                                                <tr>
-                                                    <th scope="col"><ui:text key="screen.6e795d4d3cc21c5c"/></th>
-                                                    <th scope="col"><ui:text key="screen.96ecbad5d5fa01f6"/></th>
-                                                </tr>
-                                            </thead>
-
-                                            <tbody>
-                                                <c:forEach var="item"
-                                                           items="${monthlyRevenue}">
-                                                    <tr>
-                                                        <td>${item.timeUnit}</td>
-
-                                                        <td>
-                                                            <fmt:formatNumber
-                                                                value="${item.totalRevenue}"
-                                                                pattern="#,##0.##" />
-                                                            ₫
-                                                        </td>
-                                                    </tr>
-                                                </c:forEach>
-                                            </tbody>
-
-                                        </table>
-                                    </div>
-                                </details>
-
-                            </section>
-
-                            <section class="hd-panel">
-
-                                <div class="hd-panel-heading">
-                                    <div>
-                                        <p class="hd-overline"><ui:text key="screen.5c210b27b08e009d"/></p>
-                                        <h2><ui:text key="screen.27ad17b7c82ecf34"/></h2>
-
-                                        <p class="hd-description">
-                                            <ui:text key="screen.e65a485296ed3a57"/>
-                                        </p>
-                                    </div>
-
-                                    <span class="hd-scope"><ui:text key="screen.0108466a7d7e6d7a"/></span>
-                                </div>
-
-                                <div class="hd-donut-wrap">
-
-                                    <svg id="hd-booking-chart"
-                                         viewBox="0 0 230 230"
-                                         class="hd-donut"
-                                         role="img"
-                                         aria-label="${requestScope.i18n['screen.da48d7c5a7795ebc']}" data-i18n-aria-label="screen.da48d7c5a7795ebc">
-                                    </svg>
-
-                                    <div class="hd-donut-center">
-                                        <strong data-counter="${totalBookings}">
-                                            ${totalBookings}
-                                        </strong>
-
-                                        <span><ui:text key="screen.c9b1e8c94c489113"/></span>
-                                    </div>
-                                </div>
-
-                                <div id="hd-booking-legend"
-                                     class="hd-legend"></div>
-
-                            </section>
-
+                        <div>
+                            <span>${vi ? 'Đã duyệt' : 'Approved'}</span>
+                            <strong>${reviewSummary.approved}</strong>
                         </div>
 
-                        <div class="hd-bottom-grid">
+                        <div>
+                            <span>
+                                ${vi
+                                  ? 'Trung bình đã duyệt'
+                                  : 'Approved average'}
+                            </span>
 
-                            <section class="hd-panel hd-bottom-panel">
-
-                                <div class="hd-panel-heading">
-                                    <div>
-                                        <p class="hd-overline"><ui:text key="screen.2367a31b344564fb"/></p>
-                                        <h2><ui:text key="screen.bfbab9d396c6eb77"/></h2>
-                                    </div>
-
-                                    <span class="hd-panel-index">01</span>
-                                </div>
-
-                                <p class="hd-description">
-                                    <ui:text key="screen.d40bf1b662a00b42"/>
-                                </p>
-
-                                <div class="hd-toggle hd-payment-toggle"
-                                     role="group"
-                                     aria-label="${requestScope.i18n['screen.cc2eddd254417d0d']}" data-i18n-aria-label="screen.cc2eddd254417d0d">
-
-                                    <button type="button"
-                                            data-payment-mode="amount"
-                                            aria-pressed="true">
-                                        <ui:text key="screen.a36c8a35fe9c727f"/>
-                                    </button>
-
-                                    <button type="button"
-                                            data-payment-mode="count"
-                                            aria-pressed="false">
-                                        <ui:text key="screen.3e5136fd4b11c0dd"/>
-                                    </button>
-                                </div>
-
-                                <svg id="hd-payment-chart"
-                                     class="hd-chart hd-payment-chart"
-                                     viewBox="0 0 440 280"
-                                     role="img"
-                                     aria-label="${requestScope.i18n['screen.094dce89a8f8a2de']}" data-i18n-aria-label="screen.094dce89a8f8a2de">
-                                </svg>
-
-                                <div id="hd-payment-summary"
-                                     class="hd-mini-grid"></div>
-
-                                <p class="hd-note hd-bottom-note">
-                                    <ui:text key="screen.61adf1fe079a9041"/>
-                                </p>
-
-                            </section>
-
-                            <section class="hd-panel hd-bottom-panel">
-
-                                <div class="hd-panel-heading">
-                                    <div>
-                                        <p class="hd-overline"><ui:text key="screen.4dd44c74f9f37b38"/></p>
-                                        <h2><ui:text key="screen.c47fb6ace89008c3"/></h2>
-                                    </div>
-
-                                    <span class="hd-panel-index">02</span>
-                                </div>
-
-                                <p class="hd-description">
-                                    <ui:text key="screen.88cb5c8132e5c08d"/>
-                                </p>
-
-                                <div class="hd-donut-wrap hd-room-donut">
-
-                                    <svg id="hd-room-chart"
-                                         viewBox="0 0 230 230"
-                                         class="hd-donut"
-                                         role="img"
-                                         aria-label="${requestScope.i18n['screen.9d074cd21242c33f']}" data-i18n-aria-label="screen.9d074cd21242c33f">
-                                    </svg>
-
-                                    <div class="hd-donut-center">
-                                        <strong id="hd-room-total">—</strong>
-                                        <span><ui:text key="screen.2b609c7c33e7ecf4"/></span>
-                                    </div>
-
-                                </div>
-
-                                <div id="hd-room-legend"
-                                     class="hd-legend"></div>
-
-                                <p class="hd-note hd-bottom-note">
-                                    <ui:text key="screen.f95690edbb30ecfd"/>
-                                </p>
-
-                            </section>
-
-                            <section class="hd-panel hd-bottom-panel">
-
-                                <div class="hd-panel-heading">
-                                    <div>
-                                        <p class="hd-overline"><ui:text key="screen.bb96105efae8b6b1"/></p>
-                                        <h2><ui:text key="screen.295554dd649c5aa0"/></h2>
-                                    </div>
-
-                                    <span class="hd-panel-index">03</span>
-                                </div>
-
-                                <p class="hd-description">
-                                    <ui:text key="screen.f33dda4e59249351"/>
-                                </p>
-
+                            <strong>
                                 <c:choose>
+                                    <c:when test="${reviewSummary.approved > 0}">
+                                        <fmt:formatNumber
+                                            value="${reviewSummary.average}"
+                                            pattern="0.00"/> / 5
+                                    </c:when>
 
-                                    <c:when test="${reviewStatistics.hasReviews}">
+                                    <c:otherwise>N/A</c:otherwise>
+                                </c:choose>
+                            </strong>
+                        </div>
+                    </div>
 
-                                        <div class="hd-rating-gauge"
-                                             id="hd-rating"
-                                             data-value="${reviewStatistics.averageRating}">
+                    <section class="report-panel">
+                        <div class="report-panel-heading">
+                            <h2>
+                                ${vi
+                                  ? 'Phân bố sao đã duyệt'
+                                  : 'Approved rating distribution'}
+                            </h2>
+                        </div>
 
-                                            <svg id="hd-rating-chart"
-                                                 viewBox="0 0 300 190"
-                                                 class="hd-chart"
-                                                 role="img"
-                                                 aria-label="${requestScope.i18n['screen.306767a9cb81a868']}" data-i18n-aria-label="screen.306767a9cb81a868">
-                                            </svg>
+                        <div style="padding:22px">
 
-                                            <div class="hd-rating-value">
+                            <c:forEach var="i" begin="2" end="10">
+                                <c:set var="idx" value="${12-i}"/>
 
-                                                <strong data-counter="${reviewStatistics.averageRating}"
-                                                        data-format="decimal">
-                                                    <fmt:formatNumber
-                                                        value="${reviewStatistics.averageRating}"
-                                                        pattern="0.##" />
-                                                </strong>
+                                <c:set var="count"
+                                       value="${reviewSummary.ratingCounts[idx]}"/>
 
-                                                <span><ui:text key="screen.8b923af58c1d2f29"/></span>
+                                <c:if test="${count > 0}">
+                                    <div class="uc23-rating-row">
+                                        <span>
+                                            <fmt:formatNumber
+                                                value="${idx/2.0}"
+                                                pattern="0.0"/> ★
+                                        </span>
 
-                                            </div>
+                                        <meter class="rating-distribution-fill"
+                                               min="0"
+                                               max="${reviewSummary.approved}"
+                                               value="${count}"
+                                               aria-label="${idx/2.0} stars">
+                                            <c:out value="${count}"/>
+                                        </meter>
 
-                                        </div>
+                                        <strong>${count}</strong>
+                                    </div>
+                                </c:if>
+                            </c:forEach>
 
-                                        <div class="hd-stars" aria-hidden="true">
-                                            <span>★★★★★</span>
+                            <c:if test="${reviewSummary.approved == 0}">
+                                <p>
+                                    ${vi
+                                      ? 'Chưa có đánh giá đã duyệt.'
+                                      : 'No approved reviews.'}
+                                </p>
+                            </c:if>
 
-                                            <span id="hd-rating-stars">
-                                                ★★★★★
-                                            </span>
-                                        </div>
+                            <c:if test="${reviewSummary.ratingCounts[0] > 0}">
+                                <p>
+                                    ${vi
+                                      ? 'Mức sao khác (dữ liệu cũ)'
+                                      : 'Other ratings (legacy data)'}:
+                                    ${reviewSummary.ratingCounts[0]}
+                                </p>
+                            </c:if>
 
+                        </div>
+                    </section>
+
+                </section>
+
+            </c:if>
+
+            <c:if test="${recordsView}">
+
+                <section class="report-panel">
+                    <div class="report-panel-heading">
+                        <h2>
+                            ${vi ? 'Danh sách chi tiết' : 'Detailed records'}
+                        </h2>
+
+                        <span>
+                            ${totalRecords}
+                            ${vi ? 'kết quả' : 'results'}
+                        </span>
+                    </div>
+
+                    <div class="report-table-scroll">
+                        <table class="report-table">
+                            <thead>
+                            <tr>
+                                <c:choose>
+                                    <c:when test="${reportView == 'payments'}">
+                                        <th>ID</th>
+                                        <th>
+                                            ${vi
+                                              ? 'Đặt phòng / Khách'
+                                              : 'Booking / Guest'}
+                                        </th>
+                                        <th>${vi ? 'Phòng' : 'Rooms'}</th>
+                                        <th>
+                                            ${vi
+                                              ? 'Ngày thanh toán'
+                                              : 'Payment date'}
+                                        </th>
+                                        <th class="numeric">
+                                            ${vi ? 'Tiền giao dịch' : 'Amount'}
+                                        </th>
+                                        <th class="numeric">
+                                            ${vi ? 'Đã hoàn' : 'Refunded'}
+                                        </th>
+                                        <th class="numeric">
+                                            ${vi ? 'Còn lại' : 'Net'}
+                                        </th>
+                                        <th>${vi ? 'Trạng thái' : 'Status'}</th>
+                                        <th>${vi ? 'Phương thức' : 'Method'}</th>
+                                        <th>
+                                            ${vi
+                                              ? 'Giảm đã lưu'
+                                              : 'Stored discount'}
+                                        </th>
+                                        <th>
+                                            ${vi
+                                              ? 'Mã giao dịch'
+                                              : 'Reference'}
+                                        </th>
+                                    </c:when>
+
+                                    <c:when test="${reportView == 'reviews'}">
+                                        <th>ID</th>
+                                        <th>
+                                            ${vi
+                                              ? 'Đặt phòng / Khách'
+                                              : 'Booking / Guest'}
+                                        </th>
+                                        <th>${vi ? 'Phòng' : 'Rooms'}</th>
+                                        <th>${vi ? 'Ngày gửi' : 'Submitted'}</th>
+                                        <th>${vi ? 'Sao' : 'Rating'}</th>
+                                        <th>${vi ? 'Nhận xét' : 'Comment'}</th>
+                                        <th>${vi ? 'Trạng thái' : 'Status'}</th>
                                     </c:when>
 
                                     <c:otherwise>
-                                        <div class="hd-no-rating">
-                                            <strong><ui:text key="screen.e2f79e5b60330bba"/></strong>
-                                            <span><ui:text key="screen.539fd8609f5b572c"/></span>
-                                        </div>
+                                        <th>ID</th>
+                                        <th>${vi ? 'Khách' : 'Guest'}</th>
+                                        <th>${vi ? 'Ngày tạo' : 'Created'}</th>
+                                        <th>
+                                            ${vi
+                                              ? 'Phòng / Lưu trú'
+                                              : 'Rooms / Stay'}
+                                        </th>
+                                        <th>${vi ? 'Trạng thái' : 'Status'}</th>
+                                        <th class="numeric">
+                                            ${vi
+                                              ? 'Tổng đơn'
+                                              : 'Booking total'}
+                                        </th>
+                                        <th>
+                                            ${vi
+                                              ? 'Ghi chú / Hủy'
+                                              : 'Notes / Cancellation'}
+                                        </th>
                                     </c:otherwise>
-
                                 </c:choose>
+                            </tr>
+                            </thead>
 
-                                <div class="hd-review-total">
+                            <tbody>
+                            <c:choose>
 
-                                    <strong data-counter="${reviewStatistics.totalReviews}">
-                                        ${reviewStatistics.totalReviews}
-                                    </strong>
+                                <c:when test="${reportView == 'payments'}">
+                                    <c:forEach var="p" items="${payments}">
+                                        <tr>
+                                            <td>#${p.id}</td>
 
-                                    <span><ui:text key="screen.77717242b063c08d"/></span>
+                                            <td>
+                                                <strong>#${p.booking.id}</strong>
 
-                                    <a href="${ctx}/reports?view=reviews&amp;status=approved"
-                                       aria-label="${requestScope.i18n['screen.e89169f6c8fc91b2']}" data-i18n-aria-label="screen.e89169f6c8fc91b2">
-                                        <ui:text key="screen.3076426d947dd6d5"/>
-                                    </a>
+                                                <div>
+                                                    <c:out value="${p.booking.customer.firstName}"/>
+                                                    <c:out value="${p.booking.customer.lastName}"/>
+                                                </div>
+                                            </td>
 
-                                </div>
+                                            <td>
+                                                <c:forEach var="d"
+                                                           items="${p.booking.details}">
+                                                    <div>${d.roomNumber}</div>
+                                                </c:forEach>
+                                            </td>
 
-                                <p class="hd-note hd-bottom-note">
-                                    <ui:text key="screen.c80c853616ca2e82"/>
-                                </p>
+                                            <td>
+                                                <c:out value="${empty p.paymentDate
+                                                               ? '—'
+                                                               : fn:replace(p.paymentDate,'T',' ')}"/>
+                                            </td>
 
-                            </section>
+                                            <td class="numeric">
+                                                <fmt:formatNumber
+                                                    value="${p.amount}"
+                                                    pattern="#,##0.##"/> ₫
+                                            </td>
 
-                        </div>
+                                            <td class="numeric">
+                                                <fmt:formatNumber
+                                                    value="${p.refundedAmount}"
+                                                    pattern="#,##0.##"/> ₫
+                                            </td>
 
-                        <details class="hd-definitions">
-                            <summary><ui:text key="screen.874d5a93f95cdfe1"/></summary>
-                            <ul>
-                                <li><strong><ui:text key="screen.e5beb132b20462b6"/></strong> <ui:text key="screen.e6b3bf04577067b0"/></li>
-                                <li><strong><ui:text key="screen.c0761ba7b2476830"/></strong> <ui:text key="screen.4101fe6983daffb6"/></li>
-                                <li><strong><ui:text key="screen.1346d5c75c538436"/></strong> <ui:text key="screen.1623700055ece805"/>
-                                    <c:if test="${occupancy.applicable}">
-                                        ${occupancy.roomNights} <ui:text key="screen.451ef2e45c1c913d"/> ${occupancy.capacityNights} <ui:text key="screen.5e1a24394f830248"/>
-                                    </c:if>
-                                    <c:if test="${not occupancy.applicable}"><ui:text key="screen.369ceed30eeffa6c"/></c:if></li>
-                                    <li><strong><ui:text key="screen.9224a447d4ead64d"/></strong> <ui:text key="screen.a14a6e14c0f45992"/></li>
-                                    <li><strong><ui:text key="screen.36aea3446441ad8c"/></strong> <ui:text key="screen.1a3294e230101513"/></li>
-                                </ul>
-                            </details>
+                                            <td class="numeric">
+                                                <c:choose>
+                                                    <c:when test="${p.paymentStatus == 'paid'
+                                                                    or p.paymentStatus == 'refunded'}">
+                                                        <fmt:formatNumber
+                                                            value="${p.historyRemainingAmount}"
+                                                            pattern="#,##0.##"/> ₫
+                                                    </c:when>
 
-                            <section class="hd-panel hd-records">
+                                                    <c:otherwise>—</c:otherwise>
+                                                </c:choose>
+                                            </td>
 
-                                <div>
-                                    <p class="hd-overline"><ui:text key="screen.e7a1fd07adbb3234"/></p>
-                                    <h2><ui:text key="screen.ccac87f4f6698de0"/></h2>
+                                            <td>
+                                                <span class="report-status <c:out value='${p.historyStatus}'/>">
+                                                    <c:choose>
+                                                        <c:when test="${p.historyStatus == 'partially_refunded'}">
+                                                            ${vi
+                                                              ? 'Hoàn một phần'
+                                                              : 'Partially refunded'}
+                                                        </c:when>
 
-                                    <p class="hd-description">
-                                        <ui:text key="screen.88c56e64ef314a26"/>
-                                    </p>
-                                </div>
+                                                        <c:when test="${p.historyStatus == 'refunded'}">
+                                                            ${vi
+                                                              ? 'Đã hoàn toàn bộ'
+                                                              : 'Fully refunded'}
+                                                        </c:when>
 
-                                <div class="hd-record-links">
+                                                        <c:otherwise>
+                                                            <c:out value="${p.paymentStatus}"/>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </span>
+                                            </td>
 
-                                    <a class="hd-button hd-button-light"
-                                       href="<c:out value='${dashboardBookingsUrl}' />">
-                                    <ui:text key="screen.08da2b51479183d7"/>
-                                </a>
+                                            <td>
+                                                <c:out value="${p.paymentMethod}"/>
+                                            </td>
 
-                                <a class="hd-button hd-button-light"
-                                   href="<c:out value='${dashboardPaymentsUrl}' />">
-                                    <ui:text key="screen.25703a5e8ddbd2cc"/>
-                                </a>
+                                            <td>
+                                                <c:out value="${p.discount.code}"/>
 
-                                <%-- Revenue details retain the selected reporting period. --%>
-                                <a class="hd-button"
-                                   href="${ctx}/reports?view=period&amp;fromDate=${fromDate}&amp;toDate=${toDate}">
-                                    <ui:text key="screen.31de06fffae89482"/>
-                                </a>
+                                                <div>
+                                                    <fmt:formatNumber
+                                                        value="${p.discountAmount}"
+                                                        pattern="#,##0.##"/> ₫
+                                                </div>
+                                            </td>
 
+                                            <td>
+                                                <c:out value="${p.transactionCode}"/>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </c:when>
+
+                                <c:when test="${reportView == 'reviews'}">
+                                    <c:forEach var="r" items="${reviews}">
+                                        <tr>
+                                            <td>#${r.reviewID}</td>
+
+                                            <td>
+                                                #${r.booking.id}
+
+                                                <div>
+                                                    <c:out value="${r.booking.customer.firstName}"/>
+                                                    <c:out value="${r.booking.customer.lastName}"/>
+                                                </div>
+                                            </td>
+
+                                            <td>
+                                                <c:forEach var="d"
+                                                           items="${r.booking.details}">
+                                                    <div>${d.roomNumber}</div>
+                                                </c:forEach>
+                                            </td>
+
+                                            <td>
+                                                <c:out value="${fn:replace(r.reviewDate,'T',' ')}"/>
+                                            </td>
+
+                                            <td>
+                                                <fmt:formatNumber
+                                                    value="${r.star}"
+                                                    pattern="0.0"/> / 5
+                                            </td>
+
+                                            <td>
+                                                <c:out value="${r.comment}"/>
+                                            </td>
+
+                                            <td>
+                                                <span class="report-status <c:out value='${r.reviewStatus}'/>">
+                                                    <c:out value="${r.reviewStatus}"/>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </c:when>
+
+                                <c:otherwise>
+                                    <c:forEach var="b" items="${bookings}">
+                                        <tr>
+                                            <td>#${b.id}</td>
+
+                                            <td>
+                                                <c:out value="${b.customer.firstName}"/>
+                                                <c:out value="${b.customer.lastName}"/>
+
+                                                <div>
+                                                    <c:out value="${b.customer.email}"/>
+                                                </div>
+                                            </td>
+
+                                            <td>
+                                                <c:out value="${fn:replace(b.bookingDate,'T',' ')}"/>
+                                            </td>
+
+                                            <td>
+                                                <c:forEach var="d"
+                                                           items="${b.details}">
+                                                    <div>
+                                                        <strong>${d.roomNumber}</strong>:
+                                                        ${d.checkInDate}
+                                                        →
+                                                        ${d.checkOutDate};
+                                                        ${d.guestCount}
+                                                        ${vi ? 'khách' : 'guests'}
+                                                    </div>
+                                                </c:forEach>
+                                            </td>
+
+                                            <td>
+                                                <span class="report-status <c:out value='${b.status}'/>">
+                                                    <c:out value="${b.status}"/>
+                                                </span>
+                                            </td>
+
+                                            <td class="numeric">
+                                                <fmt:formatNumber
+                                                    value="${b.totalPrice}"
+                                                    pattern="#,##0.##"/> ₫
+                                            </td>
+
+                                            <td>
+                                                <c:out value="${b.specialRequest}"/>
+
+                                                <c:if test="${not empty b.cancellationReason}">
+                                                    <div>
+                                                        <c:out value="${b.cancellationReason}"/>
+                                                    </div>
+                                                </c:if>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </c:otherwise>
+
+                            </c:choose>
+                            </tbody>
+                        </table>
+
+                        <c:if test="${totalRecords == 0}">
+                            <div class="report-empty">
+                                ${vi
+                                  ? 'Không có kết quả phù hợp.'
+                                  : 'No matching records.'}
                             </div>
+                        </c:if>
+                    </div>
+                </section>
 
-                        </section>
+                <%@ include file="report-list-pagination.jsp" %>
 
-                    </c:otherwise>
+            </c:if>
 
-                </c:choose>
+        </c:otherwise>
+    </c:choose>
 
-            </div>
+</main>
 
-        </main>
+<%@ include file="/WEB-INF/include/footer.jsp" %>
 
-        <%@ include file="/WEB-INF/include/footer.jsp" %>
+<script src="${ctx}/assets/js/bootstrap.bundle.min.js"></script>
 
-        <script src="${ctx}/assets/js/bootstrap.bundle.min.js"></script>
-
-    </body>
+</body>
 </html>
