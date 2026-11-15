@@ -15,7 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import dao.UserDAO;
 import model.Customer;
 import model.User;
-
+import dao.ProfileDAO;
 
 @WebServlet(name = "ProfileServlet", urlPatterns = {"/profile"})
 public class ProfileServlet extends HttpServlet {
@@ -91,63 +91,67 @@ public class ProfileServlet extends HttpServlet {
      * @throws IOException if an input/output error occurs
      */
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
-        
+
         request.setCharacterEncoding("UTF-8");
 
-        
-        User loggedUser = (User) request.getSession().getAttribute("loggedUser");
+        User loggedUser = (User) request.getSession()
+                .getAttribute("loggedUser");
 
-        
         if (loggedUser == null) {
-            response.sendRedirect("./login");
+            response.sendRedirect(
+                    request.getContextPath() + "/login");
             return;
         }
 
-        
         int userId = loggedUser.getId();
 
-        // Retrieve updated profile fields from request
-        String displayName = request.getParameter("displayName");
-        String firstName = request.getParameter("firstName");
-        String lastName = request.getParameter("lastName");
-        String email = request.getParameter("email");
-        String phone = request.getParameter("phone");
-        String country = request.getParameter("country");
-        String city = request.getParameter("city");
-        String street = request.getParameter("street");
+        String displayName = trim(
+                request.getParameter("displayName"));
+        String firstName = trim(
+                request.getParameter("firstName"));
+        String lastName = trim(
+                request.getParameter("lastName"));
+        String email = trim(
+                request.getParameter("email"));
+        String phone = trim(
+                request.getParameter("phone"));
+        String country = trim(
+                request.getParameter("country"));
+        String city = trim(
+                request.getParameter("city"));
+        String street = trim(
+                request.getParameter("street"));
 
-        if (displayName == null
-                || displayName.trim().isEmpty()
-                || displayName.trim().length() > 100) {
-            response.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Invalid display name"
-            );
+        // Basic validation
+        if (displayName.isEmpty()
+                || displayName.length() > 100) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/profile?error=invalid-name");
             return;
         }
 
-        
-        UserDAO userDAO = new UserDAO();
+        if (!email.isEmpty()
+                && !email.matches(
+                        "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
 
-        boolean updated = userDAO.updateDisplayName(
-                userId, displayName.trim()
-        );
-
-        if (!updated) {
-            response.sendError(
-                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Failed to update display name"
-            );
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/profile?error=invalid-email");
             return;
         }
 
+        // Save both tables in one transaction
+        ProfileDAO profileDAO = new ProfileDAO();
 
-        CustomerDAO customerDAO = new CustomerDAO();
-
-        customerDAO.updateCustomer(
+        boolean success = profileDAO.updateProfile(
                 userId,
+                displayName,
                 firstName,
                 lastName,
                 email,
@@ -157,26 +161,26 @@ public class ProfileServlet extends HttpServlet {
                 street
         );
 
+        if (!success) {
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/profile?error=update-failed");
+            return;
+        }
 
-        loggedUser.setDisplayName(displayName.trim());
+        // Update Session only after DB success
+        loggedUser.setDisplayName(displayName);
 
         request.getSession().setAttribute(
-                "loggedUser", loggedUser
-        );
+                "loggedUser", loggedUser);
 
-
-        response.sendRedirect(request.getContextPath() + "/profile");
-        return;
+        response.sendRedirect(
+                request.getContextPath()
+                + "/profile?success=updated");
     }
 
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String describing the servlet
-     */
-    @Override
-    public String getServletInfo() {
-        return "Handles user profile viewing and updating";
-    }// </editor-fold>
+    private String trim(String value) {
+        return value == null ? "" : value.trim();
+    }
 
 }

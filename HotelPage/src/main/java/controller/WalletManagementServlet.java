@@ -67,8 +67,13 @@ public class WalletManagementServlet extends HttpServlet {
                 + "COALESCE(w.Balance, 0) AS Balance "
                 + "FROM Customer c "
                 + "LEFT JOIN Wallet w "
-                + "ON c.CustomerID = w.CustomerID "
-                + "ORDER BY c.CustomerID DESC";
+                + "ON c.CustomerID = w.CustomerID ";
+
+        if (selectedCustomerId != null) {
+            walletSql += "WHERE c.CustomerID = ? ";
+        }
+
+        walletSql += "ORDER BY c.CustomerID DESC";
 
         String transactionSql
                 = "SELECT TOP (100) t.WalletTransactionID, "
@@ -84,23 +89,40 @@ public class WalletManagementServlet extends HttpServlet {
         try (Connection conn = new DBContext().getConnection()) {
 
             try (PreparedStatement ps
-                    = conn.prepareStatement(walletSql); ResultSet rs = ps.executeQuery()) {
+                    = conn.prepareStatement(walletSql)) {
 
-                while (rs.next()) {
-                    Map<String, Object> wallet = new HashMap<>();
+                if (selectedCustomerId != null) {
+                    ps.setInt(1, selectedCustomerId);
+                }
 
-                    wallet.put("customerId",
-                            rs.getInt("CustomerID"));
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
 
-                    wallet.put("name",
-                            rs.getString("FirstName") + " "
-                            + rs.getString("LastName"));
+                        Map<String, Object> wallet = new HashMap<>();
 
-                    wallet.put("email", rs.getString("Email"));
-                    wallet.put("balance",
-                            rs.getBigDecimal("Balance"));
+                        wallet.put(
+                                "customerId",
+                                rs.getInt("CustomerID")
+                        );
 
-                    wallets.add(wallet);
+                        wallet.put(
+                                "name",
+                                rs.getString("FirstName") + " "
+                                + rs.getString("LastName")
+                        );
+
+                        wallet.put(
+                                "email",
+                                rs.getString("Email")
+                        );
+
+                        wallet.put(
+                                "balance",
+                                rs.getBigDecimal("Balance")
+                        );
+
+                        wallets.add(wallet);
+                    }
                 }
             }
 

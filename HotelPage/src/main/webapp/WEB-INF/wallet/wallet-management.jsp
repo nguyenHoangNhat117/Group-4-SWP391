@@ -98,6 +98,42 @@
 
                 <h3>Customer Wallets</h3>
 
+                <form action="${pageContext.request.contextPath}/wallet-management"
+                      method="get"
+                      class="row g-2 align-items-end mb-4">
+
+                    <div class="col-md-7">
+                        <label for="walletCustomerSearch"
+                               class="form-label fw-semibold">
+                            Search by Customer ID
+                        </label>
+
+                        <input type="number"
+                               id="walletCustomerSearch"
+                               name="customerId"
+                               class="form-control"
+                               min="1"
+                               step="1"
+                               value="${selectedCustomerId}"
+                               placeholder="Enter Customer ID">
+                    </div>
+
+                    <div class="col-md-auto">
+                        <button type="submit"
+                                class="wallet-btn">
+                            Search
+                        </button>
+                    </div>
+
+                    <div class="col-md-auto">
+                        <a href="${pageContext.request.contextPath}/wallet-management"
+                           class="btn btn-outline-secondary">
+                            Clear
+                        </a>
+                    </div>
+                </form>
+
+
                 <div class="table-responsive">
                     <table class="table wallet-table">
 
@@ -161,7 +197,9 @@
 
             </section>
 
-            <c:if test="${not empty selectedCustomerId}">
+
+            <c:if test="${not empty selectedCustomerId and not empty wallets}">
+
 
                 <section class="wallet-card" id="transactions">
 

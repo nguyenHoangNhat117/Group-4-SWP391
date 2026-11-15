@@ -82,6 +82,12 @@
                     </li>
 
                     <li>
+                        <a href="${pageContext.request.contextPath}/offline-booking">
+                            <ui:text key="nav.offline"/>
+                        </a>
+                    </li>
+
+                    <li>
                         <a href="${pageContext.request.contextPath}/customers">
                             <ui:text key="nav.customers"/>
                         </a>
@@ -102,6 +108,11 @@
                     <li>
                         <a href="${pageContext.request.contextPath}/hotel-wallet">
                             Hotel Wallet
+                        </a>
+                    </li>
+                    <li>
+                        <a href="${pageContext.request.contextPath}/withdrawal-management">
+                            Withdrawal Management
                         </a>
                     </li>
 
@@ -138,6 +149,7 @@
                         </a>
                     </li>
 
+
                 </c:when>
 
                 <c:when test="${sessionScope.loggedUser.role == 'manager'}">
@@ -152,6 +164,13 @@
                             <ui:text key="nav.reports"/>
                         </a>
                     </li>
+
+                    <li>
+                        <a href="${pageContext.request.contextPath}/withdrawal-management">
+                            Withdrawal Management
+                        </a>
+                    </li>
+
                 </c:when>
 
                 <c:otherwise>
@@ -178,6 +197,7 @@
                             <ui:text key="nav.promotions"/>
                         </a>
                     </li>
+
                 </c:otherwise>
             </c:choose>
         </ul>
@@ -277,10 +297,10 @@
                                     <% if (headerHasAvatar) {%>
                                     <img
                                         src="<%= request.getContextPath()%>/avatar/image"
-                                        alt=""
+                                        onerror="this.onerror=null;this.src='<%= request.getContextPath()%>/assets/img/avatar.jpg';"
+                                        alt="Account avatar"
                                         width="44"
                                         height="44"
-                                        style="
                                         width: 44px !important;
                                         height: 44px !important;
                                         min-width: 44px !important;
