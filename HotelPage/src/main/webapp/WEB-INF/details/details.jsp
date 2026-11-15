@@ -113,6 +113,61 @@
                 </div>
 
                 <!-- Review Submission Feedback Messages -->
+
+                <c:if test="${param.error == 'invalid-star'}">
+                    <div class="alert alert-danger alert-dismissible fade show"
+                         role="alert">
+
+                        Invalid star rating.
+                        Please select a rating from 1 to 5,
+                        in increments of 0.5.
+
+                        <button type="button"
+                                class="btn-close"
+                                data-bs-dismiss="alert"
+                                aria-label="Close">
+                        </button>
+                    </div>
+                </c:if>
+
+                <c:if test="${param.error == 'review-failed'}">
+                    <div class="alert alert-danger alert-dismissible fade show"
+                         role="alert">
+
+                        Unable to submit your review.
+                        Please check your booking and try again.
+
+                        <button type="button"
+                                class="btn-close"
+                                data-bs-dismiss="alert"
+                                aria-label="Close">
+                        </button>
+                    </div>
+                </c:if>
+
+
+                <c:if test="${param.error == 'invalid-comment'}">
+                    <div class="alert alert-danger alert-dismissible fade show"
+                         role="alert">
+                        Please enter a review comment before submitting.
+                        <button type="button"
+                                class="btn-close"
+                                data-bs-dismiss="alert"
+                                aria-label="Close"></button>
+                    </div>
+                </c:if>
+
+                <c:if test="${param.error == 'comment-too-long'}">
+                    <div class="alert alert-danger alert-dismissible fade show"
+                         role="alert">
+                        Review comment must not exceed 1000 characters.
+                        <button type="button"
+                                class="btn-close"
+                                data-bs-dismiss="alert"
+                                aria-label="Close"></button>
+                    </div>
+                </c:if>
+
                 <c:if test="${param.error == 'review-pending'}">
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <ui:text key="screen.92c7aa32e0c960ae"/>
@@ -324,7 +379,7 @@
                         </div>
 
 
-                        <!-- Approved Customer Reviews Section (Normal Flow Step 3 & 4, BR-48) -->
+                        <!-- Approved Customer Reviews Section  -->
                         <div class="bg-white border rounded-4 p-4 shadow-sm" id="review-title">
                             <h4 class="fw-bold mb-3">
                                 <ui:text key="screen.e7cb00891c5b4234"/>

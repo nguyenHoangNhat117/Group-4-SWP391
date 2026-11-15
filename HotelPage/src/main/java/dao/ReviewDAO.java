@@ -31,49 +31,106 @@ public class ReviewDAO extends DBContext {
      */
     public boolean addReview(
             int bookingId,
+            int customerId,
+            int roomNumber,
             String comment,
             BigDecimal star) {
 
-        if (star == null
-                || star.compareTo(
-                        BigDecimal.ONE) < 0
-                || star.compareTo(
-                        new BigDecimal("5")) > 0) {
-
+        // Validate input
+        if (bookingId <= 0
+                || customerId <= 0
+                || roomNumber <= 0
+                || comment == null
+                || comment.trim().isEmpty()
+                || comment.trim().length() > 1000
+                || star == null
+                || star.compareTo(BigDecimal.ONE) < 0
+                || star.compareTo(new BigDecimal("5")) > 0
+                || star.remainder(new BigDecimal("0.5"))
+                        .compareTo(BigDecimal.ZERO) != 0) {
             return false;
         }
 
-        String sql
+        String checkSql
+                = "SELECT TOP 1 b.BookingID "
+                + "FROM Booking b WITH (UPDLOCK, HOLDLOCK) "
+                + "WHERE b.BookingID = ? "
+                + "AND b.CustomerID = ? "
+                + "AND b.Status = 'completed' "
+                + "AND EXISTS ( "
+                + "    SELECT 1 FROM BookingDetail bd "
+                + "    WHERE bd.BookingID = b.BookingID "
+                + "    AND bd.RoomNumber = ? "
+                + ") "
+                + "AND NOT EXISTS ( "
+                + "    SELECT 1 FROM Review r "
+                + "    WHERE r.BookingID = b.BookingID "
+                + ")";
+
+        String insertSql
                 = "INSERT INTO Review "
                 + "(BookingID, Comment, Star, ReviewStatus) "
                 + "VALUES (?, ?, ?, 'pending')";
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection()) {
 
-            ps.setInt(
-                    1,
-                    bookingId
-            );
+            conn.setAutoCommit(false);
 
-            ps.setString(
-                    2,
-                    comment
-            );
+            try {
+                // Lock booking while validating eligibility.
+                boolean eligible;
 
-            ps.setBigDecimal(
-                    3,
-                    star
-            );
+                try (PreparedStatement ps
+                        = conn.prepareStatement(checkSql)) {
 
-            return ps.executeUpdate() > 0;
+                    ps.setInt(1, bookingId);
+                    ps.setInt(2, customerId);
+                    ps.setInt(3, roomNumber);
 
-        } catch (SQLException e) {
+                    try (ResultSet rs = ps.executeQuery()) {
+                        eligible = rs.next();
+                    }
+                }
 
-            e.printStackTrace();
+                if (!eligible) {
+                    conn.rollback();
+                    return false;
+                }
+
+                // Create review on the same connection.
+                try (PreparedStatement ps
+                        = conn.prepareStatement(insertSql)) {
+
+                    ps.setInt(1, bookingId);
+                    ps.setString(2, comment.trim());
+                    ps.setBigDecimal(3, star);
+
+                    if (ps.executeUpdate() != 1) {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+
+                conn.commit();
+                return true;
+
+            } catch (SQLException ex) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    ex.addSuppressed(rollbackEx);
+                }
+
+                ex.printStackTrace();
+                return false;
+            }
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
             return false;
         }
     }
+
 
     /*
      * =========================================================
@@ -516,7 +573,8 @@ public class ReviewDAO extends DBContext {
         String sql
                 = "UPDATE Review "
                 + "SET ReviewStatus = ? "
-                + "WHERE ReviewID = ?";
+                + "WHERE ReviewID = ? "
+                + "AND ReviewStatus = 'pending'";
 
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
@@ -883,6 +941,33 @@ public class ReviewDAO extends DBContext {
         return "pending".equals(status)
                 || "approved".equals(status)
                 || "rejected".equals(status);
+    }
+
+    public String getReviewStatusById(int reviewId) {
+
+        if (reviewId <= 0) {
+            return null;
+        }
+
+        String sql = "SELECT ReviewStatus "
+                + "FROM Review "
+                + "WHERE ReviewID = ?";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, reviewId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("ReviewStatus");
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     public String getApprovedReviewAvatar(int reviewId) {

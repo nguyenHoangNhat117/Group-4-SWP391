@@ -130,10 +130,10 @@ public class ReviewServlet
             return;
         }
 
-        if (star.compareTo(
-                BigDecimal.ONE) < 0
-                || star.compareTo(
-                        new BigDecimal("5")) > 0) {
+        if (star.compareTo(BigDecimal.ONE) < 0
+                || star.compareTo(new BigDecimal("5")) > 0
+                || star.remainder(new BigDecimal("0.5"))
+                        .compareTo(BigDecimal.ZERO) != 0) {
 
             redirectRoom(
                     request,
@@ -141,39 +141,37 @@ public class ReviewServlet
                     roomNumber,
                     "invalid-star"
             );
-
             return;
         }
 
+
         /*
-         * ===============================================
-         * 4. COMMENT
-         * ===============================================
+          * 4. VALIDATE COMMENT
          */
-        String comment
-                = request.getParameter(
-                        "comment"
-                );
+        String comment = request.getParameter("comment");
 
-        if (comment != null) {
-
-            comment
-                    = comment.trim();
-
-            if (comment.isEmpty()) {
-                comment = null;
-            }
-
-            if (comment != null
-                    && comment.length() > 1000) {
-
-                comment
-                        = comment.substring(
-                                0,
-                                1000
-                        );
-            }
+        if (comment == null || comment.trim().isEmpty()) {
+            redirectRoom(
+                    request,
+                    response,
+                    roomNumber,
+                    "invalid-comment"
+            );
+            return;
         }
+
+        comment = comment.trim();
+
+        if (comment.length() > 1000) {
+            redirectRoom(
+                    request,
+                    response,
+                    roomNumber,
+                    "comment-too-long"
+            );
+            return;
+        }
+
 
         /*
          * ===============================================
@@ -257,12 +255,13 @@ public class ReviewServlet
          * ReviewStatus = pending
          * ===============================================
          */
-        boolean created
-                = reviewDAO.addReview(
-                        bookingId,
-                        comment,
-                        star
-                );
+        boolean created = reviewDAO.addReview(
+                bookingId,
+                customer.getCustomerID(),
+                roomNumber,
+                comment,
+                star
+        );
 
         if (!created) {
 

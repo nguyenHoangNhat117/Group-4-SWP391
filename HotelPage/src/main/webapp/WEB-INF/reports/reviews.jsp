@@ -1,4 +1,4 @@
-<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
+v<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
@@ -226,6 +226,14 @@
                                 </div>
                             </c:when>
 
+                            <c:when test="${param.message == 'already-processed'}">
+                                <div class="report-note" role="alert">
+                                    This review has already been processed
+                                    by another admin. Please refresh the page.
+                                </div>
+                            </c:when>
+
+
                             <c:when test="${param.message == 'update-failed'}">
                                 <div class="report-note" role="alert">
                                     <ui:text key="screen.d08ffcf9874a378b"/>
@@ -397,10 +405,13 @@
                                                         <td>
                                                             <div class="report-actions">
 
-                                                                <c:if test="${r.reviewStatus != 'approved'}">
+                                                                <c:if test="${r.reviewStatus == 'pending'}">
 
                                                                     <form action="${ctx}/admin/reviews/moderate"
                                                                           method="post">
+                                                                        <input type="hidden"
+                                                                               name="csrfToken"
+                                                                               value="${sessionScope.reviewModerationCsrfToken}">
 
                                                                         <input type="hidden"
                                                                                name="reviewID"
@@ -420,7 +431,7 @@
 
                                                                 </c:if>
 
-                                                                <c:if test="${r.reviewStatus != 'rejected'}">
+                                                                <c:if test="${r.reviewStatus == 'pending'}">
 
                                                                     <form action="${ctx}/admin/reviews/moderate"
                                                                           method="post">

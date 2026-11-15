@@ -4,7 +4,6 @@
  */
 package controller;
 
-
 import dao.CustomerDAO;
 import model.Customer;
 import model.User;
@@ -25,7 +24,7 @@ public class AvatarServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request,
-                          HttpServletResponse response)
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         HttpSession session = request.getSession(false);
@@ -47,7 +46,31 @@ public class AvatarServlet extends HttpServlet {
             return;
         }
 
-        Part file = request.getPart("img");
+        Part file;
+
+        try {
+            file = request.getPart("img");
+
+        } catch (IllegalStateException e) {
+            // Multipart request exceeds configured limits.
+            getServletContext().log(
+                    "Avatar upload size limit exceeded", e);
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/profile?error=avatar-too-large");
+            return;
+
+        } catch (ServletException e) {
+            // Invalid or unprocessable multipart request.
+            getServletContext().log(
+                    "Invalid avatar multipart request", e);
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/profile?error=avatar-invalid-request");
+            return;
+        }
 
         if (file == null || file.getSize() == 0) {
             response.sendError(400, "Please select an image");
@@ -72,8 +95,8 @@ public class AvatarServlet extends HttpServlet {
         }
 
         // Configure this folder outside the deployed WAR.
-        String storagePath =
-                getServletContext().getInitParameter("avatarStoragePath");
+        String storagePath
+                = getServletContext().getInitParameter("avatarStoragePath");
 
         if (storagePath == null || storagePath.isBlank()) {
             response.sendError(500, "Avatar storage not configured");
@@ -100,11 +123,11 @@ public class AvatarServlet extends HttpServlet {
                 boolean png = extension.equals(".png")
                         && signature.length == 8
                         && java.util.Arrays.equals(
-                            signature,
-                            new byte[]{
-                                (byte)137, 80, 78, 71,
-                                13, 10, 26, 10
-                            });
+                                signature,
+                                new byte[]{
+                                    (byte) 137, 80, 78, 71,
+                                    13, 10, 26, 10
+                                });
 
                 if (!jpeg && !png) {
                     response.sendError(400, "Invalid image file");
@@ -133,4 +156,3 @@ public class AvatarServlet extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/profile");
     }
 }
-
