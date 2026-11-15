@@ -218,7 +218,8 @@
                 <div class="row g-4 mt-1 align-items-start">
                     <!-- Left Column: Image, Description, Amenities -->
                     <div class="col-lg-7">
-                        <img src="${pageContext.request.contextPath}/assets/img/<c:out value='${roomType.picture}'/>"
+                        <c:url var="pictureUrl" value="/assets/img/${empty roomType.picture ? 'avatar.jpg' : roomType.picture}"/>
+                        <img src="<c:out value='${pictureUrl}'/>"
                              class="img-fluid w-100 rounded-4 shadow-sm mb-4"
                              style="max-height: 480px; object-fit: cover;"
                              alt="<c:out value='${roomType.name}'/>"/>

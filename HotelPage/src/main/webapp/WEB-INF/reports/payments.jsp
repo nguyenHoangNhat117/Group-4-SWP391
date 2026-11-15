@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="${ctx}/assets/css/luxe-shared-shell.css">
     <link rel="stylesheet" href="${ctx}/assets/css/luxe-ui.css">
     <link rel="stylesheet" href="${ctx}/assets/css/hotel-reports.css">
+    <%@ include file="/WEB-INF/include/date-picker.jsp" %>
 </head>
 
 <body class="hotel-reports-body ${cookie.animation.value == 'disable' ? 'disable-animation' : ''}">

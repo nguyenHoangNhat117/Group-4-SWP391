@@ -1,0 +1,200 @@
+.hotel-reports .report-panel.revenue-feature {
+    --revenue-plot-height: clamp(150px, 24vw, 260px);
+    background: radial-gradient(ellipse at top right, #2a5141 0, transparent 60%), #112e26;
+    color: #f2f7f3;
+    border: 1px solid #274c3d;
+    border-radius: 22px;
+    box-shadow: 0 20px 42px -24px #112e26a6;
+}
+
+.hotel-reports .revenue-feature .revenue-feature-heading {
+    background: transparent;
+    border-bottom: 1px solid #d2e5d62b;
+}
+
+.hotel-reports .revenue-feature-heading h2 {
+    color: #f2f7f3;
+}
+
+.revenue-feature-link {
+    display: inline-flex;
+    color: #ffe6aa;
+    font-weight: 600;
+    text-underline-offset: 4px;
+}
+
+.revenue-feature-link:hover,
+.revenue-feature-link:focus-visible {
+    color: #fff2d4;
+}
+
+.revenue-chart,
+.revenue-chart-data > summary {
+    padding: 18px 24px;
+}
+
+.revenue-chart-topline {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.revenue-chart-total span {
+    display: block;
+    color: #d2e5d6;
+    font-size: .85rem;
+}
+
+.revenue-chart-total strong {
+    color: #ffe6aa;
+    font-size: clamp(1.65rem, 4vw, 3.2rem);
+    line-height: 1.15;
+    letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+.revenue-chart-filter {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    font-weight: 600;
+    color: #d2e5d6;
+}
+
+.revenue-chart-filter .form-select {
+    width: auto;
+    max-width: 100%;
+}
+
+.revenue-chart-frame {
+    display: grid;
+    grid-template-columns: minmax(40px, auto) minmax(0, 1fr);
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.revenue-chart-axis {
+    height: var(--revenue-plot-height);
+    position: relative;
+    margin-top: 12px;
+    min-width: 52px;
+    color: #d2e5d6;
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.revenue-chart-axis span {
+    position: absolute;
+    right: 0;
+    transform: translateY(-50%);
+    white-space: nowrap;
+}
+
+.revenue-chart-scroll {
+    padding: 4px 4px 10px;
+    overflow-x: auto;
+}
+
+.revenue-chart-bars {
+    display: flex;
+    gap: 6px;
+}
+
+.revenue-chart-period {
+    display: flex;
+    flex: 1 0 68px;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 8px 5px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #d2e5d6;
+}
+
+.revenue-chart-period:hover,
+.revenue-chart-period[aria-pressed="true"] {
+    background: #c7ebd322;
+    color: #fff;
+}
+
+.revenue-chart-period:focus-visible {
+    outline: 2px solid #ffe6aa;
+    outline-offset: 1px;
+}
+
+.revenue-chart-plot {
+    display: block;
+    height: var(--revenue-plot-height);
+    position: relative;
+    background-image: linear-gradient(to bottom, #d2e5d62b 1px, transparent 1px);
+    background-size: 100% 25%;
+    border-bottom: 1px solid #d2e5d62b;
+}
+
+.revenue-chart-plot::before {
+    content: '';
+    position: absolute;
+    inset: var(--chart-zero) -8px auto;
+    border-top: 1px solid #b8d8c58f;
+}
+
+.revenue-chart-column {
+    position: absolute;
+    top: var(--column-top);
+    left: 50%;
+    width: min(40px, 70%);
+    height: var(--column-height);
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, #a2dfb5, #498c68);
+    border-radius: 5px;
+}
+
+.revenue-chart-period[data-negative="true"] .revenue-chart-column {
+    background: linear-gradient(180deg, #e29876, #c96f52);
+}
+
+.revenue-chart-period[aria-pressed="true"] .revenue-chart-column {
+    background: linear-gradient(180deg, #ffe3a3, #c49a51);
+}
+
+.revenue-chart-period-label {
+    padding-top: 9px;
+    font-size: .78rem;
+}
+
+.revenue-chart-value {
+    margin: 10px 0 0;
+    color: #f2f7f3;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.revenue-chart-data {
+    border-top: 1px solid #d2e5d62b;
+}
+
+.revenue-chart-data > summary {
+    cursor: pointer;
+    color: #d2e5d6;
+    font-weight: 600;
+}
+
+.revenue-chart-data .report-table {
+    background: #fff;
+}
+
+@media (max-width: 575px) {
+    .revenue-chart,
+    .revenue-chart-data > summary {
+        padding: 14px 16px;
+    }
+
+    .revenue-chart-axis {
+        min-width: 42px;
+    }
+}

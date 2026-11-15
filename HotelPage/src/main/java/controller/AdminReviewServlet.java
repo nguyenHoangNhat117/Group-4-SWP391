@@ -68,15 +68,26 @@ public class AdminReviewServlet extends HttpServlet {
         try {
             ReviewDAO reviewDAO = new ReviewDAO();
 
-            request.setAttribute(
-                    "reviews",
-                    reviewDAO.getAllReviews()
-            );
-
-            request.setAttribute(
-                    "approvedRatingCounts",
-                    reviewDAO.getApprovedRatingCounts()
-            );
+            java.math.BigDecimal rating = null;
+            String rate = request.getParameter("rating");
+            if (rate != null && !rate.isBlank()) {
+                if (!rate.matches("[1-4](\\.5|\\.0)?|5(\\.0)?")) { response.sendError(400); return; }
+                rating = new java.math.BigDecimal(rate);
+            }
+            String roomStatus = request.getParameter("roomStatus");
+            if (!java.util.Arrays.asList("available","maintenance","out_of_service").contains(roomStatus)) roomStatus=null;
+            String reviewStatus = request.getParameter("reviewStatus");
+            if (!java.util.Arrays.asList("pending","approved","rejected").contains(reviewStatus)) reviewStatus=null;
+            java.util.List<model.Review> reviews = reviewDAO.getAllReviews(rating, roomStatus, reviewStatus);
+            request.setAttribute("reviews", reviews);
+            int[] ratingCounts = new int[11];
+            for (model.Review review : reviews) {
+                if ("approved".equals(review.getReviewStatus()) && review.getStar() != null) {
+                    int index = review.getStar().multiply(java.math.BigDecimal.valueOf(2)).intValue();
+                    if (index >= 0 && index < ratingCounts.length) ratingCounts[index]++;
+                }
+            }
+            request.setAttribute("approvedRatingCounts", ratingCounts);
 
         } catch (IllegalStateException ex) {
 

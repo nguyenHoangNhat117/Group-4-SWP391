@@ -34,7 +34,7 @@
                             <ui:text key="screen.a3eb9e3d9b982ad1"/> <strong>${param.roomNumber}</strong>?
                         </p>
 
-                        <input type="hidden" name="room-number" value="${param.roomNumber}"/>
+                        <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}"><input type="hidden" name="room-number" value="${param.roomNumber}"/>
 
                         <div class="d-flex justify-content-center gap-3">
                             <button type="submit" class="btn btn-danger btn-lg px-4 rounded-3"><ui:text key="screen.85a39ab345d672ff"/></button>

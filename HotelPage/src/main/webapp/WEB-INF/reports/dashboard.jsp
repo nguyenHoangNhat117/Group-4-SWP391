@@ -35,16 +35,12 @@
         <c:set var="gross" value="${0}"/>
         <c:set var="refund" value="${0}"/>
         <c:set var="net" value="${0}"/>
-        <c:set var="chartMax" value="${1}"/>
 
         <c:forEach var="r" items="${reportData}">
             <c:set var="gross" value="${gross + r.collectedAmount}"/>
             <c:set var="refund" value="${refund + r.refundedAmount}"/>
             <c:set var="net" value="${net + r.totalRevenue}"/>
 
-            <c:if test="${r.totalRevenue > chartMax}">
-                <c:set var="chartMax" value="${r.totalRevenue}"/>
-            </c:if>
         </c:forEach>
     </c:when>
 
@@ -76,13 +72,7 @@
         <c:set var="gross" value="${collectedTotal}"/>
         <c:set var="refund" value="${refundedTotal}"/>
         <c:set var="net" value="${totalRevenue}"/>
-        <c:set var="chartMax" value="${1}"/>
 
-        <c:forEach var="r" items="${monthlyRevenue}">
-            <c:if test="${r.totalRevenue > chartMax}">
-                <c:set var="chartMax" value="${r.totalRevenue}"/>
-            </c:if>
-        </c:forEach>
     </c:when>
 
     <c:otherwise>
@@ -105,7 +95,9 @@
     <link rel="stylesheet" href="${ctx}/assets/css/luxe-modern.css">
     <link rel="stylesheet" href="${ctx}/assets/css/luxe-shared-shell.css">
     <link rel="stylesheet" href="${ctx}/assets/css/luxe-ui.css">
-    <link rel="stylesheet" href="${ctx}/assets/css/hotel-reports.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/hotel-reports.css?v=manager-3">
+    <link rel="stylesheet" href="${ctx}/assets/css/management.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/hotel-revenue-chart.css?v=feature-1">
 
     <style>
         .uc23-cards {
@@ -196,18 +188,6 @@
             border-bottom: 1px solid #f0e9df;
         }
 
-        .uc23-chart {
-            max-height: 430px;
-            overflow: auto;
-        }
-
-        .uc23-chart meter {
-            width: 100%;
-            min-width: 100px;
-            height: 20px;
-            accent-color: #b29a7b;
-        }
-
         .uc23-rating-row {
             display: grid;
             grid-template-columns: 60px minmax(0, 1fr) 45px;
@@ -242,9 +222,10 @@
             }
         }
     </style>
+    <%@ include file="/WEB-INF/include/date-picker.jsp" %>
 </head>
 
-<body class="hotel-reports-body ${cookie.animation.value == 'disable'
+<body class="hotel-reports-body manager-reports ${cookie.animation.value == 'disable'
                                   ? 'disable-animation' : ''}">
 
 <%@ include file="/WEB-INF/include/header.jsp" %>
@@ -254,16 +235,16 @@
     <c:choose>
         <c:when test="${recordsView}">
 
-            <div class="report-heading">
+            <div class="report-heading management-hero">
                 <div>
-                    <p class="report-eyebrow">
-                        LUXE ESCAPE / ${vi ? 'BÁO CÁO' : 'REPORTS'}
+                    <p class="report-eyebrow eyebrow">
+                        LUXE ESCAPE
                     </p>
 
                     <h1><c:out value="${title}"/></h1>
                 </div>
 
-                <a class="report-button"
+                <a class="btn btn-light"
                    href="<c:out value='${dashboardUrl}'/>">
                     ${vi ? 'Tổng quan' : 'Dashboard'}
                 </a>
@@ -421,10 +402,10 @@
 
         <c:otherwise>
 
-            <div class="report-heading">
+            <div class="report-heading management-hero">
                 <div>
-                    <p class="report-eyebrow">
-                        LUXE ESCAPE / ${vi ? 'BÁO CÁO' : 'REPORTS'}
+                    <p class="report-eyebrow eyebrow">
+                        LUXE ESCAPE
                     </p>
 
                     <h1><c:out value="${title}"/></h1>
@@ -436,9 +417,9 @@
                     </p>
                 </div>
 
-                <a class="report-button" href="${ctx}/dashboard">
-                    ${vi ? 'Tổng quan' : 'Dashboard'}
-                </a>
+                <c:if test="${revenueView}">
+                    <a class="btn btn-light" href="${ctx}/dashboard">${vi ? 'Tổng quan' : 'Dashboard'}</a>
+                </c:if>
             </div>
 
             <div class="report-tabs">
@@ -617,6 +598,80 @@
         </c:when>
 
         <c:otherwise>
+
+            <c:if test="${not recordsView}">
+
+                <section class="report-panel revenue-feature" data-revenue-chart>
+                    <c:set var="chartRows" value="${revenueView ? reportData : monthlyRevenue}"/>
+                    <div class="report-panel-heading revenue-feature-heading">
+                        <h2><ui:text key="management.revenueTrend"/></h2>
+                        <c:if test="${not revenueView}">
+                            <a class="revenue-feature-link" href="<c:out value='${revenueUrl}'/>">
+                                ${vi ? 'Chi tiết' : 'Details'}
+                            </a>
+                        </c:if>
+                    </div>
+
+                    <c:choose>
+                        <c:when test="${empty chartRows}">
+                            <p class="report-empty"><ui:text key="management.revenueEmpty"/></p>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="revenue-chart" hidden>
+                                <div class="revenue-chart-topline">
+                                    <div class="revenue-chart-total">
+                                        <span><ui:text key="management.revenueTotal"/></span>
+                                        <strong></strong>
+                                    </div>
+                                    <label class="revenue-chart-filter" for="revenue-metric">
+                                        <ui:text key="management.revenueMetric"/>
+                                        <select id="revenue-metric" class="form-select">
+                                            <option value="net" data-i18n="management.revenueNet">${requestScope.i18n['management.revenueNet']}</option>
+                                            <option value="collected" data-i18n="management.revenueCollected">${requestScope.i18n['management.revenueCollected']}</option>
+                                            <option value="refunded" data-i18n="management.revenueRefunded">${requestScope.i18n['management.revenueRefunded']}</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div class="revenue-chart-frame">
+                                    <div class="revenue-chart-axis" aria-hidden="true"></div>
+                                    <div class="revenue-chart-scroll" tabindex="0" role="region"
+                                         aria-label="${requestScope.i18n['management.revenueTrend']}" data-i18n-aria-label="management.revenueTrend">
+                                        <div class="revenue-chart-bars"></div>
+                                    </div>
+                                </div>
+                                <p class="revenue-chart-value" aria-live="polite"></p>
+                            </div>
+                            <details class="revenue-chart-data" open>
+                                <summary><ui:text key="management.revenueTable"/></summary>
+                                <div class="report-table-scroll">
+                                    <table class="report-table">
+                                        <thead>
+                                            <tr>
+                                                <th><ui:text key="management.revenuePeriod"/></th>
+                                                <th class="numeric"><ui:text key="management.revenueCollected"/></th>
+                                                <th class="numeric"><ui:text key="management.revenueRefunded"/></th>
+                                                <th class="numeric"><ui:text key="management.revenueNet"/></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <c:forEach var="r" items="${chartRows}">
+                                                <tr data-revenue-period="<c:out value='${r.timeUnit}'/>"
+                                                    data-collected="${r.collectedAmount}" data-refunded="${r.refundedAmount}" data-net="${r.totalRevenue}">
+                                                    <th scope="row"><c:out value="${r.timeUnit}"/></th>
+                                                    <td class="numeric"><ui:money amount="${r.collectedAmount}"/></td>
+                                                    <td class="numeric"><ui:money amount="${r.refundedAmount}"/></td>
+                                                    <td class="numeric"><ui:money amount="${r.totalRevenue}"/></td>
+                                                </tr>
+                                            </c:forEach>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </details>
+                        </c:otherwise>
+                    </c:choose>
+                </section>
+
+            </c:if>
 
             <c:if test="${not recordsView or reportView == 'payments'}">
                 <section class="uc23-cards uc23-money">
@@ -828,73 +883,6 @@
 
                             <c:otherwise>N/A</c:otherwise>
                         </c:choose>
-                    </div>
-                </section>
-
-            </c:if>
-
-            <c:if test="${not recordsView}">
-
-                <section class="report-panel">
-                    <div class="report-panel-heading">
-                        <h2>
-                            ${vi
-                              ? 'Còn lại sau hoàn theo ngày thanh toán gốc'
-                              : 'Net after refunds by original payment date'}
-                        </h2>
-
-                        <c:if test="${not revenueView}">
-                            <a class="report-button"
-                               href="<c:out value='${revenueUrl}'/>">
-                                ${vi ? 'Chi tiết' : 'Details'}
-                            </a>
-                        </c:if>
-                    </div>
-
-                    <div class="report-table-scroll uc23-chart">
-                        <table class="report-table">
-                            <thead>
-                            <tr>
-                                <th>${vi ? 'Kỳ' : 'Period'}</th>
-                                <th class="numeric">VND</th>
-                                <th>${vi ? 'So sánh' : 'Comparison'}</th>
-                            </tr>
-                            </thead>
-
-                            <tbody>
-                            <c:forEach var="r"
-                                       items="${revenueView
-                                                ? reportData
-                                                : monthlyRevenue}">
-                                <tr>
-                                    <td><c:out value="${r.timeUnit}"/></td>
-
-                                    <td class="numeric">
-                                        <fmt:formatNumber
-                                            value="${r.totalRevenue}"
-                                            pattern="#,##0.##"/> ₫
-                                    </td>
-
-                                    <td>
-                                        <meter min="0"
-                                               max="${chartMax}"
-                                               value="${r.totalRevenue}"
-                                               aria-label="Net after refunds ${r.timeUnit}">
-                                            <c:out value="${r.totalRevenue}"/>
-                                        </meter>
-                                    </td>
-                                </tr>
-                            </c:forEach>
-                            </tbody>
-                        </table>
-
-                        <c:if test="${revenueView and empty reportData}">
-                            <div class="report-empty">
-                                ${vi
-                                  ? 'Không có giao dịch đã thanh toán.'
-                                  : 'No successful payments.'}
-                            </div>
-                        </c:if>
                     </div>
                 </section>
 
@@ -1335,6 +1323,7 @@
 <%@ include file="/WEB-INF/include/footer.jsp" %>
 
 <script src="${ctx}/assets/js/bootstrap.bundle.min.js"></script>
+<script src="${ctx}/assets/js/hotel-revenue-chart.js?v=feature-1" defer></script>
 
 </body>
 </html>

@@ -29,16 +29,17 @@
     <link href="${pageContext.request.contextPath}/assets/css/luxe-admin-suite.css" rel="stylesheet">
     <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
 </head>
 
-<body class="luxe-admin-suite luxe-admin-customers">
+<body class="management-page luxe-admin-suite luxe-admin-customers">
 
 <div class="body-wrapper">
 
     <%@include file="/WEB-INF/include/header.jsp" %>
 
 
-    <main>
+    <main><div class="container py-5">
         <div class="luxe-admin-banner" aria-label="${requestScope.i18n['screen.0e2eadf8f0d866a1']}" data-i18n-aria-label="screen.0e2eadf8f0d866a1">
           <span class="luxe-admin-banner-eyebrow">LUXE ESCAPE <span aria-hidden="true">/</span> <ui:text key="screen.7c431e4de4562299"/></span>
           <span class="luxe-admin-banner-title"><ui:text key="screen.0e2eadf8f0d866a1"/></span>
@@ -46,14 +47,10 @@
         </div>
 
 
-        <div class="container py-5">
 
 
-            <h2 class="fw-bold text-center mb-4">
 
-                <ui:text key="screen.a44778c56e36d86e"/>
 
-            </h2>
 
 
             <!-- ========================================= -->
@@ -647,6 +644,7 @@
 </script>
 
 
+<script src="${pageContext.request.contextPath}/assets/js/management.js"></script>
 </body>
 
 </html>

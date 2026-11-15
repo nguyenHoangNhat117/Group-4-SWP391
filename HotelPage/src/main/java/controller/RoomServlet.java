@@ -97,6 +97,7 @@ public class RoomServlet extends HttpServlet {
             return;
         }
 
+        util.AuthSupport.token(session);
         RoomDAO roomDAO = new RoomDAO();
         switch (view) {
             case "create":
@@ -224,6 +225,12 @@ public class RoomServlet extends HttpServlet {
 
     private void showAdminList(HttpServletRequest request, HttpServletResponse response,
             HttpSession session, RoomDAO roomDAO) throws ServletException, IOException {
+        util.AuthSupport.token(session);
+        String status = request.getParameter("status");
+        if (!isValidStatus(status)) status = null;
+        String sort = "asc".equals(request.getParameter("sort")) ? "asc" : "desc".equals(request.getParameter("sort")) ? "desc" : "";
+        request.setAttribute("adminStatus", status);
+        request.setAttribute("priceSort", sort);
         String roomNumberInput = request.getParameter("room-number");
         Integer roomNumber = positiveInt(roomNumberInput == null ? null : roomNumberInput.strip());
         Integer roomTypeId = positiveInt(request.getParameter("room-type-id"));
@@ -236,10 +243,10 @@ public class RoomServlet extends HttpServlet {
         List<Room> rooms = Collections.emptyList();
         try {
             if (!invalidRoomNumber) {
-                totalPages = roomDAO.getTotalPages(roomTypeId, roomNumber);
+                totalPages = roomDAO.getTotalPages(roomTypeId, roomNumber, status);
                 if (totalPages > 0) {
                     page = requestedPage == null ? 1 : Math.min(requestedPage, totalPages);
-                    rooms = roomDAO.getPage(page, roomTypeId, roomNumber);
+                    rooms = roomDAO.getPage(page, roomTypeId, roomNumber, status, sort);
                 }
             }
         } catch (SQLException ex) {
@@ -340,7 +347,8 @@ public class RoomServlet extends HttpServlet {
                 return;
             }
             case "delete": {
-                // Original delete.jsp submits room-number, not roomNumber.
+                if (!util.AuthSupport.checkCsrf(request, response)) return;
+                // The list dialog and legacy delete form both submit room-number.
                 Integer roomNumber = positiveInt(request.getParameter("room-number"));
                 if (roomNumber == null) {
                     response.sendError(HttpServletResponse.SC_BAD_REQUEST);
@@ -348,13 +356,11 @@ public class RoomServlet extends HttpServlet {
                 }
                 int changed = roomDAO.delete(roomNumber);
                 if (changed == RoomDAO.CHANGE_BLOCKED_BY_BOOKING) {
-                    redirect(request, response, "/room?view=delete&roomNumber="
-                            + roomNumber + "&error=active-booking");
+                    redirect(request, response, "/room?error=active-booking");
                     return;
                 }
                 if (changed <= 0) {
-                    response.sendError(HttpServletResponse.SC_CONFLICT,
-                            "Room removal failed; check booking history or database constraints.");
+                    redirect(request, response, "/room?error=delete-failed");
                     return;
                 }
                 redirect(request, response, "/room?page-index=1");

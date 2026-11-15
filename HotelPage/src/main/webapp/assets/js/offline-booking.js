@@ -3,7 +3,16 @@
     if (!form)
         return;
     const fields = form.elements;
-    const room = fields.roomNumber;
+    const roomPicker = document.getElementById('obRoomPicker');
+    const roomSearch = document.getElementById('obRoomSearch');
+    const roomChoices = Array.from(form.querySelectorAll('input[name="roomNumber"]'));
+    const previous = document.getElementById('obRoomsPrevious');
+    const nextPage = document.getElementById('obRoomsNext');
+    const promotion = fields.promotionCode;
+    const promotionOptions = Array.from(promotion.options).filter(option => option.value);
+    const pageSize = 10;
+    let roomPage = Math.max(0, Math.floor(roomChoices.findIndex(input => input.checked) / pageSize));
+    const selectedRoom = () => roomChoices.find(input => input.checked);
     const create = form.querySelector('button[value="create"]');
     const preview = form.querySelector('button[value="preview"]');
     const reviewed = form.dataset.reviewed === 'true';
@@ -47,24 +56,73 @@
     const searchedStay = form.dataset.searchKey || stayKey();
     const reviewedSignature = form.dataset.quoteSignature || signature();
     let quoteExpired = reviewed && !(Number(form.dataset.quoteAge) > 0);
+    const nights = () => (Date.parse(fields.checkOut.value + 'T00:00:00Z')
+        - Date.parse(fields.checkIn.value + 'T00:00:00Z')) / 86400000;
+
+    function renderRoomList() {
+        if (!roomPicker) return;
+        const query = roomSearch.value.trim().toLocaleLowerCase().replace(/^#/, '');
+        const matches = roomChoices.filter(input =>
+            input.value.includes(query) || input.dataset.label.toLocaleLowerCase().includes(query));
+        const offset = roomPage * pageSize;
+        const visible = new Set(matches.slice(offset, offset + pageSize));
+        roomChoices.forEach(input => {
+            input.closest('.ob-room-choice').hidden = !visible.has(input);
+        });
+        previous.disabled = roomPage === 0;
+        nextPage.disabled = offset + pageSize >= matches.length;
+        hide('obNoMatchingRooms', matches.length !== 0);
+        show('obRoomRange', matches.length ? `${offset + 1}–${Math.min(offset + pageSize, matches.length)} / ${matches.length}` : '');
+    }
+
+    roomSearch?.addEventListener('input', () => {
+        roomPage = 0;
+        renderRoomList();
+    });
+    roomSearch?.addEventListener('keydown', event => {
+        if (event.key === 'Enter') event.preventDefault();
+    });
+    previous?.addEventListener('click', () => {
+        roomPage--;
+        renderRoomList();
+    });
+    nextPage?.addEventListener('click', () => {
+        roomPage++;
+        renderRoomList();
+    });
+
+    function updatePromotions(room) {
+        const gross = room && nights() > 0 ? Number(room.dataset.price) * nights() : null;
+        promotionOptions.forEach(option => {
+            const eligible = gross !== null && Number(option.dataset.minimum) <= gross;
+            if (!eligible && option.selected) promotion.value = '';
+            option.hidden = !eligible;
+            option.disabled = !eligible;
+        });
+        promotion.disabled = uncertain || !promotionOptions.some(option => !option.disabled);
+    }
+
     function renderSummary() {
-        const option = room.selectedOptions[0];
-        const nights = (Date.parse(fields.checkOut.value + 'T00:00:00Z') - Date.parse(fields.checkIn.value + 'T00:00:00Z')) / 86400000;
+        const room = selectedRoom();
+        const stayNights = nights();
         const date = value => value ? value.split('-').reverse().join('/') : '—';
-        show('obRoom', room.value ? translated('Room {number}', 'Phòng {number}', {number: room.value}) : translated('Select a room', 'Chọn phòng'));
-        show('obType', room.value ? option?.dataset.label || '' : translated('Booking information', 'Thông tin đặt phòng'));
+        show('obRoom', room ? translated('Room {number}', 'Phòng {number}', {number: room.value}) : translated('Select a room', 'Chọn phòng'));
+        show('obType', room ? room.dataset.label : translated('Booking information', 'Thông tin đặt phòng'));
         show('obDates', date(fields.checkIn.value) + ' → ' + date(fields.checkOut.value));
-        show('obNights', nights > 0 ? translated(nights === 1 ? '{count} night' : '{count} nights', '{count} đêm', {count: nights}) : '—');
+        show('obNights', stayNights > 0 ? translated(stayNights === 1 ? '{count} night' : '{count} nights', '{count} đêm', {count: stayNights}) : '—');
         show('obGuests', fields.guests.value ? translated(Number(fields.guests.value) === 1 ? '{count} guest' : '{count} guests', '{count} khách', {count: fields.guests.value}) : '—');
-        const price = Number(option?.dataset.price);
+        const price = Number(room?.dataset.price);
         const money = new Intl.NumberFormat(isVi() ? 'vi-VN' : 'en-US', {style: 'currency', currency: 'VND'});
-        show('obAmount', room.value && nights > 0 && Number.isFinite(price) ? money.format(price * nights) : '—');
+        show('obAmount', room && stayNights > 0 && Number.isFinite(price) ? money.format(price * stayNights) : '—');
     }
     function update() {
         const stale = stayKey() !== searchedStay;
-        if (stale)
-            room.value = '';
-        room.disabled = stale || uncertain;
+        roomChoices.forEach(input => {
+            if (stale) input.checked = false;
+            input.disabled = stale || uncertain;
+        });
+        const room = selectedRoom();
+        updatePromotions(room);
         hide('obSearchChanged', !stale);
         renderSummary();
         if (fields.checkIn.value) {
@@ -75,10 +133,10 @@
             }
         }
         if (preview)
-            preview.disabled = stale || !room.value || uncertain;
+            preview.disabled = !room || uncertain;
         const quoteChanged = !reviewed || quoteExpired || signature() !== reviewedSignature;
         if (create)
-            create.disabled = quoteChanged || stale || !room.value || uncertain;
+            create.disabled = quoteChanged || !room || uncertain;
         hide('obQuoteChanged', !quoteChanged);
         const quote = document.getElementById('obReviewedQuote');
         if (quote)
@@ -135,5 +193,6 @@
         update();
     });
     document.addEventListener('hotel:languagechange', renderSummary);
+    renderRoomList();
     update();
 })();

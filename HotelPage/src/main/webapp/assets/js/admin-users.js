@@ -12,10 +12,7 @@
                 form.reportValidity();
                 return;
             }
-            if (form.dataset.confirm && !window.confirm(window.UC24Translate ? window.UC24Translate(form.dataset.confirm) : form.dataset.confirm)) {
-                event.preventDefault();
-                return;
-            }
+
             form.dataset.submitting = 'true';
             form.querySelectorAll('button[type="submit"]').forEach(button => {
                 button.disabled = true;

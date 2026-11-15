@@ -60,10 +60,10 @@
 
 
                     <!-- Upload avatar trigger -->
-                    <label for="avatarFile" class="upload-label">
+                    <c:if test="${sessionScope.loggedUser.role == 'customer'}"><label for="avatarFile" class="upload-label">
                         <i class="fas fa-camera upload-icon"></i>
                         <span><ui:text key="screen.8c58ac4a340f9aad"/></span>
-                    </label>
+                    </label></c:if>
                     <input type="file" id="avatarFile" name="img" accept=".png, .jpg, .jpeg" class="d-none">
                     <div id="avatarError" class="small text-danger mt-2 d-none" role="alert">
                     </div>
@@ -129,6 +129,7 @@
                 %>
 
                 <form id="form-1" method="post" action="<%= request.getContextPath()%>/profile">
+<input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
                     <!-- Personal Details Section -->
                     <div class="form-section">
                         <h5><ui:text key="screen.3a886778636502fa"/></h5>

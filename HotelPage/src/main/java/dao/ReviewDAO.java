@@ -430,6 +430,10 @@ public class ReviewDAO extends DBContext {
      * Database failures are propagated to the calling servlet.
      */
     public List<Review> getAllReviews() {
+        return getAllReviews(null, null, null);
+    }
+
+    public List<Review> getAllReviews(java.math.BigDecimal rating, String roomStatus, String reviewStatus) {
 
         List<Review> reviews = new ArrayList<>();
 
@@ -465,6 +469,8 @@ public class ReviewDAO extends DBContext {
                 + "JOIN Booking b ON b.BookingID = r.BookingID "
                 + "JOIN Customer c ON c.CustomerID = b.CustomerID "
                 + "LEFT JOIN [User] u ON u.UserID = c.UserID "
+                + "WHERE (? IS NULL OR r.Star=?) AND (? IS NULL OR r.ReviewStatus=?) "
+                + "AND (? IS NULL OR EXISTS (SELECT 1 FROM BookingDetail bd JOIN Room rm ON rm.RoomNumber=bd.RoomNumber WHERE bd.BookingID=b.BookingID AND rm.Status=?)) "
                 + "ORDER BY "
                 + "CASE r.ReviewStatus "
                 + "    WHEN 'pending' THEN 1 "
@@ -476,13 +482,18 @@ public class ReviewDAO extends DBContext {
                 + "r.ReviewID DESC";
 
         try (Connection connection = getConnection(); PreparedStatement statement
-                = connection.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
+                = connection.prepareStatement(sql)) {
+            statement.setBigDecimal(1,rating); statement.setBigDecimal(2,rating);
+            statement.setString(3,reviewStatus); statement.setString(4,reviewStatus);
+            statement.setString(5,roomStatus); statement.setString(6,roomStatus);
+            try (ResultSet rs=statement.executeQuery()) {
 
             while (rs.next()) {
                 reviews.add(mapReview(connection, rs));
             }
 
             return reviews;
+            }
 
         } catch (SQLException ex) {
             throw new IllegalStateException(

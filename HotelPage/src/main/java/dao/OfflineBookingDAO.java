@@ -484,6 +484,33 @@ public class OfflineBookingDAO extends DBContext {
         }
     }
 
+    private static final String ELIGIBLE_PROMOTION =
+            "IsActive=1 AND Quantity>0 AND SaleOff BETWEEN 0 AND 100 "
+            + "AND (StartDate IS NULL OR StartDate<=?) "
+            + "AND (EndDate IS NULL OR EndDate>=?) "
+            + "AND (StartDate IS NULL OR EndDate IS NULL OR StartDate<=EndDate) "
+            + "AND (MinimumAmount IS NULL OR MinimumAmount>=0) "
+            + "AND (MaximumDiscount IS NULL OR MaximumDiscount>=0)";
+
+    public List<Map<String, Object>> availablePromotions() throws SQLException {
+        String sql = "SELECT Code, SaleOff, COALESCE(MinimumAmount, 0) AS MinimumAmount "
+                + "FROM Discount WHERE " + ELIGIBLE_PROMOTION + " ORDER BY Code";
+        List<Map<String, Object>> promotions = new ArrayList<>();
+        LocalDate today = ReportPeriod.today();
+        try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setObject(1, today);
+            ps.setObject(2, today);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    promotions.add(Map.of("code", rs.getString("Code"),
+                            "percent", rs.getBigDecimal("SaleOff"),
+                            "minimum", rs.getBigDecimal("MinimumAmount")));
+                }
+            }
+        }
+        return promotions;
+    }
+
     static BigDecimal discounted(
             Connection c,
             String code,
@@ -497,16 +524,8 @@ public class OfflineBookingDAO extends DBContext {
         String sql
                 = "SELECT SaleOff,MaximumDiscount "
                 + "FROM Discount WITH(HOLDLOCK) "
-                + "WHERE Code=? AND IsActive=1 AND Quantity>0 "
-                + "AND SaleOff BETWEEN 0 AND 100 "
-                + "AND (StartDate IS NULL OR StartDate<=?) "
-                + "AND (EndDate IS NULL OR EndDate>=?) "
-                + "AND (StartDate IS NULL OR EndDate IS NULL "
-                + "OR StartDate<=EndDate) "
-                + "AND (MinimumAmount IS NULL OR "
-                + "(MinimumAmount>=0 AND MinimumAmount<=?)) "
-                + "AND (MaximumDiscount IS NULL "
-                + "OR MaximumDiscount>=0)";
+                + "WHERE Code=? AND " + ELIGIBLE_PROMOTION
+                + " AND (MinimumAmount IS NULL OR MinimumAmount<=?)";
 
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setNString(1, code);

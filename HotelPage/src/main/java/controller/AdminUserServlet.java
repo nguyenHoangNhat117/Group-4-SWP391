@@ -83,8 +83,13 @@ public class AdminUserServlet extends HttpServlet {
             s.sendError(400, "Invalid search filters");
             return;
         }
+        java.time.LocalDate date = null;
+        try {
+            if (!text(r, "date").isEmpty()) date = java.time.LocalDate.parse(text(r, "date"));
+        } catch (java.time.DateTimeException ex) { s.sendError(400, "Invalid date"); return; }
+        r.setAttribute("dateFilter", date);
         AdminUserDAO dao = new AdminUserDAO();
-        r.setAttribute("pageData", dao.search(q, role, status, number(r.getParameter("page"), 1)));
+        r.setAttribute("pageData", dao.search(q, role, status, number(r.getParameter("page"), 1), date));
         r.setAttribute("q", q);
         r.setAttribute("roleFilter", role);
         r.setAttribute("statusFilter", status);
@@ -161,7 +166,7 @@ public class AdminUserServlet extends HttpServlet {
         r.getSession().setAttribute("uc18Flash", message);
         r.getSession().setAttribute("uc18FlashKind", "warning".equals(r.getAttribute("uc18Outcome")) ? "warning" : "success");
         StringBuilder url = new StringBuilder(r.getContextPath() + "/admin/users?");
-        for (String key : Arrays.asList("q", "role", "status", "page")) {
+        for (String key : Arrays.asList("q", "role", "status", "page", "date")) {
             url.append(key).append('=').append(URLEncoder.encode(text(r, key), StandardCharsets.UTF_8)).append('&');
         }
         s.setStatus(303);

@@ -304,8 +304,8 @@ html.hotel-reports-page {
     margin-top: 22px;
 }
 
-.hotel-reports .report-pagination a,
-.hotel-reports .report-pagination span {
+.hotel-reports .report-pagination > a,
+.hotel-reports .report-pagination > span {
     padding: 9px 13px;
     border: 1px solid #e8e0d5;
     border-radius: 7px;
@@ -315,13 +315,13 @@ html.hotel-reports-page {
     font-size: 12px;
 }
 
-.hotel-reports .report-pagination [aria-current="page"] {
+.hotel-reports .report-pagination > [aria-current="page"] {
     background: #8a7152;
     border-color: #8a7152;
     color: #fff;
 }
 
-.hotel-reports .report-pagination .disabled {
+.hotel-reports .report-pagination > .disabled {
     opacity: .4;
 }
 
@@ -792,8 +792,8 @@ html.hotel-reports-page {
     margin-top: 25px;
 }
 
-.hotel-reports .report-pagination a,
-.hotel-reports .report-pagination span {
+.hotel-reports .report-pagination > a,
+.hotel-reports .report-pagination > span {
     padding: 11px 16px;
     border-color: #cdb493;
     color: #674525;
@@ -801,18 +801,18 @@ html.hotel-reports-page {
     font-weight: 600;
 }
 
-.hotel-reports .report-pagination a:hover {
+.hotel-reports .report-pagination > a:hover {
     background: #eee0cc;
     border-color: #a17a4e;
 }
 
-.hotel-reports .report-pagination [aria-current="page"] {
+.hotel-reports .report-pagination > [aria-current="page"] {
     background: #4b3422;
     border-color: #4b3422;
     color: #fff;
 }
 
-.hotel-reports .report-pagination .disabled {
+.hotel-reports .report-pagination > .disabled {
     background: #f4f0ea;
     color: #8b7c6c;
     border-color: #e2d8cb;
@@ -1307,3 +1307,66 @@ html.hotel-reports-page {
     color: #4a392b;
 }
 
+.manager-reports {
+    background: #f5f7f5;
+}
+
+.manager-reports .report-heading.management-hero {
+    align-items: center;
+}
+
+.manager-reports .report-heading.management-hero .eyebrow {
+    color: #c5d8ca;
+}
+
+.manager-reports .report-tabs {
+    gap: 8px;
+    padding: 6px;
+    border: 1px solid #e3e9e4;
+    border-radius: 14px;
+    background: #fff;
+}
+
+.manager-reports .report-tabs a {
+    border-radius: 9px;
+}
+
+.manager-reports .report-tabs a[aria-current="page"],
+.manager-reports .report-pagination > [aria-current="page"] {
+    background: #245940;
+    border-color: #245940;
+    color: #fff;
+}
+
+.manager-reports .report-date-filter,
+.manager-reports .uc23-period,
+.manager-reports .report-panel,
+.manager-reports .uc23-cards > div {
+    border-color: #e3e9e4;
+    background: #fff;
+    box-shadow: 0 10px 24px #18392f0d;
+}
+
+.manager-reports .uc23-money > div:last-child {
+    background: #edf3ef;
+    border-color: #d9e5de;
+}
+
+.manager-reports .uc23-cards strong {
+    color: #18392f;
+}
+
+.manager-reports .report-panel-heading,
+.manager-reports .report-table thead th {
+    background: #edf3ef;
+    color: #345749;
+}
+
+.manager-reports .report-table tbody tr:hover {
+    background: #f2f7f3;
+}
+
+.manager-reports .report-pagination > :where(a, span) {
+    min-width: 44px;
+    text-align: center;
+}

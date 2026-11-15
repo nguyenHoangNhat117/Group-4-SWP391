@@ -12,9 +12,11 @@ import java.time.temporal.ChronoUnit;
  * @author Nguyen Hoang Nhat
  */
 public final class ReportPeriod {
+    public static final ZoneId HOTEL_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+
     private ReportPeriod() { }
     public static LocalDate today() {
-        return LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        return LocalDate.now(HOTEL_ZONE);
     }
     public static void validate(LocalDate from, LocalDate to) {
         if (from == null || to == null)

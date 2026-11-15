@@ -1561,6 +1561,11 @@ public class BookingDAO extends DBContext {
             String source,
             int page,
             int pageSize) {
+        return searchBookings(keyword, status, fromDate, toDate, roomNumber, source, page, pageSize, null);
+    }
+
+    public List<Booking> searchBookings(String keyword, String status, LocalDate fromDate, LocalDate toDate, Integer roomNumber, String source, int page, int pageSize, String sort) {
+
 
         List<Booking> bookings
                 = new ArrayList<>();
@@ -1648,6 +1653,7 @@ public class BookingDAO extends DBContext {
 
         sql.append(
                 "ORDER BY "
+                + ("asc".equals(sort) ? "b.TotalPrice ASC, " : "desc".equals(sort) ? "b.TotalPrice DESC, " : "")
                 + "b.BookingDate DESC, "
                 + "b.BookingID DESC "
                 + "OFFSET ? ROWS "

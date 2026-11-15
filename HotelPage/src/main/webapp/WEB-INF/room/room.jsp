@@ -149,9 +149,10 @@
         </style>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/search-calendar.css">
         <script src="${pageContext.request.contextPath}/assets/js/search-calendar.js" defer></script>
-    </head>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
+</head>
 
-    <body class="bg-light">
+    <body class="management-page bg-light">
         <div class="body-wrapper">
             <%@include file="../include/header.jsp" %>
 
@@ -163,9 +164,9 @@
                     <main class="container py-5">
 
                         <!-- Header Area -->
-                        <div class="d-flex justify-content-between align-items-end mb-4">
+                        <div class="management-hero">
                             <div>
-                                <p class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.85rem; letter-spacing: 1px;"><ui:text key="screen.4b42c6690ebeb867"/></p>
+                                <div class="eyebrow">LUXE ESCAPE</div>
                                 <h2 class="fw-bold text-dark mb-0"><ui:text key="screen.47ec390c932e0f88"/></h2>
                                 <p class="text-secondary mt-2 mb-0"><ui:text key="screen.e669adda2b5a7a71"/></p>
                             </div>
@@ -190,7 +191,7 @@
                             </div>
                         </c:if>
 
-                        <form class="row g-3 align-items-end mb-4" method="get"
+                        <form class="row g-3 align-items-end mb-4 management-filters" method="get"
                               action="${pageContext.request.contextPath}/room">
                             <div class="col-sm-5 col-lg-4">
                                 <label for="admin-room-type" class="form-label"><ui:text key="screen.82dea9a01c0033ec"/></label>
@@ -210,7 +211,7 @@
                                        aria-invalid="${invalidRoomNumber}"
                                        value="<c:out value='${param["room-number"]}'/>">
                             </div>
-                            <div class="col-sm-auto d-flex gap-2">
+                            <input type="hidden" name="sort" value="${priceSort}"><div class="col-sm-4 col-lg-3"><label for="admin-status" class="form-label"><ui:text key="screen.920e413c7d411b61"/></label><select id="admin-status" name="status" class="form-select"><option value="" data-i18n="management.all">${requestScope.i18n['management.all']}</option><option value="available" ${adminStatus == 'available' ? 'selected' : ''} data-i18n="screen.e674447337e83c13">${requestScope.i18n['screen.e674447337e83c13']}</option><option value="maintenance" ${adminStatus == 'maintenance' ? 'selected' : ''} data-i18n="screen.17ccfa5b681e3e7b">${requestScope.i18n['screen.17ccfa5b681e3e7b']}</option><option value="out_of_service" ${adminStatus == 'out_of_service' ? 'selected' : ''} data-i18n="screen.3cd4b662003a9db7">${requestScope.i18n['screen.3cd4b662003a9db7']}</option></select></div><div class="col-sm-auto d-flex gap-2">
                                 <button class="btn btn-primary" type="submit"><ui:text key="room.admin.applyFilters"/></button>
                                 <a class="btn btn-outline-secondary" href="${pageContext.request.contextPath}/room">
                                     <ui:text key="room.admin.clearFilters"/>
@@ -221,7 +222,8 @@
                             <p class="alert alert-danger" role="alert"><ui:text key="room.admin.invalidNumber"/></p>
                         </c:if>
 
-                        <!-- Table Card -->
+                        <c:if test="${param.error == 'active-booking' || param.error == 'delete-failed'}"><div class="alert alert-danger" role="alert"><ui:text key="${param.error == 'active-booking' ? 'room.delete.activeBooking' : 'management.deleteFailed'}"/></div></c:if>
+<!-- Table Card -->
                         <div class="admin-card p-0 mb-4">
                             <div class="table-responsive">
                                 <table class="table table-modern mb-0">
@@ -229,7 +231,7 @@
                                         <tr>
                                             <th scope="col"><ui:text key="screen.911ea89c43d9dbb8"/></th>
                                             <th scope="col"><ui:text key="screen.578ec0c553b6c947"/></th>
-                                            <th scope="col"><ui:text key="screen.0702805f3bf73124"/></th>
+                                            <th scope="col"><button type="button" class="management-sort" data-sort><ui:text key="screen.0702805f3bf73124"/></button></th>
                                             <th scope="col" class="text-center"><ui:text key="screen.2e2a3cd1a00809d3"/></th>
                                             <th scope="col" class="text-center"><ui:text key="screen.ae65d096550ff4eb"/></th>
                                             <th scope="col"><ui:text key="screen.920e413c7d411b61"/></th>
@@ -265,18 +267,16 @@
                                                 </td>
                                                 <td class="text-end pe-4">
                                                     <div class="d-flex justify-content-end gap-2">
-                                                        <a href="${pageContext.request.contextPath}/details?roomNumber=${room.roomNumber}" 
+                                                        <a href="${pageContext.request.contextPath}/details?roomNumber=${room.roomNumber}"
                                                            class="btn btn-icon btn-light text-primary" data-bs-toggle="tooltip" title="${requestScope.i18n['screen.90789c12d0731b44']}" data-i18n-title="screen.90789c12d0731b44">
                                                             <i class="bi bi-eye"></i>
                                                         </a>
-                                                        <a href="${pageContext.request.contextPath}/room?view=update&roomNumber=${room.roomNumber}" 
+                                                        <a href="${pageContext.request.contextPath}/room?view=update&roomNumber=${room.roomNumber}"
                                                            class="btn btn-icon btn-light text-warning" data-bs-toggle="tooltip" title="${requestScope.i18n['screen.1e15cc0c5d15cccb']}" data-i18n-title="screen.1e15cc0c5d15cccb">
                                                             <i class="bi bi-pencil-square"></i>
                                                         </a>
-                                                        <a href="${pageContext.request.contextPath}/room?view=delete&roomNumber=${room.roomNumber}" 
-                                                           class="btn btn-icon btn-light text-danger" data-bs-toggle="tooltip" title="${requestScope.i18n['screen.34e71958470b5088']}" data-i18n-title="screen.34e71958470b5088">
-                                                            <i class="bi bi-trash"></i>
-                                                        </a>
+                                                        <form method="post" action="${pageContext.request.contextPath}/room?action=delete" data-room-number="${room.roomNumber}" data-confirm="${requestScope.i18n['management.deleteRoom']} #${room.roomNumber}?">
+<input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}"><input type="hidden" name="room-number" value="${room.roomNumber}"><button type="submit" class="btn btn-icon btn-light text-danger" aria-label="${requestScope.i18n['screen.34e71958470b5088']}"><i class="bi bi-trash"></i></button></form>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -302,18 +302,18 @@
 
                         <!-- Pagination Admin -->
                         <c:if test="${totalPages > 1}">
-                            <nav aria-label="${requestScope.i18n['screen.d75e66b013af28b8']}" data-i18n-aria-label="screen.d75e66b013af28b8">
-                                <ul class="pagination justify-content-end">
+                            <nav class="room-admin-pagination d-flex justify-content-center w-100 p-0" aria-label="${requestScope.i18n['screen.d75e66b013af28b8']}" data-i18n-aria-label="screen.d75e66b013af28b8">
+                                <ul class="pagination justify-content-center flex-wrap w-100 mb-0">
                                     <li class="page-item ${pageIndex <= 1 ? 'disabled' : ''}">
-                                        <a class="page-link" href="${pageContext.request.contextPath}/room?page-index=${pageIndex - 1}&amp;room-type-id=${adminRoomTypeId}&amp;room-number=${adminRoomNumber}"><ui:text key="screen.a57b08a480b822a0"/></a>
+                                        <a class="page-link" href="${pageContext.request.contextPath}/room?page-index=${pageIndex - 1}&amp;room-type-id=${adminRoomTypeId}&amp;room-number=${adminRoomNumber}&amp;status=${adminStatus}&amp;sort=${priceSort}"><ui:text key="screen.a57b08a480b822a0"/></a>
                                     </li>
                                     <c:forEach var="i" begin="1" end="${totalPages}">
                                         <li class="page-item ${pageIndex == i ? 'active' : ''}">
-                                            <a class="page-link" href="${pageContext.request.contextPath}/room?page-index=${i}&amp;room-type-id=${adminRoomTypeId}&amp;room-number=${adminRoomNumber}">${i}</a>
+                                            <a class="page-link" ${pageIndex == i ? 'aria-current="page"' : ''} href="${pageContext.request.contextPath}/room?page-index=${i}&amp;room-type-id=${adminRoomTypeId}&amp;room-number=${adminRoomNumber}&amp;status=${adminStatus}&amp;sort=${priceSort}">${i}</a>
                                         </li>
                                     </c:forEach>
                                     <li class="page-item ${pageIndex >= totalPages ? 'disabled' : ''}">
-                                        <a class="page-link" href="${pageContext.request.contextPath}/room?page-index=${pageIndex + 1}&amp;room-type-id=${adminRoomTypeId}&amp;room-number=${adminRoomNumber}"><ui:text key="screen.1ff57a29d7c9d11b"/></a>
+                                        <a class="page-link" href="${pageContext.request.contextPath}/room?page-index=${pageIndex + 1}&amp;room-type-id=${adminRoomTypeId}&amp;room-number=${adminRoomNumber}&amp;status=${adminStatus}&amp;sort=${priceSort}"><ui:text key="screen.1ff57a29d7c9d11b"/></a>
                                     </li>
                                 </ul>
                             </nav>
@@ -412,13 +412,14 @@
                         <div class="row g-4 mb-5">
                             <c:forEach var="result" items="${availableTypes}">
                                 <c:set var="type" value="${result.type}"/>
+                                <c:url var="pictureUrl" value="/assets/img/${empty type.picture ? 'avatar.jpg' : type.picture}"/>
                                 <c:url var="detailsUrl" value="/details">
                                     <c:param name="roomTypeId" value="${type.id}"/>
                                 </c:url>
                                 <div class="col-md-6 col-lg-4">
                                     <article class="card room-card h-100">
                                         <a href="${detailsUrl}" class="room-img-wrap d-block text-decoration-none">
-                                            <img src="${pageContext.request.contextPath}/assets/img/<c:out value='${type.picture}'/>" alt="<c:out value='${type.name}'/>">
+                                            <img src="<c:out value='${pictureUrl}'/>" alt="<c:out value='${type.name}'/>">
                                             <span class="room-badge">${result.available} <ui:text key="room.available"/></span>
                                         </a>
                                         <div class="card-body d-flex flex-column p-4">
@@ -487,5 +488,6 @@
             });
 
         </script>
-    </body>
+    <script src="${pageContext.request.contextPath}/assets/js/management.js"></script>
+</body>
 </html>

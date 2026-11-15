@@ -185,9 +185,15 @@ public class RoomDAO extends DBContext {
      * =========================================================
      */
     public int getTotalPages(Integer roomTypeId, Integer roomNumber) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM Room r" + ADMIN_ROOM_FILTER;
+        return getTotalPages(roomTypeId, roomNumber, null);
+    }
+
+    public int getTotalPages(Integer roomTypeId, Integer roomNumber, String status) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Room r" + ADMIN_ROOM_FILTER + " AND (? IS NULL OR r.Status=?) ";
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             bindAdminRoomFilter(ps, roomTypeId, roomNumber);
+            ps.setString(5, status);
+            ps.setString(6, status);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 return (int) Math.ceil(rs.getInt(1) / (double) PAGE_SIZE);
@@ -257,6 +263,10 @@ public class RoomDAO extends DBContext {
      * =========================================================
      */
     public List<Room> getPage(int index, Integer roomTypeId, Integer roomNumber) throws SQLException {
+        return getPage(index, roomTypeId, roomNumber, null, null);
+    }
+
+    public List<Room> getPage(int index, Integer roomTypeId, Integer roomNumber, String status, String sort) throws SQLException {
 
         List<Room> rooms
                 = new ArrayList<>();
@@ -279,8 +289,8 @@ public class RoomDAO extends DBContext {
                 + "FROM Room r "
                 + "JOIN RoomType rt "
                 + "ON rt.RoomTypeID = r.RoomTypeID "
-                + ADMIN_ROOM_FILTER
-                + "ORDER BY r.RoomNumber "
+                + ADMIN_ROOM_FILTER + " AND (? IS NULL OR r.Status=?) "
+                + "ORDER BY " + ("asc".equals(sort) ? "rt.PricePerNight ASC, " : "desc".equals(sort) ? "rt.PricePerNight DESC, " : "") + "r.RoomNumber "
                 + "OFFSET ? ROWS "
                 + "FETCH NEXT ? ROWS ONLY";
 
@@ -288,8 +298,10 @@ public class RoomDAO extends DBContext {
                 = conn.prepareStatement(sql)) {
 
             bindAdminRoomFilter(ps, roomTypeId, roomNumber);
-            ps.setInt(5, (index - 1) * PAGE_SIZE);
-            ps.setInt(6, PAGE_SIZE);
+            ps.setString(5, status);
+            ps.setString(6, status);
+            ps.setInt(7, (index - 1) * PAGE_SIZE);
+            ps.setInt(8, PAGE_SIZE);
 
             try (ResultSet rs
                     = ps.executeQuery()) {

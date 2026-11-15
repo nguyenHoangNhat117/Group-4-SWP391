@@ -21,10 +21,12 @@
     <link rel="stylesheet" href="${ctx}/assets/css/luxe-modern.css">
     <link rel="stylesheet" href="${ctx}/assets/css/luxe-shared-shell.css">
     <link rel="stylesheet" href="${ctx}/assets/css/luxe-ui.css">
-    <link rel="stylesheet" href="${ctx}/assets/css/hotel-reports.css">
+    <link rel="stylesheet" href="${ctx}/assets/css/hotel-reports.css?v=manager-2">
+    <link rel="stylesheet" href="${ctx}/assets/css/management.css">
+    <%@ include file="/WEB-INF/include/date-picker.jsp" %>
 </head>
 
-<body class="hotel-reports-body ${cookie.animation.value == 'disable' ? 'disable-animation' : ''}">
+<body class="hotel-reports-body manager-reports ${cookie.animation.value == 'disable' ? 'disable-animation' : ''}">
 
 <%@ include file="/WEB-INF/include/header.jsp" %>
 

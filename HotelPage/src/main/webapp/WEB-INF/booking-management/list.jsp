@@ -23,19 +23,20 @@
               href="${pageContext.request.contextPath}/assets/css/luxe-shared-shell.css">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css">
+        <%@ include file="/WEB-INF/include/date-picker.jsp" %>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
         <c:url var="bookingListStyles" value="/assets/css/booking-management.css">
             <c:param name="v" value="staff-calendar-2"/>
         </c:url>
         <link rel="stylesheet" href="${bookingListStyles}">
-    </head>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
+</head>
 
-    <body class="luxe-admin-suite luxe-admin-bookings">
+    <body class="management-page luxe-admin-suite luxe-admin-bookings">
         <div class="body-wrapper">
             <%@include file="/WEB-INF/include/header.jsp"%>
 
-            <main>
+            <main><div class="container booking-list-shell py-4 py-lg-5">
                 <div class="luxe-admin-banner" aria-label="${requestScope.i18n['screen.687cac03f6dbbfad']}" data-i18n-aria-label="screen.687cac03f6dbbfad">
                     <span class="luxe-admin-banner-eyebrow">
                         LUXE ESCAPE
@@ -50,10 +51,10 @@
                     <span class="luxe-admin-banner-art" aria-hidden="true"></span>
                 </div>
 
-                <div class="container booking-list-shell py-4 py-lg-5">
+
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                         <div>
-                            <h1 class="h2 fw-bold mb-2"><ui:text key="screen.60bbdeefb7640eb4"/></h1>
+
                             <span class="booking-result-count">
                                 <ui:text key="screen.18e872be2359d76e"/> ${totalBookings} <ui:text key="screen.1576870e601b1e12"/>
                             </span>
@@ -153,7 +154,7 @@
                                 </div>
 
                                 <div class="booking-filter-field">
-                                    <label for="source" class="form-label fw-semibold"><ui:text key="booking.list.source"/></label>
+                                    <input type="hidden" name="sort" value="${param.sort == 'asc' ? 'asc' : param.sort == 'desc' ? 'desc' : ''}"><label for="source" class="form-label fw-semibold"><ui:text key="booking.list.source"/></label>
                                     <select id="source" name="source" class="form-select">
                                         <option value="" data-i18n="screen.a52ace420f2175d0">${requestScope.i18n['screen.a52ace420f2175d0']}</option>
                                         <option value="online" ${selectedSource eq 'online' ? 'selected' : ''}>Online</option>
@@ -219,7 +220,7 @@
                                             <th><ui:text key="screen.bf3763383aaf4306"/></th>
                                             <th><ui:text key="screen.011519b48fd7ae0a"/></th>
                                             <th><ui:text key="screen.fe43f0a1373a3d68"/></th>
-                                            <th><ui:text key="screen.3cb3f0517ef0da8b"/></th>
+                                            <th><button type="button" class="management-sort" data-sort><ui:text key="screen.3cb3f0517ef0da8b"/></button></th>
                                             <th><ui:text key="screen.920e413c7d411b61"/></th>
                                             <th class="text-center"><ui:text key="screen.64cff1319d2fd2cb"/></th>
                                         </tr>
@@ -365,7 +366,7 @@
                             <c:param name="page" value="${currentPage - 1}"/>
                             <c:param name="keyword" value="${keyword}"/>
                             <c:param name="room-number" value="${roomInput}"/>
-                            <c:param name="source" value="${selectedSource}"/>
+                            <c:param name="source" value="${selectedSource}"/><c:param name="sort" value="${param.sort == 'asc' ? 'asc' : param.sort == 'desc' ? 'desc' : ''}"/>
                             <c:param name="status" value="${selectedStatus}"/>
                             <c:param name="from-date" value="${fromDate}"/>
                             <c:param name="to-date" value="${toDate}"/>
@@ -376,7 +377,7 @@
                             <c:param name="page" value="${currentPage + 1}"/>
                             <c:param name="keyword" value="${keyword}"/>
                             <c:param name="room-number" value="${roomInput}"/>
-                            <c:param name="source" value="${selectedSource}"/>
+                            <c:param name="source" value="${selectedSource}"/><c:param name="sort" value="${param.sort == 'asc' ? 'asc' : param.sort == 'desc' ? 'desc' : ''}"/>
                             <c:param name="status" value="${selectedStatus}"/>
                             <c:param name="from-date" value="${fromDate}"/>
                             <c:param name="to-date" value="${toDate}"/>
@@ -397,7 +398,7 @@
                                         <c:param name="page" value="${i}"/>
                                         <c:param name="keyword" value="${keyword}"/>
                                         <c:param name="room-number" value="${roomInput}"/>
-                                        <c:param name="source" value="${selectedSource}"/>
+                                        <c:param name="source" value="${selectedSource}"/><c:param name="sort" value="${param.sort == 'asc' ? 'asc' : param.sort == 'desc' ? 'desc' : ''}"/>
                                         <c:param name="status" value="${selectedStatus}"/>
                                         <c:param name="from-date" value="${fromDate}"/>
                                         <c:param name="to-date" value="${toDate}"/>
@@ -427,7 +428,6 @@
         </div>
 
         <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js" defer></script>
-        <script src="<c:url value='/assets/js/booking-management-calendar.js?v=staff-calendar-2'/>" defer></script>
-    </body>
+    <script src="${pageContext.request.contextPath}/assets/js/management.js"></script>
+</body>
 </html>

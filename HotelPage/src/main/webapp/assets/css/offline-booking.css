@@ -10,6 +10,113 @@ html.uc09-page {
     scroll-snap-type: none;
 }
 
+.ob-room-results {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.ob-room-choice {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #e3e9e4;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.ob-room-choice[hidden] {
+    display: none;
+}
+
+.ob-room-choice:has(input:checked) {
+    background: #edf3ef;
+    border-color: #53846a;
+}
+
+.ob-room-choice:has(input:focus-visible) {
+    outline: 2px solid #53846a;
+    outline-offset: 2px;
+}
+
+.ob-room-choice input {
+    accent-color: #245940;
+}
+
+.ob-room-choice:has(input:disabled) {
+    opacity: .55;
+    cursor: default;
+}
+
+.ob-room-name {
+    overflow-wrap: anywhere;
+}
+
+.ob-room-capacity,
+.ob-room-price,
+.ob-room-pagination {
+    font-size: .85rem;
+}
+
+.ob-room-price {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.ob-room-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+@media (max-width: 580px) {
+    .ob-room-choice {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 5px 10px;
+    }
+
+    .ob-room-price {
+        grid-column: 2 / -1;
+    }
+}
+
+.offline-booking-page.management-page {
+    background: #f5f7f5;
+}
+
+.offline-booking-page.management-page .ob-panel {
+    border-color: #e3e9e4;
+    border-radius: 18px;
+    box-shadow: 0 10px 24px #18392f0d;
+}
+
+.offline-booking-page.management-page .ob-summary .ob-summary-head {
+    background: #edf3ef;
+    color: #18392f;
+    border-color: #e3e9e4;
+}
+
+.offline-booking-page.management-page .ob-primary {
+    background: #245940;
+    color: #fff;
+}
+
+.offline-booking-page.management-page .ob-primary:hover:not(:disabled) {
+    background: #18392f;
+}
+
+.offline-booking-page.management-page select.ob-input {
+    background-image: var(--control-chevron);
+    background-position: right .8rem center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+}
+
 .offline-booking-page {
     background: var(--lx-ivory, #fbf8f3);
 }

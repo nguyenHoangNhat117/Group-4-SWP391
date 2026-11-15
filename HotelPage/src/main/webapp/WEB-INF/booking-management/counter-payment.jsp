@@ -20,12 +20,20 @@
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/luxe-shared-shell.css">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/offline-booking.css?v=stable-1">
-        <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/offline-counter.css?v=stable-1">
-    </head><body class="offline-booking-page"><div class="body-wrapper">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/offline-counter.css?v=management-1">
+    </head><body class="offline-booking-page management-page counter-payment-page"><div class="body-wrapper">
             <%@include file="/WEB-INF/include/header.jsp"%>
-            <main class="ob-page"><div class="ob-heading"><div><p class="oc-eyebrow">LUXE ESCAPE · FRONT DESK</p>
-                        <h1><ui:text key="${titleKey}"/> #${summary.bookingId}</h1></div>
-                    <a class="ob-back" href="${pageContext.request.contextPath}/booking-management"><ui:text key="offline.back"/></a></div>
+            <main class="ob-page">
+                <div class="management-hero">
+                    <div>
+                        <div class="eyebrow">LUXE ESCAPE</div>
+                        <h1><ui:text key="${titleKey}"/> #${summary.bookingId}</h1>
+                    </div>
+                    <a class="btn btn-light" href="${pageContext.request.contextPath}/booking-management">
+                        <ui:text key="offline.back"/>
+                    </a>
+                </div>
                 <c:if test="${not empty operationMessage}"><div class="oc-message" role="status"><ui:message text="${operationMessage}"/></div></c:if>
                 <c:if test="${param.created eq '1'}"><div class="oc-message"><ui:text key="offline.created"/></div></c:if>
                 <div class="oc-overview ob-panel"><div><small><ui:text key="offline.customer"/></small><strong><a class="ob-back" href="${pageContext.request.contextPath}/customers?view=detail&amp;id=${operations.customerId}"><c:out value="${summary.customerName}"/></a></strong></div>
@@ -36,7 +44,7 @@
                     </c:if></div>
                 <div class="oc-money"><div><small><ui:text key="offline.total"/></small><strong><fmt:formatNumber value="${summary.payable}"/> VND</strong></div>
                     <div><small><ui:text key="offline.paid"/></small><strong><fmt:formatNumber value="${summary.paid}"/> VND</strong></div>
-                    <div><small><ui:text key="offline.remaining"/></small><strong><fmt:formatNumber value="${summary.remaining}"/> VND</strong></div></div>
+                    <div class="oc-balance"><small><ui:text key="offline.remaining"/></small><strong><fmt:formatNumber value="${summary.remaining}"/> VND</strong></div></div>
                 <c:if test="${not empty summary.promotionError}"><div class="oc-message"><c:out value="${summary.promotionError}"/></div></c:if>
                 <section class="ob-panel oc-room-list"><h2><ui:text key="offline.rooms"/></h2>
                     <p class="ob-note">Chính sách trả sớm: tiền phòng theo lịch đã chốt được giữ nguyên, không tự giảm hoặc hoàn tiền cho những đêm chưa ở. Nhân viên cần thông báo cho khách trước khi thu tiền.</p>
