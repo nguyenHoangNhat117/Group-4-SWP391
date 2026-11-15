@@ -190,9 +190,9 @@ public class BookingDAO extends DBContext {
                 util.ReportPeriod.today()
         );
 
-        BigDecimal currentPrice = lockAvailableRoom(
-                conn, roomNumber, checkIn, checkOut, guests
-        );
+        BigDecimal currentPrice = actor == null
+                ? lockAvailableRoom(conn, roomNumber, checkIn, checkOut, guests)
+                : lockAvailableOfflineRoom(conn, roomNumber, checkIn, checkOut, guests);
 
         long nights = java.time.temporal.ChronoUnit.DAYS.between(
                 checkIn, checkOut
@@ -374,6 +374,18 @@ public class BookingDAO extends DBContext {
 
     private static BigDecimal lockAvailableRoom(Connection conn, int roomNumber,
             LocalDate from, LocalDate to, int guests, Integer expectedType) throws SQLException {
+        return lockAvailableRoom(conn, roomNumber, from, to, guests, expectedType, true);
+    }
+
+    static BigDecimal lockAvailableOfflineRoom(Connection conn, int roomNumber,
+            LocalDate from, LocalDate to, int guests) throws SQLException {
+        return lockAvailableRoom(conn, roomNumber, from, to, guests, null,
+                !from.isAfter(util.ReportPeriod.today()));
+    }
+
+    private static BigDecimal lockAvailableRoom(Connection conn, int roomNumber,
+            LocalDate from, LocalDate to, int guests, Integer expectedType,
+            boolean requireClean) throws SQLException {
         BigDecimal price;
 
         String roomSql
@@ -382,15 +394,16 @@ public class BookingDAO extends DBContext {
                 + "JOIN RoomType rt WITH(HOLDLOCK) "
                 + "ON rt.RoomTypeID=r.RoomTypeID "
                 + "WHERE r.RoomNumber=? "
-                + "AND r.Status='available' AND r.NeedsCleaning=0 "
+                + "AND r.Status='available' AND (?=0 OR r.NeedsCleaning=0) "
                 + "AND rt.IsActive=1 "
                 + "AND rt.Capacity>=? AND (? IS NULL OR r.RoomTypeID=?)";
 
         try (PreparedStatement ps = conn.prepareStatement(roomSql)) {
             ps.setInt(1, roomNumber);
-            ps.setInt(2, guests);
-            ps.setObject(3, expectedType, java.sql.Types.INTEGER);
+            ps.setInt(2, requireClean ? 1 : 0);
+            ps.setInt(3, guests);
             ps.setObject(4, expectedType, java.sql.Types.INTEGER);
+            ps.setObject(5, expectedType, java.sql.Types.INTEGER);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {

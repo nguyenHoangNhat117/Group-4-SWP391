@@ -583,3 +583,229 @@ html.uc09-page {
 .offline-booking-page .ob-steps > li > span[data-i18n] { min-width:0; overflow-wrap:anywhere; }
 .offline-booking-page .ob-steps > li.is-current { background:#f3e9da; border-color:#c8a879; color:#34281e; }
 @media(max-width:540px) { .offline-booking-page .ob-steps { grid-template-columns:1fr; gap:8px; } }
+
+/* UC09: compact summary, giữ phong cách Luxe Escape. */
+.offline-booking-page .ob-summary .ob-summary-head {
+    padding: 22px;
+}
+
+.offline-booking-page .ob-summary .ob-summary-head h2 {
+    font-size: 27px;
+}
+
+.offline-booking-page .ob-summary .ob-summary-body {
+    padding: 22px;
+}
+
+/* Thông tin lưu trú: ngày ở một hàng, các thông tin khác hai cột. */
+.offline-booking-page .ob-summary-body > dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.offline-booking-page .ob-summary-body > dl > .ob-summary-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #eee6da;
+    border-radius: 10px;
+    background: #fcfaf7;
+}
+
+.offline-booking-page .ob-summary-body > dl > .ob-summary-row:first-child {
+    grid-column: 1 / -1;
+}
+
+.offline-booking-page .ob-summary-body > dl dt {
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.offline-booking-page .ob-summary-body > dl dd {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.5;
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Đã có báo giá thì chỉ nhấn mạnh tổng tiền ở phần báo giá. */
+.offline-booking-page #offlineForm[data-reviewed="true"] .ob-summary .ob-total {
+    display: none;
+}
+
+.offline-booking-page .ob-summary .ob-quote {
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid #e9dfd1;
+}
+
+.offline-booking-page .ob-quote-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.offline-booking-page .ob-quote-title h3 {
+    margin: 0;
+    color: #382b21;
+    font-family: var(--lx-serif, Georgia, serif);
+    font-size: 21px;
+    line-height: 1.3;
+}
+
+.offline-booking-page .ob-quote-badge {
+    padding: 4px 8px;
+    border: 1px solid #e8dcc9;
+    border-radius: 999px;
+    background: #f8f2e8;
+    color: #7c6243;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+/* Khách hàng. */
+.offline-booking-page .ob-quote-customer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid #eee6da;
+    border-radius: 12px;
+    background: #fdfbf8;
+}
+
+.offline-booking-page .ob-customer-mark {
+    display: grid;
+    place-items: center;
+    flex: 0 0 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: #efe4d3;
+    color: #806444;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.offline-booking-page .ob-quote-customer > div {
+    min-width: 0;
+}
+
+.offline-booking-page .ob-customer-label {
+    display: block;
+    margin-bottom: 2px;
+    color: #8c7c6d;
+    font-size: 11px;
+}
+
+.offline-booking-page .ob-quote-customer strong {
+    display: block;
+    color: #433428;
+    font-size: 14px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+/* Chi tiết giá: nhãn bên trái, tiền thẳng hàng bên phải. */
+.offline-booking-page .ob-quote-lines .ob-summary-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 7px 0;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.offline-booking-page .ob-quote-lines dd {
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.offline-booking-page .ob-quote-lines .ob-discount-row dd {
+    color: #56704f;
+}
+
+/* Tổng tiền chính. */
+.offline-booking-page .ob-quote-total {
+    margin-top: 14px;
+    padding: 16px;
+    border: 1px solid #e5d7c3;
+    border-radius: 14px;
+    background: linear-gradient(130deg, #f5ecde, #fcf8f2);
+}
+
+.offline-booking-page .ob-quote-total > span {
+    display: block;
+    margin-bottom: 4px;
+    color: #816b51;
+    font-size: 12px;
+}
+
+.offline-booking-page .ob-quote-total > strong {
+    display: block;
+    color: #34271e;
+    font-family: var(--lx-serif, Georgia, serif);
+    font-size: clamp(27px, 2.5vw, 34px);
+    font-weight: 600;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+}
+
+.offline-booking-page .ob-quote-total small {
+    font-size: .6em;
+    font-weight: 400;
+}
+
+/* Tiền cọc tách khỏi tổng tiền. */
+.offline-booking-page .ob-quote-deposit {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 0 4px;
+    color: #514131;
+    font-size: 13px;
+}
+
+.offline-booking-page .ob-quote-deposit small {
+    display: block;
+    margin-top: 3px;
+    color: #958473;
+    font-size: 11px;
+}
+
+.offline-booking-page .ob-quote-deposit strong {
+    text-align: right;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+}
+
+.offline-booking-page .ob-summary button[value="preview"] {
+    min-height: 44px;
+    margin-top: 16px;
+    background: #fffdfa;
+}
+
+.offline-booking-page .ob-summary button[value="create"] {
+    margin-top: 10px !important;
+}
+
+@media (max-width: 360px) {
+    .offline-booking-page .ob-summary .ob-summary-body {
+        padding: 18px;
+    }
+
+    .offline-booking-page .ob-quote-lines .ob-summary-row {
+        font-size: 11px;
+    }
+}

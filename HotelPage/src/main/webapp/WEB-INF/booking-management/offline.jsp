@@ -13,6 +13,7 @@
 <%@taglib prefix="fn" uri="jakarta.tags.functions"%>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt"%>
 
+<fmt:setLocale value="${requestScope.uiLanguage == 'vi' ? 'vi_VN' : 'en_US'}" scope="page"/>
 <!DOCTYPE html>
 <html lang="${requestScope.uiLanguage}" class="uc09-page">
     <head>
@@ -30,7 +31,7 @@
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/assets/css/offline-booking.css?v=stable-1">
+              href="${pageContext.request.contextPath}/assets/css/offline-booking.css?v=summary-2"
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
         <link rel="stylesheet" href="<c:url value='/assets/css/booking-management.css?v=staff-calendar-2'/>">
@@ -57,14 +58,20 @@
                 </c:if>
 
 
+                <p class="ob-note">Khách tại quầy chưa có tài khoản có thể xác minh email để kích hoạt và giữ lịch sử đặt phòng:
+                    <a href="${pageContext.request.contextPath}/walkin-account" target="_blank" rel="noopener">Liên kết kích hoạt gửi cho khách</a>.
+                    Khách mở liên kết trên thiết bị của mình, chưa đăng nhập. Không tự tạo tài khoản thay khách.
+                </p>
                 <form action="${pageContext.request.contextPath}/offline-booking"
                       method="post"
-                      id="offlineForm">
+                      id="offlineForm" data-reviewed="${not empty quote}" data-uncertain="${uncertain}" data-quote-age="${quoteRemainingMillis}" data-search-key="${fn:escapeXml(searchedStay)}" data-quote-signature="${fn:escapeXml(quoteSignature)}">
 
                     <input type="hidden"
                            name="csrfToken"
                            value="${sessionScope.csrfToken}">
                     <input type="hidden" name="submissionToken" value="${submissionToken}">
+                    <input type="hidden" name="quoteToken" value="${quoteToken}">
+                    <p id="obSearchChanged" class="alert alert-warning" hidden>Ngày hoặc số khách đã đổi. Tìm lại phòng để tiếp tục.</p>
 
                     <div class="ob-grid">
                         <div class="ob-stack">
@@ -405,17 +412,90 @@
                                     </strong>
                                 </div>
 
-                                <button type="submit"
-                                        name="action"
-                                        value="create"
-                                        class="ob-button ob-primary"
-                                        ${empty rooms ? 'disabled' : ''}>
-                                    <ui:text key="screen.58982c7a6d7fdc02"/>
-                                    <span aria-hidden="true">→</span>
-                                </button>
+                                <c:if test="${not empty quote}">
+                                    <div id="obReviewedQuote" class="ob-quote" role="status">
+                                        <div class="ob-quote-title">
+                                            <h3>Chi tiết báo giá</h3>
+                                            <span class="ob-quote-badge">Đã kiểm tra giá</span>
+                                        </div>
 
-                                <p class="ob-note">
-                                    Tiền phòng tạm tính chưa trừ mã giảm. Hệ thống kiểm tra mã khi tạo đơn; số tiền chính thức hiển thị ở hồ sơ trước khi thu tiền.
+                                        <div class="ob-quote-customer">
+                                            <span class="ob-customer-mark" aria-hidden="true">KH</span>
+                                            <div>
+                                                <span class="ob-customer-label">Khách lưu trú</span>
+                                                <strong><c:out value="${quote.customerName}"/></strong>
+                                            </div>
+                                        </div>
+
+                                        <dl class="ob-quote-lines">
+                                            <div class="ob-summary-row">
+                                                <dt>Đơn giá / đêm</dt>
+                                                <dd>
+                                                    <fmt:formatNumber value="${quote.nightly}"
+                                                                      maxFractionDigits="2"/> ₫
+                                                </dd>
+                                            </div>
+
+                                            <div class="ob-summary-row">
+                                                <dt>Tiền phòng (${quote.nights} đêm)</dt>
+                                                <dd>
+                                                    <fmt:formatNumber value="${quote.gross}"
+                                                                      maxFractionDigits="2"/> ₫
+                                                </dd>
+                                            </div>
+
+                                            <c:if test="${quote.gross > quote.payable}">
+                                                <div class="ob-summary-row ob-discount-row">
+                                                    <dt>Giảm dự kiến</dt>
+                                                    <dd>
+                                                        −<fmt:formatNumber value="${quote.gross - quote.payable}"
+                                                                          maxFractionDigits="2"/> ₫
+                                                    </dd>
+                                                </div>
+                                            </c:if>
+                                        </dl>
+
+                                        <div class="ob-quote-total">
+                                            <span>Tổng dự kiến</span>
+                                            <strong>
+                                                <fmt:formatNumber value="${quote.payable}"
+                                                                  maxFractionDigits="2"/>
+                                                <small>₫</small>
+                                            </strong>
+                                        </div>
+
+                                        <div class="ob-quote-deposit">
+                                            <div>
+                                                <span>Cọc dự kiến</span>
+                                                <small>${depositPercent}% tổng tiền</small>
+                                            </div>
+                                            <strong>
+                                                <fmt:formatNumber value="${quotedDeposit}"
+                                                                  maxFractionDigits="2"/> ₫
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    <p id="obQuoteChanged" class="alert alert-warning" hidden>Thông tin đã thay đổi hoặc báo giá hết hạn. Xem và kiểm tra giá lại trước khi tạo.</p>
+                                </c:if>
+                                <c:if test="${not uncertain}">
+                                    <button type="submit" name="action" value="preview"
+                                            class="ob-button ob-secondary" ${empty rooms ? 'disabled' : ''}>
+                                        <c:choose>
+                                            <c:when test="${not empty quote}">Cập nhật báo giá</c:when>
+                                            <c:otherwise>Xem và kiểm tra giá</c:otherwise>
+                                        </c:choose>
+                                    </button>
+                                    <c:if test="${not empty quote}">
+                                        <button type="submit" name="action" value="create"
+                                                class="ob-button ob-primary mt-3" disabled>
+                                            Xác nhận tạo đặt phòng
+                                        </button>
+                                    </c:if>
+                                </c:if>
+                                <p class="ob-note mt-3">
+                                    Xem giá chưa giữ phòng. Báo giá có hiệu lực xác nhận trong 5 phút;
+                                    hệ thống kiểm tra lại khi tạo. Khuyến mãi vẫn được kiểm tra ở bước thu tiền.
+                                    Tạo đơn chưa ghi nhận thanh toán.
                                 </p>
 
                                 <a class="ob-cancel"
@@ -426,7 +506,17 @@
                         </aside>
                     </div>
                 </form>
-
+                <c:if test="${uncertain}">
+                    <section class="ob-panel mt-3" role="status">
+                        <p>Chưa rõ yêu cầu trước đã tạo đơn hay chưa. Kiểm tra lịch sử trước, hoặc kiểm tra lại đúng yêu cầu cũ.</p>
+                        <form method="post" action="${pageContext.request.contextPath}/offline-booking">
+                            <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                            <input type="hidden" name="submissionToken" value="${submissionToken}">
+                            <input type="hidden" name="quoteToken" value="${quoteToken}">
+                            <button class="ob-button ob-primary" type="submit" name="action" value="retry">Kiểm tra lại yêu cầu cũ</button>
+                        </form>
+                    </section>
+                </c:if>
             </main>
 
             <%@include file="/WEB-INF/include/footer.jsp"%>
@@ -435,6 +525,6 @@
         <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js" defer></script>
         <script src="<c:url value='/assets/js/booking-management-calendar.js?v=staff-calendar-2'/>" defer></script>
-        <script src="${pageContext.request.contextPath}/assets/js/offline-booking.js?v=staff-direct-1" defer></script>
+        <script src="${pageContext.request.contextPath}/assets/js/offline-booking.js?v=reviewed-2" defer></script>
     </body>
 </html>
