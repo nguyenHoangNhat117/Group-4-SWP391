@@ -26,7 +26,7 @@ public class RegisterServlet extends HttpServlet {
         HttpSession session = req.getSession();
         AuthSupport.token(session);
 
-        // Chỉ trang GET nhận kết quả mới lấy thông báo thành công.
+        
         if ("1".equals(req.getParameter("success"))) {
             synchronized (session) {
                 Object message = session.getAttribute("registrationSuccess");

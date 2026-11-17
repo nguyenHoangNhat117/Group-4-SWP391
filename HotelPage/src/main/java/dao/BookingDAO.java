@@ -164,10 +164,7 @@ public class BookingDAO extends DBContext {
         }
     }
 
-    /*
- * Online và offline dùng cùng cơ chế khóa phòng.
- * Method này không tự commit: caller quản lý transaction.
-     */
+
     int createBookingInTransaction(
             Connection conn,
             int customerId,

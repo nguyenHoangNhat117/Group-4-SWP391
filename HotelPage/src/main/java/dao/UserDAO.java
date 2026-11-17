@@ -162,7 +162,7 @@ public class UserDAO extends DBContext {
         lastName = AuthSupport.text(lastName);
         phone = AuthSupport.text(phone);
 
-        // Kiểm tra lại trước khi ghi database.
+        
         if (!AuthSupport.validUsername(username)
                 || !AuthSupport.validEmail(email)
                 || !AuthSupport.validPhone(phone)
@@ -188,7 +188,7 @@ public class UserDAO extends DBContext {
             conn.setAutoCommit(false);
 
             try {
-                // Kiểm tra lại trong transaction và giữ khóa đến khi kết thúc.
+                
                 if (registrationIdentifiersTaken(
                         conn, username, email, true)) {
                     conn.rollback();
@@ -223,7 +223,7 @@ public class UserDAO extends DBContext {
                     }
                 }
 
-                // Cả hai bảng nhận cùng thông tin và cùng UserID.
+                
                 String[] contactInserts = {
                     "INSERT INTO AccountContact "
                     + "(UserID, FirstName, LastName, Email, Phone) "
