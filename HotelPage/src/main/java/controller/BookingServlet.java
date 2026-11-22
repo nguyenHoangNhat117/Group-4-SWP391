@@ -2,21 +2,25 @@ package controller;
 
 import dao.BookingDAO;
 import dao.RoomDAO;
+import dao.RoomTypeDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-
 import java.io.IOException;
-import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-
+import java.util.HashMap;
+import java.util.Map;
 import model.Customer;
 import model.Room;
+import model.RoomType;
 import model.User;
+import util.OnlineStayDates;
+import util.ReportPeriod;
 
 @WebServlet(urlPatterns = {"/booking"})
 public class BookingServlet extends HttpServlet {
@@ -24,523 +28,160 @@ public class BookingServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
     @Override
-    protected void doGet(
-            HttpServletRequest request,
-            HttpServletResponse response)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
-        HttpSession session = request.getSession(false);
-
-        /*
-         * UC07 Search Rooms is public. Guest may open /booking to search.
-         * UC09 Create Booking still requires an authenticated Customer.
-         */
-        String roomNumberParam = request.getParameter("roomNumber");
-
-        if (roomNumberParam == null || roomNumberParam.trim().isEmpty()) {
-            request.setAttribute("roomTypes", new dao.RoomTypeDAO().getAllActive());
+        String roomNumber = request.getParameter("roomNumber");
+        String typeId = request.getParameter("roomTypeId");
+        if (roomNumber == null && typeId == null) {
+            request.setAttribute("roomTypes", new RoomTypeDAO().getAllActive());
             request.getRequestDispatcher("/WEB-INF/booking/search.jsp").forward(request, response);
             return;
         }
 
-        if (session == null
-                || !(session.getAttribute("loggedUser") instanceof User)) {
-            HttpSession guestSession = request.getSession(true);
-            if (roomNumberParam != null && roomNumberParam.trim().matches("[0-9]+")) {
-                // CHỈNH SỬA TẠI ĐÂY: Ép buộc lưu đường dẫn là /details thay vì /booking
-                guestSession.setAttribute("pendingBookingUrl", "/details?roomNumber=" + roomNumberParam.trim());
-            }
-            response.sendRedirect(
-                    request.getContextPath() + "/login"
-            );
+        RoomType type = resolveType(typeId, roomNumber);
+        if (type == null) {
+            response.sendRedirect(request.getContextPath() + "/booking?error=room-unavailable");
             return;
         }
 
-        User loggedUser = (User) session.getAttribute("loggedUser");
-
-        if (!"customer".equalsIgnoreCase(loggedUser.getRole())) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+        HttpSession session = request.getSession(true);
+        if (!requireCustomer(request, response, session, type.getId())) {
             return;
         }
 
-        LocalDate checkInDate
-                = (LocalDate) session.getAttribute(
-                        "checkInDate"
-                );
-
-        LocalDate checkOutDate
-                = (LocalDate) session.getAttribute(
-                        "checkOutDate"
-                );
-
-        if (checkInDate == null || checkOutDate == null) {
-
-            request.getRequestDispatcher(
-                    "/WEB-INF/booking/search.jsp"
-            ).forward(request, response);
-
+        LocalDate from = (LocalDate) session.getAttribute("checkInDate");
+        LocalDate to = (LocalDate) session.getAttribute("checkOutDate");
+        if (!OnlineStayDates.isValid(from, to, ReportPeriod.today())) {
+            response.sendRedirect(request.getContextPath() + "/booking?error=invalid-dates");
             return;
         }
-
-        int roomNumber;
 
         try {
-            roomNumber = Integer.parseInt(
-                    roomNumberParam
-            );
-        } catch (NumberFormatException e) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking"
-            );
-            return;
+            new BookingDAO().expirePendingBookings();
+            int available = new RoomDAO().countAvailableRoomsByType(from, to, type.getId());
+            if (available == 0) {
+                response.sendRedirect(request.getContextPath() + "/booking?error=already-booked");
+                return;
+            }
+            request.setAttribute("available", Math.min(1000, available));
+        } catch (SQLException ex) {
+            throw new ServletException("Không thể kiểm tra số phòng còn trống.", ex);
         }
 
-        RoomDAO roomDAO = new RoomDAO();
-
-        Room room
-                = roomDAO.getRoomByNumber(roomNumber);
-
-        /*
-         * Room does not exist.
-         */
-        if (room == null) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking"
-            );
-            return;
-        }
-
-        /*
-         * Room must be operationally bookable.
-         */
-        if (!"available".equalsIgnoreCase(
-                room.getStatus())) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?error=room-unavailable"
-            );
-            return;
-        }
-
-        /*
-         * Recheck conflict before showing confirmation page.
-         */
-        BookingDAO bookingDAO
-                = new BookingDAO();
-
-        if (bookingDAO.isRoomBookedInRange(
-                roomNumber,
-                checkInDate,
-                checkOutDate)) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?error=already-booked"
-            );
-            return;
-        }
-
-        /*
-         * Send selected room and dates to JSP.
-         */
-        request.setAttribute("room", room);
-        request.setAttribute(
-                "checkInDate",
-                checkInDate
-        );
-        request.setAttribute(
-                "checkOutDate",
-                checkOutDate
-        );
-
-        request.getRequestDispatcher(
-                "/WEB-INF/booking/booking.jsp"
-        ).forward(request, response);
+        request.setAttribute("roomType", type);
+        request.setAttribute("nights", ChronoUnit.DAYS.between(from, to));
+        request.getRequestDispatcher("/WEB-INF/booking/booking.jsp").forward(request, response);
     }
 
     @Override
-    protected void doPost(
-            HttpServletRequest request,
-            HttpServletResponse response)
-            throws ServletException, IOException {
-
+    @SuppressWarnings("unchecked")
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         request.setCharacterEncoding("UTF-8");
-
-        HttpSession session
-                = request.getSession(false);
-
-        /*
-         * Require login.
-         */
-        if (session == null
-                || session.getAttribute("loggedUser") == null
-                || session.getAttribute("customer") == null) {
-
-            // Bắt đầu thêm phần lưu pendingBookingUrl
-            HttpSession guestSession = request.getSession(true);
-            // Lưu ý: Parameter trong doPost là "room-number" theo input của form
-            String roomNumberParam = request.getParameter("room-number");
-
-            if (roomNumberParam != null && roomNumberParam.trim().matches("[0-9]+")) {
-                guestSession.setAttribute("pendingBookingUrl", "/details?roomNumber=" + roomNumberParam.trim());
-            }
-            // Kết thúc phần thêm mới
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/login"
-            );
+        RoomType type = resolveType(request.getParameter("roomTypeId"), request.getParameter("room-number"));
+        if (type == null) {
+            response.sendRedirect(request.getContextPath() + "/booking?error=room-unavailable");
             return;
         }
 
-        User loggedUser
-                = (User) session.getAttribute(
-                        "loggedUser"
-                );
-
-        /*
-         * UC09 belongs to Customer.
-         */
-        if (!"customer".equalsIgnoreCase(
-                loggedUser.getRole())) {
-
-            response.sendError(
-                    HttpServletResponse.SC_FORBIDDEN
-            );
+        HttpSession session = request.getSession(true);
+        if (!requireCustomer(request, response, session, type.getId())) {
             return;
         }
 
-        String roomNumberParam
-                = request.getParameter(
-                        "room-number"
-                );
-
-        if (roomNumberParam == null
-                || roomNumberParam.trim().isEmpty()) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?error=missing-room"
-            );
+        String bookingPath = request.getContextPath() + "/booking?roomTypeId=" + type.getId();
+        LocalDate from = (LocalDate) session.getAttribute("checkInDate");
+        LocalDate to = (LocalDate) session.getAttribute("checkOutDate");
+        if (!OnlineStayDates.isValid(from, to, ReportPeriod.today())) {
+            response.sendRedirect(request.getContextPath() + "/booking?error=invalid-dates");
             return;
         }
 
-        int roomNumber;
+        int quantity = number(request.getParameter("quantity"), 1);
+        int guests = number(request.getParameter("guest-count"), 1);
+        if (quantity < 1 || guests < quantity || guests > 1000 || guests > (long) quantity * type.getCapacity()) {
+            response.sendRedirect(bookingPath + "&error=invalid-guests");
+            return;
+        }
 
+        int prepaymentPercent = number(request.getParameter("prepayment-percent"), -1);
+        if (prepaymentPercent != 0 && prepaymentPercent != 10 && prepaymentPercent != 20 && prepaymentPercent != 100) {
+            response.sendRedirect(bookingPath + "&error=invalid-payment-option");
+            return;
+        }
+
+        String specialRequest = request.getParameter("special-request");
+        specialRequest = specialRequest == null || specialRequest.isBlank() ? null : specialRequest.trim();
+        if (specialRequest != null && specialRequest.length() > 500) {
+            response.sendRedirect(bookingPath + "&error=create-failed");
+            return;
+        }
+
+        BookingDAO bookingDAO = new BookingDAO();
+        int bookingId;
         try {
-            roomNumber = Integer.parseInt(
-                    roomNumberParam.trim()
-            );
-        } catch (NumberFormatException e) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?error=invalid-room"
-            );
+            bookingDAO.expirePendingBookings();
+            bookingId = bookingDAO.createBooking(((Customer) session.getAttribute("customer")).getCustomerID(),
+                    type.getId(), from, to, quantity, guests, type.getPricePerNight(), specialRequest);
+        } catch (IllegalArgumentException ex) {
+            response.sendRedirect(bookingPath + "&error=already-booked");
+            return;
+        } catch (SQLException ex) {
+            log("Không thể tạo đơn theo loại phòng.", ex);
+            response.sendRedirect(bookingPath + "&error=create-failed");
             return;
         }
 
-        /*
-         * Dates must come from server-side session,
-         * not hidden fields supplied by client.
-         */
-        LocalDate checkInDate
-                = (LocalDate) session.getAttribute(
-                        "checkInDate"
-                );
-
-        LocalDate checkOutDate
-                = (LocalDate) session.getAttribute(
-                        "checkOutDate"
-                );
-
-        if (checkInDate == null
-                || checkOutDate == null) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?error=missing-dates"
-            );
-            return;
-        }
-
-        /*
-         * Validate date range again.
-         */
-        if (!checkOutDate.isAfter(checkInDate)
-                || checkInDate.isBefore(
-                        LocalDate.now()
-                )) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?error=invalid-dates"
-            );
-            return;
-        }
-
-        RoomDAO roomDAO = new RoomDAO();
-
-        Room room
-                = roomDAO.getRoomByNumber(
-                        roomNumber
-                );
-
-        if (room == null) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?error=room-not-found"
-            );
-            return;
-        }
-
-        /*
-         * A room under maintenance/out_of_service
-         * cannot be booked.
-         */
-        if (!"available".equalsIgnoreCase(
-                room.getStatus())) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?error=room-unavailable"
-            );
-            return;
-        }
-
-        /*
-         * Guest count.
-         *
-         * If the form does not send guest-count yet,
-         * use 1 temporarily.
-         */
-        int guestCount = 1;
-
-        String guestCountParam
-                = request.getParameter(
-                        "guest-count"
-                );
-
-        if (guestCountParam != null
-                && !guestCountParam.trim().isEmpty()) {
-
-            try {
-                guestCount = Integer.parseInt(
-                        guestCountParam.trim()
-                );
-            } catch (NumberFormatException e) {
-
-                response.sendRedirect(
-                        request.getContextPath()
-                        + "/booking?roomNumber="
-                        + roomNumber
-                        + "&error=invalid-guests"
-                );
-                return;
-            }
-        }
-
-        /*
-         * Capacity validation required by RDS/SDS.
-         */
-        if (guestCount <= 0
-                || guestCount
-                > room.getRoomType().getCapacity()) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?roomNumber="
-                    + roomNumber
-                    + "&error=invalid-guests"
-            );
-            return;
-        }
-
-        /*
-         * Special request is optional.
-         */
-        String specialRequest
-                = request.getParameter(
-                        "special-request"
-                );
-
-        if (specialRequest != null) {
-            specialRequest
-                    = specialRequest.trim();
-
-            if (specialRequest.isEmpty()) {
-                specialRequest = null;
-            }
-        }
-
-        /*
-         * Customer chooses the initial payment percentage at booking time.
-         * Never trust arbitrary percentages from the browser.
-         */
-        String prepaymentParam = request.getParameter("prepayment-percent");
-        int prepaymentPercent;
-
-        try {
-            prepaymentPercent = Integer.parseInt(
-                    prepaymentParam == null ? "" : prepaymentParam.trim()
-            );
-        } catch (NumberFormatException e) {
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?roomNumber="
-                    + roomNumber
-                    + "&error=invalid-payment-option"
-            );
-            return;
-        }
-
-        if (prepaymentPercent != 0
-                && prepaymentPercent != 10
-                && prepaymentPercent != 20
-                && prepaymentPercent != 100) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?roomNumber="
-                    + roomNumber
-                    + "&error=invalid-payment-option"
-            );
-            return;
-        }
-
-        /*
-         * Calculate number of nights.
-         */
-        long nights
-                = ChronoUnit.DAYS.between(
-                        checkInDate,
-                        checkOutDate
-                );
-
-        if (nights <= 0) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?error=invalid-dates"
-            );
-            return;
-        }
-
-        BigDecimal pricePerNight
-                = room.getRoomType()
-                        .getPricePerNight();
-
-        BigDecimal totalPrice
-                = pricePerNight.multiply(
-                        BigDecimal.valueOf(nights)
-                );
-
-        Customer customer
-                = (Customer) session.getAttribute(
-                        "customer"
-                );
-
-        BookingDAO bookingDAO
-                = new BookingDAO();
-
-        /*
-         * First recheck.
-         *
-         * createBooking() also performs another
-         * availability check in its transaction.
-         */
-        if (bookingDAO.isRoomBookedInRange(
-                roomNumber,
-                checkInDate,
-                checkOutDate)) {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?roomNumber="
-                    + roomNumber
-                    + "&error=already-booked"
-            );
-            return;
-        }
-
-        int bookingId
-                = bookingDAO.createBooking(
-                        customer.getCustomerID(),
-                        roomNumber,
-                        checkInDate,
-                        checkOutDate,
-                        pricePerNight,
-                        guestCount,
-                        totalPrice,
-                        specialRequest
-                );
-
-        if (bookingId <= 0) {
-
-            /*
-             * Database trigger may also reject:
-             * - overlapping reservation
-             * - guest count > capacity
-             */
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/booking?roomNumber="
-                    + roomNumber
-                    + "&error=create-failed"
-            );
-            return;
-        }
-
-        /*
-         * Search result is now stale.
-         * Remove it so the next search is refreshed.
-         */
-        session.removeAttribute(
-                "availableRooms"
-        );
-
-        // Keep the customer's selection for the first payment of this booking.
-        // The payment page and servlet do not trust a modifiable URL percentage.
-        java.util.Map<Integer, Integer> initialChoices
-                = (java.util.Map<Integer, Integer>) session.getAttribute("bookingInitialChoices");
+        session.removeAttribute("availableRooms");
+        Map<Integer, Integer> initialChoices = (Map<Integer, Integer>) session.getAttribute("bookingInitialChoices");
         if (initialChoices == null) {
-            initialChoices = new java.util.HashMap<>();
+            initialChoices = new HashMap<>();
             session.setAttribute("bookingInitialChoices", initialChoices);
         }
         initialChoices.put(bookingId, prepaymentPercent);
 
-        // No-deposit bookings are confirmed without collecting payment.
-        // This prevents the existing 30-minute pending-booking expiration from
-        // cancelling a reservation that the customer intentionally booked at 0%.
-        // The outstanding balance is still available in Booking History.
         if (prepaymentPercent == 0) {
-            if (!bookingDAO.confirmBooking(bookingId)) {
-                response.sendRedirect(request.getContextPath()
-                        + "/history?view=bookings&message=booking-created");
-                return;
-            }
-            response.sendRedirect(request.getContextPath()
-                    + "/history?view=bookings&message=booking-created");
+            bookingDAO.confirmBooking(bookingId);
+            response.sendRedirect(request.getContextPath() + "/history?view=bookings&message=booking-created");
             return;
         }
-
-        response.sendRedirect(
-                request.getContextPath()
-                + "/payment?bookingId="
-                + bookingId
-                + "&percent="
-                + prepaymentPercent
-        );
+        response.sendRedirect(request.getContextPath() + "/payment?bookingId=" + bookingId + "&percent=" + prepaymentPercent);
     }
 
-    @Override
-    public String getServletInfo() {
-        return "Handles customer room booking.";
+    private static RoomType resolveType(String typeId, String roomNumber) {
+        if (typeId != null) {
+            int id = number(typeId, 0);
+            return id > 0 ? new RoomTypeDAO().getActiveRoomTypeById(id) : null;
+        }
+        int number = number(roomNumber, 0);
+        Room room = number > 0 ? new RoomDAO().getRoomByNumber(number) : null;
+        return room == null ? null : new RoomTypeDAO().getActiveRoomTypeById(room.getRoomType().getId());
+    }
+
+    private static boolean requireCustomer(HttpServletRequest request, HttpServletResponse response,
+            HttpSession session, int typeId) throws IOException {
+        Object loggedUser = session.getAttribute("loggedUser");
+        if (!(loggedUser instanceof User)) {
+            session.setAttribute("pendingBookingUrl", "/booking?roomTypeId=" + typeId);
+            response.sendRedirect(request.getContextPath() + "/login");
+            return false;
+        }
+        if (!"customer".equalsIgnoreCase(((User) loggedUser).getRole())
+                || !(session.getAttribute("customer") instanceof Customer)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return false;
+        }
+        return true;
+    }
+
+    private static int number(String value, int fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException ex) {
+            return -1;
+        }
     }
 }

@@ -13,7 +13,8 @@
             if (target && Number.isFinite(amount)) {
                 target.textContent = new Intl.NumberFormat(vi() ? 'vi-VN' : 'en-US').format(amount) + ' VND';
             }
-            if (!paymentForm) return;
+            if (!paymentForm)
+                return;
             const qr = method.value === "bank_transfer";
             action.value = qr ? "qr" : "pay";
             button.removeAttribute("data-i18n");
@@ -22,14 +23,45 @@
                     : (vi() ? "Xác nhận đã nhận tiền mặt" : "Confirm cash received");
             form.querySelector('[data-counter-method-note]').textContent = qr
                     ? (vi() ? "Chỉ tạo QR; chưa ghi nhận đã thu. Hệ thống tự xác nhận sau khi đối soát payOS."
-                        : "Creates a QR only. Payment is recorded after payOS verification.")
+                            : "Creates a QR only. Payment is recorded after payOS verification.")
                     : (vi() ? "Chỉ xác nhận sau khi nhận đủ số tiền cần thu hiển thị bên dưới."
-                        : "Confirm only after receiving the amount due shown below.");
+                            : "Confirm only after receiving the amount due shown below.");
         };
         select.addEventListener('change', update);
-        if (paymentForm) method.addEventListener('change', update);
+        if (paymentForm)
+            method.addEventListener('change', update);
         document.addEventListener('hotel:languagechange', update);
         update();
+    });
+
+    document.querySelectorAll('[data-check-in]').forEach(form => {
+        const selected = Array.from(form.querySelectorAll('[data-assigned-room]'));
+        const selectors = selected.filter(input => input.tagName === 'SELECT');
+        const auto = form.querySelector('[data-auto-assign]');
+        const message = form.querySelector('[data-assignment-message]');
+
+        const checkSelection = () => {
+            const used = new Set();
+            selected.filter(input => input.type === 'hidden').forEach(input => used.add(input.value));
+            selectors.forEach(input => {
+                const duplicate = input.value && used.has(input.value);
+                input.setCustomValidity(duplicate ? 'Phòng này đã được chọn cho dòng khác.' : '');
+                if (input.value)
+                    used.add(input.value);
+            });
+            message.textContent = '';
+        };
+        selectors.forEach(input => input.addEventListener('change', checkSelection));
+        if (auto) {
+            auto.hidden = false;
+            auto.addEventListener('click', () => {
+                selectors.forEach(input => {
+                    input.value = input.dataset.autoRoom;
+                });
+                checkSelection();
+                message.textContent = 'Đã chọn phòng đề xuất. Kiểm tra lại trước khi xác nhận.';
+            });
+        }
     });
 
     document.querySelectorAll('.oc-form').forEach(form => {
@@ -42,9 +74,9 @@
                 const early = form.elements.earlyCheckoutAccepted;
                 const message = early
                         ? (vi() ? 'Xác nhận trả phòng sớm? Tổng tiền giữ nguyên; phòng sẽ chuyển sang chờ dọn.'
-                            : 'Confirm early checkout? The agreed total is unchanged; the room will require cleaning.')
+                                : 'Confirm early checkout? The agreed total is unchanged; the room will require cleaning.')
                         : (vi() ? 'Xác nhận khách đã trả phòng và đã quyết toán đủ các khoản?'
-                            : 'Confirm checkout and settlement of all charges?');
+                                : 'Confirm checkout and settlement of all charges?');
                 if (!(early && form.hasAttribute('data-online-checkout')) && !window.confirm(message)) {
                     event.preventDefault();
                     return;

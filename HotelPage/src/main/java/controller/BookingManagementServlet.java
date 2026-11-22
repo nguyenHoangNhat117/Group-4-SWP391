@@ -1,7 +1,6 @@
 package controller;
 
 import dao.BookingDAO;
-import dao.OnlineCheckInDAO;
 import dao.PaymentDAO;
 
 import jakarta.servlet.ServletException;
@@ -17,7 +16,6 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
-import java.util.Locale;
 
 import model.Booking;
 import model.User;
@@ -56,11 +54,9 @@ public class BookingManagementServlet
          * Staff + Admin only.
          */
         if (user == null) {
-
             response.sendError(
                     HttpServletResponse.SC_FORBIDDEN
             );
-
             return;
         }
 
@@ -75,22 +71,18 @@ public class BookingManagementServlet
         if (view == null
                 || view.trim().isEmpty()
                 || "list".equals(view)) {
-
             showBookingList(
                     request,
                     response
             );
-
             return;
         }
 
         if ("detail".equals(view)) {
-
             showBookingDetail(
                     request,
                     response
             );
-
             return;
         }
 
@@ -98,7 +90,6 @@ public class BookingManagementServlet
                 HttpServletResponse.SC_NOT_FOUND
         );
     }
-
 
     /*
      * =========================================================
@@ -119,7 +110,6 @@ public class BookingManagementServlet
                 );
 
         if (keyword != null) {
-
             keyword
                     = keyword.trim();
         }
@@ -130,7 +120,6 @@ public class BookingManagementServlet
                 );
 
         if (status != null) {
-
             status
                     = status.trim();
         }
@@ -140,7 +129,6 @@ public class BookingManagementServlet
          */
         if (!isValidBookingStatus(
                 status)) {
-
             status = null;
         }
 
@@ -202,7 +190,6 @@ public class BookingManagementServlet
 
         if (totalPages > 0
                 && currentPage > totalPages) {
-
             currentPage
                     = totalPages;
         }
@@ -277,7 +264,6 @@ public class BookingManagementServlet
         return value != null && !value.isBlank();
     }
 
-
     /*
      * =========================================================
      * BOOKING DETAIL
@@ -296,11 +282,9 @@ public class BookingManagementServlet
                 );
 
         if (bookingId == null) {
-
             response.sendError(
                     HttpServletResponse.SC_BAD_REQUEST
             );
-
             return;
         }
 
@@ -313,11 +297,9 @@ public class BookingManagementServlet
                 );
 
         if (booking == null) {
-
             response.sendError(
                     HttpServletResponse.SC_NOT_FOUND
             );
-
             return;
         }
 
@@ -381,11 +363,6 @@ public class BookingManagementServlet
             }
         }
         request.setAttribute("nextStatuses", nextStatuses);
-        try {
-            request.setAttribute("roomTypeNames", bookingDAO.getCurrentRoomTypeNames(bookingId));
-        } catch (SQLException ex) {
-            throw new ServletException("Unable to load assigned room types", ex);
-        }
 
         request.getRequestDispatcher(
                 "/WEB-INF/booking-management/detail.jsp"
@@ -394,7 +371,6 @@ public class BookingManagementServlet
                 response
         );
     }
-
 
     /*
      * =========================================================
@@ -419,11 +395,9 @@ public class BookingManagementServlet
                 );
 
         if (user == null) {
-
             response.sendError(
                     HttpServletResponse.SC_FORBIDDEN
             );
-
             return;
         }
 
@@ -436,11 +410,9 @@ public class BookingManagementServlet
 
         if (!"update-status".equals(
                 action)) {
-
             response.sendError(
                     HttpServletResponse.SC_BAD_REQUEST
             );
-
             return;
         }
 
@@ -459,29 +431,17 @@ public class BookingManagementServlet
         if (bookingId == null
                 || !isValidBookingStatus(
                         newStatus)) {
-
             response.sendRedirect(
                     request.getContextPath()
                     + "/booking-management"
                     + "?message=invalid-data"
             );
-
             return;
         }
 
         if ("checked_in".equals(newStatus)) {
-            String message;
-            try {
-                OnlineCheckInDAO.Result result = new OnlineCheckInDAO().checkIn(bookingId);
-                message = result == OnlineCheckInDAO.Result.SUCCESS
-                        ? "status-updated"
-                        : "online-check-in-" + result.name().toLowerCase(Locale.ROOT).replace('_', '-');
-            } catch (SQLException ex) {
-                log("Unable to update online stay " + bookingId, ex);
-                message = "online-check-in-failed";
-            }
-            response.sendRedirect(request.getContextPath() + "/booking-management?view=detail&id="
-                    + bookingId + "&message=" + message);
+            if (OfflineBookingServlet.staff(request, response) == null) return;
+            response.sendRedirect(request.getContextPath() + "/counter-payment?bookingId=" + bookingId);
             return;
         }
 
@@ -494,13 +454,11 @@ public class BookingManagementServlet
                 );
 
         if (booking == null) {
-
             response.sendRedirect(
                     request.getContextPath()
                     + "/booking-management"
                     + "?message=booking-not-found"
             );
-
             return;
         }
 
@@ -523,7 +481,6 @@ public class BookingManagementServlet
 
             if (!paymentDAO.isBookingPaid(
                     bookingId)) {
-
                 response.sendRedirect(
                         request.getContextPath()
                         + "/booking-management"
@@ -532,7 +489,6 @@ public class BookingManagementServlet
                         + bookingId
                         + "&message=payment-required"
                 );
-
                 return;
             }
         }
@@ -552,7 +508,6 @@ public class BookingManagementServlet
                 );
 
         if (!updated) {
-
             response.sendRedirect(
                     request.getContextPath()
                     + "/booking-management"
@@ -561,7 +516,6 @@ public class BookingManagementServlet
                     + bookingId
                     + "&message=invalid-transition"
             );
-
             return;
         }
 
@@ -574,7 +528,6 @@ public class BookingManagementServlet
                 + "&message=status-updated"
         );
     }
-
 
     /*
      * =========================================================
@@ -591,7 +544,6 @@ public class BookingManagementServlet
                 = request.getSession(false);
 
         if (session == null) {
-
             return null;
         }
 
@@ -601,7 +553,6 @@ public class BookingManagementServlet
                 );
 
         if (user == null) {
-
             return null;
         }
 
@@ -609,13 +560,11 @@ public class BookingManagementServlet
                 user.getRole())
                 && !"admin".equalsIgnoreCase(
                         user.getRole())) {
-
             return null;
         }
 
         return user;
     }
-
 
     /*
      * =========================================================
@@ -630,34 +579,28 @@ public class BookingManagementServlet
             String currentStatus) {
 
         if (currentStatus == null) {
-
             return new String[0];
         }
 
         switch (currentStatus) {
 
             case "pending":
-
                 return new String[]{
                     "confirmed",
                     "cancelled"
                 };
 
             case "confirmed":
-
                 return new String[]{
-                    "checked_in",
                     "cancelled"
                 };
 
             case "checked_in":
-
                 return new String[]{
                     "checked_out"
                 };
 
             case "checked_out":
-
                 return new String[]{
                     "completed"
                 };
@@ -665,11 +608,9 @@ public class BookingManagementServlet
             case "completed":
             case "cancelled":
             default:
-
                 return new String[0];
         }
     }
-
 
     /*
      * =========================================================
@@ -681,7 +622,6 @@ public class BookingManagementServlet
 
         if (status == null
                 || status.trim().isEmpty()) {
-
             return false;
         }
 
@@ -693,7 +633,6 @@ public class BookingManagementServlet
                 || "completed".equals(status);
     }
 
-
     /*
      * =========================================================
      * PARSE DATE
@@ -704,22 +643,17 @@ public class BookingManagementServlet
 
         if (raw == null
                 || raw.trim().isEmpty()) {
-
             return null;
         }
 
         try {
-
             return LocalDate.parse(
                     raw.trim()
             );
-
         } catch (DateTimeParseException e) {
-
             return null;
         }
     }
-
 
     /*
      * =========================================================
@@ -731,12 +665,10 @@ public class BookingManagementServlet
 
         if (raw == null
                 || raw.trim().isEmpty()) {
-
             return null;
         }
 
         try {
-
             int id
                     = Integer.parseInt(
                             raw.trim()
@@ -747,11 +679,9 @@ public class BookingManagementServlet
                     : null;
 
         } catch (NumberFormatException e) {
-
             return null;
         }
     }
-
 
     /*
      * =========================================================
@@ -764,12 +694,10 @@ public class BookingManagementServlet
 
         if (raw == null
                 || raw.trim().isEmpty()) {
-
             return defaultValue;
         }
 
         try {
-
             int value
                     = Integer.parseInt(
                             raw.trim()
@@ -780,14 +708,12 @@ public class BookingManagementServlet
                     : defaultValue;
 
         } catch (NumberFormatException e) {
-
             return defaultValue;
         }
     }
 
     @Override
     public String getServletInfo() {
-
         return "Staff/Admin Booking Management.";
     }
 }

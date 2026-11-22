@@ -31,28 +31,46 @@ public class RoomDAO extends DBContext {
             + "WHERE bd.RoomNumber = r.RoomNumber AND (b.Status = 'checked_in' "
             + "OR (b.Status IN ('pending', 'confirmed') AND bd.CheckOutDate > ?)))";
 
-    private static final String SEARCH_INVENTORY = " FROM Room r "
-            + "JOIN RoomType rt ON rt.RoomTypeID=r.RoomTypeID "
-            + "WHERE r.Status='available' AND r.NeedsCleaning=0 AND rt.IsActive=1 AND rt.Capacity>=? "
+    private static final String TYPE_AVAILABILITY
+            = "WITH Nights AS (SELECT CAST(? AS date) AS StayDate "
+            + "UNION ALL SELECT DATEADD(day,1,StayDate) FROM Nights "
+            + "WHERE DATEADD(day,1,StayDate)<CAST(? AS date)), "
+            + "Inventory AS (SELECT rt.RoomTypeID, COUNT(*) AS Total "
+            + "FROM RoomType rt JOIN Room r ON r.RoomTypeID=rt.RoomTypeID "
+            + "WHERE r.Status='available' AND rt.IsActive=1 AND rt.Capacity>=? "
             + "AND (? IS NULL OR rt.RoomTypeID=?) "
             + "AND (? IS NULL OR rt.PricePerNight>=?) "
-            + "AND (? IS NULL OR rt.PricePerNight<?) ";
-    private static final String SEARCH_STAY = "AND NOT EXISTS ("
-            + "SELECT 1 FROM BookingDetail bd JOIN Booking b ON b.BookingID=bd.BookingID "
-            + "WHERE bd.RoomNumber=r.RoomNumber AND "
-            + RoomOccupancySql.overlaps("b", "bd") + ") ";
+            + "AND (? IS NULL OR rt.PricePerNight<?) GROUP BY rt.RoomTypeID), "
+            + "Stays AS (SELECT i.RoomTypeID,d.CheckInDate,"
+            + RoomOccupancySql.endDate("b", "d") + " AS EffectiveEnd "
+            + "FROM BookingDetail d JOIN Booking b ON b.BookingID=d.BookingID "
+            + "LEFT JOIN Room legacy ON legacy.RoomNumber=d.RoomNumber AND d.RoomTypeID IS NULL "
+            + "JOIN Inventory i ON i.RoomTypeID=COALESCE(d.RoomTypeID,legacy.RoomTypeID) "
+            + "WHERE b.Status<>'cancelled' AND d.CheckInDate<? AND "
+            + RoomOccupancySql.endDate("b", "d") + ">?), "
+            + "Nightly AS (SELECT i.RoomTypeID,n.StayDate, "
+            + "CASE WHEN COUNT(s.RoomTypeID)>=i.Total THEN 0 ELSE i.Total-COUNT(s.RoomTypeID) END AS FreeRooms "
+            + "FROM Inventory i CROSS JOIN Nights n LEFT JOIN Stays s ON s.RoomTypeID=i.RoomTypeID "
+            + "AND s.CheckInDate<=n.StayDate AND s.EffectiveEnd>n.StayDate "
+            + "GROUP BY i.RoomTypeID,n.StayDate,i.Total) ";
+    private static final String TYPE_AVAILABILITY_TOTALS
+            = "SELECT RoomTypeID,MIN(FreeRooms) AS Available FROM Nightly GROUP BY RoomTypeID";
+    private static final String INVENTORY_QUERY_END = " OPTION (MAXRECURSION 365)";
 
     public static final class AvailableType {
+
         private final RoomType type;
         private final int available;
         private final int reviewCount;
         private final java.math.BigDecimal rating;
+        private final Integer readyNow;
 
-        private AvailableType(RoomType type, int available, int reviewCount, java.math.BigDecimal rating) {
+        private AvailableType(RoomType type, int available, int reviewCount, java.math.BigDecimal rating, Integer readyNow) {
             this.type = type;
             this.available = available;
             this.reviewCount = reviewCount;
             this.rating = rating;
+            this.readyNow = readyNow;
         }
 
         public RoomType getType() {
@@ -70,40 +88,51 @@ public class RoomDAO extends DBContext {
         public java.math.BigDecimal getRating() {
             return rating;
         }
+
+        public Integer getReadyNow() {
+            return readyNow;
+        }
+
+        AvailableType withReadyNow(int count) {
+            return new AvailableType(type, available, reviewCount, rating, count);
+        }
     }
 
     public List<AvailableType> findAvailableTypes(LocalDate from, LocalDate to, int guests,
             Integer typeId, model.RoomPriceBand band, String sort) throws SQLException {
         String order;
         switch (sort) {
-            case "price_asc": order = "rt.PricePerNight ASC, rt.RoomTypeID"; break;
-            case "price_desc": order = "rt.PricePerNight DESC, rt.RoomTypeID"; break;
-            case "capacity_desc": order = "rt.Capacity DESC, rt.PricePerNight, rt.RoomTypeID"; break;
-            default: order = "rt.RoomTypeID";
+            case "price_asc":
+                order = "rt.PricePerNight ASC, rt.RoomTypeID";
+                break;
+            case "price_desc":
+                order = "rt.PricePerNight DESC, rt.RoomTypeID";
+                break;
+            case "capacity_desc":
+                order = "rt.Capacity DESC, rt.PricePerNight, rt.RoomTypeID";
+                break;
+            default:
+                order = "rt.RoomTypeID";
         }
-        String sql = "WITH AvailableTypes AS (SELECT rt.RoomTypeID, rt.Name, rt.Description, rt.PricePerNight, "
-                + "rt.Beds, rt.Capacity, rt.Picture, COUNT(*) AS Available "
-                + SEARCH_INVENTORY + SEARCH_STAY
-                + "GROUP BY rt.RoomTypeID, rt.Name, rt.Description, rt.PricePerNight, "
-                + "rt.Beds, rt.Capacity, rt.Picture) "
-                + "SELECT rt.*, reviews.ReviewCount, reviews.Rating FROM AvailableTypes rt CROSS APPLY ("
+        String sql = TYPE_AVAILABILITY
+                + ", AvailableTypes AS (" + TYPE_AVAILABILITY_TOTALS + ") "
+                + "SELECT rt.*,a.Available,reviews.ReviewCount,reviews.Rating "
+                + "FROM AvailableTypes a JOIN RoomType rt ON rt.RoomTypeID=a.RoomTypeID CROSS APPLY ("
                 + "SELECT COUNT(*) AS ReviewCount, CAST(AVG(rv.Star) AS DECIMAL(3,1)) AS Rating "
                 + "FROM Review rv WHERE rv.ReviewStatus='approved' AND EXISTS ("
                 + "SELECT 1 FROM BookingDetail bd JOIN Room r ON r.RoomNumber=bd.RoomNumber "
                 + "WHERE bd.BookingID=rv.BookingID AND r.RoomTypeID=rt.RoomTypeID)"
-                + ") reviews ORDER BY " + order;
+                + ") reviews WHERE a.Available>0 ORDER BY " + order + INVENTORY_QUERY_END;
         List<AvailableType> types = new ArrayList<>();
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            bindInventory(ps, guests, typeId, band);
-            ps.setObject(8, to);
-            ps.setObject(9, from);
+            bindInventory(ps, from, to, guests, typeId, band);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     RoomType type = new RoomType(rs.getInt("RoomTypeID"), rs.getString("Name"),
                             rs.getString("Description"), rs.getBigDecimal("PricePerNight"),
                             rs.getInt("Beds"), rs.getInt("Capacity"), rs.getString("Picture"));
                     types.add(new AvailableType(type, rs.getInt("Available"),
-                            rs.getInt("ReviewCount"), rs.getBigDecimal("Rating")));
+                            rs.getInt("ReviewCount"), rs.getBigDecimal("Rating"), null));
                 }
             }
         }
@@ -111,69 +140,77 @@ public class RoomDAO extends DBContext {
     }
 
     public int countAvailableRoomsByType(LocalDate from, LocalDate to, int typeId) throws SQLException {
-        String sql = "SELECT COUNT(*)" + SEARCH_INVENTORY + SEARCH_STAY;
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            bindInventory(ps, 1, typeId, model.RoomPriceBand.ALL);
-            ps.setObject(8, to);
-            ps.setObject(9, from);
-            try (ResultSet rs = ps.executeQuery()) {
-                rs.next();
-                return rs.getInt(1);
+        try (Connection connection = getConnection()) {
+            return countAvailableRoomsByType(connection, from, to, typeId, 1);
+        }
+    }
+
+    static int countAvailableRoomsByType(Connection connection, LocalDate from, LocalDate to,
+            int typeId, int guestsPerRoom) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                TYPE_AVAILABILITY + TYPE_AVAILABILITY_TOTALS + INVENTORY_QUERY_END)) {
+            bindInventory(ps, from, to, guestsPerRoom, typeId, model.RoomPriceBand.ALL);
+            try (ResultSet rows = ps.executeQuery()) {
+                return rows.next() ? rows.getInt("Available") : 0;
             }
         }
     }
 
     public java.util.Map<String, String> findCalendarAvailability(LocalDate from, LocalDate to,
             int guests, Integer typeId, model.RoomPriceBand band, int quantity) throws SQLException {
-        String sql = "WITH Nights AS (SELECT CAST(? AS date) AS StayDate "
-                + "UNION ALL SELECT DATEADD(day,1,StayDate) FROM Nights WHERE StayDate<?), "
-                + "Inventory AS (SELECT r.RoomNumber " + SEARCH_INVENTORY + ") "
-                + ", StayLimits AS (SELECT n.StayDate, COALESCE(upcoming.BookedFrom,CAST(? AS date)) AS LastCheckout "
-                + "FROM Nights n CROSS JOIN Inventory i OUTER APPLY ("
-                + "SELECT MIN(bd.CheckInDate) AS BookedFrom FROM BookingDetail bd "
-                + "JOIN Booking b ON b.BookingID=bd.BookingID WHERE bd.RoomNumber=i.RoomNumber "
-                + "AND b.Status<>'cancelled' AND " + RoomOccupancySql.endDate("b", "bd") + ">bd.CheckInDate "
-                + "AND " + RoomOccupancySql.endDate("b", "bd") + ">n.StayDate "
-                + "AND bd.CheckInDate<?) upcoming "
-                + "WHERE upcoming.BookedFrom IS NULL OR upcoming.BookedFrom>n.StayDate), "
-                + "Ranked AS (SELECT StayDate, LastCheckout, "
-                + "ROW_NUMBER() OVER (PARTITION BY StayDate ORDER BY LastCheckout DESC) AS RoomRank FROM StayLimits) "
-                + "SELECT StayDate, LastCheckout FROM Ranked WHERE RoomRank=? OPTION (MAXRECURSION 366)";
+        String sql = TYPE_AVAILABILITY
+                + ", StayLimits AS (SELECT StayDate,FreeRooms, "
+                + "MIN(CASE WHEN FreeRooms<? THEN StayDate END) OVER ("
+                + "PARTITION BY RoomTypeID ORDER BY StayDate ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) "
+                + "AS FirstFullNight FROM Nightly) "
+                + "SELECT StayDate,MAX(COALESCE(FirstFullNight,CAST(? AS date))) AS LastCheckout "
+                + "FROM StayLimits WHERE FreeRooms>=? GROUP BY StayDate ORDER BY StayDate" + INVENTORY_QUERY_END;
         java.util.Map<String, String> availability = new java.util.LinkedHashMap<>();
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, from);
-            ps.setObject(2, to);
-            bindInventory(ps, 3, guests, typeId, band);
-            ps.setObject(10, to);
-            ps.setObject(11, to);
+            bindInventory(ps, from, to, guests, typeId, band);
             ps.setInt(12, quantity);
+            ps.setObject(13, to);
+            ps.setInt(14, quantity);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    java.sql.Date checkout = rs.getDate("LastCheckout");
-                    LocalDate stayDate = rs.getDate("StayDate").toLocalDate();
-                    if (checkout != null && checkout.toLocalDate().isAfter(stayDate)) {
-                        availability.put(stayDate.toString(), checkout.toLocalDate().toString());
-                    }
+                    availability.put(rs.getDate("StayDate").toString(), rs.getDate("LastCheckout").toString());
                 }
             }
         }
         return availability;
     }
 
-    private static void bindInventory(PreparedStatement ps, int guests, Integer typeId,
-            model.RoomPriceBand band) throws SQLException {
-        bindInventory(ps, 1, guests, typeId, band);
+    private static void bindInventory(PreparedStatement ps, LocalDate from, LocalDate to,
+            int guests, Integer typeId, model.RoomPriceBand band) throws SQLException {
+        ps.setObject(1, from);
+        ps.setObject(2, to);
+        ps.setInt(3, guests);
+        ps.setObject(4, typeId, Types.INTEGER);
+        ps.setObject(5, typeId, Types.INTEGER);
+        ps.setBigDecimal(6, band.getMinimum());
+        ps.setBigDecimal(7, band.getMinimum());
+        ps.setBigDecimal(8, band.getUpperExclusive());
+        ps.setBigDecimal(9, band.getUpperExclusive());
+        ps.setObject(10, to);
+        ps.setObject(11, from);
     }
 
-    private static void bindInventory(PreparedStatement ps, int start, int guests, Integer typeId,
-            model.RoomPriceBand band) throws SQLException {
-        ps.setInt(start, guests);
-        ps.setObject(start + 1, typeId, java.sql.Types.INTEGER);
-        ps.setObject(start + 2, typeId, java.sql.Types.INTEGER);
-        ps.setBigDecimal(start + 3, band.getMinimum());
-        ps.setBigDecimal(start + 4, band.getMinimum());
-        ps.setBigDecimal(start + 5, band.getUpperExclusive());
-        ps.setBigDecimal(start + 6, band.getUpperExclusive());
+    static int countReadyRooms(Connection connection, int typeId, LocalDate from,
+            LocalDate to) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Room r WHERE r.RoomTypeID=? "
+                + "AND r.Status='available' AND r.NeedsCleaning=0 AND NOT EXISTS ("
+                + "SELECT 1 FROM BookingDetail d JOIN Booking b ON b.BookingID=d.BookingID "
+                + "WHERE d.RoomNumber=r.RoomNumber AND (b.Status='checked_in' OR ("
+                + RoomOccupancySql.overlaps("b", "d") + ")))";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, typeId);
+            statement.setObject(2, to);
+            statement.setObject(3, from);
+            try (ResultSet rows = statement.executeQuery()) {
+                rows.next();
+                return rows.getInt(1);
+            }
+        }
     }
 
     private static final int PAGE_SIZE = 6;
@@ -215,12 +252,9 @@ public class RoomDAO extends DBContext {
      * =========================================================
      */
     public List<Room> getAll() {
+        List<Room> rooms = new ArrayList<>();
 
-        List<Room> rooms
-                = new ArrayList<>();
-
-        String sql
-                = "SELECT "
+        String sql = "SELECT "
                 + "r.RoomNumber, "
                 + "r.Status, "
                 + "rt.RoomTypeID, "
@@ -235,22 +269,12 @@ public class RoomDAO extends DBContext {
                 + "ON rt.RoomTypeID = r.RoomTypeID "
                 + "ORDER BY r.RoomNumber";
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql); ResultSet rs
-                = ps.executeQuery()) {
-
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-
-                rooms.add(
-                        mapRoom(rs)
-                );
+                rooms.add(mapRoom(rs));
             }
-
         } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    RoomDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         return rooms;
@@ -267,16 +291,13 @@ public class RoomDAO extends DBContext {
     }
 
     public List<Room> getPage(int index, Integer roomTypeId, Integer roomNumber, String status, String sort) throws SQLException {
-
-        List<Room> rooms
-                = new ArrayList<>();
+        List<Room> rooms = new ArrayList<>();
 
         if (index < 1) {
             index = 1;
         }
 
-        String sql
-                = "SELECT "
+        String sql = "SELECT "
                 + "r.RoomNumber, "
                 + "r.Status, "
                 + "rt.RoomTypeID, "
@@ -294,26 +315,18 @@ public class RoomDAO extends DBContext {
                 + "OFFSET ? ROWS "
                 + "FETCH NEXT ? ROWS ONLY";
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             bindAdminRoomFilter(ps, roomTypeId, roomNumber);
             ps.setString(5, status);
             ps.setString(6, status);
             ps.setInt(7, (index - 1) * PAGE_SIZE);
             ps.setInt(8, PAGE_SIZE);
 
-            try (ResultSet rs
-                    = ps.executeQuery()) {
-
+            try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-
-                    rooms.add(
-                            mapRoom(rs)
-                    );
+                    rooms.add(mapRoom(rs));
                 }
             }
-
         }
 
         return rooms;
@@ -331,22 +344,14 @@ public class RoomDAO extends DBContext {
      * requested date range
      * =========================================================
      */
-    public List<Room> getAvailableRooms(
-            LocalDate checkInDate,
-            LocalDate checkOutDate) {
+    public List<Room> getAvailableRooms(LocalDate checkInDate, LocalDate checkOutDate) {
+        List<Room> rooms = new ArrayList<>();
 
-        List<Room> rooms
-                = new ArrayList<>();
-
-        if (!isValidDateRange(
-                checkInDate,
-                checkOutDate)) {
-
+        if (!isValidDateRange(checkInDate, checkOutDate)) {
             return rooms;
         }
 
-        String sql
-                = "SELECT "
+        String sql = "SELECT "
                 + "r.RoomNumber, "
                 + "r.Status, "
                 + "rt.RoomTypeID, "
@@ -371,39 +376,21 @@ public class RoomDAO extends DBContext {
                 + ") "
                 + "ORDER BY r.RoomNumber";
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             /*
              * Existing CheckIn < requested CheckOut
              * Existing CheckOut > requested CheckIn
              */
-            ps.setObject(
-                    1,
-                    checkOutDate
-            );
+            ps.setObject(1, checkOutDate);
+            ps.setObject(2, checkInDate);
 
-            ps.setObject(
-                    2,
-                    checkInDate
-            );
-
-            try (ResultSet rs
-                    = ps.executeQuery()) {
-
+            try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-
-                    rooms.add(
-                            mapRoom(rs)
-                    );
+                    rooms.add(mapRoom(rs));
                 }
             }
-
         } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    RoomDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         return rooms;
@@ -414,27 +401,18 @@ public class RoomDAO extends DBContext {
      * 5. AVAILABLE ROOM PAGINATION
      * =========================================================
      */
-    public List<Room> getAvailableRoomPage(
-            int index,
-            LocalDate checkInDate,
-            LocalDate checkOutDate) {
-
-        List<Room> rooms
-                = new ArrayList<>();
+    public List<Room> getAvailableRoomPage(int index, LocalDate checkInDate, LocalDate checkOutDate) {
+        List<Room> rooms = new ArrayList<>();
 
         if (index < 1) {
             index = 1;
         }
 
-        if (!isValidDateRange(
-                checkInDate,
-                checkOutDate)) {
-
+        if (!isValidDateRange(checkInDate, checkOutDate)) {
             return rooms;
         }
 
-        String sql
-                = "SELECT "
+        String sql = "SELECT "
                 + "r.RoomNumber, "
                 + "r.Status, "
                 + "rt.RoomTypeID, "
@@ -461,45 +439,19 @@ public class RoomDAO extends DBContext {
                 + "OFFSET ? ROWS "
                 + "FETCH NEXT ? ROWS ONLY";
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, checkOutDate);
+            ps.setObject(2, checkInDate);
+            ps.setInt(3, (index - 1) * PAGE_SIZE);
+            ps.setInt(4, PAGE_SIZE);
 
-            ps.setObject(
-                    1,
-                    checkOutDate
-            );
-
-            ps.setObject(
-                    2,
-                    checkInDate
-            );
-
-            ps.setInt(
-                    3,
-                    (index - 1) * PAGE_SIZE
-            );
-
-            ps.setInt(
-                    4,
-                    PAGE_SIZE
-            );
-
-            try (ResultSet rs
-                    = ps.executeQuery()) {
-
+            try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-
-                    rooms.add(
-                            mapRoom(rs)
-                    );
+                    rooms.add(mapRoom(rs));
                 }
             }
-
         } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    RoomDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         return rooms;
@@ -512,19 +464,12 @@ public class RoomDAO extends DBContext {
      * Useful for correct pagination after search.
      * =========================================================
      */
-    public int countAvailableRooms(
-            LocalDate checkInDate,
-            LocalDate checkOutDate) {
-
-        if (!isValidDateRange(
-                checkInDate,
-                checkOutDate)) {
-
+    public int countAvailableRooms(LocalDate checkInDate, LocalDate checkOutDate) {
+        if (!isValidDateRange(checkInDate, checkOutDate)) {
             return 0;
         }
 
-        String sql
-                = "SELECT COUNT(*) AS Total "
+        String sql = "SELECT COUNT(*) AS Total "
                 + "FROM Room r "
                 + "JOIN RoomType rt "
                 + "ON rt.RoomTypeID = r.RoomTypeID "
@@ -539,32 +484,17 @@ public class RoomDAO extends DBContext {
                 + "    AND " + RoomOccupancySql.overlaps("b", "bd") + " "
                 + ")";
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, checkOutDate);
+            ps.setObject(2, checkInDate);
 
-            ps.setObject(
-                    1,
-                    checkOutDate
-            );
-
-            ps.setObject(
-                    2,
-                    checkInDate
-            );
-
-            try (ResultSet rs
-                    = ps.executeQuery()) {
-
+            try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt("Total");
                 }
             }
-
         } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    RoomDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         return 0;
@@ -575,11 +505,8 @@ public class RoomDAO extends DBContext {
      * 7. GET ROOM BY ROOM NUMBER
      * =========================================================
      */
-    public Room getRoomByNumber(
-            int roomNumber) {
-
-        String sql
-                = "SELECT "
+    public Room getRoomByNumber(int roomNumber) {
+        String sql = "SELECT "
                 + "r.RoomNumber, "
                 + "r.Status, "
                 + "rt.RoomTypeID, "
@@ -594,27 +521,16 @@ public class RoomDAO extends DBContext {
                 + "ON rt.RoomTypeID = r.RoomTypeID "
                 + "WHERE r.RoomNumber = ?";
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roomNumber);
 
-            ps.setInt(
-                    1,
-                    roomNumber
-            );
-
-            try (ResultSet rs
-                    = ps.executeQuery()) {
-
+            try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapRoom(rs);
                 }
             }
-
         } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    RoomDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         return null;
@@ -809,33 +725,19 @@ public class RoomDAO extends DBContext {
      * 8. CHECK ROOM EXISTS
      * =========================================================
      */
-    public boolean doesRoomExist(
-            int roomNumber) {
-
-        String sql
-                = "SELECT 1 "
+    public boolean doesRoomExist(int roomNumber) {
+        String sql = "SELECT 1 "
                 + "FROM Room "
                 + "WHERE RoomNumber = ?";
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roomNumber);
 
-            ps.setInt(
-                    1,
-                    roomNumber
-            );
-
-            try (ResultSet rs
-                    = ps.executeQuery()) {
-
+            try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
-
         } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    RoomDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         return false;
@@ -897,11 +799,7 @@ public class RoomDAO extends DBContext {
      * We do not change the room number.
      * =========================================================
      */
-    public int update(
-            int roomNumber,
-            String status,
-            int roomTypeId) {
-
+    public int update(int roomNumber, String status, int roomTypeId) {
         if (!isValidRoomStatus(status)) {
             return 0;
         }
@@ -919,12 +817,8 @@ public class RoomDAO extends DBContext {
             ps.setString(6, status);
             ps.setObject(7, ReportPeriod.today());
             return ps.executeUpdate() == 1 ? 1 : CHANGE_BLOCKED_BY_BOOKING;
-
         } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    RoomDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         return 0;
@@ -935,33 +829,19 @@ public class RoomDAO extends DBContext {
      * 11. CHECK WHETHER ROOM HAS BOOKING HISTORY
      * =========================================================
      */
-    public boolean hasBookingHistory(
-            int roomNumber) {
-
-        String sql
-                = "SELECT 1 "
+    public boolean hasBookingHistory(int roomNumber) {
+        String sql = "SELECT 1 "
                 + "FROM BookingDetail "
                 + "WHERE RoomNumber = ?";
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roomNumber);
 
-            ps.setInt(
-                    1,
-                    roomNumber
-            );
-
-            try (ResultSet rs
-                    = ps.executeQuery()) {
-
+            try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
-
         } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    RoomDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         /*
@@ -983,9 +863,7 @@ public class RoomDAO extends DBContext {
      * Instead mark it out_of_service.
      * =========================================================
      */
-    public int delete(
-            int roomNumber) {
-
+    public int delete(int roomNumber) {
         if (!doesRoomExist(roomNumber)) {
             return 0;
         }
@@ -995,35 +873,21 @@ public class RoomDAO extends DBContext {
          * Preserve historical foreign-key references.
          */
         if (hasBookingHistory(roomNumber)) {
-
-            return setRoomOutOfService(
-                    roomNumber
-            );
+            return setRoomOutOfService(roomNumber);
         }
 
         /*
          * Room has never been booked.
          * Physical delete is safe.
          */
-        String sql
-                = "DELETE FROM Room "
+        String sql = "DELETE FROM Room "
                 + "WHERE RoomNumber = ?";
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
-            ps.setInt(
-                    1,
-                    roomNumber
-            );
-
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roomNumber);
             return ps.executeUpdate();
-
         } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    RoomDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         return 0;
@@ -1034,23 +898,16 @@ public class RoomDAO extends DBContext {
      * 13. SOFT REMOVE / DISABLE ROOM
      * =========================================================
      */
-    public int setRoomOutOfService(
-            int roomNumber) {
-
+    public int setRoomOutOfService(int roomNumber) {
         String sql = "UPDATE r SET Status = 'out_of_service' FROM Room r WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE r.RoomNumber = ? AND " + NO_ACTIVE_BOOKING;
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, roomNumber);
             ps.setObject(2, ReportPeriod.today());
             return ps.executeUpdate() == 1 ? 1 : CHANGE_BLOCKED_BY_BOOKING;
-
         } catch (SQLException ex) {
-
-            Logger.getLogger(
-                    RoomDAO.class.getName()
-            ).log(Level.SEVERE, null, ex);
+            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         return 0;
@@ -1067,9 +924,7 @@ public class RoomDAO extends DBContext {
      * out_of_service
      * =========================================================
      */
-    private boolean isValidRoomStatus(
-            String status) {
-
+    private boolean isValidRoomStatus(String status) {
         if (status == null) {
             return false;
         }
@@ -1084,19 +939,12 @@ public class RoomDAO extends DBContext {
      * 15. DATE VALIDATION
      * =========================================================
      */
-    private boolean isValidDateRange(
-            LocalDate checkInDate,
-            LocalDate checkOutDate) {
-
-        if (checkInDate == null
-                || checkOutDate == null) {
-
+    private boolean isValidDateRange(LocalDate checkInDate, LocalDate checkOutDate) {
+        if (checkInDate == null || checkOutDate == null) {
             return false;
         }
 
-        return checkOutDate.isAfter(
-                checkInDate
-        );
+        return checkOutDate.isAfter(checkInDate);
     }
 
     /*
@@ -1104,42 +952,20 @@ public class RoomDAO extends DBContext {
      * 16. MAP RESULTSET -> ROOM
      * =========================================================
      */
-    private Room mapRoom(
-            ResultSet rs)
-            throws SQLException {
-
-        RoomType roomType
-                = new RoomType(
-                        rs.getInt(
-                                "RoomTypeID"
-                        ),
-                        rs.getString(
-                                "Name"
-                        ),
-                        rs.getString(
-                                "Description"
-                        ),
-                        rs.getBigDecimal(
-                                "PricePerNight"
-                        ),
-                        rs.getInt(
-                                "Beds"
-                        ),
-                        rs.getInt(
-                                "Capacity"
-                        ),
-                        rs.getString(
-                                "Picture"
-                        )
-                );
+    private Room mapRoom(ResultSet rs) throws SQLException {
+        RoomType roomType = new RoomType(
+                rs.getInt("RoomTypeID"),
+                rs.getString("Name"),
+                rs.getString("Description"),
+                rs.getBigDecimal("PricePerNight"),
+                rs.getInt("Beds"),
+                rs.getInt("Capacity"),
+                rs.getString("Picture")
+        );
 
         return new Room(
-                rs.getInt(
-                        "RoomNumber"
-                ),
-                rs.getString(
-                        "Status"
-                ),
+                rs.getInt("RoomNumber"),
+                rs.getString("Status"),
                 roomType
         );
     }
@@ -1153,22 +979,18 @@ public class RoomDAO extends DBContext {
      * =========================================================
      */
     public boolean isRoomViewable(int roomNumber) {
-
-        String sql
-                = "SELECT 1 "
+        String sql = "SELECT 1 "
                 + "FROM Room r "
                 + "JOIN RoomType rt ON rt.RoomTypeID = r.RoomTypeID "
                 + "WHERE r.RoomNumber = ? "
                 + "AND rt.IsActive = 1";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setInt(1, roomNumber);
 
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
-
         } catch (SQLException ex) {
             Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
         }

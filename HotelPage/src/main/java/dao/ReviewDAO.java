@@ -483,16 +483,19 @@ public class ReviewDAO extends DBContext {
 
         try (Connection connection = getConnection(); PreparedStatement statement
                 = connection.prepareStatement(sql)) {
-            statement.setBigDecimal(1,rating); statement.setBigDecimal(2,rating);
-            statement.setString(3,reviewStatus); statement.setString(4,reviewStatus);
-            statement.setString(5,roomStatus); statement.setString(6,roomStatus);
-            try (ResultSet rs=statement.executeQuery()) {
+            statement.setBigDecimal(1, rating);
+            statement.setBigDecimal(2, rating);
+            statement.setString(3, reviewStatus);
+            statement.setString(4, reviewStatus);
+            statement.setString(5, roomStatus);
+            statement.setString(6, roomStatus);
+            try (ResultSet rs = statement.executeQuery()) {
 
-            while (rs.next()) {
-                reviews.add(mapReview(connection, rs));
-            }
+                while (rs.next()) {
+                    reviews.add(mapReview(connection, rs));
+                }
 
-            return reviews;
+                return reviews;
             }
 
         } catch (SQLException ex) {
@@ -856,19 +859,11 @@ public class ReviewDAO extends DBContext {
         List<model.BookingDetail> list
                 = new ArrayList<>();
 
-        String sql
-                = "SELECT "
-                + "BookingDetailID, "
-                + "BookingID, "
-                + "RoomNumber, "
-                + "CheckInDate, "
-                + "CheckOutDate, "
-                + "PricePerNight, "
-                + "GuestCount, "
-                + "SpecialRequest "
-                + "FROM BookingDetail "
-                + "WHERE BookingID = ? "
-                + "ORDER BY BookingDetailID";
+        String sql = "SELECT d.BookingDetailID,d.BookingID,d.RoomNumber,d.CheckInDate,d.CheckOutDate,"
+                + "d.PricePerNight,d.GuestCount,d.SpecialRequest,t.Name AS RoomTypeName "
+                + "FROM BookingDetail d LEFT JOIN Room r ON r.RoomNumber=d.RoomNumber "
+                + "LEFT JOIN RoomType t ON t.RoomTypeID=COALESCE(d.RoomTypeID,r.RoomTypeID) "
+                + "WHERE d.BookingID=? ORDER BY d.BookingDetailID";
 
         try (PreparedStatement ps
                 = conn.prepareStatement(sql)) {
@@ -898,11 +893,8 @@ public class ReviewDAO extends DBContext {
                             )
                     );
 
-                    detail.setRoomNumber(
-                            rs.getInt(
-                                    "RoomNumber"
-                            )
-                    );
+                    detail.setRoomNumber(rs.getObject("RoomNumber", Integer.class));
+                    detail.setRoomTypeName(rs.getString("RoomTypeName"));
 
                     detail.setCheckInDate(
                             rs.getObject(

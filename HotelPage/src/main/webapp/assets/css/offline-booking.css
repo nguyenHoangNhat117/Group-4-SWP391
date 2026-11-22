@@ -14,12 +14,13 @@ html.uc09-page {
 
 .ob-room-choice {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "control info price";
     align-items: center;
-    gap: 12px;
-    padding: 12px;
+    gap: 14px;
+    padding: 10px 14px;
     border: 1px solid #e3e9e4;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
 }
 
@@ -32,12 +33,20 @@ html.uc09-page {
     border-color: #53846a;
 }
 
+.ob-room-choice:has(input:enabled):hover {
+    border-color: #53846a;
+}
+
 .ob-room-choice:has(input:focus-visible) {
     outline: 2px solid #53846a;
     outline-offset: 2px;
 }
 
 .ob-room-choice input {
+    grid-area: control;
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
     accent-color: #245940;
 }
 
@@ -46,19 +55,49 @@ html.uc09-page {
     cursor: default;
 }
 
+.ob-room-info {
+    grid-area: info;
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
 .ob-room-name {
+    color: var(--lx-ink);
     overflow-wrap: anywhere;
 }
 
-.ob-room-capacity,
-.ob-room-price,
+.ob-room-meta,
 .ob-room-pagination {
     font-size: .85rem;
+    color: var(--lx-muted);
+}
+
+.ob-room-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+}
+
+.ob-room-stock {
+    padding: 1px 8px;
+    border-radius: 1rem;
+    background: #edf3ef;
+    color: #245940;
+    font-weight: 600;
 }
 
 .ob-room-price {
+    grid-area: price;
+    text-align: right;
+    color: var(--lx-ink);
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
+}
+
+.ob-room-price small {
+    color: var(--lx-muted);
 }
 
 .ob-room-pagination {
@@ -66,18 +105,33 @@ html.uc09-page {
     justify-content: center;
     align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 16px;
+    gap: 10px;
+    margin-top: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.offline-booking-page .ob-room-pagination .ob-button {
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    min-height: 36px;
+    padding: 0;
 }
 
 @media (max-width: 580px) {
     .ob-room-choice {
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        gap: 5px 10px;
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-areas: "control info" ". price";
+        align-items: start;
+        gap: 6px 10px;
+    }
+
+    .ob-room-choice input {
+        margin-top: .25rem;
     }
 
     .ob-room-price {
-        grid-column: 2 / -1;
+        text-align: left;
     }
 }
 
@@ -680,12 +734,44 @@ html.uc09-page {
 }
 
 /* Readable booking steps, including translated labels. */
-.offline-booking-page .ob-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; max-width:760px; padding:0; border:0; }
-.offline-booking-page .ob-steps > li { min-width:0; padding:16px; gap:12px; border:1px solid #e6dccf; border-radius:16px; background:#fbf8f3; font-size:14px; line-height:1.4; }
-.offline-booking-page .ob-steps > li > span:first-child { flex:0 0 36px; width:36px; height:36px; }
-.offline-booking-page .ob-steps > li > span[data-i18n] { min-width:0; overflow-wrap:anywhere; }
-.offline-booking-page .ob-steps > li.is-current { background:#f3e9da; border-color:#c8a879; color:#34281e; }
-@media(max-width:540px) { .offline-booking-page .ob-steps { grid-template-columns:1fr; gap:8px; } }
+.offline-booking-page .ob-steps {
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:12px;
+    max-width:760px;
+    padding:0;
+    border:0;
+}
+.offline-booking-page .ob-steps > li {
+    min-width:0;
+    padding:16px;
+    gap:12px;
+    border:1px solid #e6dccf;
+    border-radius:16px;
+    background:#fbf8f3;
+    font-size:14px;
+    line-height:1.4;
+}
+.offline-booking-page .ob-steps > li > span:first-child {
+    flex:0 0 36px;
+    width:36px;
+    height:36px;
+}
+.offline-booking-page .ob-steps > li > span[data-i18n] {
+    min-width:0;
+    overflow-wrap:anywhere;
+}
+.offline-booking-page .ob-steps > li.is-current {
+    background:#f3e9da;
+    border-color:#c8a879;
+    color:#34281e;
+}
+@media(max-width:540px) {
+    .offline-booking-page .ob-steps {
+        grid-template-columns:1fr;
+        gap:8px;
+    }
+}
 
 /* UC09: compact summary, giữ phong cách Luxe Escape. */
 .offline-booking-page .ob-summary .ob-summary-head {

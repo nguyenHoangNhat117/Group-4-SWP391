@@ -7,7 +7,8 @@ public class BookingDetail {
 
     private int id;
     private int bookingId;
-    private int roomNumber;
+    private Integer roomNumber;
+    private String roomTypeName;
     private LocalDate checkInDate;
     private LocalDate checkOutDate;
     private BigDecimal pricePerNight;
@@ -48,12 +49,20 @@ public class BookingDetail {
         this.bookingId = bookingId;
     }
 
-    public int getRoomNumber() {
+    public Integer getRoomNumber() {
         return roomNumber;
     }
 
-    public void setRoomNumber(int roomNumber) {
+    public void setRoomNumber(Integer roomNumber) {
         this.roomNumber = roomNumber;
+    }
+
+    public String getRoomTypeName() {
+        return roomTypeName;
+    }
+
+    public void setRoomTypeName(String roomTypeName) {
+        this.roomTypeName = roomTypeName;
     }
 
     public LocalDate getCheckInDate() {

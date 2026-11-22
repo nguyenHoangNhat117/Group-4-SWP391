@@ -46,8 +46,8 @@ public class BookingDAO extends DBContext {
                 + "c.Email, "
                 + "c.Phone, "
                 + "c.Country, "
-                + "c.Street, "
                 + "c.City, "
+                + "c.Street, "
                 + "c.Avatar, "
                 + "u.UserID, "
                 + "u.Username, "
@@ -115,102 +115,47 @@ public class BookingDAO extends DBContext {
         return bookings;
     }
 
-    public int createBooking(
-            int customerId,
-            int roomNumber,
-            LocalDate checkInDate,
-            LocalDate checkOutDate,
-            BigDecimal pricePerNight,
-            int guestCount,
-            BigDecimal totalPrice,
-            String specialRequest
-    ) {
-        try (Connection conn = getConnection()) {
-            conn.setAutoCommit(false);
-
-            try {
-                int id = createBookingInTransaction(
-                        conn,
-                        customerId,
-                        roomNumber,
-                        checkInDate,
-                        checkOutDate,
-                        pricePerNight,
-                        guestCount,
-                        totalPrice,
-                        specialRequest,
-                        null,
-                        null,
-                        null
-                );
-
-                conn.commit();
-                return id;
-
-            } catch (SQLException | IllegalArgumentException ex) {
-                conn.rollback();
-
-                Logger.getLogger(BookingDAO.class.getName())
-                        .log(Level.WARNING, "Booking rejected", ex);
-
-                return 0;
-            }
-
-        } catch (SQLException ex) {
-            Logger.getLogger(BookingDAO.class.getName())
-                    .log(Level.SEVERE, "Booking failed", ex);
-
-            return 0;
+    static BigDecimal lockAvailableRoomType(Connection conn, int typeId, LocalDate from,
+            LocalDate to, int quantity, int guests, boolean walkIn) throws SQLException {
+        model.OfflineBookingDraft.validateStay(from, to, guests, util.ReportPeriod.today());
+        if (quantity < 1 || quantity > guests) {
+            throw new IllegalArgumentException("Số lượng phòng không hợp lệ.");
         }
+
+        int guestsPerRoom = (guests + quantity - 1) / quantity;
+        BigDecimal nightly;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT PricePerNight FROM RoomType WITH (UPDLOCK,HOLDLOCK) "
+                + "WHERE RoomTypeID=? AND IsActive=1 AND Capacity>=?")) {
+            ps.setInt(1, typeId);
+            ps.setInt(2, guestsPerRoom);
+            try (ResultSet rows = ps.executeQuery()) {
+                if (!rows.next()) {
+                    throw new IllegalArgumentException("Loại phòng không khả dụng hoặc vượt sức chứa.");
+                }
+                nightly = rows.getBigDecimal(1);
+            }
+        }
+
+        if (RoomDAO.countAvailableRoomsByType(conn, from, to, typeId, guestsPerRoom) < quantity) {
+            throw new IllegalArgumentException("Không đủ phòng loại đã chọn trong kỳ lưu trú.");
+        }
+        if (walkIn && from.equals(util.ReportPeriod.today())
+                && RoomDAO.countReadyRooms(conn, typeId, from, to) < quantity) {
+            throw new IllegalArgumentException("Hôm nay không đủ phòng sẵn sàng để nhận ngay.");
+        }
+        return nightly;
     }
 
-
-    int createBookingInTransaction(
-            Connection conn,
-            int customerId,
-            int roomNumber,
-            LocalDate checkIn,
-            LocalDate checkOut,
-            BigDecimal pricePerNight,
-            int guests,
-            BigDecimal total,
-            String specialRequest,
-            Integer actor,
-            String requestKey,
-            String promotionCode
-    ) throws SQLException {
-
-        model.OfflineBookingDraft.validateStay(
-                checkIn,
-                checkOut,
-                guests,
-                util.ReportPeriod.today()
-        );
-
-        BigDecimal currentPrice = actor == null
-                ? lockAvailableRoom(conn, roomNumber, checkIn, checkOut, guests)
-                : lockAvailableOfflineRoom(conn, roomNumber, checkIn, checkOut, guests);
-
-        long nights = java.time.temporal.ChronoUnit.DAYS.between(
-                checkIn, checkOut
-        );
-
-        BigDecimal expectedTotal = currentPrice.multiply(
-                BigDecimal.valueOf(nights)
-        );
-
-        if (pricePerNight == null
-                || total == null
-                || currentPrice.compareTo(pricePerNight) != 0
-                || expectedTotal.compareTo(total) != 0) {
-            throw new IllegalArgumentException(
-                    "Giá phòng đã thay đổi. Vui lòng xem lại tóm tắt."
-            );
-        }
-
-        int id = insertBooking(conn, customerId, total, specialRequest, actor, requestKey, promotionCode);
-        insertBookingDetail(conn, id, roomNumber, checkIn, checkOut, currentPrice, guests, specialRequest);
-        return id;
+    // Caller phải khóa và kiểm tra kho của loại phòng trên cùng connection trước khi ghi.
+    int insertRoomTypeBooking(Connection conn, int customerId, int typeId, LocalDate from,
+            LocalDate to, int quantity, int guests, BigDecimal nightly, String specialRequest,
+            Integer actor, String requestKey, String promotionCode) throws SQLException {
+        long nights = java.time.temporal.ChronoUnit.DAYS.between(from, to);
+        BigDecimal total = nightly.multiply(BigDecimal.valueOf(nights * quantity));
+        int bookingId = insertBooking(conn, customerId, total, specialRequest, actor, requestKey, promotionCode);
+        insertBookingDetails(conn, bookingId, typeId, from, to, nightly, quantity, guests, specialRequest);
+        return bookingId;
     }
 
     private int insertBooking(Connection conn, int customerId, BigDecimal total, String specialRequest,
@@ -270,84 +215,61 @@ public class BookingDAO extends DBContext {
         return id;
     }
 
-    private void insertBookingDetail(Connection conn, int id, int roomNumber, LocalDate checkIn,
-            LocalDate checkOut, BigDecimal currentPrice, int guests, String specialRequest) throws SQLException {
-        String detailSql
-                = "INSERT BookingDetail("
-                + "BookingID,RoomNumber,CheckInDate,CheckOutDate,"
-                + "PricePerNight,GuestCount,SpecialRequest"
-                + ") VALUES(?,?,?,?,?,?,?)";
-
-        try (PreparedStatement ps = conn.prepareStatement(detailSql)) {
+    private void insertBookingDetails(Connection conn, int id, int typeId, LocalDate checkIn,
+            LocalDate checkOut, BigDecimal nightly, int quantity, int guests, String specialRequest) throws SQLException {
+        String sql = "INSERT BookingDetail(BookingID,RoomTypeID,RoomNumber,CheckInDate,CheckOutDate,"
+                + "PricePerNight,GuestCount,SpecialRequest) VALUES(?,?,NULL,?,?,?,?,?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
-            ps.setInt(2, roomNumber);
+            ps.setInt(2, typeId);
             ps.setObject(3, checkIn);
             ps.setObject(4, checkOut);
-            ps.setBigDecimal(5, currentPrice);
-            ps.setInt(6, guests);
+            ps.setBigDecimal(5, nightly);
             ps.setNString(7, specialRequest);
-            ps.executeUpdate();
+            for (int i = 0; i < quantity; i++) {
+                ps.setInt(6, guests / quantity + (i < guests % quantity ? 1 : 0));
+                ps.addBatch();
+            }
+            ps.executeBatch();
         }
+    }
+
+    public int createBooking(int customerId, int typeId, LocalDate checkIn, LocalDate checkOut,
+            int quantity, int guests, BigDecimal nightly, String specialRequest) throws SQLException {
+        return createOnlineRoomTypeBooking(customerId, typeId, checkIn, checkOut, quantity, guests,
+                nightly, specialRequest, null);
     }
 
     public int createRoomTypeBooking(int customerId, int typeId, LocalDate checkIn, LocalDate checkOut,
             int quantity, int guests, BigDecimal nightly, model.BookingContact contact) throws SQLException {
-        model.OfflineBookingDraft.validateStay(checkIn, checkOut, guests, util.ReportPeriod.today());
-        if (quantity < 1 || quantity > guests) {
-            throw new IllegalArgumentException("Invalid room quantity");
-        }
+        return createOnlineRoomTypeBooking(customerId, typeId, checkIn, checkOut, quantity, guests,
+                nightly, null, java.util.Objects.requireNonNull(contact));
+    }
 
-        int guestsPerRoom = (guests + quantity - 1) / quantity;
-        String candidates = "SELECT RoomNumber FROM Room WHERE RoomTypeID=? AND Status='available' ORDER BY RoomNumber";
+    private int createOnlineRoomTypeBooking(int customerId, int typeId, LocalDate checkIn, LocalDate checkOut,
+            int quantity, int guests, BigDecimal nightly, String specialRequest, model.BookingContact contact)
+            throws SQLException {
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
             try {
-                List<Integer> roomNumbers = new ArrayList<>();
-                try (PreparedStatement ps = conn.prepareStatement(candidates)) {
-                    ps.setInt(1, typeId);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        while (rs.next()) {
-                            roomNumbers.add(rs.getInt(1));
-                        }
-                    }
+                BigDecimal currentPrice = lockAvailableRoomType(conn, typeId, checkIn, checkOut, quantity, guests, false);
+                if (currentPrice.compareTo(nightly) != 0) {
+                    throw new IllegalArgumentException("Giá phòng đã thay đổi. Vui lòng xem lại tóm tắt.");
                 }
 
-                List<Integer> selected = new ArrayList<>();
-                for (int roomNumber : roomNumbers) {
-                    BigDecimal currentPrice;
-                    try {
-                        currentPrice = lockAvailableRoom(conn, roomNumber, checkIn, checkOut, guestsPerRoom, typeId);
-                    } catch (IllegalArgumentException unavailable) {
-                        continue;
+                int bookingId = insertRoomTypeBooking(conn, customerId, typeId, checkIn, checkOut,
+                        quantity, guests, nightly, specialRequest, null, null, null);
+                if (contact != null) {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE Booking SET OnlineDepositPolicy=1, ContactName=?, "
+                            + "ContactPhone=?, ContactEmail=?, ContactCountry=? WHERE BookingID=?")) {
+                        ps.setNString(1, contact.getName());
+                        ps.setNString(2, contact.getPhone());
+                        ps.setNString(3, contact.getEmail());
+                        ps.setNString(4, contact.getCountry());
+                        ps.setInt(5, bookingId);
+                        ps.executeUpdate();
                     }
-                    if (currentPrice.compareTo(nightly) != 0) {
-                        throw new IllegalArgumentException("Room price has changed");
-                    }
-                    selected.add(roomNumber);
-                    if (selected.size() == quantity) {
-                        break;
-                    }
-                }
-                if (selected.size() != quantity) {
-                    throw new IllegalArgumentException("Insufficient room availability");
-                }
-
-                long nights = java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut);
-                BigDecimal total = nightly.multiply(BigDecimal.valueOf(nights * quantity));
-                int bookingId = insertBooking(conn, customerId, total, null, null, null, null);
-                try (PreparedStatement ps = conn.prepareStatement("UPDATE Booking SET OnlineDepositPolicy=1, ContactName=?, "
-                        + "ContactPhone=?, ContactEmail=?, ContactCountry=? WHERE BookingID=?")) {
-                    ps.setNString(1, contact.getName());
-                    ps.setNString(2, contact.getPhone());
-                    ps.setNString(3, contact.getEmail());
-                    ps.setNString(4, contact.getCountry());
-                    ps.setInt(5, bookingId);
-                    ps.executeUpdate();
-                }
-
-                for (int i = 0; i < quantity; i++) {
-                    int roomGuests = guests / quantity + (i < guests % quantity ? 1 : 0);
-                    insertBookingDetail(conn, bookingId, selected.get(i), checkIn, checkOut, nightly, roomGuests, null);
                 }
                 conn.commit();
                 return bookingId;
@@ -356,85 +278,6 @@ public class BookingDAO extends DBContext {
                 throw ex;
             }
         }
-    }
-
-    static BigDecimal lockAvailableRoom(
-            Connection conn,
-            int roomNumber,
-            LocalDate from,
-            LocalDate to,
-            int guests
-    ) throws SQLException {
-
-        return lockAvailableRoom(conn, roomNumber, from, to, guests, null);
-    }
-
-    private static BigDecimal lockAvailableRoom(Connection conn, int roomNumber,
-            LocalDate from, LocalDate to, int guests, Integer expectedType) throws SQLException {
-        return lockAvailableRoom(conn, roomNumber, from, to, guests, expectedType, true);
-    }
-
-    static BigDecimal lockAvailableOfflineRoom(Connection conn, int roomNumber,
-            LocalDate from, LocalDate to, int guests) throws SQLException {
-        return lockAvailableRoom(conn, roomNumber, from, to, guests, null,
-                !from.isAfter(util.ReportPeriod.today()));
-    }
-
-    private static BigDecimal lockAvailableRoom(Connection conn, int roomNumber,
-            LocalDate from, LocalDate to, int guests, Integer expectedType,
-            boolean requireClean) throws SQLException {
-        BigDecimal price;
-
-        String roomSql
-                = "SELECT rt.PricePerNight "
-                + "FROM Room r WITH(UPDLOCK,HOLDLOCK) "
-                + "JOIN RoomType rt WITH(HOLDLOCK) "
-                + "ON rt.RoomTypeID=r.RoomTypeID "
-                + "WHERE r.RoomNumber=? "
-                + "AND r.Status='available' AND (?=0 OR r.NeedsCleaning=0) "
-                + "AND rt.IsActive=1 "
-                + "AND rt.Capacity>=? AND (? IS NULL OR r.RoomTypeID=?)";
-
-        try (PreparedStatement ps = conn.prepareStatement(roomSql)) {
-            ps.setInt(1, roomNumber);
-            ps.setInt(2, requireClean ? 1 : 0);
-            ps.setInt(3, guests);
-            ps.setObject(4, expectedType, java.sql.Types.INTEGER);
-            ps.setObject(5, expectedType, java.sql.Types.INTEGER);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) {
-                    throw new IllegalArgumentException(
-                            "Phòng không khả dụng hoặc vượt sức chứa."
-                    );
-                }
-
-                price = rs.getBigDecimal(1);
-            }
-        }
-
-        String conflictSql
-                = "SELECT 1 FROM BookingDetail bd "
-                + "JOIN Booking b ON b.BookingID=bd.BookingID "
-                + "WHERE bd.RoomNumber=? "
-                + "AND " + RoomOccupancySql.overlaps("b", "bd");
-
-        try (PreparedStatement ps = conn.prepareStatement(conflictSql)) {
-            ps.setInt(1, roomNumber);
-            ps.setObject(2, to);
-            ps.setObject(3, from);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    throw new IllegalArgumentException(
-                            "Phòng đã được đặt trong kỳ lưu trú. "
-                            + "Vui lòng chọn phòng khác."
-                    );
-                }
-            }
-        }
-
-        return price;
     }
 
     /*
@@ -506,22 +349,6 @@ public class BookingDAO extends DBContext {
      * 4. GET BOOKING DETAILS
      * =========================================================
      */
-    public java.util.Map<Integer, String> getCurrentRoomTypeNames(int bookingId) throws SQLException {
-        String sql = "SELECT r.RoomNumber, t.Name FROM BookingDetail d "
-                + "JOIN Room r ON r.RoomNumber=d.RoomNumber JOIN RoomType t ON t.RoomTypeID=r.RoomTypeID "
-                + "WHERE d.BookingID=?";
-        java.util.Map<Integer, String> names = new java.util.HashMap<>();
-        try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, bookingId);
-            try (ResultSet rows = statement.executeQuery()) {
-                while (rows.next()) {
-                    names.put(rows.getInt(1), rows.getString(2));
-                }
-            }
-        }
-        return names;
-    }
-
     public List<BookingDetail> getBookingDetails(
             int bookingId) {
 
@@ -553,19 +380,11 @@ public class BookingDAO extends DBContext {
         List<BookingDetail> details
                 = new ArrayList<>();
 
-        String sql
-                = "SELECT "
-                + "BookingDetailID, "
-                + "BookingID, "
-                + "RoomNumber, "
-                + "CheckInDate, "
-                + "CheckOutDate, "
-                + "PricePerNight, "
-                + "GuestCount, "
-                + "SpecialRequest "
-                + "FROM BookingDetail "
-                + "WHERE BookingID = ? "
-                + "ORDER BY BookingDetailID";
+        String sql = "SELECT d.BookingDetailID,d.BookingID,d.RoomNumber,d.CheckInDate,d.CheckOutDate,"
+                + "d.PricePerNight,d.GuestCount,d.SpecialRequest,t.Name AS RoomTypeName "
+                + "FROM BookingDetail d LEFT JOIN Room r ON r.RoomNumber=d.RoomNumber "
+                + "LEFT JOIN RoomType t ON t.RoomTypeID=COALESCE(d.RoomTypeID,r.RoomTypeID) "
+                + "WHERE d.BookingID=? ORDER BY d.BookingDetailID";
 
         try (PreparedStatement ps
                 = conn.prepareStatement(sql)) {
@@ -592,11 +411,8 @@ public class BookingDAO extends DBContext {
                             )
                     );
 
-                    detail.setRoomNumber(
-                            rs.getInt(
-                                    "RoomNumber"
-                            )
-                    );
+                    detail.setRoomNumber(rs.getObject("RoomNumber", Integer.class));
+                    detail.setRoomTypeName(rs.getString("RoomTypeName"));
 
                     detail.setCheckInDate(
                             rs.getObject(
@@ -662,8 +478,8 @@ public class BookingDAO extends DBContext {
                 + "c.Email, "
                 + "c.Phone, "
                 + "c.Country, "
-                + "c.Street, "
                 + "c.City, "
+                + "c.Street, "
                 + "c.Avatar, "
                 + "u.UserID, "
                 + "u.Username, "
@@ -933,10 +749,16 @@ public class BookingDAO extends DBContext {
     }
 
     private boolean cancelBookingInternal(int bookingId, Integer customerId, String reason, boolean noShow) {
-        try (Connection c=getConnection(); PreparedStatement ps=c.prepareStatement("SELECT CreatedByUserID FROM Booking WHERE BookingID=?")) {
-            ps.setInt(1,bookingId);
-            try(ResultSet rs=ps.executeQuery()) { if(rs.next() && rs.getObject(1)!=null) return false; }
-        } catch(SQLException ex) { return false; }
+        try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement("SELECT CreatedByUserID FROM Booking WHERE BookingID=?")) {
+            ps.setInt(1, bookingId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next() && rs.getObject(1) != null) {
+                    return false;
+                }
+            }
+        } catch (SQLException ex) {
+            return false;
+        }
         String lockSql = "SELECT Status, OnlineDepositPolicy, TotalPrice, CustomerID FROM Booking WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE BookingID = ?" + (customerId == null ? "" : " AND CustomerID = ?");
         String checkSql = "SELECT MIN(CheckInDate) AS FirstCheckIn FROM BookingDetail WHERE BookingID = ?";
@@ -1123,7 +945,9 @@ public class BookingDAO extends DBContext {
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, util.ReportPeriod.today());
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) { ids.add(rs.getInt(1)); }
+                while (rs.next()) {
+                    ids.add(rs.getInt(1));
+                }
             }
         }
         for (int id : ids) {
@@ -1136,8 +960,7 @@ public class BookingDAO extends DBContext {
                 + "WHERE b.OnlineDepositPolicy=1 AND b.Status='cancelled' AND p.PaymentStatus='paid' "
                 + "AND p.PaymentMethod='bank_transfer' AND p.PaymentDate>b.CancellationDate";
         List<Integer> ids = new ArrayList<>();
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 ids.add(rs.getInt(1));
             }
@@ -1192,7 +1015,8 @@ public class BookingDAO extends DBContext {
     }
 
     /**
-     * True when the booking produced a wallet refund, including partial refunds.
+     * True when the booking produced a wallet refund, including partial
+     * refunds.
      */
     public boolean hasRefundedPayment(int bookingId, int customerId) {
         String sql = "SELECT 1 FROM WalletTransaction t JOIN Booking b ON b.BookingID=t.BookingID "
@@ -1232,7 +1056,9 @@ public class BookingDAO extends DBContext {
     public BigDecimal getCancellationRefund(Booking booking) {
         LocalDate checkIn = booking.getDetails().stream().map(BookingDetail::getCheckInDate)
                 .min(LocalDate::compareTo).orElse(null);
-        if (checkIn == null) { return BigDecimal.ZERO; }
+        if (checkIn == null) {
+            return BigDecimal.ZERO;
+        }
         BigDecimal paid = new PaymentDAO().getTotalPaidAmount(booking.getId());
         return booking.isOnlineDepositPolicy()
                 ? util.OnlineStayPolicy.refund(booking.getTotalPrice(), paid, checkIn, util.ReportPeriod.today()) : paid;
@@ -1249,18 +1075,20 @@ public class BookingDAO extends DBContext {
             String newStatus) {
 
         if ("checked_in".equals(newStatus)) {
-            try {
-                return new OnlineCheckInDAO().checkIn(bookingId) == OnlineCheckInDAO.Result.SUCCESS;
-            } catch (SQLException ex) {
-                Logger.getLogger(BookingDAO.class.getName()).log(Level.SEVERE, "Online check-in failed", ex);
-                return false;
-            }
+            // Nhận phòng cần phòng đã chọn, người đối chiếu và số khách thực tế.
+            return false;
         }
 
-        try (Connection c=getConnection(); PreparedStatement ps=c.prepareStatement("SELECT CreatedByUserID FROM Booking WHERE BookingID=?")) {
-            ps.setInt(1,bookingId);
-            try(ResultSet rs=ps.executeQuery()) { if(rs.next() && rs.getObject(1)!=null) return false; }
-        } catch(SQLException ex) { return false; }
+        try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement("SELECT CreatedByUserID FROM Booking WHERE BookingID=?")) {
+            ps.setInt(1, bookingId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next() && rs.getObject(1) != null) {
+                    return false;
+                }
+            }
+        } catch (SQLException ex) {
+            return false;
+        }
 
         /*
          * These are the statuses defined by HotelDB.
@@ -1562,7 +1390,6 @@ public class BookingDAO extends DBContext {
     }
 
     public List<Booking> searchBookings(String keyword, String status, LocalDate fromDate, LocalDate toDate, Integer roomNumber, String source, int page, int pageSize, String sort) {
-
 
         List<Booking> bookings
                 = new ArrayList<>();

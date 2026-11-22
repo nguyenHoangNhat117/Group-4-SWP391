@@ -1,468 +1,320 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="c"
            uri="jakarta.tags.core" %>
-
 <%@page contentType="text/html"
         pageEncoding="UTF-8"%>
 
 <!DOCTYPE html>
-
 <html>
-
-<head>
+    <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <meta
-        http-equiv="Content-Type"
-        content="text/html; charset=UTF-8">
-
-    <title>Payment</title>
-
-    <link
-        href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
-        rel="stylesheet">
-
-    <link
-        href="<%= request.getContextPath()%>/assets/css/general.css"
-        rel="stylesheet">
-
+        <meta
+            http-equiv="Content-Type"
+            content="text/html; charset=UTF-8">
+        <title>Payment</title>
+        <link
+            href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
+            rel="stylesheet">
+        <link
+            href="<%= request.getContextPath()%>/assets/css/general.css"
+            rel="stylesheet">
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
-</head>
+    </head>
+    <body class="bg-light">
+        <div class="body-wrapper">
+            <%@include file="/WEB-INF/include/header.jsp" %>
 
-<body class="bg-light">
-
-<div class="body-wrapper">
-
-    <%@include file="/WEB-INF/include/header.jsp" %>
-
-
-    <main
-        class="d-flex
-               justify-content-center
-               align-items-center
-               py-5"
-        style="min-height: 90vh;">
-
-
-        <div
-            class="bg-white
-                   shadow
-                   rounded-4
-                   p-5"
-            style="width: 100%; max-width: 720px;">
-
-
-            <h2 class="text-center mb-4">
-
-                Confirm Your Payment
-
-            </h2>
-
-
-            <!-- ========================================= -->
-            <!-- ERRORS                                    -->
-            <!-- ========================================= -->
-
-            <c:if test="${param.error == 'invalid-discount'}">
+            <main
+                class="d-flex
+                justify-content-center
+                align-items-center
+                py-5"
+                style="min-height: 90vh;">
 
                 <div
-                    class="alert
-                           alert-danger
-                           text-center">
+                    class="bg-white
+                    shadow
+                    rounded-4
+                    p-5"
+                    style="width: 100%; max-width: 720px;">
 
-                    Discount code is invalid,
-                    expired, inactive, exhausted,
-                    or does not satisfy the
-                    minimum booking amount.
+                    <h2 class="text-center mb-4">
+                        Confirm Your Payment
+                    </h2>
 
-                </div>
-
-            </c:if>
-
-
-            <c:if test="${param.error == 'invalid-method'}">
-
-                <div
-                    class="alert
-                           alert-danger
-                           text-center">
-
-                    Please select a valid
-                    payment method.
-
-                </div>
-
-            </c:if>
-
-
-            <c:if test="${param.error == 'payment-failed'}">
-
-                <div
-                    class="alert
-                           alert-danger
-                           text-center">
-
-                    Payment could not be completed.
-                    Please try again.
-
-                </div>
-
-            </c:if>
-
-
-            <c:if test="${param.error == 'online-not-configured'}">
-                <div class="alert alert-danger text-center">Online payment is not configured. Please contact the administrator.</div>
-            </c:if>
-
-            <c:if test="${param.error == 'invalid-payment-percent'}">
-
-                <div class="alert alert-danger text-center">
-                    Please select 10%, 20%, or 100% for the first payment.
-                </div>
-
-            </c:if>
-
-
-            <!-- ========================================= -->
-            <!-- BOOKING SUMMARY                           -->
-            <!-- ========================================= -->
-
-            <div class="mb-4">
-
-                <h5>
-                    Booking #${booking.id}
-                </h5>
-
-
-                <p class="mb-1">
-
-                    <strong>Status:</strong>
-
-                    ${booking.status}
-
-                </p>
-
-
-                <p class="mb-0">
-
-                    <strong>Booking Total:</strong>
-
-                    <span
-                        class="text-primary
-                               fw-bold">
-
-                        ${booking.totalPrice} VND
-
-                    </span>
-
-                </p>
-
-                <p class="mb-1 mt-2"><strong>Already paid:</strong> ${paidAmount} VND</p>
-                <p class="mb-0"><strong>Remaining:</strong> <span class="text-danger fw-bold">${remainingAmount} VND</span></p>
-
-            </div>
-
-
-            <!-- ========================================= -->
-            <!-- BOOKING DETAILS                           -->
-            <!-- ========================================= -->
-
-            <h5 class="mb-3">
-                Room Details
-            </h5>
-
-
-            <c:forEach
-                var="detail"
-                items="${booking.details}">
-
-
-                <div
-                    class="border
-                           rounded-3
-                           p-3
-                           mb-3">
-
-
-                    <div
-                        class="row
-                               g-2">
-
-
-                        <div class="col-md-6">
-
-                            <strong>
-                                Room:
-                            </strong>
-
-                            #${detail.roomNumber}
-
+                    <!-- ========================================= -->
+                    <!-- ERRORS                                    -->
+                    <!-- ========================================= -->
+                    <c:if test="${param.error == 'invalid-discount'}">
+                        <div
+                            class="alert
+                            alert-danger
+                            text-center">
+                            Discount code is invalid,
+                            expired, inactive, exhausted,
+                            or does not satisfy the
+                            minimum booking amount.
                         </div>
+                    </c:if>
 
-
-                        <div class="col-md-6">
-
-                            <strong>
-                                Guests:
-                            </strong>
-
-                            ${detail.guestCount}
-
+                    <c:if test="${param.error == 'invalid-method'}">
+                        <div
+                            class="alert
+                            alert-danger
+                            text-center">
+                            Please select a valid
+                            payment method.
                         </div>
+                    </c:if>
 
-
-                        <div class="col-md-6">
-
-                            <strong>
-                                Check-in:
-                            </strong>
-
-                            ${fn:substring(detail.checkInDate, 8, 10)}/${fn:substring(detail.checkInDate, 5, 7)}/${fn:substring(detail.checkInDate, 0, 4)}
-
+                    <c:if test="${param.error == 'payment-failed'}">
+                        <div
+                            class="alert
+                            alert-danger
+                            text-center">
+                            Payment could not be completed.
+                            Please try again.
                         </div>
+                    </c:if>
 
+                    <c:if test="${param.error == 'online-not-configured'}">
+                        <div class="alert alert-danger text-center">Online payment is not configured. Please contact the administrator.</div>
+                    </c:if>
 
-                        <div class="col-md-6">
-
-                            <strong>
-                                Check-out:
-                            </strong>
-
-                            ${fn:substring(detail.checkOutDate, 8, 10)}/${fn:substring(detail.checkOutDate, 5, 7)}/${fn:substring(detail.checkOutDate, 0, 4)}
-
+                    <c:if test="${param.error == 'invalid-payment-percent'}">
+                        <div class="alert alert-danger text-center">
+                            Please select 10%, 20%, or 100% for the first payment.
                         </div>
+                    </c:if>
 
-
-                        <div class="col-md-12">
-
-                            <strong>
-                                Price per night:
-                            </strong>
-
-                            ${detail.pricePerNight} VND
-
-                        </div>
-
-
-                    </div>
-
-                </div>
-
-            </c:forEach>
-
-
-            <!-- ========================================= -->
-            <!-- PAYMENT FORM                              -->
-            <!-- ========================================= -->
-
-            <form
-                action="${pageContext.request.contextPath}/payment"
-                method="post">
-
-
-                <input
-                    type="hidden"
-                    name="bookingId"
-                    value="${booking.id}">
-
-
-                <c:if test="${firstPayment}">
+                    <!-- ========================================= -->
+                    <!-- BOOKING SUMMARY                           -->
+                    <!-- ========================================= -->
                     <div class="mb-4">
-                        <label for="payment-percent" class="form-label fw-semibold">Initial payment percentage</label>
-                        <select id="payment-percent" name="payment-percent" class="form-select form-select-lg" required ${selectedPercent != null ? 'disabled' : ''}>
-                            <option value="10" ${selectedPercent == 10 ? 'selected' : ''}>10%</option>
-                            <option value="20" ${selectedPercent == 20 ? 'selected' : ''}>20%</option>
-                            <option value="100" ${selectedPercent == 100 ? 'selected' : ''}>100%</option>
-                        </select>
-                        <c:if test="${selectedPercent != null}">
-                            <input type="hidden" name="payment-percent" value="${selectedPercent}">
+                        <h5>
+                            Booking #${booking.id}
+                        </h5>
+                        <p class="mb-1">
+                            <strong>Status:</strong>
+                            ${booking.status}
+                        </p>
+                        <p class="mb-0">
+                            <strong>Booking Total:</strong>
+                            <span
+                                class="text-primary
+                                fw-bold">
+                                ${booking.totalPrice} VND
+                            </span>
+                        </p>
+                        <p class="mb-1 mt-2"><strong>Already paid:</strong> ${paidAmount} VND</p>
+                        <p class="mb-0"><strong>Remaining:</strong> <span class="text-danger fw-bold">${remainingAmount} VND</span></p>
+                    </div>
+
+                    <!-- ========================================= -->
+                    <!-- BOOKING DETAILS                           -->
+                    <!-- ========================================= -->
+                    <h5 class="mb-3">
+                        Room Details
+                    </h5>
+                    <c:forEach
+                        var="detail"
+                        items="${booking.details}">
+                        <div
+                            class="border
+                            rounded-3
+                            p-3
+                            mb-3">
+                            <div
+                                class="row
+                                g-2">
+                                <div class="col-md-6">
+                                    <strong>Phòng</strong>
+                                    <c:choose>
+                                        <c:when test="${empty detail.roomNumber}">Phòng sẽ được xếp khi nhận phòng</c:when>
+                                        <c:otherwise>#${detail.roomNumber}</c:otherwise>
+                                    </c:choose>
+                                    <c:if test="${not empty detail.roomTypeName}"> · <c:out value="${detail.roomTypeName}"/></c:if>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <strong>
+                                            Guests:
+                                        </strong>
+                                    ${detail.guestCount}
+                                </div>
+
+                                <div class="col-md-6">
+                                    <strong>
+                                        Check-in:
+                                    </strong>
+                                    ${fn:substring(detail.checkInDate, 8, 10)}/${fn:substring(detail.checkInDate, 5, 7)}/${fn:substring(detail.checkInDate, 0, 4)}
+                                </div>
+
+                                <div class="col-md-6">
+                                    <strong>
+                                        Check-out:
+                                    </strong>
+                                    ${fn:substring(detail.checkOutDate, 8, 10)}/${fn:substring(detail.checkOutDate, 5, 7)}/${fn:substring(detail.checkOutDate, 0, 4)}
+                                </div>
+
+                                <div class="col-md-12">
+                                    <strong>
+                                        Price per night:
+                                    </strong>
+                                    ${detail.pricePerNight} VND
+                                </div>
+                            </div>
+                        </div>
+                    </c:forEach>
+
+                    <!-- ========================================= -->
+                    <!-- PAYMENT FORM                              -->
+                    <!-- ========================================= -->
+                    <form
+                        action="${pageContext.request.contextPath}/payment"
+                        method="post">
+
+                        <input
+                            type="hidden"
+                            name="bookingId"
+                            value="${booking.id}">
+
+                        <c:if test="${firstPayment}">
+                            <div class="mb-4">
+                                <label for="payment-percent" class="form-label fw-semibold">Initial payment percentage</label>
+                                <select id="payment-percent" name="payment-percent" class="form-select form-select-lg" required ${selectedPercent != null ? 'disabled' : ''}>
+                                    <option value="10" ${selectedPercent == 10 ? 'selected' : ''}>10%</option>
+                                    <option value="20" ${selectedPercent == 20 ? 'selected' : ''}>20%</option>
+                                    <option value="100" ${selectedPercent == 100 ? 'selected' : ''}>100%</option>
+                                </select>
+                                <c:if test="${selectedPercent != null}">
+                                    <input type="hidden" name="payment-percent" value="${selectedPercent}">
+                                </c:if>
+                                <div class="form-text">${selectedPercent != null ? 'Payment percentage was selected during booking.' : 'This is the first payment for the booking.'}</div>
+                            </div>
                         </c:if>
-                        <div class="form-text">${selectedPercent != null ? 'Payment percentage was selected during booking.' : 'This is the first payment for the booking.'}</div>
-                    </div>
-                </c:if>
 
-                <c:if test="${!firstPayment}">
-                    <div class="alert alert-info">
-                        This payment will settle the full remaining balance of <strong>${remainingAmount} VND</strong>.
-                    </div>
-                </c:if>
+                        <c:if test="${!firstPayment}">
+                            <div class="alert alert-info">
+                                This payment will settle the full remaining balance of <strong>${remainingAmount} VND</strong>.
+                            </div>
+                        </c:if>
 
-                <!-- Payment Method -->
+                        <!-- Payment Method -->
+                        <div class="mb-4">
+                            <label
+                                for="payment-method"
+                                class="form-label
+                                fw-semibold">
+                                Payment Method
+                            </label>
+                            <select
+                                id="payment-method"
+                                name="payment-method"
+                                class="form-select
+                                form-select-lg"
+                                required>
+                                <option value="">
+                                    -- Select payment method --
+                                </option>
+                                <option value="cash">
+                                    Cash
+                                </option>
+                                <option value="bank_transfer">
+                                    Bank Transfer (payOS)
+                                </option>
+                            </select>
+                        </div>
 
-                <div class="mb-4">
+                        <c:if test="${firstPayment}">
 
-                    <label
-                        for="payment-method"
-                        class="form-label
-                               fw-semibold">
-
-                        Payment Method
-
-                    </label>
-
-
-                    <select
-                        id="payment-method"
-                        name="payment-method"
-                        class="form-select
-                               form-select-lg"
-                        required>
-
-
-                        <option value="">
-                            -- Select payment method --
-                        </option>
-
-
-                        <option value="cash">
-                            Cash
-                        </option>
-
-
-                        <option value="bank_transfer">
-                            Bank Transfer (payOS)
-                        </option>
-
-                    </select>
-
-                </div>
-
-
-                <c:if test="${firstPayment}">
-
-                <!-- Discount -->
-
-                <div class="mb-4">
-
-                    <label
-                        for="discount-code"
-                        class="form-label
-                               fw-semibold">
-
-                        Promotion Code
-                        <span class="text-muted">
-                            (optional)
-                        </span>
-
-                    </label>
-
-
-                    <input
-                        type="text"
-                        id="discount-code"
-                        name="discount-code"
-                        class="form-control
-                               form-control-lg"
-                        maxlength="50"
-                        placeholder="Enter promotion code">
-
-                </div>
-
-
-                <!-- Active Promotions -->
-
-                <c:if test="${not empty promotions}">
-
-                    <div
-                        class="border
-                               rounded-3
-                               p-3
-                               mb-4">
-
-
-                        <h6 class="fw-bold mb-3">
-
-                            Available Promotions
-
-                        </h6>
-
-
-                        <c:forEach
-                            var="promotion"
-                            items="${promotions}">
-
-
-                            <div class="mb-2">
-
-                                <strong>
-                                    <c:out value="${promotion.code}"/>
-                                </strong>
-
-                                -
-                                ${promotion.saleOff}% off
-
-
-                                <c:if test="${promotion.minimumAmount != null}">
-
-                                    |
-                                    Minimum:
-                                    ${promotion.minimumAmount} VND
-
-                                </c:if>
-
-
-                                <c:if test="${promotion.maximumDiscount != null}">
-
-                                    |
-                                    Maximum discount:
-                                    ${promotion.maximumDiscount} VND
-
-                                </c:if>
-
-
+                            <!-- Discount -->
+                            <div class="mb-4">
+                                <label
+                                    for="discount-code"
+                                    class="form-label
+                                    fw-semibold">
+                                    Promotion Code
+                                    <span class="text-muted">
+                                        (optional)
+                                    </span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="discount-code"
+                                    name="discount-code"
+                                    class="form-control
+                                    form-control-lg"
+                                    maxlength="50"
+                                    placeholder="Enter promotion code">
                             </div>
 
-                        </c:forEach>
+                            <!-- Active Promotions -->
+                            <c:if test="${not empty promotions}">
+                                <div
+                                    class="border
+                                    rounded-3
+                                    p-3
+                                    mb-4">
+                                    <h6 class="fw-bold mb-3">
+                                        Available Promotions
+                                    </h6>
+                                    <c:forEach
+                                        var="promotion"
+                                        items="${promotions}">
+                                        <div class="mb-2">
+                                            <strong>
+                                                <c:out value="${promotion.code}"/>
+                                            </strong>
+                                            -
+                                            ${promotion.saleOff}% off
 
+                                            <c:if test="${promotion.minimumAmount != null}">
+                                                |
+                                                Minimum:
+                                                ${promotion.minimumAmount} VND
+                                            </c:if>
+                                            <c:if test="${promotion.maximumDiscount != null}">
+                                                |
+                                                Maximum discount:
+                                                ${promotion.maximumDiscount} VND
+                                            </c:if>
+                                        </div>
+                                    </c:forEach>
+                                </div>
+                            </c:if>
 
-                    </div>
+                        </c:if>
 
-                </c:if>
+                        <div
+                            class="alert
+                            alert-info">
+                            The payable amount is calculated on the server.
+                            A promotion code can only be used on the first payment.
+                        </div>
 
-                </c:if>
+                        <button
+                            type="submit"
+                            class="btn
+                            btn-lg
+                            w-100
+                            text-white"
+                            style="background-color: #b29575;">
+                            <c:choose><c:when test="${firstPayment}">Confirm Initial Payment</c:when><c:otherwise>Pay Remaining Balance</c:otherwise></c:choose>
+                                </button>
 
+                            </form>
+                        </div>
+                    </main>
 
-                <div
-                    class="alert
-                           alert-info">
-
-                    The payable amount is calculated on the server.
-                    A promotion code can only be used on the first payment.
-
-                </div>
-
-
-                <button
-                    type="submit"
-                    class="btn
-                           btn-lg
-                           w-100
-                           text-white"
-                    style="background-color: #b29575;">
-
-                    <c:choose><c:when test="${firstPayment}">Confirm Initial Payment</c:when><c:otherwise>Pay Remaining Balance</c:otherwise></c:choose>
-
-                </button>
-
-
-            </form>
-
+            <%@include file="/WEB-INF/include/footer.jsp" %>
         </div>
 
-    </main>
+        <script
+            src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js">
+        </script>
 
-
-    <%@include file="/WEB-INF/include/footer.jsp" %>
-
-</div>
-
-
-<script
-    src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js">
-</script>
-
-</body>
-
+    </body>
 </html>

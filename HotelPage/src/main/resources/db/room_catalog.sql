@@ -5,11 +5,12 @@ SET XACT_ABORT ON;
 BEGIN TRY
     BEGIN TRANSACTION;
 
-    DECLARE @types TABLE (
-        LegacyName nvarchar(50), Name nvarchar(50) PRIMARY KEY, Description nvarchar(500),
+    CREATE TABLE #RoomCatalogTypes (
+        LegacyName nvarchar(50) COLLATE DATABASE_DEFAULT, Name nvarchar(50) COLLATE DATABASE_DEFAULT PRIMARY KEY,
+        Description nvarchar(500),
         Price decimal(18,2), Beds int, Capacity int, AreaM2 int, BedLabel nvarchar(100)
     );
-    INSERT @types VALUES
+    INSERT #RoomCatalogTypes VALUES
         (N'Standard Room', N'Deluxe City View', N'Không gian nghỉ dưỡng với thiết kế đương đại, cửa sổ kính tràn viền mang lại ánh sáng tự nhiên và tầm nhìn thoáng đãng ra thành phố.', 2500000, 1, 2, 40, N'1 Giường King (2m x 2m2)'),
         (N'Junior Suite', N'Premium Ocean View', N'Tọa lạc tại các tầng cao nhất của khách sạn, mang đến không gian yên tĩnh tuyệt đối cùng đặc quyền truy cập Club Lounge riêng biệt.', 4000000, 1, 2, 45, N'1 Giường King (2m x 2m2)'),
         (N'VIP Room', N'Executive Club Room', N'Trải nghiệm đẳng cấp thương gia với không gian làm việc rộng rãi, trang thiết bị tối tân và đặc quyền truy cập khu vực Club Lounge.', 6500000, 1, 2, 65, N'1 Giường King (2m x 2m2)'),
@@ -17,30 +18,38 @@ BEGIN TRY
         (NULL, N'Presidential Suite (Phòng Tổng Thống)', N'Đỉnh cao của sự xa hoa, tọa lạc tại góc đẹp nhất của khách sạn với tầm nhìn Panorama 270 độ. Được thiết kế dành riêng cho giới tinh hoa, nguyên thủ quốc gia hoặc các ngôi sao hạng A.', 50000000, 1, 2, 250, N'1 Giường Super King');
 
     IF EXISTS (
-        SELECT cfg.Name FROM @types cfg JOIN dbo.RoomType t WITH (UPDLOCK,HOLDLOCK)
+        SELECT cfg.Name FROM #RoomCatalogTypes cfg JOIN dbo.RoomType t WITH (UPDLOCK,HOLDLOCK)
             ON t.Name IN (cfg.Name, cfg.LegacyName)
         GROUP BY cfg.Name HAVING COUNT(*) > 1
     )
         THROW 51000, 'A catalog name matches more than one room type. Resolve the duplicate before migrating.', 1;
 
-    IF EXISTS (
-        SELECT 1 FROM @types cfg JOIN dbo.RoomType t ON t.Name IN (cfg.Name, cfg.LegacyName)
-        JOIN dbo.Room r ON r.RoomTypeID=t.RoomTypeID
-        JOIN dbo.BookingDetail d ON d.RoomNumber=r.RoomNumber
-        JOIN dbo.Booking b ON b.BookingID=d.BookingID
-        WHERE d.GuestCount>cfg.Capacity AND (
-            b.Status='checked_in' OR (b.Status IN ('pending','confirmed')
-            AND d.CheckOutDate>CAST(SYSUTCDATETIME() AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time' AS date)))
-    )
-        THROW 51001, 'An active booking exceeds the new room capacity. Reassign it before migrating.', 1;
+    -- Schema cũ suy loại từ phòng. Đơn chưa xếp dùng loại đã lưu.
+    DECLARE @detailRoomType nvarchar(80) =
+        CASE WHEN COL_LENGTH(N'dbo.BookingDetail', N'RoomTypeID') IS NULL
+             THEN N'r.RoomTypeID' ELSE N'COALESCE(d.RoomTypeID,r.RoomTypeID)' END;
+    DECLARE @checkCapacity nvarchar(max) = N'
+        IF EXISTS (
+            SELECT 1 FROM dbo.BookingDetail d
+            JOIN dbo.Booking b ON b.BookingID=d.BookingID
+            LEFT JOIN dbo.Room r ON r.RoomNumber=d.RoomNumber
+            JOIN dbo.RoomType t ON t.RoomTypeID=' + @detailRoomType + N'
+            JOIN #RoomCatalogTypes cfg ON t.Name IN (cfg.Name,cfg.LegacyName)
+            WHERE d.GuestCount>cfg.Capacity AND (
+                b.Status=''checked_in'' OR (b.Status IN (''pending'',''confirmed'')
+                AND d.CheckOutDate>CAST(SYSUTCDATETIME() AT TIME ZONE ''UTC'' AT TIME ZONE ''SE Asia Standard Time'' AS date))
+            )
+        )
+            THROW 51001, ''An active booking exceeds the new room capacity. Reassign it before migrating.'', 1;';
+    EXEC sys.sp_executesql @checkCapacity;
 
     UPDATE t SET Name=cfg.Name, Description=cfg.Description, PricePerNight=cfg.Price,
         Beds=cfg.Beds, Capacity=cfg.Capacity, IsActive=1
-    FROM dbo.RoomType t JOIN @types cfg ON t.Name IN (cfg.Name, cfg.LegacyName);
+    FROM dbo.RoomType t JOIN #RoomCatalogTypes cfg ON t.Name IN (cfg.Name, cfg.LegacyName);
 
     INSERT dbo.RoomType (Name,Description,PricePerNight,Beds,Capacity,Picture,IsActive)
     SELECT cfg.Name,cfg.Description,cfg.Price,cfg.Beds,cfg.Capacity,N'roomType/VipProMaxRoom.jpg',1
-    FROM @types cfg
+    FROM #RoomCatalogTypes cfg
     WHERE NOT EXISTS (SELECT 1 FROM dbo.RoomType t WHERE t.Name=cfg.Name);
 
     UPDATE dbo.RoomType SET IsActive=0 WHERE Name IN (N'QA Family',N'QA Standard');
@@ -54,11 +63,11 @@ BEGIN TRY
 
     UPDATE spec SET AreaM2=cfg.AreaM2, BedLabel=cfg.BedLabel
     FROM dbo.RoomTypeSpecifications spec JOIN dbo.RoomType t ON spec.RoomTypeID=t.RoomTypeID
-    JOIN @types cfg ON cfg.Name=t.Name;
+    JOIN #RoomCatalogTypes cfg ON cfg.Name=t.Name;
 
     INSERT dbo.RoomTypeSpecifications (RoomTypeID,AreaM2,BedLabel)
     SELECT t.RoomTypeID,cfg.AreaM2,cfg.BedLabel
-    FROM dbo.RoomType t JOIN @types cfg ON cfg.Name=t.Name
+    FROM dbo.RoomType t JOIN #RoomCatalogTypes cfg ON cfg.Name=t.Name
     WHERE NOT EXISTS (SELECT 1 FROM dbo.RoomTypeSpecifications spec WHERE spec.RoomTypeID=t.RoomTypeID);
 
     INSERT dbo.Room (RoomTypeID,Status)
@@ -118,6 +127,7 @@ BEGIN TRY
     WHERE NOT EXISTS (SELECT 1 FROM dbo.RoomTypeAmenity link
         WHERE link.RoomTypeID=t.RoomTypeID AND link.AmenityID=a.AmenityID);
 
+    DROP TABLE #RoomCatalogTypes;
     COMMIT TRANSACTION;
 END TRY
 BEGIN CATCH

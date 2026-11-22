@@ -31,7 +31,7 @@ public class LoginServlet extends HttpServlet {
 
         AuthSupport.noStore(res);
 
-        
+        // Đã đăng nhập hợp lệ thì trở về trang của tài khoản hiện tại.
         if (handleExistingLogin(req, res)) {
             return;
         }
@@ -51,7 +51,7 @@ public class LoginServlet extends HttpServlet {
                     + "Please sign in again.");
         }
 
-        
+        // Chỉ khôi phục username đã nhớ, không khôi phục mật khẩu.
         Cookie[] cookies = req.getCookies();
 
         if (cookies != null) {
@@ -65,20 +65,16 @@ public class LoginServlet extends HttpServlet {
                         if (remembered.length() <= 100
                                 && remembered.chars()
                                         .noneMatch(Character::isISOControl)) {
-
                             req.setAttribute(
                                     "enteredUsername",
                                     remembered);
-
                             req.setAttribute(
                                     "rememberChecked",
                                     Boolean.TRUE);
                         }
-
                     } catch (IllegalArgumentException ignored) {
-                        
+                        // Cookie sai định dạng không làm lỗi trang login.
                     }
-
                     break;
                 }
             }
@@ -98,7 +94,7 @@ public class LoginServlet extends HttpServlet {
         req.setCharacterEncoding("UTF-8");
         AuthSupport.noStore(res);
 
-        
+        // Form cũ không được ghi đè tài khoản đang đăng nhập.
         if (handleExistingLogin(req, res)) {
             return;
         }
@@ -117,23 +113,22 @@ public class LoginServlet extends HttpServlet {
         String identifier = AuthSupport.text(
                 req.getParameter("username"));
 
-        
+        // Không trim mật khẩu hoặc áp dụng quy tắc mật khẩu mới.
         String password = req.getParameter("password");
 
-        boolean remember =
-                "on".equals(req.getParameter("remember"));
+        boolean remember
+                = "on".equals(req.getParameter("remember"));
 
         req.setAttribute("enteredUsername", identifier);
         req.setAttribute("rememberChecked", remember);
 
-        
+        // Giới hạn yêu cầu theo IP.
+        // Giới hạn 5 lần sai theo tài khoản vẫn do UserDAO xử lý.
         if (!AuthRateLimiter.allow(
                 "login-ip:" + req.getRemoteAddr(),
                 50,
                 15 * 60 * 1000L)) {
-
             res.setStatus(429);
-
             fail(req, res,
                     "Too many login requests. Please try again later.");
             return;
@@ -145,21 +140,18 @@ public class LoginServlet extends HttpServlet {
                 || password == null
                 || password.isEmpty()
                 || password.length() > 128) {
-
             fail(req, res,
                     "Enter a valid username or email and password.");
             return;
         }
 
-        UserDAO.AuthenticationResult result =
-                new UserDAO().authenticate(identifier, password);
+        UserDAO.AuthenticationResult result
+                = new UserDAO().authenticate(identifier, password);
 
         if (!result.isSuccess()) {
             if (UserDAO.LOGIN_RATE_LIMITED.equals(
                     result.getStatus())) {
-
                 res.setStatus(429);
-
                 fail(req, res,
                         "Too many failed login attempts. "
                         + "Login is temporarily blocked. "
@@ -169,14 +161,13 @@ public class LoginServlet extends HttpServlet {
 
             if (UserDAO.LOGIN_ERROR.equals(result.getStatus())) {
                 res.setStatus(503);
-
                 fail(req, res,
                         "Login is temporarily unavailable. "
                         + "Please try again later.");
                 return;
             }
 
-            
+            // Dùng chung thông báo cho tài khoản sai/khóa/ngừng hoạt động.
             fail(req, res,
                     "Invalid credentials or account unavailable.");
             return;
@@ -185,16 +176,14 @@ public class LoginServlet extends HttpServlet {
         User user = result.getUser();
         Customer customer = null;
 
-        
+        // Customer phải có hồ sơ khách trước khi tạo trạng thái đăng nhập.
         if ("customer".equalsIgnoreCase(user.getRole())) {
             try {
                 customer = new CustomerDAO()
                         .getCustomerByUserID(user.getId());
-
             } catch (RuntimeException ex) {
                 log("Customer profile lookup failed", ex);
                 res.setStatus(503);
-
                 fail(req, res,
                         "Customer profile is temporarily unavailable.");
                 return;
@@ -202,7 +191,6 @@ public class LoginServlet extends HttpServlet {
 
             if (customer == null) {
                 res.setStatus(503);
-
                 fail(req, res,
                         "Customer profile could not be loaded.");
                 return;
@@ -215,16 +203,19 @@ public class LoginServlet extends HttpServlet {
         }
 
         try {
-           
+            /*
+             * Đồng bộ bước xác lập đăng nhập:
+             * hai tab gửi đồng thời không ghi đè tài khoản của nhau.
+             */
             synchronized (loginSession) {
-                
+                // Phát hiện session bị hủy trong lúc xác thực.
                 loginSession.getAttribute("loggedUser");
 
                 if (handleExistingLogin(req, res)) {
                     return;
                 }
 
-                
+                // Đổi session ID nhưng giữ thông tin tìm phòng của Guest.
                 req.changeSessionId();
 
                 AuthSupport.clearRecovery(loginSession);
@@ -236,11 +227,11 @@ public class LoginServlet extends HttpServlet {
                     loginSession.setAttribute("customer", customer);
                 }
 
-                
+                // Đổi token form sau khi đăng nhập.
                 loginSession.removeAttribute("csrfToken");
                 AuthSupport.token(loginSession);
 
-                
+                // Nhớ username thực tế kể cả khi đăng nhập bằng email.
                 AuthSupport.remember(
                         req,
                         res,
@@ -248,26 +239,27 @@ public class LoginServlet extends HttpServlet {
 
                 String target = homeForRole(user.getRole());
 
-                
+                // Giữ nguyên các đường quay lại đặt phòng hiện tại.
                 if ("customer".equalsIgnoreCase(user.getRole())) {
-                    Object pending =
-                            loginSession.getAttribute("pendingBookingUrl");
+                    Object pending
+                            = loginSession.getAttribute("pendingBookingUrl");
 
                     if (pending instanceof String) {
                         String pendingUrl = ((String) pending).trim();
 
                         if (pendingUrl.matches(
                                 "/booking\\?roomNumber=[0-9]+")) {
-
                             target = pendingUrl.replaceFirst(
                                     "^/booking",
                                     "/details");
 
+                        } else if (pendingUrl.matches("/booking\\?roomTypeId=[0-9]+")) {
+                            target = pendingUrl;
+
                         } else if (pendingUrl.matches(
                                 "/details\\?roomNumber=[0-9]+")
                                 || pendingUrl.matches(
-                                "/(?:payment|checkout)\\?draft=[0-9a-f-]{36}")) {
-
+                                        "/(?:payment|checkout)\\?draft=[0-9a-f-]{36}")) {
                             target = pendingUrl.replaceFirst(
                                     "^/checkout",
                                     "/payment");
@@ -280,13 +272,15 @@ public class LoginServlet extends HttpServlet {
                 res.sendRedirect(
                         req.getContextPath() + target);
             }
-
         } catch (IllegalStateException ex) {
             expiredForm(res);
         }
     }
 
-    
+    /*
+     * true: đã xử lý response, caller phải dừng.
+     * false: chưa đăng nhập, tiếp tục luồng login.
+     */
     private boolean handleExistingLogin(
             HttpServletRequest req,
             HttpServletResponse res)
@@ -312,11 +306,9 @@ public class LoginServlet extends HttpServlet {
                 try {
                     current = new UserDAO()
                             .getUserById(previous.getId());
-
                 } catch (IllegalStateException ex) {
                     log("Unable to validate existing login", ex);
                     res.setStatus(503);
-
                     fail(req, res,
                             "Login is temporarily unavailable. "
                             + "Please try again later.");
@@ -335,7 +327,7 @@ public class LoginServlet extends HttpServlet {
                                 current.getPassword());
 
                 if (!valid) {
-                    
+                    // Xóa dữ liệu session của tài khoản không còn hợp lệ.
                     session.invalidate();
 
                     if ("POST".equalsIgnoreCase(req.getMethod())) {
@@ -357,13 +349,11 @@ public class LoginServlet extends HttpServlet {
                         + homeForRole(current.getRole()));
                 return true;
             }
-
         } catch (IllegalStateException ex) {
             if ("POST".equalsIgnoreCase(req.getMethod())) {
                 expiredForm(res);
                 return true;
             }
-
             return false;
         }
     }
@@ -393,7 +383,6 @@ public class LoginServlet extends HttpServlet {
 
     private void expiredForm(HttpServletResponse res)
             throws IOException {
-
         res.sendError(
                 HttpServletResponse.SC_FORBIDDEN,
                 "Form expired. Reload the page and try again.");

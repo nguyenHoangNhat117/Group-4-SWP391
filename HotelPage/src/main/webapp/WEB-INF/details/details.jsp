@@ -189,7 +189,7 @@
 
                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                     <div>
-                        <h1 class="fw-bold mb-2"><c:if test="${not empty roomType}"><ui:text key="screen.911ea89c43d9dbb8"/> ${room.roomNumber} &mdash; </c:if><c:out value="${roomType.name}"/></h1>
+                        <h1 class="fw-bold mb-2"><c:if test="${not empty room}"><ui:text key="screen.911ea89c43d9dbb8"/> ${room.roomNumber} &mdash; </c:if><c:out value="${roomType.name}"/></h1>
                             <div class="d-flex flex-wrap align-items-center text-muted gap-3">
                             <c:if test="${not empty room}">
                                 <span>
@@ -304,9 +304,6 @@
                                   data-endpoint="<c:url value='/details'/>" data-capacity="${roomType.capacity}">
                                 <input type="hidden" name="action" value="review">
                                 <input type="hidden" name="roomTypeId" value="${roomType.id}">
-                                <c:if test="${not empty room}">
-                                    <input type="hidden" name="roomNumber" value="${room.roomNumber}">
-                                </c:if>
                                 <div class="row g-3 mb-3">
                                     <div class="col-12">
                                         <label for="detailBookingDates" class="form-label fw-semibold"><ui:text key="screen.c832b0d0d927dcff"/></label>

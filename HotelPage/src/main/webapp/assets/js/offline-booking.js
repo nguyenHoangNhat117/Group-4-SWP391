@@ -5,7 +5,7 @@
     const fields = form.elements;
     const roomPicker = document.getElementById('obRoomPicker');
     const roomSearch = document.getElementById('obRoomSearch');
-    const roomChoices = Array.from(form.querySelectorAll('input[name="roomNumber"]'));
+    const roomChoices = Array.from(form.querySelectorAll('input[name="roomTypeId"]'));
     const previous = document.getElementById('obRoomsPrevious');
     const nextPage = document.getElementById('obRoomsNext');
     const promotion = fields.promotionCode;
@@ -23,7 +23,7 @@
             return window.HotelLanguage.translate(en, args);
         return (isVi() ? vi : en).replace(/\{(\w+)\}/g, (match, key) => args[key] ?? match);
     };
-    const signatureFields = ['checkIn', 'checkOut', 'guests', 'roomNumber', 'customerMode',
+    const signatureFields = ['checkIn', 'checkOut', 'guests', 'quantity', 'roomTypeId', 'customerMode',
         'customerId', 'firstName', 'lastName', 'email', 'phone', 'promotionCode', 'specialRequest'];
     const show = (id, text) => {
         const node = document.getElementById(id);
@@ -35,7 +35,7 @@
         if (node)
             node.hidden = value;
     };
-    const stayKey = () => JSON.stringify([fields.checkIn.value, fields.checkOut.value, fields.guests.value]);
+    const stayKey = () => JSON.stringify([fields.checkIn.value, fields.checkOut.value, fields.guests.value, fields.quantity.value]);
     function signature() {
         const data = new FormData(form);
         return JSON.stringify(signatureFields.map(key => String(data.get(key) || '').trim()));
@@ -56,14 +56,16 @@
     const searchedStay = form.dataset.searchKey || stayKey();
     const reviewedSignature = form.dataset.quoteSignature || signature();
     let quoteExpired = reviewed && !(Number(form.dataset.quoteAge) > 0);
+    const quantity = () => Number(fields.quantity.value);
     const nights = () => (Date.parse(fields.checkOut.value + 'T00:00:00Z')
-        - Date.parse(fields.checkIn.value + 'T00:00:00Z')) / 86400000;
+                - Date.parse(fields.checkIn.value + 'T00:00:00Z')) / 86400000;
 
     function renderRoomList() {
-        if (!roomPicker) return;
+        if (!roomPicker)
+            return;
         const query = roomSearch.value.trim().toLocaleLowerCase().replace(/^#/, '');
         const matches = roomChoices.filter(input =>
-            input.value.includes(query) || input.dataset.label.toLocaleLowerCase().includes(query));
+            input.dataset.label.toLocaleLowerCase().includes(query));
         const offset = roomPage * pageSize;
         const visible = new Set(matches.slice(offset, offset + pageSize));
         roomChoices.forEach(input => {
@@ -80,7 +82,8 @@
         renderRoomList();
     });
     roomSearch?.addEventListener('keydown', event => {
-        if (event.key === 'Enter') event.preventDefault();
+        if (event.key === 'Enter')
+            event.preventDefault();
     });
     previous?.addEventListener('click', () => {
         roomPage--;
@@ -92,10 +95,11 @@
     });
 
     function updatePromotions(room) {
-        const gross = room && nights() > 0 ? Number(room.dataset.price) * nights() : null;
+        const gross = room && nights() > 0 ? Number(room.dataset.price) * nights() * quantity() : null;
         promotionOptions.forEach(option => {
             const eligible = gross !== null && Number(option.dataset.minimum) <= gross;
-            if (!eligible && option.selected) promotion.value = '';
+            if (!eligible && option.selected)
+                promotion.value = '';
             option.hidden = !eligible;
             option.disabled = !eligible;
         });
@@ -106,22 +110,28 @@
         const room = selectedRoom();
         const stayNights = nights();
         const date = value => value ? value.split('-').reverse().join('/') : '—';
-        show('obRoom', room ? translated('Room {number}', 'Phòng {number}', {number: room.value}) : translated('Select a room', 'Chọn phòng'));
-        show('obType', room ? room.dataset.label : translated('Booking information', 'Thông tin đặt phòng'));
+        show('obRoom', room ? room.dataset.label : 'Chọn loại phòng');
+        show('obType', room ? `${quantity()} phòng` : 'Thông tin đặt phòng');
         show('obDates', date(fields.checkIn.value) + ' → ' + date(fields.checkOut.value));
         show('obNights', stayNights > 0 ? translated(stayNights === 1 ? '{count} night' : '{count} nights', '{count} đêm', {count: stayNights}) : '—');
         show('obGuests', fields.guests.value ? translated(Number(fields.guests.value) === 1 ? '{count} guest' : '{count} guests', '{count} khách', {count: fields.guests.value}) : '—');
         const price = Number(room?.dataset.price);
         const money = new Intl.NumberFormat(isVi() ? 'vi-VN' : 'en-US', {style: 'currency', currency: 'VND'});
-        show('obAmount', room && stayNights > 0 && Number.isFinite(price) ? money.format(price * stayNights) : '—');
+        show('obAmount', room && stayNights > 0 && Number.isFinite(price) ? money.format(price * stayNights * quantity()) : '—');
     }
     function update() {
         const stale = stayKey() !== searchedStay;
         roomChoices.forEach(input => {
-            if (stale) input.checked = false;
-            input.disabled = stale || uncertain;
+            if (stale)
+                input.checked = false;
+            const insufficient = quantity() > Number(input.dataset.available);
+            if (insufficient && !uncertain)
+                input.checked = false;
+            input.disabled = stale || uncertain || insufficient;
         });
         const room = selectedRoom();
+        const notReady = room && room.dataset.ready !== '' && Number(room.dataset.ready) < quantity();
+        hide('obReadinessWarning', !notReady);
         updatePromotions(room);
         hide('obSearchChanged', !stale);
         renderSummary();
@@ -133,10 +143,10 @@
             }
         }
         if (preview)
-            preview.disabled = !room || uncertain;
+            preview.disabled = !room || notReady || uncertain;
         const quoteChanged = !reviewed || quoteExpired || signature() !== reviewedSignature;
         if (create)
-            create.disabled = quoteChanged || !room || uncertain;
+            create.disabled = quoteChanged || !room || notReady || uncertain;
         hide('obQuoteChanged', !quoteChanged);
         const quote = document.getElementById('obReviewedQuote');
         if (quote)

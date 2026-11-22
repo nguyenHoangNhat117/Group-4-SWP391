@@ -16,7 +16,8 @@ public final class OfflineBookingDraft implements Serializable {
     public final LocalDate checkOut;
 
     public final int guests;
-    public final int roomNumber;
+    public final int roomTypeId;
+    public final int quantity;
 
     public final Integer customerId;
 
@@ -31,7 +32,8 @@ public final class OfflineBookingDraft implements Serializable {
             LocalDate checkIn,
             LocalDate checkOut,
             int guests,
-            int roomNumber,
+            int roomTypeId,
+            int quantity,
             Integer customerId,
             String firstName,
             String lastName,
@@ -43,7 +45,8 @@ public final class OfflineBookingDraft implements Serializable {
         this.checkIn = checkIn;
         this.checkOut = checkOut;
         this.guests = guests;
-        this.roomNumber = roomNumber;
+        this.roomTypeId = roomTypeId;
+        this.quantity = quantity;
         this.customerId = customerId;
 
         this.firstName = AuthSupport.text(firstName);
@@ -59,10 +62,10 @@ public final class OfflineBookingDraft implements Serializable {
     public void validate(LocalDate today) {
         validateStay(checkIn, checkOut, guests, today);
 
-        if (roomNumber <= 0
+        if (roomTypeId <= 0 || quantity < 1 || quantity > guests
                 || (customerId != null && customerId <= 0)) {
             throw new IllegalArgumentException(
-                    "Vui lòng chọn phòng và khách hàng hợp lệ."
+                    "Vui lòng chọn loại phòng, số lượng và khách hàng hợp lệ."
             );
         }
 
@@ -98,7 +101,7 @@ public final class OfflineBookingDraft implements Serializable {
                 || from.isBefore(today)
                 || !to.isAfter(from)
                 || to.isAfter(today.plusDays(730))
-                || java.time.temporal.ChronoUnit.DAYS.between(from,to)>365
+                || java.time.temporal.ChronoUnit.DAYS.between(from, to) > 365
                 || guests <= 0
                 || guests > 1000) {
             throw new IllegalArgumentException(
@@ -129,8 +132,12 @@ public final class OfflineBookingDraft implements Serializable {
         return guests;
     }
 
-    public int getRoomNumber() {
-        return roomNumber;
+    public int getRoomTypeId() {
+        return roomTypeId;
+    }
+
+    public int getQuantity() {
+        return quantity;
     }
 
     public String getRequestKey() {

@@ -11,10 +11,10 @@
         <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" />
         <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
-            <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
-</head>
+    </head>
     <body>
         <div class="body-wrapper">
             <%@include file="/WEB-INF/include/header.jsp" %>
@@ -33,14 +33,15 @@
 
                     <h2 class="text-center mb-4"><ui:text key="screen.c5b08e9a585393a8"/></h2>
 
-                    <!-- Hidden customer ID from session -->
-                    <input type="hidden" name="customer-id" value="${sessionScope.customerId}" />
-
-                    <!-- Room Number -->
                     <div class="mb-3">
-                        <input type="text" class="form-control form-control-lg"
-                               placeholder="${requestScope.i18n['screen.f91ba3e6d86ddac0']}" value="Room ${param.roomNumber}" readonly required data-i18n-placeholder="screen.f91ba3e6d86ddac0">
-                        <input type="hidden" name="room-number" value="${param.roomNumber}">
+                        <p><strong><c:out value="${roomType.name}"/></strong> · Còn ${available} phòng</p>
+                        <input type="hidden" name="roomTypeId" value="${roomType.id}">
+                        <label for="quantity" class="form-label">Số phòng</label>
+                        <input id="quantity" name="quantity" class="form-control" type="number"
+                               min="1" max="${available}" value="1" required>
+                        <label for="guest-count" class="form-label mt-2">Tổng số khách</label>
+                        <input id="guest-count" name="guest-count" class="form-control" type="number"
+                               min="1" max="1000" value="1" required>
                     </div>
 
                     <!-- Booking Dates -->
@@ -52,7 +53,7 @@
                     <!-- Total Price Display -->
                     <div class="mb-3">
                         <p class="fs-5 fw-bold text-center text-dark border rounded py-2 bg-white">
-                            <ui:text key="screen.d104a659abae9ebc"/> <span class="text-primary" id="totalPrice"><ui:text key="screen.d5ad0a70d0af2aaa"/></span> USD
+                            <ui:text key="screen.d104a659abae9ebc"/> <span class="text-primary" id="totalPrice"><ui:text key="screen.d5ad0a70d0af2aaa"/></span>
                         </p>
                     </div>
 
@@ -69,8 +70,8 @@
                     </div>
 
                     <div class="border rounded-3 p-3 mb-4 bg-white">
-                        <div class="d-flex justify-content-between"><span><ui:text key="screen.bded39f26f017751"/></span><strong class="text-success">$<span id="payNowAmount">0.00</span></strong></div>
-                        <div class="d-flex justify-content-between"><span><ui:text key="screen.8d779b7e1ba93913"/></span><strong>$<span id="remainingAmount">0.00</span></strong></div>
+                        <div class="d-flex justify-content-between"><span><ui:text key="screen.bded39f26f017751"/></span><strong class="text-success"><span id="payNowAmount">0.00</span></strong></div>
+                        <div class="d-flex justify-content-between"><span><ui:text key="screen.8d779b7e1ba93913"/></span><strong><span id="remainingAmount">0.00</span></strong></div>
                     </div>
 
                     <button type="submit" class="btn btn-lg w-100 text-white" style="background-color: #b29575;">
@@ -84,30 +85,15 @@
         <script src="<%= request.getContextPath()%>/assets/js/bootstrap.bundle.min.js"></script>
         <script>
             document.addEventListener("DOMContentLoaded", function () {
-                const bookingDateInput = document.getElementById("booking-dates");
-                const pricePerNight = parseFloat(${room.roomType.pricePerNight}); // from hidden input
+                const pricePerNight = Number(${roomType.pricePerNight});
+                const nights = Number(${nights});
+                const quantity = document.getElementById("quantity");
+                const money = new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'});
                 const totalPriceElement = document.getElementById("totalPrice");
 
                 function calculateTotalPrice() {
-                    const dateRange = bookingDateInput.value;
-                    if (!dateRange.includes(" - "))
-                        return;
-
-                    const [start, end] = dateRange.split(" - ");
-                    const options = {year: "numeric", month: "short", day: "numeric"};
-
-                    // Parse dates using Date constructor and string format "MMM d, yyyy"
-                    const checkIn = new Date(start);
-                    const checkOut = new Date(end);
-
-                    const diffTime = checkOut - checkIn;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    const totalPrice = diffDays * pricePerNight;
-                    console.log(totalPrice.toFixed(2));
-                    console.log("Element:", totalPriceElement);
-
-                    totalPriceElement.textContent = totalPrice.toFixed(2);
+                    const totalPrice = nights * pricePerNight * Number(quantity.value);
+                    totalPriceElement.textContent = money.format(totalPrice);
                     updatePaymentSplit(totalPrice);
                 }
 
@@ -118,36 +104,15 @@
                         total = 0;
                     }
                     const payNow = total * Number(percentSelect.value) / 100;
-                    document.getElementById("payNowAmount").textContent = payNow.toFixed(2);
-                    document.getElementById("remainingAmount").textContent = Math.max(0, total - payNow).toFixed(2);
+                    document.getElementById("payNowAmount").textContent = money.format(payNow);
+                    document.getElementById("remainingAmount").textContent = money.format(Math.max(0, total - payNow));
                     document.getElementById("booking-submit-text").textContent = Number(percentSelect.value) === 0
-                        ? "Confirm Booking (No Payment Required)"
-                        : "Confirm Booking & Continue to Payment";
+                            ? "Confirm Booking (No Payment Required)"
+                            : "Confirm Booking & Continue to Payment";
                 }
 
-                percentSelect.addEventListener("change", function () {
-                    const t = parseFloat(totalPriceElement.textContent);
-                    updatePaymentSplit(t);
-                });
-
-                bookingDateInput.addEventListener("change", calculateTotalPrice);
-
-                // Initialize picker and calculate on load
-                const picker = new Litepicker({
-                    element: bookingDateInput,
-                    singleMode: false,
-                    numberOfMonths: 2,
-                    numberOfColumns: 2,
-                    autoApply: true,
-                    format: 'MMM D, YYYY',
-                    tooltipText: {one: 'day', other: 'days'},
-                    minDate: new Date(),
-                    setup: (picker) => {
-                        picker.on('selected', () => {
-                            calculateTotalPrice();
-                        });
-                    }
-                });
+                percentSelect.addEventListener("change", calculateTotalPrice);
+                quantity.addEventListener("input", calculateTotalPrice);
 
                 calculateTotalPrice();
             });
