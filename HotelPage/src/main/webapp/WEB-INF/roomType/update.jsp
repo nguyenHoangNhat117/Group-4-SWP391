@@ -2,11 +2,11 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title data-i18n="screen.dc3f08be28714b12">${requestScope.i18n['screen.dc3f08be28714b12']}</title>
+        <title>${requestScope.i18n['screen.dc3f08be28714b12']}</title>
         <link href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css" rel="stylesheet">
         <link href="${pageContext.request.contextPath}/assets/css/general.css" rel="stylesheet">
         <link href="${pageContext.request.contextPath}/assets/css/luxe-admin-suite.css" rel="stylesheet">
@@ -135,7 +135,7 @@
                             <h2 id="room-picture-title"><ui:text key="screen.1f26160dc5f15704"/></h2>
                             <img id="room-picture" class="room-types-preview" src="<c:out value='${pictureUrl}'/>"
                                  width="400" height="280" alt="<c:out value="${requestScope.i18n['room.type.image.preview']}"/>"
-                                 data-i18n-alt="room.type.image.preview">
+                                >
                             <label for="picture" class="form-label"><ui:text key="room.type.image.replace"/></label>
                             <input type="file" name="img" accept=".png,.jpg,.jpeg" class="form-control room-types-file"
                                    id="picture" aria-describedby="picture-help picture-error">

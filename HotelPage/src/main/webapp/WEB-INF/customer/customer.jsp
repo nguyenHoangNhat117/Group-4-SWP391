@@ -7,7 +7,7 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="vi">
 
 <head>
 
@@ -15,7 +15,7 @@
         http-equiv="Content-Type"
         content="text/html; charset=UTF-8">
 
-    <title data-i18n="screen.a44778c56e36d86e">${requestScope.i18n['screen.a44778c56e36d86e']}</title>
+    <title>${requestScope.i18n['screen.a44778c56e36d86e']}</title>
 
     <link
         href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
@@ -40,7 +40,7 @@
 
 
     <main><div class="container py-5">
-        <div class="luxe-admin-banner" aria-label="${requestScope.i18n['screen.0e2eadf8f0d866a1']}" data-i18n-aria-label="screen.0e2eadf8f0d866a1">
+        <div class="luxe-admin-banner" aria-label="${requestScope.i18n['screen.0e2eadf8f0d866a1']}">
           <span class="luxe-admin-banner-eyebrow">LUXE ESCAPE <span aria-hidden="true">/</span> <ui:text key="screen.7c431e4de4562299"/></span>
           <span class="luxe-admin-banner-title"><ui:text key="screen.0e2eadf8f0d866a1"/></span>
           <span class="luxe-admin-banner-art" aria-hidden="true"></span>
@@ -114,7 +114,7 @@
                         name="keyword"
                         class="form-control"
                         value="${keyword}"
-                        placeholder="${requestScope.i18n['screen.54738f70a52dbbf3']}" data-i18n-placeholder="screen.54738f70a52dbbf3">
+                        placeholder="${requestScope.i18n['screen.54738f70a52dbbf3']}">
 
                 </div>
 
@@ -138,7 +138,7 @@
                         class="form-select">
 
 
-                        <option value="" data-i18n="screen.05f567125eb09680">
+                        <option value="">
                             ${requestScope.i18n['screen.05f567125eb09680']}
                         </option>
 
@@ -147,7 +147,7 @@
                             value="active"
                             ${selectedStatus == 'active'
                               ? 'selected'
-                              : ''} data-i18n="screen.92340695899bd2d8">
+                              : ''}>
 
                             ${requestScope.i18n['screen.92340695899bd2d8']}
 
@@ -158,7 +158,7 @@
                             value="locked"
                             ${selectedStatus == 'locked'
                               ? 'selected'
-                              : ''} data-i18n="screen.a424e33d90931d1e">
+                              : ''}>
 
                             ${requestScope.i18n['screen.a424e33d90931d1e']}
 
@@ -169,7 +169,7 @@
                             value="inactive"
                             ${selectedStatus == 'inactive'
                               ? 'selected'
-                              : ''} data-i18n="screen.ac7c949f1211b781">
+                              : ''}>
 
                             ${requestScope.i18n['screen.ac7c949f1211b781']}
 
@@ -523,7 +523,7 @@
                             aria-label="${requestScope.i18n['screen.26cafe6bad420ca0']}"
                             class="d-flex
                                    justify-content-center
-                                   mt-4" data-i18n-aria-label="screen.26cafe6bad420ca0">
+                                   mt-4">
 
 
                             <ul class="pagination">

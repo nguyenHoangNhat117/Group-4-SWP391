@@ -8,7 +8,7 @@
 
 <!DOCTYPE html>
 
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
 
 <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,7 +17,7 @@
         http-equiv="Content-Type"
         content="text/html; charset=UTF-8">
 
-    <title data-i18n="screen.0927faa59b0c912b">${requestScope.i18n['screen.0927faa59b0c912b']}</title>
+    <title>${requestScope.i18n['screen.0927faa59b0c912b']}</title>
 
     <link
         href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
@@ -332,7 +332,7 @@
 
                         <nav
                             aria-label="${requestScope.i18n['screen.a7f23a9c7133cfc6']}"
-                            class="d-flex justify-content-center w-100 p-0 mt-4 customer-booking-pagination" data-i18n-aria-label="screen.a7f23a9c7133cfc6">
+                            class="d-flex justify-content-center w-100 p-0 mt-4 customer-booking-pagination">
 
 
                             <ul class="pagination flex-wrap justify-content-center mb-0">

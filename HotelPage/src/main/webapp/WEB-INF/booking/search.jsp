@@ -8,11 +8,11 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title data-i18n="screen.382994189a1da441">${requestScope.i18n['screen.382994189a1da441']}</title>
+        <title>${requestScope.i18n['screen.382994189a1da441']}</title>
 
         <!-- CSS Dependencies -->
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
@@ -173,7 +173,7 @@
                             <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
                                 <ui:text key="screen.0fd3e982eaee6db5"/>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}" data-i18n-aria-label="screen.7d9eb7acb13e2462"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}"></button>
                             </div>
                         </c:if>
 
@@ -181,7 +181,7 @@
                             <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
                                 <ui:text key="screen.5effc47a5bae9591"/>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}" data-i18n-aria-label="screen.7d9eb7acb13e2462"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}"></button>
                             </div>
                         </c:if>
 
@@ -189,7 +189,7 @@
                             <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
                                 <ui:text key="screen.fd750fe8304a0f1d"/>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}" data-i18n-aria-label="screen.7d9eb7acb13e2462"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}"></button>
                             </div>
                         </c:if>
 
@@ -208,7 +208,7 @@
                                                placeholder="${requestScope.i18n['screen.d54be811186bb99f']}"
                                                name="booking-dates"
                                                value="${sessionScope.dates}"
-                                               readonly required data-i18n-placeholder="screen.d54be811186bb99f">
+                                               readonly required>
                                         <small id="search-calendar-status" class="visually-hidden" aria-live="polite"
                                            data-loading="${requestScope.i18n['room.calendar.loading']}"
                                            data-error="${requestScope.i18n['room.calendar.error']}"
@@ -238,7 +238,7 @@
                                         <label for="room-type-id"><ui:text key="screen.82dea9a01c0033ec"/></label>
                                         <i class="bi bi-door-open-fill"></i>
                                         <select class="form-select" id="room-type-id" name="room-type-id">
-                                            <option value="" data-i18n="screen.bc01325482f36133">${requestScope.i18n['screen.bc01325482f36133']}</option>
+                                            <option value="">${requestScope.i18n['screen.bc01325482f36133']}</option>
                                             <c:forEach var="rt" items="${requestScope.roomTypes}">
                                                 <option value="${rt.id}" ${sessionScope.searchRoomTypeId == rt.id ? 'selected' : ''}>
                                                     <c:out value="${rt.name}"/>

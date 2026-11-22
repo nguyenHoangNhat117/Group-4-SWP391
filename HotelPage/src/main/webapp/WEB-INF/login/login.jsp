@@ -15,13 +15,13 @@
     );
 %>
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0">
 
-        <title data-i18n="screen.2b90f3ff0acd9fb4">${requestScope.i18n['screen.2b90f3ff0acd9fb4']}</title>
+        <title>${requestScope.i18n['screen.2b90f3ff0acd9fb4']}</title>
 
         <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
               rel="stylesheet">

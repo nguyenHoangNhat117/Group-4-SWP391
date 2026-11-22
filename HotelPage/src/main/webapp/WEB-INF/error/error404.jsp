@@ -1,10 +1,10 @@
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ page isErrorPage="true" %>
 <!DOCTYPE html>
-<html>
+<html lang="vi">
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title data-i18n="screen.3f855ba1babcbd8a">${requestScope.i18n['screen.3f855ba1babcbd8a']}</title>
+        <title>${requestScope.i18n['screen.3f855ba1babcbd8a']}</title>
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
@@ -16,7 +16,7 @@
             <main class="d-flex flex-column align-items-center pt-3">
                 <h1 class="pt-3 fw-bold ms-4"><ui:text key="screen.801a308be1879f70"/></h1>
                 <div class="w-25">
-                    <img class="img-fluid object-fit-cover" src="<%= request.getContextPath()%>/assets/img/404.jpg" alt="${requestScope.i18n['screen.2aab0875a8e87d72']}" data-i18n-alt="screen.2aab0875a8e87d72"/>  
+                    <img class="img-fluid object-fit-cover" src="<%= request.getContextPath()%>/assets/img/404.jpg" alt="${requestScope.i18n['screen.2aab0875a8e87d72']}"/>
                 </div>
 
                 <p><ui:text key="screen.e665e7520e63cd83"/></p>

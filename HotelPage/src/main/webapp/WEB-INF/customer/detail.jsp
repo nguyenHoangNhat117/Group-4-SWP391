@@ -7,7 +7,7 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="vi">
 
     <head>
 
@@ -15,7 +15,7 @@
             http-equiv="Content-Type"
             content="text/html; charset=UTF-8">
 
-        <title data-i18n="screen.559a9e5847c0b407">${requestScope.i18n['screen.559a9e5847c0b407']}</title>
+        <title>${requestScope.i18n['screen.559a9e5847c0b407']}</title>
 
         <link
             href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
@@ -362,7 +362,7 @@
                                 <input class="form-control" name="street" maxlength="100" value="<c:out value='${customerDetail.street}'/>">
                             </div>
                             <div class="col-12 text-end">
-                                <button type="submit" class="btn btn-primary" onclick="return confirm('Update this customer information?');">
+                                <button type="submit" class="btn btn-primary" onclick="return confirm('Cập nhật thông tin khách hàng này?');">
                                     <ui:text key="screen.593f5aaf288e59f6"/>
                                 </button>
                             </div>
@@ -520,7 +520,7 @@
                                         value="active"
                                         ${customerDetail.user.accountStatus == 'active'
                                           ? 'selected'
-                                          : ''} data-i18n="screen.92340695899bd2d8">
+                                          : ''}>
 
                                         ${requestScope.i18n['screen.92340695899bd2d8']}
 
@@ -531,7 +531,7 @@
                                         value="locked"
                                         ${customerDetail.user.accountStatus == 'locked'
                                           ? 'selected'
-                                          : ''} data-i18n="screen.a424e33d90931d1e">
+                                          : ''}>
 
                                         ${requestScope.i18n['screen.a424e33d90931d1e']}
 
@@ -542,7 +542,7 @@
                                         value="inactive"
                                         ${customerDetail.user.accountStatus == 'inactive'
                                           ? 'selected'
-                                          : ''} data-i18n="screen.ac7c949f1211b781">
+                                          : ''}>
 
                                         ${requestScope.i18n['screen.ac7c949f1211b781']}
 
@@ -561,7 +561,7 @@
                                 <button
                                     type="submit"
                                     class="btn btn-primary w-100"
-                                    onclick="return confirm('Change this customer account status?');">
+                                    onclick="return confirm('Đổi trạng thái tài khoản khách hàng này?');">
 
                                     <ui:text key="screen.3030ddce9921f3f9"/>
 

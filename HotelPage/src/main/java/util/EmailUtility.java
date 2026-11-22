@@ -23,12 +23,12 @@ public final class EmailUtility {
             String otp
     ) throws MessagingException {
 
-        send(to, "Luxe Escape - Password reset OTP",
-                "Your password reset OTP is: " + otp
-                + "\n\nThis code expires in 5 minutes."
-                + "\nYou have a maximum of 3 verification attempts."
-                + "\nDo not share this code."
-                + "\n\nIgnore this email if you did not request a password reset.");
+        send(to, "Luxe Escape - Mã xác minh đặt lại mật khẩu",
+                "Mã xác minh đặt lại mật khẩu của bạn là: " + otp
+                + "\n\nMã có hiệu lực trong 5 phút."
+                + "\nBạn có tối đa 3 lần xác minh."
+                + "\nVui lòng giữ mã xác minh cho riêng mình."
+                + "\n\nBạn có thể bỏ qua email này nếu không yêu cầu đặt lại mật khẩu.");
     }
 
     /**
@@ -50,12 +50,12 @@ public final class EmailUtility {
         while (base.endsWith("/")) {
             base = base.substring(0, base.length() - 1);
         }
-        send(to, "Luxe Escape - Your new account",
-                "Your Luxe Escape account has been created."
-                + "\nUsername: " + username + "\nInitial password: " + password
-                + "\nRole: " + role + "\nLogin: " + base + "/login"
-                + "\n\nPlease change your initial password after signing in using Change Password."
-                + "\nDo not forward this email or share your password.");
+        send(to, "Luxe Escape - Tài khoản mới của bạn",
+                "Tài khoản Luxe Escape của bạn đã được tạo."
+                + "\nTên đăng nhập: " + username + "\nMật khẩu ban đầu: " + password
+                + "\nVai trò: " + MessageTranslations.text(role) + "\nĐăng nhập: " + base + "/login"
+                + "\n\nSau khi đăng nhập, vui lòng dùng chức năng Đổi mật khẩu để đổi mật khẩu ban đầu."
+                + "\nVui lòng giữ kín email và mật khẩu của bạn.");
     }
 
     private static void send(String to, String subject, String body) throws MessagingException {

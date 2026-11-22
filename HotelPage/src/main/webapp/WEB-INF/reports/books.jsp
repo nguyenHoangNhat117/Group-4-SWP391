@@ -8,13 +8,13 @@
 <c:set var="ctx" value="${pageContext.request.contextPath}" />
 
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}" class="hotel-reports-page">
+<html lang="vi" class="hotel-reports-page">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title data-i18n="screen.d087fa13cc38edb1">${requestScope.i18n['screen.d087fa13cc38edb1']}</title>
+    <title>${requestScope.i18n['screen.d087fa13cc38edb1']}</title>
 
     <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="${ctx}/assets/css/general.css">
@@ -161,7 +161,7 @@
 
                                     <td>
                                         <span class="report-status <c:out value='${booking.status}' />">
-                                            <c:out value="${fn:replace(booking.status, '_', ' ')}" />
+                                            <ui:message text="${fn:replace(booking.status, '_', ' ')}"/>
                                         </span>
 
                                         <c:if test="${booking.status == 'cancelled'}">

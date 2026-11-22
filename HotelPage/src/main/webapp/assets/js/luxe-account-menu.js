@@ -31,10 +31,6 @@
                 "#navbar"
                 );
 
-        const language = header.querySelector(
-                ".hotel-language details"
-                );
-
         const compactScreen = window.matchMedia(
                 "(max-width: 1580px)"
                 );
@@ -56,12 +52,6 @@
             }
         }
 
-        function closeLanguage() {
-            if (language) {
-                language.open = false;
-            }
-        }
-
         if (account && accountTrigger) {
             accountTrigger.setAttribute(
                     "aria-expanded",
@@ -78,7 +68,6 @@
 
                 if (account.open) {
                     closeNavigation();
-                    closeLanguage();
                 }
             }
             );
@@ -99,18 +88,6 @@
             );
         }
 
-        if (language) {
-            language.addEventListener(
-                    "toggle",
-                    () => {
-                if (language.open) {
-                    closeAccount();
-                    closeNavigation();
-                }
-            }
-            );
-        }
-
         if (navToggle && navbar) {
             navToggle.addEventListener(
                     "click",
@@ -127,7 +104,6 @@
 
                 if (open) {
                     closeAccount();
-                    closeLanguage();
                 }
             }
             );

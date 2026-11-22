@@ -7,13 +7,13 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <!doctype html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1">
 
-        <title data-i18n="screen.97e8a79942bca1da">
+        <title>
             ${requestScope.i18n['screen.97e8a79942bca1da']}
         </title>
 
@@ -289,7 +289,7 @@
 
                 <a href="${pageContext.request.contextPath}/history?view=bookings"
                    class="wallet-back-link">
-                    &larr; Back to booking history
+                    &larr; Về lịch sử đặt phòng
                 </a>
 
             </div>
@@ -301,7 +301,7 @@
 
                 <div class="small text-uppercase"
                      style="letter-spacing:.14em;color:#e8d8c7">
-                    AVAILABLE BALANCE
+                    SỐ DƯ KHẢ DỤNG
                 </div>
 
                 <div class="amount mt-2">
@@ -325,12 +325,12 @@
 
                 <a href="${pageContext.request.contextPath}/withdrawal"
                    class="wallet-btn">
-                    Request Withdrawal
+                    Yêu cầu rút tiền
                 </a>
 
                 <a href="${pageContext.request.contextPath}/my-withdrawals"
                    class="wallet-btn-outline">
-                    My Withdrawal Requests
+                    Yêu cầu rút tiền của tôi
                 </a>
 
             </div>
@@ -361,7 +361,7 @@
 
                             <label for="transactionType"
                                    class="form-label">
-                                Transaction Type
+                                Loại giao dịch
                             </label>
 
                             <select id="transactionType"
@@ -369,17 +369,17 @@
                                     class="form-select">
 
                                 <option value="">
-                                    All Transactions
+                                    Tất cả giao dịch
                                 </option>
 
                                 <option value="refund"
                                         ${param.type == 'refund' ? 'selected' : ''}>
-                                    Refund
+                                    Hoàn tiền
                                 </option>
 
                                 <option value="withdrawal"
                                         ${param.type == 'withdrawal' ? 'selected' : ''}>
-                                    Withdrawal
+                                    Rút tiền
                                 </option>
 
                             </select>
@@ -389,7 +389,7 @@
 
                             <label for="fromDate"
                                    class="form-label">
-                                From Date
+                                Từ ngày
                             </label>
 
                             <input type="date"
@@ -403,7 +403,7 @@
 
                             <label for="toDate"
                                    class="form-label">
-                                To Date
+                                Đến ngày
                             </label>
 
                             <input type="date"
@@ -417,12 +417,12 @@
 
                             <button type="submit"
                                     class="wallet-btn">
-                                Apply Filters
+                                Áp dụng bộ lọc
                             </button>
 
                             <a href="${pageContext.request.contextPath}/wallet"
                                class="btn btn-outline-secondary ms-1">
-                                Clear
+                                Xóa bộ lọc
                             </a>
 
                         </div>
@@ -438,11 +438,11 @@
 
                         <thead>
                             <tr>
-                                <th>Transaction ID</th>
-                                <th>Date</th>
-                                <th>Booking / Description</th>
-                                <th>Type</th>
-                                <th class="text-end">Amount</th>
+                                <th>Mã giao dịch</th>
+                                <th>Ngày</th>
+                                <th>Đặt phòng / Nội dung</th>
+                                <th>Loại</th>
+                                <th class="text-end">Số tiền</th>
                             </tr>
                         </thead>
 
@@ -482,13 +482,13 @@
                                         <c:choose>
                                             <c:when test="${not empty t.bookingId}">
                                                 <div class="fw-semibold">
-                                                    Booking #
+                                                    Đặt phòng #
                                                     <c:out value="${t.bookingId}"/>
                                                 </div>
                                             </c:when>
                                             <c:otherwise>
                                                 <div class="fw-semibold">
-                                                    Wallet Transaction
+                                                    Giao dịch ví
                                                 </div>
                                             </c:otherwise>
                                         </c:choose>
@@ -507,19 +507,19 @@
 
                                             <c:when test="${t.type == 'withdrawal'}">
                                                 <span class="wallet-pill withdrawal">
-                                                    Withdrawal
+                                                    Rút tiền
                                                 </span>
                                             </c:when>
 
                                             <c:when test="${t.type == 'refund'}">
                                                 <span class="wallet-pill">
-                                                    Refund
+                                                    Hoàn tiền
                                                 </span>
                                             </c:when>
 
                                             <c:otherwise>
                                                 <span class="wallet-pill">
-                                                    <c:out value="${t.type}"/>
+                                                    <ui:message text="${t.type}"/>
                                                 </span>
                                             </c:otherwise>
 
@@ -598,33 +598,31 @@
 
                                                 <c:when test="${param.type == 'withdrawal'}">
                                                     <div class="fw-semibold">
-                                                        No withdrawal transactions found.
+                                                        Chưa có giao dịch rút tiền.
                                                     </div>
 
                                                     <div class="mt-2 small">
-                                                        Completed withdrawals will appear here
-                                                        after payout confirmation.
+                                                        Giao dịch rút tiền sẽ xuất hiện sau khi xác nhận chi trả.
                                                     </div>
                                                 </c:when>
 
                                                 <c:when test="${param.type == 'refund'}">
                                                     <div class="fw-semibold">
-                                                        No refund transactions found.
+                                                        Chưa có giao dịch hoàn tiền.
                                                     </div>
 
                                                     <div class="mt-2 small">
-                                                        No refunds match your selected filters.
+                                                        Không có khoản hoàn tiền phù hợp bộ lọc.
                                                     </div>
                                                 </c:when>
 
                                                 <c:otherwise>
                                                     <div class="fw-semibold">
-                                                        No transactions found.
+                                                        Chưa có giao dịch.
                                                     </div>
 
                                                     <div class="mt-2 small">
-                                                        Try adjusting your filters
-                                                        or clearing the selected dates.
+                                                        Hãy thay đổi bộ lọc hoặc xóa khoảng ngày đã chọn.
                                                     </div>
                                                 </c:otherwise>
 
@@ -649,7 +647,7 @@
                     <nav class="wallet-pagination
                          d-flex justify-content-center
                          align-items-center gap-3 flex-wrap"
-                         aria-label="Wallet transaction pages">
+                         aria-label="Phân trang giao dịch ví">
 
                         <!-- PREVIOUS -->
                         <c:choose>
@@ -675,7 +673,7 @@
 
                                 <a href="${previousUrl}#transactions"
                                    class="btn btn-outline-secondary">
-                                    Previous
+                                    Trước
                                 </a>
 
                             </c:when>
@@ -685,7 +683,7 @@
                                 <button type="button"
                                         class="btn btn-outline-secondary"
                                         disabled>
-                                    Previous
+                                    Trước
                                 </button>
 
                             </c:otherwise>
@@ -695,16 +693,15 @@
                         <!-- PAGE INFORMATION -->
                         <span class="small text-muted">
 
-                            Page
+                            Trang
                             <c:out value="${currentPage}"/>
-                            of
+                            trên
                             <c:out value="${totalPages}"/>
 
                             <c:if test="${not empty totalTransactions}">
                                 (
                                 <c:out value="${totalTransactions}"/>
-                                transactions
-                                )
+                                giao dịch)
                             </c:if>
 
                         </span>
@@ -733,7 +730,7 @@
 
                                 <a href="${nextUrl}#transactions"
                                    class="btn btn-outline-secondary">
-                                    Next
+                                    Tiếp
                                 </a>
 
                             </c:when>
@@ -743,7 +740,7 @@
                                 <button type="button"
                                         class="btn btn-outline-secondary"
                                         disabled>
-                                    Next
+                                    Tiếp
                                 </button>
 
                             </c:otherwise>

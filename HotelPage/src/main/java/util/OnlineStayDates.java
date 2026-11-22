@@ -9,6 +9,8 @@ import java.util.Locale;
 public final class OnlineStayDates {
     public static final int ADVANCE_DAYS = 365;
     private static final DateTimeFormatter SEARCH_FORMAT =
+            DateTimeFormatter.ofPattern("dd/MM/uuuu", Locale.ROOT).withResolverStyle(ResolverStyle.STRICT);
+    private static final DateTimeFormatter LEGACY_SEARCH_FORMAT =
             DateTimeFormatter.ofPattern("MMM d, uuuu", Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT);
 
     private OnlineStayDates() {
@@ -20,7 +22,8 @@ public final class OnlineStayDates {
     }
 
     public static LocalDate parseSearchDate(String value) {
-        return LocalDate.parse(value.trim(), SEARCH_FORMAT);
+        String date = value.trim();
+        return LocalDate.parse(date, date.contains("/") ? SEARCH_FORMAT : LEGACY_SEARCH_FORMAT);
     }
 
     public static LocalDate parseIsoDate(String value) {

@@ -5,13 +5,13 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, initial-scale=1">
 
-    <title>Request Withdrawal - Luxe Escape</title>
+    <title>Yêu cầu rút tiền - Luxe Escape</title>
 
     <link rel="stylesheet"
           href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -88,18 +88,16 @@
     <main class="withdrawal-container">
 
         <h1 class="withdrawal-title">
-            Request Withdrawal
+            Yêu cầu rút tiền
         </h1>
 
         <p class="text-muted">
-            Submit a request to withdraw money
-            from your wallet.
+            Gửi yêu cầu rút tiền từ ví của bạn.
         </p>
 
         <c:if test="${param.success == '1'}">
             <div class="alert alert-success">
-                Your withdrawal request was submitted.
-                It is now pending review.
+                Đã gửi yêu cầu rút tiền và đang chờ duyệt.
             </div>
         </c:if>
 
@@ -107,16 +105,16 @@
             <div class="alert alert-danger">
                 <c:choose>
                     <c:when test="${param.error == 'invalid-amount'}">
-                        Please enter a valid withdrawal amount.
+                        Vui lòng nhập số tiền rút hợp lệ.
                     </c:when>
                     <c:when test="${param.error == 'invalid-bank'}">
-                        Please check your bank information.
+                        Vui lòng kiểm tra thông tin ngân hàng.
                     </c:when>
                     <c:when test="${param.error == 'insufficient-balance'}">
-                        Insufficient available balance.
+                        Số dư khả dụng không đủ.
                     </c:when>
                     <c:otherwise>
-                        Unable to submit your request.
+                        Chưa gửi được yêu cầu.
                     </c:otherwise>
                 </c:choose>
             </div>
@@ -124,7 +122,7 @@
 
         <div class="balance-card">
             <div class="small text-uppercase mb-2">
-                Available Balance
+                Số dư khả dụng
             </div>
 
             <div class="balance-amount">
@@ -136,7 +134,7 @@
             </div>
 
             <div class="mt-3 small">
-                Wallet Balance:
+                Số dư ví:
                 <fmt:formatNumber
                     value="${walletBalance}"
                     maxFractionDigits="0"/>
@@ -144,7 +142,7 @@
             </div>
 
             <div class="small mt-1">
-                Reserved for Withdrawals:
+                Đang giữ cho yêu cầu rút tiền:
                 <fmt:formatNumber
                     value="${reservedAmount}"
                     maxFractionDigits="0"/>
@@ -155,7 +153,7 @@
         <section class="withdrawal-card">
 
             <h3 class="mb-4">
-                Withdrawal Information
+                Thông tin rút tiền
             </h3>
 
             <form action="${pageContext.request.contextPath}/withdrawal"
@@ -167,7 +165,7 @@
 
                 <div class="mb-3">
                     <label class="form-label">
-                        Withdrawal Amount (VND)
+                        Số tiền rút (VND)
                     </label>
 
                     <input type="number"
@@ -178,14 +176,13 @@
                            required>
 
                     <div class="form-text">
-                        Amount cannot exceed your
-                        available balance.
+                        Số tiền rút không được vượt quá số dư khả dụng.
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">
-                        Bank Name
+                        Tên ngân hàng
                     </label>
 
                     <input type="text"
@@ -197,7 +194,7 @@
 
                 <div class="mb-3">
                     <label class="form-label">
-                        Account Number
+                        Số tài khoản
                     </label>
 
                     <input type="text"
@@ -211,7 +208,7 @@
 
                 <div class="mb-4">
                     <label class="form-label">
-                        Account Holder
+                        Chủ tài khoản
                     </label>
 
                     <input type="text"
@@ -222,26 +219,24 @@
                 </div>
 
                 <div class="alert alert-light border">
-                    Withdrawal requests must be reviewed
-                    before payment is confirmed.
-                    Check your bank details carefully.
+                    Yêu cầu rút tiền cần được duyệt trước khi xác nhận chi trả. Vui lòng kiểm tra kỹ thông tin ngân hàng.
                 </div>
 
                 <div class="d-flex gap-3 flex-wrap">
 
                     <button type="submit"
                             class="withdrawal-btn">
-                        Submit Withdrawal Request
+                        Gửi yêu cầu rút tiền
                     </button>
 
                     <a href="${pageContext.request.contextPath}/wallet"
                        class="btn btn-outline-secondary">
-                        Back to Wallet
+                        Về ví
                     </a>
 
                     <a href="${pageContext.request.contextPath}/my-withdrawals"
                        class="btn btn-outline-secondary">
-                        My Requests
+                        Yêu cầu của tôi
                     </a>
                 </div>
             </form>

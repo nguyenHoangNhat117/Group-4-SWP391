@@ -3,11 +3,11 @@
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
 <!DOCTYPE html>
-<html>
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title data-i18n="screen.bec3590ecb65cee8">${requestScope.i18n['screen.bec3590ecb65cee8']}</title>
+        <title>${requestScope.i18n['screen.bec3590ecb65cee8']}</title>
 
         <link href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css"
               rel="stylesheet">

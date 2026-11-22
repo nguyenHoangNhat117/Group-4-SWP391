@@ -92,7 +92,7 @@ protected void doGet(HttpServletRequest request,
     // Prevent unsafe file paths
     if (!filename.matches(
             "[A-Za-z0-9_-]+\\.(?i:jpg|jpeg|png)")) {
-        response.sendError(400, "Invalid avatar filename");
+        response.sendError(400, "Tên tệp ảnh đại diện không hợp lệ");
         return;
     }
 
@@ -100,7 +100,7 @@ protected void doGet(HttpServletRequest request,
             .getInitParameter("avatarStoragePath");
 
     if (storagePath == null || storagePath.isBlank()) {
-        response.sendError(500, "Avatar storage not configured");
+        response.sendError(500, "Chưa cấu hình nơi lưu ảnh đại diện");
         return;
     }
 
@@ -112,7 +112,7 @@ protected void doGet(HttpServletRequest request,
     if (!image.startsWith(folder)
             || !Files.isRegularFile(image)
             || Files.isSymbolicLink(image)) {
-        response.sendError(404, "Avatar image not found");
+        response.sendError(404, "Không tìm thấy ảnh đại diện");
         return;
     }
 
@@ -120,7 +120,7 @@ protected void doGet(HttpServletRequest request,
 
     if (!"image/jpeg".equals(contentType)
             && !"image/png".equals(contentType)) {
-        response.sendError(415, "Unsupported image type");
+        response.sendError(415, "Định dạng ảnh không được hỗ trợ");
         return;
     }
 

@@ -42,7 +42,7 @@ public class AvatarServlet extends HttpServlet {
         Customer customer = dao.getCustomerByUserID(user.getId());
 
         if (customer == null) {
-            response.sendError(403, "Customer not found");
+            response.sendError(403, "Không tìm thấy khách hàng");
             return;
         }
 
@@ -73,12 +73,12 @@ public class AvatarServlet extends HttpServlet {
         }
 
         if (file == null || file.getSize() == 0) {
-            response.sendError(400, "Please select an image");
+            response.sendError(400, "Vui lòng chọn ảnh");
             return;
         }
 
         if (file.getSize() > 5 * 1024 * 1024) {
-            response.sendError(400, "Image must be under 5MB");
+            response.sendError(400, "Ảnh phải nhỏ hơn 5 MB");
             return;
         }
 
@@ -90,7 +90,7 @@ public class AvatarServlet extends HttpServlet {
         } else if ("image/png".equals(type)) {
             extension = ".png";
         } else {
-            response.sendError(400, "Only JPG and PNG allowed");
+            response.sendError(400, "Chỉ chấp nhận ảnh JPG hoặc PNG");
             return;
         }
 
@@ -99,7 +99,7 @@ public class AvatarServlet extends HttpServlet {
                 = getServletContext().getInitParameter("avatarStoragePath");
 
         if (storagePath == null || storagePath.isBlank()) {
-            response.sendError(500, "Avatar storage not configured");
+            response.sendError(500, "Chưa cấu hình nơi lưu ảnh đại diện");
             return;
         }
 
@@ -130,7 +130,7 @@ public class AvatarServlet extends HttpServlet {
                                 });
 
                 if (!jpeg && !png) {
-                    response.sendError(400, "Invalid image file");
+                    response.sendError(400, "Tệp ảnh không hợp lệ");
                     return;
                 }
             }
@@ -142,14 +142,14 @@ public class AvatarServlet extends HttpServlet {
             // The database stores a filename, not a local disk path.
             if (!dao.updateAvatar(customer.getCustomerID(), filename)) {
                 Files.deleteIfExists(target);
-                response.sendError(500, "Avatar update failed");
+                response.sendError(500, "Không thể cập nhật ảnh đại diện");
                 return;
             }
 
         } catch (Exception e) {
             Files.deleteIfExists(target);
             getServletContext().log("Avatar upload failed", e);
-            response.sendError(500, "Cannot upload avatar");
+            response.sendError(500, "Không thể tải ảnh đại diện lên");
             return;
         }
 

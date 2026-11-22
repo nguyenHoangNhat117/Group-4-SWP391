@@ -2,17 +2,17 @@
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
-<html>
+<html lang="vi">
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Luxe Escape Hotel</title>
+        <title>Luxe Escape</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/general.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/landing-page.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css?v=hero-gold" />
+        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css?v=home-intro" />
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/luxe-home-motion.css?v=lobby-parallax">
     </head>
@@ -23,13 +23,11 @@
                 <section id="hero">
                     <div class="hero-wrapper">
                         <h1 id="hero-heading">
-                            <span class="text left ${cookie.animation.value == "enable" ? "hidden" : ""}"><ui:text key="screen.6cc1baff4c4f7a2c"/></span
-                            ><span class="text right ${cookie.animation.value == "enable" ? "hidden" : ""}">LUXE ESCAPE</span>
+                            <span class="hero-brand text right ${cookie.animation.value == "enable" ? "hidden" : ""}">Luxe Escape</span>
                         </h1>
                         <div id="hero-content" class="text left ${cookie.animation.value == "enable" ? "hidden" : ""}">
                             <div id="hero-text">
                                 <p class="mb-0"><ui:text key="screen.d74b92a2c888a6b0"/></p>
-                                <p class="mt-0"><ui:text key="screen.57bfbbcaec61ea4e"/></p>
                             </div>
                             <a href="./booking" class="cta-button" id="hero-cta"><ui:text key="screen.b6b3d1164a649595"/></a>
                         </div>
@@ -39,7 +37,7 @@
                             src="${pageContext.request.contextPath}/assets/img/lobby.jpg"
                             class="lobby-photo"
                             alt="${requestScope.i18n['screen.43b4ce3c717c67c9']}"
-                            data-i18n-alt="screen.43b4ce3c717c67c9"/>
+                           />
                     </div>
                 </section>
                 <section id="rooms">
@@ -83,7 +81,7 @@
                                                      width="30" height="30"
                                                      alt="${requestScope.i18n['screen.1c6333509debf060']}"
                                                      class="arrow-up-right"
-                                                     data-i18n-alt="screen.1c6333509debf060"/>
+                                                    />
                                                 <span class="visually-hidden"><c:out value="${roomType.name}"/></span>
                                             </a>
                                         </div>
@@ -103,16 +101,13 @@
                                     <ui:text key="screen.e52a3a77255e3b5e"/>
                                 </p>
                             </div>
-                            <a href="./booking" class="cta-button" id="restaurant-cta"
-                               ><ui:text key="screen.b6b3d1164a649595"/></a
-                            >
                         </div>
                         <div class="img-wrapper card">
                             <img
                                 src="assets/img/restaurant-2.jpg"
                                 class="img-fluid"
                                 alt="${requestScope.i18n['screen.5ce401a9a57995a5']}"
-                                data-i18n-alt="screen.5ce401a9a57995a5"/>
+                               />
                         </div>
                     </div>
                 </section>
@@ -122,7 +117,7 @@
                 <!-- <img
                     src="assets/img/cta-background.jpg"
                     class="img-fluid"
-                    alt="hotel reception"
+                    alt="Quầy lễ tân khách sạn"
                   /> -->
                 <a href="./booking" class="cta-button text bottom" id="cta-button"
                    ><ui:text key="screen.b6b3d1164a649595"/></a

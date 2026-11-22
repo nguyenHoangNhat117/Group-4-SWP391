@@ -1,10 +1,10 @@
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
-<html>
+<html lang="vi">
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title data-i18n="screen.0458f77d073bf80c">${requestScope.i18n['screen.0458f77d073bf80c']}</title>
+        <title>${requestScope.i18n['screen.0458f77d073bf80c']}</title>
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">     
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />

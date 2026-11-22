@@ -48,7 +48,7 @@
 
         function render() {
             const label = metric.selectedOptions[0].textContent.trim();
-            const locale = document.documentElement.lang === 'vi' ? 'vi-VN' : 'en-US';
+            const locale = 'vi-VN';
             const format = new Intl.NumberFormat(locale, {style: 'currency', currency: 'VND'});
             const formatTick = new Intl.NumberFormat(locale, {notation: 'compact', maximumFractionDigits: 1});
             const values = records.map(record => record[metric.value]);
@@ -80,7 +80,6 @@
         }
 
         metric.addEventListener('change', render);
-        document.addEventListener('hotel:languagechange', render);
         render();
         chart.hidden = false;
         section.querySelector('.revenue-chart-data').open = false;

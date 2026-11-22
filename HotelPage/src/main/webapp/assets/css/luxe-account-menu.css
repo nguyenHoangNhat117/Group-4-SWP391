@@ -112,20 +112,6 @@ header.luxe-header-v5 .luxe-header-actions {
     min-width: 0;
 }
 
-header.luxe-header-v5 .luxe-header-actions > .hotel-language {
-    flex: 0 0 auto;
-    margin: 0;
-}
-
-header.luxe-header-v5 .hotel-language summary {
-    justify-content: center;
-    min-height: 44px;
-    padding: 8px 11px;
-    border-color: #c7aa85;
-    border-radius: 10px;
-    font: 500 13px/1.3 Inter, system-ui, sans-serif;
-}
-
 header.luxe-header-v5 .auth-nav {
     position: static !important;
     display: flex !important;
@@ -468,12 +454,6 @@ header.luxe-header-v5 .luxe-auth-button:focus-visible {
 
     header.luxe-header-v5 .luxe-account-chevron {
         display: none;
-    }
-
-    header.luxe-header-v5 .hotel-language summary {
-        min-height: 40px;
-        padding: 8px;
-        gap: 5px;
     }
 
     header.luxe-header-v5 .auth-nav .luxe-auth-button {

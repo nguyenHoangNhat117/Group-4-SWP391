@@ -17,12 +17,6 @@
     const preview = form.querySelector('button[value="preview"]');
     const reviewed = form.dataset.reviewed === 'true';
     const uncertain = form.dataset.uncertain === 'true';
-    const isVi = () => document.documentElement.lang.startsWith('vi');
-    const translated = (en, vi, args = {}) => {
-        if (window.HotelLanguage?.key(en))
-            return window.HotelLanguage.translate(en, args);
-        return (isVi() ? vi : en).replace(/\{(\w+)\}/g, (match, key) => args[key] ?? match);
-    };
     const signatureFields = ['checkIn', 'checkOut', 'guests', 'roomNumber', 'customerMode',
         'customerId', 'firstName', 'lastName', 'email', 'phone', 'promotionCode', 'specialRequest'];
     const show = (id, text) => {
@@ -106,13 +100,13 @@
         const room = selectedRoom();
         const stayNights = nights();
         const date = value => value ? value.split('-').reverse().join('/') : '—';
-        show('obRoom', room ? translated('Room {number}', 'Phòng {number}', {number: room.value}) : translated('Select a room', 'Chọn phòng'));
-        show('obType', room ? room.dataset.label : translated('Booking information', 'Thông tin đặt phòng'));
+        show('obRoom', room ? 'Phòng ' + room.value : 'Chọn phòng');
+        show('obType', room ? room.dataset.label : 'Thông tin đặt phòng');
         show('obDates', date(fields.checkIn.value) + ' → ' + date(fields.checkOut.value));
-        show('obNights', stayNights > 0 ? translated(stayNights === 1 ? '{count} night' : '{count} nights', '{count} đêm', {count: stayNights}) : '—');
-        show('obGuests', fields.guests.value ? translated(Number(fields.guests.value) === 1 ? '{count} guest' : '{count} guests', '{count} khách', {count: fields.guests.value}) : '—');
+        show('obNights', stayNights > 0 ? stayNights + ' đêm' : '—');
+        show('obGuests', fields.guests.value ? fields.guests.value + ' khách' : '—');
         const price = Number(room?.dataset.price);
-        const money = new Intl.NumberFormat(isVi() ? 'vi-VN' : 'en-US', {style: 'currency', currency: 'VND'});
+        const money = new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'});
         show('obAmount', room && stayNights > 0 && Number.isFinite(price) ? money.format(price * stayNights) : '—');
     }
     function update() {
@@ -192,7 +186,6 @@
         locked = [];
         update();
     });
-    document.addEventListener('hotel:languagechange', renderSummary);
     renderRoomList();
     update();
 })();

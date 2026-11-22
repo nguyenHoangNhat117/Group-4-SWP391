@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="c"
            uri="jakarta.tags.core" %>
@@ -7,7 +8,7 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="vi">
 
 <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,7 +17,7 @@
         http-equiv="Content-Type"
         content="text/html; charset=UTF-8">
 
-    <title>Payment</title>
+    <title>Thanh toán</title>
 
     <link
         href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
@@ -56,7 +57,7 @@
 
             <h2 class="text-center mb-4">
 
-                Confirm Your Payment
+                Xác nhận thanh toán
 
             </h2>
 
@@ -72,10 +73,7 @@
                            alert-danger
                            text-center">
 
-                    Discount code is invalid,
-                    expired, inactive, exhausted,
-                    or does not satisfy the
-                    minimum booking amount.
+                    Mã khuyến mãi không hợp lệ, hết hạn, chưa kích hoạt, hết lượt sử dụng hoặc chưa đạt giá trị đặt phòng tối thiểu.
 
                 </div>
 
@@ -89,8 +87,7 @@
                            alert-danger
                            text-center">
 
-                    Please select a valid
-                    payment method.
+                    Vui lòng chọn phương thức thanh toán hợp lệ.
 
                 </div>
 
@@ -104,8 +101,7 @@
                            alert-danger
                            text-center">
 
-                    Payment could not be completed.
-                    Please try again.
+                    Không thể hoàn tất thanh toán. Vui lòng thử lại.
 
                 </div>
 
@@ -113,13 +109,13 @@
 
 
             <c:if test="${param.error == 'online-not-configured'}">
-                <div class="alert alert-danger text-center">Online payment is not configured. Please contact the administrator.</div>
+                <div class="alert alert-danger text-center">Thanh toán trực tuyến chưa được cấu hình. Vui lòng liên hệ quản trị viên.</div>
             </c:if>
 
             <c:if test="${param.error == 'invalid-payment-percent'}">
 
                 <div class="alert alert-danger text-center">
-                    Please select 10%, 20%, or 100% for the first payment.
+                    Vui lòng chọn 10%, 20% hoặc 100% cho lần thanh toán đầu.
                 </div>
 
             </c:if>
@@ -132,22 +128,22 @@
             <div class="mb-4">
 
                 <h5>
-                    Booking #${booking.id}
+                    Đặt phòng #${booking.id}
                 </h5>
 
 
                 <p class="mb-1">
 
-                    <strong>Status:</strong>
+                    <strong>Trạng thái:</strong>
 
-                    ${booking.status}
+                    <ui:message text="${booking.status}"/>
 
                 </p>
 
 
                 <p class="mb-0">
 
-                    <strong>Booking Total:</strong>
+                    <strong>Tổng tiền đặt phòng:</strong>
 
                     <span
                         class="text-primary
@@ -159,8 +155,8 @@
 
                 </p>
 
-                <p class="mb-1 mt-2"><strong>Already paid:</strong> ${paidAmount} VND</p>
-                <p class="mb-0"><strong>Remaining:</strong> <span class="text-danger fw-bold">${remainingAmount} VND</span></p>
+                <p class="mb-1 mt-2"><strong>Đã thanh toán:</strong> ${paidAmount} VND</p>
+                <p class="mb-0"><strong>Còn lại:</strong> <span class="text-danger fw-bold">${remainingAmount} VND</span></p>
 
             </div>
 
@@ -170,7 +166,7 @@
             <!-- ========================================= -->
 
             <h5 class="mb-3">
-                Room Details
+                Chi tiết phòng
             </h5>
 
 
@@ -194,7 +190,7 @@
                         <div class="col-md-6">
 
                             <strong>
-                                Room:
+                                Phòng:
                             </strong>
 
                             #${detail.roomNumber}
@@ -205,7 +201,7 @@
                         <div class="col-md-6">
 
                             <strong>
-                                Guests:
+                                Số khách:
                             </strong>
 
                             ${detail.guestCount}
@@ -216,7 +212,7 @@
                         <div class="col-md-6">
 
                             <strong>
-                                Check-in:
+                                Nhận phòng:
                             </strong>
 
                             ${fn:substring(detail.checkInDate, 8, 10)}/${fn:substring(detail.checkInDate, 5, 7)}/${fn:substring(detail.checkInDate, 0, 4)}
@@ -227,7 +223,7 @@
                         <div class="col-md-6">
 
                             <strong>
-                                Check-out:
+                                Trả phòng:
                             </strong>
 
                             ${fn:substring(detail.checkOutDate, 8, 10)}/${fn:substring(detail.checkOutDate, 5, 7)}/${fn:substring(detail.checkOutDate, 0, 4)}
@@ -238,7 +234,7 @@
                         <div class="col-md-12">
 
                             <strong>
-                                Price per night:
+                                Giá mỗi đêm:
                             </strong>
 
                             ${detail.pricePerNight} VND
@@ -270,7 +266,7 @@
 
                 <c:if test="${firstPayment}">
                     <div class="mb-4">
-                        <label for="payment-percent" class="form-label fw-semibold">Initial payment percentage</label>
+                        <label for="payment-percent" class="form-label fw-semibold">Tỷ lệ thanh toán ban đầu</label>
                         <select id="payment-percent" name="payment-percent" class="form-select form-select-lg" required ${selectedPercent != null ? 'disabled' : ''}>
                             <option value="10" ${selectedPercent == 10 ? 'selected' : ''}>10%</option>
                             <option value="20" ${selectedPercent == 20 ? 'selected' : ''}>20%</option>
@@ -279,13 +275,13 @@
                         <c:if test="${selectedPercent != null}">
                             <input type="hidden" name="payment-percent" value="${selectedPercent}">
                         </c:if>
-                        <div class="form-text">${selectedPercent != null ? 'Payment percentage was selected during booking.' : 'This is the first payment for the booking.'}</div>
+                        <div class="form-text">${selectedPercent != null ? 'Tỷ lệ thanh toán đã được chọn khi đặt phòng.' : 'Đây là lần thanh toán đầu tiên của đơn đặt phòng.'}</div>
                     </div>
                 </c:if>
 
                 <c:if test="${!firstPayment}">
                     <div class="alert alert-info">
-                        This payment will settle the full remaining balance of <strong>${remainingAmount} VND</strong>.
+                        Giao dịch này sẽ thanh toán toàn bộ số tiền còn lại là <strong>${remainingAmount} VND</strong>.
                     </div>
                 </c:if>
 
@@ -298,7 +294,7 @@
                         class="form-label
                                fw-semibold">
 
-                        Payment Method
+                        Phương thức thanh toán
 
                     </label>
 
@@ -312,17 +308,17 @@
 
 
                         <option value="">
-                            -- Select payment method --
+                            -- Chọn phương thức thanh toán --
                         </option>
 
 
                         <option value="cash">
-                            Cash
+                            Tiền mặt
                         </option>
 
 
                         <option value="bank_transfer">
-                            Bank Transfer (payOS)
+                            Chuyển khoản (payOS)
                         </option>
 
                     </select>
@@ -341,9 +337,9 @@
                         class="form-label
                                fw-semibold">
 
-                        Promotion Code
+                        Mã khuyến mãi
                         <span class="text-muted">
-                            (optional)
+                            (không bắt buộc)
                         </span>
 
                     </label>
@@ -356,7 +352,7 @@
                         class="form-control
                                form-control-lg"
                         maxlength="50"
-                        placeholder="Enter promotion code">
+                        placeholder="Nhập mã khuyến mãi">
 
                 </div>
 
@@ -374,7 +370,7 @@
 
                         <h6 class="fw-bold mb-3">
 
-                            Available Promotions
+                            Khuyến mãi có thể áp dụng
 
                         </h6>
 
@@ -391,13 +387,13 @@
                                 </strong>
 
                                 -
-                                ${promotion.saleOff}% off
+                                ${promotion.saleOff}% giảm giá
 
 
                                 <c:if test="${promotion.minimumAmount != null}">
 
                                     |
-                                    Minimum:
+                                    Tối thiểu:
                                     ${promotion.minimumAmount} VND
 
                                 </c:if>
@@ -406,7 +402,7 @@
                                 <c:if test="${promotion.maximumDiscount != null}">
 
                                     |
-                                    Maximum discount:
+                                    Giảm tối đa:
                                     ${promotion.maximumDiscount} VND
 
                                 </c:if>
@@ -428,8 +424,8 @@
                     class="alert
                            alert-info">
 
-                    The payable amount is calculated on the server.
-                    A promotion code can only be used on the first payment.
+                    Hệ thống sẽ tính số tiền cần thanh toán.
+                    Mã khuyến mãi chỉ áp dụng cho lần thanh toán đầu tiên.
 
                 </div>
 
@@ -442,7 +438,7 @@
                            text-white"
                     style="background-color: #b29575;">
 
-                    <c:choose><c:when test="${firstPayment}">Confirm Initial Payment</c:when><c:otherwise>Pay Remaining Balance</c:otherwise></c:choose>
+                    <c:choose><c:when test="${firstPayment}">Xác nhận thanh toán ban đầu</c:when><c:otherwise>Thanh toán số tiền còn lại</c:otherwise></c:choose>
 
                 </button>
 

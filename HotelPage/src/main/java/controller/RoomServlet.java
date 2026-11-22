@@ -367,7 +367,7 @@ public class RoomServlet extends HttpServlet {
                 return;
             }
             default:
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action.");
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Thao tác không hợp lệ.");
         }
     }
 

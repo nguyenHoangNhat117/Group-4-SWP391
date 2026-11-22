@@ -3,7 +3,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <!DOCTYPE html>
-<html class="stay-page" lang="${requestScope.uiLanguage}">
+<html class="stay-page" lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -53,7 +53,6 @@
                                         <h2 class="h5 fw-bold mb-3"><ui:text key="room.qr.scan"/></h2>
                                         <div id="qr-image" class="qr-image" hidden role="img"
                                              aria-label="<c:out value="${requestScope.i18n['room.qr.scan']}"/>"
-                                             data-i18n-aria-label="room.qr.scan"
                                              data-payload="<c:out value='${qrPayload}'/>"></div>
                                         <div id="qr-embedded-fallback" class="qr-embedded-fallback" hidden></div>
                                         <div id="qr-logos" class="qr-logos" hidden>

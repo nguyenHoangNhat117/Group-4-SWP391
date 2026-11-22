@@ -39,7 +39,7 @@ public class MyWithdrawalsServlet extends HttpServlet {
         }
 
         if (!"customer".equalsIgnoreCase(user.getRole())) {
-            response.sendError(403, "Access denied");
+            response.sendError(403, "Bạn không có quyền truy cập");
             return;
         }
 

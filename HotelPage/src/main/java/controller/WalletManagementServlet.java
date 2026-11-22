@@ -34,7 +34,7 @@ public class WalletManagementServlet extends HttpServlet {
         String role = user.getRole();
 
         if (!"manager".equalsIgnoreCase(role)) {
-            response.sendError(403, "Access denied");
+            response.sendError(403, "Bạn không có quyền truy cập");
             return;
         }
 
@@ -51,11 +51,11 @@ public class WalletManagementServlet extends HttpServlet {
                         = Integer.parseInt(customerIdParam);
 
                 if (selectedCustomerId <= 0) {
-                    response.sendError(400, "Invalid customer ID");
+                    response.sendError(400, "Mã khách hàng không hợp lệ");
                     return;
                 }
             } catch (NumberFormatException e) {
-                response.sendError(400, "Invalid customer ID");
+                response.sendError(400, "Mã khách hàng không hợp lệ");
                 return;
             }
         }

@@ -5,13 +5,13 @@
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt"%>
 
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1">
 
-        <title data-i18n="screen.60bbdeefb7640eb4">${requestScope.i18n['screen.60bbdeefb7640eb4']}</title>
+        <title>${requestScope.i18n['screen.60bbdeefb7640eb4']}</title>
 
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -37,7 +37,7 @@
             <%@include file="/WEB-INF/include/header.jsp"%>
 
             <main><div class="container booking-list-shell py-4 py-lg-5">
-                <div class="luxe-admin-banner" aria-label="${requestScope.i18n['screen.687cac03f6dbbfad']}" data-i18n-aria-label="screen.687cac03f6dbbfad">
+                <div class="luxe-admin-banner" aria-label="${requestScope.i18n['screen.687cac03f6dbbfad']}">
                     <span class="luxe-admin-banner-eyebrow">
                         LUXE ESCAPE
                         <span aria-hidden="true">/</span>
@@ -100,7 +100,7 @@
                                            name="keyword"
                                            class="form-control"
                                            value="${fn:escapeXml(keyword)}"
-                                           placeholder="${requestScope.i18n['screen.47077267c183fca4']}" data-i18n-placeholder="screen.47077267c183fca4">
+                                           placeholder="${requestScope.i18n['screen.47077267c183fca4']}">
                                 </div>
 
                                 <div class="booking-filter-room">
@@ -119,35 +119,35 @@
                                     <select id="status"
                                             name="status"
                                             class="form-select">
-                                        <option value="" data-i18n="screen.a52ace420f2175d0">${requestScope.i18n['screen.a52ace420f2175d0']}</option>
+                                        <option value="">${requestScope.i18n['screen.a52ace420f2175d0']}</option>
 
                                         <option value="pending"
-                                                ${selectedStatus == 'pending' ? 'selected' : ''} data-i18n="screen.331551b0de4157c9">
+                                                ${selectedStatus == 'pending' ? 'selected' : ''}>
                                             ${requestScope.i18n['screen.331551b0de4157c9']}
                                         </option>
 
                                         <option value="confirmed"
-                                                ${selectedStatus == 'confirmed' ? 'selected' : ''} data-i18n="screen.fe00b67b6dd1143f">
+                                                ${selectedStatus == 'confirmed' ? 'selected' : ''}>
                                             ${requestScope.i18n['screen.fe00b67b6dd1143f']}
                                         </option>
 
                                         <option value="checked_in"
-                                                ${selectedStatus == 'checked_in' ? 'selected' : ''} data-i18n="screen.17c05c08a9ac3e5a">
+                                                ${selectedStatus == 'checked_in' ? 'selected' : ''}>
                                             ${requestScope.i18n['screen.17c05c08a9ac3e5a']}
                                         </option>
 
                                         <option value="checked_out"
-                                                ${selectedStatus == 'checked_out' ? 'selected' : ''} data-i18n="screen.cbe2b33735c6335c">
+                                                ${selectedStatus == 'checked_out' ? 'selected' : ''}>
                                             ${requestScope.i18n['screen.cbe2b33735c6335c']}
                                         </option>
 
                                         <option value="completed"
-                                                ${selectedStatus == 'completed' ? 'selected' : ''} data-i18n="screen.22a970d2e5b1cc23">
+                                                ${selectedStatus == 'completed' ? 'selected' : ''}>
                                             ${requestScope.i18n['screen.22a970d2e5b1cc23']}
                                         </option>
 
                                         <option value="cancelled"
-                                                ${selectedStatus == 'cancelled' ? 'selected' : ''} data-i18n="screen.d353a99eb4556847">
+                                                ${selectedStatus == 'cancelled' ? 'selected' : ''}>
                                             ${requestScope.i18n['screen.d353a99eb4556847']}
                                         </option>
                                     </select>
@@ -156,9 +156,9 @@
                                 <div class="booking-filter-field">
                                     <input type="hidden" name="sort" value="${param.sort == 'asc' ? 'asc' : param.sort == 'desc' ? 'desc' : ''}"><label for="source" class="form-label fw-semibold"><ui:text key="booking.list.source"/></label>
                                     <select id="source" name="source" class="form-select">
-                                        <option value="" data-i18n="screen.a52ace420f2175d0">${requestScope.i18n['screen.a52ace420f2175d0']}</option>
-                                        <option value="online" ${selectedSource eq 'online' ? 'selected' : ''}>Online</option>
-                                        <option value="offline" ${selectedSource eq 'offline' ? 'selected' : ''}>Offline</option>
+                                        <option value="">${requestScope.i18n['screen.a52ace420f2175d0']}</option>
+                                        <option value="online" ${selectedSource eq 'online' ? 'selected' : ''}>Trực tuyến</option>
+                                        <option value="offline" ${selectedSource eq 'offline' ? 'selected' : ''}>Tại quầy</option>
                                     </select>
                                 </div>
 
@@ -383,7 +383,7 @@
                             <c:param name="to-date" value="${toDate}"/>
                         </c:url>
 
-                        <nav class="booking-pagination mt-4" aria-label="${requestScope.i18n['screen.15fced987e317bf7']}" data-i18n-aria-label="screen.15fced987e317bf7">
+                        <nav class="booking-pagination mt-4" aria-label="${requestScope.i18n['screen.15fced987e317bf7']}">
                             <ul class="pagination justify-content-center flex-wrap">
                                 <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
                                     <a class="page-link"

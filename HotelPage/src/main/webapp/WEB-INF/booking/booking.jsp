@@ -2,11 +2,11 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <!DOCTYPE html>
-<html>
+<html lang="vi">
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta charset="UTF-8">
-        <title data-i18n="screen.126850cb3c7e0489">${requestScope.i18n['screen.126850cb3c7e0489']}</title>
+        <title>${requestScope.i18n['screen.126850cb3c7e0489']}</title>
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" />
@@ -39,7 +39,7 @@
                     <!-- Room Number -->
                     <div class="mb-3">
                         <input type="text" class="form-control form-control-lg"
-                               placeholder="${requestScope.i18n['screen.f91ba3e6d86ddac0']}" value="Room ${param.roomNumber}" readonly required data-i18n-placeholder="screen.f91ba3e6d86ddac0">
+                               placeholder="${requestScope.i18n['screen.f91ba3e6d86ddac0']}" value="Phòng ${param.roomNumber}" readonly required>
                         <input type="hidden" name="room-number" value="${param.roomNumber}">
                     </div>
 
@@ -60,10 +60,10 @@
                     <div class="mb-3">
                         <label for="prepayment-percent" class="form-label fw-semibold"><ui:text key="screen.6462ea238a580eb8"/></label>
                         <select id="prepayment-percent" name="prepayment-percent" class="form-select form-select-lg" required>
-                            <option value="0" data-i18n="screen.6500570368820548">${requestScope.i18n['screen.6500570368820548']}</option>
-                            <option value="10" data-i18n="screen.ba120e159f543d2e">${requestScope.i18n['screen.ba120e159f543d2e']}</option>
-                            <option value="20" data-i18n="screen.4a6ff799acf7bfce">${requestScope.i18n['screen.4a6ff799acf7bfce']}</option>
-                            <option value="100" data-i18n="screen.8e92879488898a6c">${requestScope.i18n['screen.8e92879488898a6c']}</option>
+                            <option value="0">${requestScope.i18n['screen.6500570368820548']}</option>
+                            <option value="10">${requestScope.i18n['screen.ba120e159f543d2e']}</option>
+                            <option value="20">${requestScope.i18n['screen.4a6ff799acf7bfce']}</option>
+                            <option value="100">${requestScope.i18n['screen.8e92879488898a6c']}</option>
                         </select>
                         <div class="form-text"><ui:text key="screen.b6db22362a703521"/></div>
                     </div>
@@ -88,19 +88,18 @@
                 const pricePerNight = parseFloat(${room.roomType.pricePerNight}); // from hidden input
                 const totalPriceElement = document.getElementById("totalPrice");
 
+                function parseDate(value) {
+                    const parts = value.split("/").map(Number);
+                    return parts.length === 3 ? Date.UTC(parts[2], parts[1] - 1, parts[0]) : Date.parse(value);
+                }
+
                 function calculateTotalPrice() {
                     const dateRange = bookingDateInput.value;
                     if (!dateRange.includes(" - "))
                         return;
 
                     const [start, end] = dateRange.split(" - ");
-                    const options = {year: "numeric", month: "short", day: "numeric"};
-
-                    // Parse dates using Date constructor and string format "MMM d, yyyy"
-                    const checkIn = new Date(start);
-                    const checkOut = new Date(end);
-
-                    const diffTime = checkOut - checkIn;
+                    const diffTime = parseDate(end) - parseDate(start);
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
                     const totalPrice = diffDays * pricePerNight;
@@ -121,8 +120,8 @@
                     document.getElementById("payNowAmount").textContent = payNow.toFixed(2);
                     document.getElementById("remainingAmount").textContent = Math.max(0, total - payNow).toFixed(2);
                     document.getElementById("booking-submit-text").textContent = Number(percentSelect.value) === 0
-                        ? "Confirm Booking (No Payment Required)"
-                        : "Confirm Booking & Continue to Payment";
+                        ? "Xác nhận đặt phòng (chưa cần thanh toán)"
+                        : "Xác nhận đặt phòng và tiếp tục thanh toán";
                 }
 
                 percentSelect.addEventListener("change", function () {
@@ -139,8 +138,9 @@
                     numberOfMonths: 2,
                     numberOfColumns: 2,
                     autoApply: true,
-                    format: 'MMM D, YYYY',
-                    tooltipText: {one: 'day', other: 'days'},
+                    lang: 'vi-VN',
+                    format: 'DD/MM/YYYY',
+                    tooltipText: {one: 'ngày', other: 'ngày'},
                     minDate: new Date(),
                     setup: (picker) => {
                         picker.on('selected', () => {

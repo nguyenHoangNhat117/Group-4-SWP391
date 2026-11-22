@@ -54,7 +54,7 @@ public class ForgotPasswordServlet extends HttpServlet {
         HttpSession session = req.getSession(false);
 
         if (session == null) {
-            res.sendError(403, "Session expired. Reload the page.");
+            res.sendError(403, "Phiên đã hết hạn. Vui lòng tải lại trang.");
             return;
         }
 

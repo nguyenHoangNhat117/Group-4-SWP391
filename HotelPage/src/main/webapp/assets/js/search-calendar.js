@@ -47,7 +47,6 @@
             select.after(toggle, menu);
             select.hidden = true;
             select.addEventListener('change', syncSelection);
-            document.addEventListener('hotel:languagechange', syncSelection);
             window.addEventListener('pageshow', syncSelection);
             syncSelection();
         });
@@ -161,7 +160,9 @@
         numberOfMonths: months,
         numberOfColumns: months,
         selectForward: true,
-        format: 'MMM D, YYYY',
+        lang: 'vi-VN',
+        format: 'DD/MM/YYYY',
+        tooltipText: {one: 'ngày', other: 'ngày'},
         minDate,
         maxDate,
         setup(calendar) {

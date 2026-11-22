@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 
 <%@ page contentType="text/html; charset=UTF-8"
          pageEncoding="UTF-8" %>
@@ -5,13 +6,13 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <!DOCTYPE html>
-<html>
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1">
 
-        <title>Wallet Management - Luxe Escape</title>
+        <title>Quản lý ví - Luxe Escape</title>
 
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -88,15 +89,15 @@
 
         <main class="wallet-container">
 
-            <h1 class="wallet-title">Wallet Management</h1>
+            <h1 class="wallet-title">Quản lý ví</h1>
 
             <p class="text-muted">
-                View customer balances and refund transactions.
+                Xem số dư khách hàng và giao dịch hoàn tiền.
             </p>
 
             <section class="wallet-card">
 
-                <h3>Customer Wallets</h3>
+                <h3>Ví khách hàng</h3>
 
                 <form action="${pageContext.request.contextPath}/wallet-management"
                       method="get"
@@ -105,7 +106,7 @@
                     <div class="col-md-7">
                         <label for="walletCustomerSearch"
                                class="form-label fw-semibold">
-                            Search by Customer ID
+                            Tìm theo mã khách hàng
                         </label>
 
                         <input type="number"
@@ -115,20 +116,20 @@
                                min="1"
                                step="1"
                                value="${selectedCustomerId}"
-                               placeholder="Enter Customer ID">
+                               placeholder="Nhập mã khách hàng">
                     </div>
 
                     <div class="col-md-auto">
                         <button type="submit"
                                 class="wallet-btn">
-                            Search
+                            Tìm kiếm
                         </button>
                     </div>
 
                     <div class="col-md-auto">
                         <a href="${pageContext.request.contextPath}/wallet-management"
                            class="btn btn-outline-secondary">
-                            Clear
+                            Xóa bộ lọc
                         </a>
                     </div>
                 </form>
@@ -139,11 +140,11 @@
 
                         <thead>
                             <tr>
-                                <th>Customer ID</th>
-                                <th>Customer</th>
+                                <th>Mã khách hàng</th>
+                                <th>Khách hàng</th>
                                 <th>Email</th>
-                                <th>Balance</th>
-                                <th>Action</th>
+                                <th>Số dư</th>
+                                <th>Thao tác</th>
                             </tr>
                         </thead>
 
@@ -176,7 +177,7 @@
 
                                         <a class="wallet-btn"
                                            href="${pageContext.request.contextPath}/wallet-management?customerId=${w.customerId}#transactions">
-                                            View Transactions
+                                            Xem giao dịch
                                         </a>
                                     </td>
                                 </tr>
@@ -186,7 +187,7 @@
                                 <tr>
                                     <td colspan="5"
                                         class="text-center">
-                                        No customers found.
+                                        Không tìm thấy khách hàng.
                                     </td>
                                 </tr>
                             </c:if>
@@ -204,8 +205,7 @@
                 <section class="wallet-card" id="transactions">
 
                     <h3>
-                        Transactions - Customer
-                        #<c:out value="${selectedCustomerId}"/>
+                        Giao dịch của khách hàng #<c:out value="${selectedCustomerId}"/>
                     </h3>
 
                     <div class="table-responsive">
@@ -213,11 +213,11 @@
 
                             <thead>
                                 <tr>
-                                    <th>Transaction ID</th>
-                                    <th>Booking ID</th>
-                                    <th>Type</th>
-                                    <th>Amount</th>
-                                    <th>Date</th>
+                                    <th>Mã giao dịch</th>
+                                    <th>Mã đặt phòng</th>
+                                    <th>Loại</th>
+                                    <th>Số tiền</th>
+                                    <th>Ngày</th>
                                 </tr>
                             </thead>
 
@@ -235,7 +235,7 @@
                                         </td>
 
                                         <td>
-                                            <c:out value="${t.type}"/>
+                                            <ui:message text="${t.type}"/>
                                         </td>
 
                                         <td>
@@ -257,7 +257,7 @@
                                     <tr>
                                         <td colspan="5"
                                             class="text-center">
-                                            No transactions found.
+                                            Chưa có giao dịch.
                                         </td>
                                     </tr>
                                 </c:if>

@@ -63,7 +63,7 @@ public class VerifyOtpServlet extends HttpServlet {
             }
 
         } catch (IllegalStateException e) {
-            res.sendError(403, "Session expired. Request a new OTP.");
+            res.sendError(403, "Phiên đã hết hạn. Vui lòng yêu cầu mã OTP mới.");
         }
     }
 
@@ -79,7 +79,7 @@ public class VerifyOtpServlet extends HttpServlet {
         HttpSession session = req.getSession(false);
 
         if (session == null) {
-            res.sendError(403, "Session expired. Request a new OTP.");
+            res.sendError(403, "Phiên đã hết hạn. Vui lòng yêu cầu mã OTP mới.");
             return;
         }
 
@@ -143,7 +143,7 @@ public class VerifyOtpServlet extends HttpServlet {
             }
 
         } catch (IllegalStateException e) {
-            res.sendError(403, "Session expired. Request a new OTP.");
+            res.sendError(403, "Phiên đã hết hạn. Vui lòng yêu cầu mã OTP mới.");
         }
     }
 
