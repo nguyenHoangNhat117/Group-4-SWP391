@@ -166,7 +166,6 @@ header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-header-actions {
     margin: 0 !important;
 }
 
-header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-header-actions > .hotel-language,
 header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-header-actions > .auth-nav {
     flex: 0 0 auto;
     margin: 0 !important;
@@ -206,11 +205,6 @@ header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-account-text stron
 
     header.luxe-shared-header.luxe-header-v4.luxe-header-v5 #navbar {
         gap: 12px !important;
-    }
-
-    header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .hotel-language summary {
-        min-height: 40px;
-        padding: 7px 8px;
     }
 
     header.luxe-shared-header.luxe-header-v4.luxe-header-v5 .luxe-account-chevron {

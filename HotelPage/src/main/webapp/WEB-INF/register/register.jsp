@@ -21,13 +21,13 @@
             = (String) request.getAttribute("enteredPhone");
 %>
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0">
 
-        <title data-i18n="screen.569a24b2de3553fb">${requestScope.i18n['screen.569a24b2de3553fb']}</title>
+        <title>${requestScope.i18n['screen.569a24b2de3553fb']}</title>
 
         <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
               rel="stylesheet">
@@ -168,7 +168,7 @@
                                autocomplete="tel"
                                title="${requestScope.i18n['screen.44a29b20510265e4']}"
                                placeholder=" "
-                               required data-i18n-title="screen.44a29b20510265e4">
+                               required>
                         <label for="phone"><ui:text key="screen.306f1bb20677a622"/></label>
                     </div>
 

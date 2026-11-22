@@ -2,11 +2,11 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core"%>
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title data-i18n="screen.95627b899e25e113">${requestScope.i18n['screen.95627b899e25e113']}</title>
+        <title>${requestScope.i18n['screen.95627b899e25e113']}</title>
         <link href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css" rel="stylesheet">
         <link href="${pageContext.request.contextPath}/assets/css/general.css" rel="stylesheet">
         <link href="${pageContext.request.contextPath}/assets/css/luxe-modern.css" rel="stylesheet">
@@ -97,19 +97,19 @@
                                        default="No written feedback"/>
                             </div>
                             <p>
-                                <strong>Status:</strong>
+                                <strong>Trạng thái:</strong>
 
                                 <c:choose>
                                     <c:when test="${existingReview.reviewStatus eq 'approved'}">
-                                        <span class="review-status status-approved">Approved</span>
+                                        <span class="review-status status-approved">Đã duyệt</span>
                                     </c:when>
 
                                     <c:when test="${existingReview.reviewStatus eq 'pending'}">
-                                        <span class="review-status status-pending">Pending</span>
+                                        <span class="review-status status-pending">Chờ xử lý</span>
                                     </c:when>
 
                                     <c:otherwise>
-                                        <span class="review-status status-rejected">Rejected</span>
+                                        <span class="review-status status-rejected">Đã từ chối</span>
                                     </c:otherwise>
                                 </c:choose>
                             </p>
@@ -135,7 +135,7 @@
                                 </div>
                                 <div class="mb-4">
                                     <label for="comment" class="form-label fw-semibold"><ui:text key="screen.61f84f05c17b6984"/></label>
-                                    <textarea id="comment" name="comment" maxlength="1000" rows="5" class="form-control" placeholder="${requestScope.i18n['screen.1645e3a7c9399884']}" required data-i18n-placeholder="screen.1645e3a7c9399884"></textarea>
+                                    <textarea id="comment" name="comment" maxlength="1000" rows="5" class="form-control" placeholder="${requestScope.i18n['screen.1645e3a7c9399884']}" required></textarea>
                                 </div>
                                 <button type="submit" class="btn btn-primary"><ui:text key="screen.f6cc12201a362b06"/></button>
                                 <a href="${pageContext.request.contextPath}/history" class="btn btn-outline-secondary ms-2"><ui:text key="screen.19766ed6ccb2f4a3"/></a>

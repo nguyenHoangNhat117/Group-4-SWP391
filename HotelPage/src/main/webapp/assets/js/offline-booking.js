@@ -17,12 +17,6 @@
     const preview = form.querySelector('button[value="preview"]');
     const reviewed = form.dataset.reviewed === 'true';
     const uncertain = form.dataset.uncertain === 'true';
-    const isVi = () => document.documentElement.lang.startsWith('vi');
-    const translated = (en, vi, args = {}) => {
-        if (window.HotelLanguage?.key(en))
-            return window.HotelLanguage.translate(en, args);
-        return (isVi() ? vi : en).replace(/\{(\w+)\}/g, (match, key) => args[key] ?? match);
-    };
     const signatureFields = ['checkIn', 'checkOut', 'guests', 'quantity', 'roomTypeId', 'customerMode',
         'customerId', 'firstName', 'lastName', 'email', 'phone', 'promotionCode', 'specialRequest'];
     const show = (id, text) => {
@@ -58,11 +52,10 @@
     let quoteExpired = reviewed && !(Number(form.dataset.quoteAge) > 0);
     const quantity = () => Number(fields.quantity.value);
     const nights = () => (Date.parse(fields.checkOut.value + 'T00:00:00Z')
-                - Date.parse(fields.checkIn.value + 'T00:00:00Z')) / 86400000;
+        - Date.parse(fields.checkIn.value + 'T00:00:00Z')) / 86400000;
 
     function renderRoomList() {
-        if (!roomPicker)
-            return;
+        if (!roomPicker) return;
         const query = roomSearch.value.trim().toLocaleLowerCase().replace(/^#/, '');
         const matches = roomChoices.filter(input =>
             input.dataset.label.toLocaleLowerCase().includes(query));
@@ -82,8 +75,7 @@
         renderRoomList();
     });
     roomSearch?.addEventListener('keydown', event => {
-        if (event.key === 'Enter')
-            event.preventDefault();
+        if (event.key === 'Enter') event.preventDefault();
     });
     previous?.addEventListener('click', () => {
         roomPage--;
@@ -98,8 +90,7 @@
         const gross = room && nights() > 0 ? Number(room.dataset.price) * nights() * quantity() : null;
         promotionOptions.forEach(option => {
             const eligible = gross !== null && Number(option.dataset.minimum) <= gross;
-            if (!eligible && option.selected)
-                promotion.value = '';
+            if (!eligible && option.selected) promotion.value = '';
             option.hidden = !eligible;
             option.disabled = !eligible;
         });
@@ -113,20 +104,18 @@
         show('obRoom', room ? room.dataset.label : 'Chọn loại phòng');
         show('obType', room ? `${quantity()} phòng` : 'Thông tin đặt phòng');
         show('obDates', date(fields.checkIn.value) + ' → ' + date(fields.checkOut.value));
-        show('obNights', stayNights > 0 ? translated(stayNights === 1 ? '{count} night' : '{count} nights', '{count} đêm', {count: stayNights}) : '—');
-        show('obGuests', fields.guests.value ? translated(Number(fields.guests.value) === 1 ? '{count} guest' : '{count} guests', '{count} khách', {count: fields.guests.value}) : '—');
+        show('obNights', stayNights > 0 ? stayNights + ' đêm' : '—');
+        show('obGuests', fields.guests.value ? fields.guests.value + ' khách' : '—');
         const price = Number(room?.dataset.price);
-        const money = new Intl.NumberFormat(isVi() ? 'vi-VN' : 'en-US', {style: 'currency', currency: 'VND'});
+        const money = new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'});
         show('obAmount', room && stayNights > 0 && Number.isFinite(price) ? money.format(price * stayNights * quantity()) : '—');
     }
     function update() {
         const stale = stayKey() !== searchedStay;
         roomChoices.forEach(input => {
-            if (stale)
-                input.checked = false;
+            if (stale) input.checked = false;
             const insufficient = quantity() > Number(input.dataset.available);
-            if (insufficient && !uncertain)
-                input.checked = false;
+            if (insufficient && !uncertain) input.checked = false;
             input.disabled = stale || uncertain || insufficient;
         });
         const room = selectedRoom();
@@ -202,7 +191,6 @@
         locked = [];
         update();
     });
-    document.addEventListener('hotel:languagechange', renderSummary);
     renderRoomList();
     update();
 })();

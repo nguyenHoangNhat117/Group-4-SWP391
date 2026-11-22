@@ -3,11 +3,11 @@
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title data-i18n="screen.c797cf9b6771ad9e">${requestScope.i18n['screen.c797cf9b6771ad9e']}</title>
+        <title>${requestScope.i18n['screen.c797cf9b6771ad9e']}</title>
 
         <link href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css"
               rel="stylesheet">
@@ -116,7 +116,6 @@
 
                                                 <form method="post" action="${pageContext.request.contextPath}/room-type?action=delete"
                                                       data-confirm="<c:out value="${requestScope.i18n['room.type.delete.prompt']}"/>"
-                                                      data-confirm-key="room.type.delete.prompt"
                                                       data-confirm-target="<c:out value='${roomType.name}'/>">
                                                     <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
                                                     <input type="hidden" name="id" value="${roomType.id}">
@@ -136,7 +135,7 @@
                 </c:choose>
 
                 <c:if test="${totalPages > 1}">
-                    <nav class="room-types-pagination" aria-label="${requestScope.i18n['screen.7b3f674b625e7226']}" data-i18n-aria-label="screen.7b3f674b625e7226">
+                    <nav class="room-types-pagination" aria-label="${requestScope.i18n['screen.7b3f674b625e7226']}">
                         <ul class="pagination mb-0">
                             <li class="page-item ${pageIndex <= 1 ? 'disabled' : ''}">
                                 <c:choose>

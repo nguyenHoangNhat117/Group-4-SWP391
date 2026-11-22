@@ -47,7 +47,7 @@
     </a>
 </div>
 
-<div class="report-tabs" aria-label="${requestScope.i18n['screen.19025f8911e31c54']}" data-i18n-aria-label="screen.19025f8911e31c54">
+<div class="report-tabs" aria-label="${requestScope.i18n['screen.19025f8911e31c54']}">
 
     <a href="<c:out value='${bookingsUrl}' />"
        aria-current="${reportView == 'bookings' ? 'page' : 'false'}">
@@ -106,10 +106,10 @@
     <div>
         <label for="reportStatus"><ui:text key="screen.920e413c7d411b61"/></label>
         <select id="reportStatus" name="status">
-            <option value="" data-i18n="screen.8ee57323a6f24cc7">${requestScope.i18n['screen.8ee57323a6f24cc7']}</option>
+            <option value="">${requestScope.i18n['screen.8ee57323a6f24cc7']}</option>
             <c:forEach var="option" items="${filter.statuses}">
                 <option value="${option}" ${filter.status == option ? 'selected' : ''}>
-                    <c:out value="${fn:replace(option, '_', ' ')}" />
+                    <ui:message text="${option}"/>
                 </option>
             </c:forEach>
         </select>
@@ -118,10 +118,10 @@
         <div>
             <label for="reportMethod"><ui:text key="screen.52a0f9b65b278850"/></label>
             <select id="reportMethod" name="method">
-                <option value="" data-i18n="screen.e601c19e94dbad07">${requestScope.i18n['screen.e601c19e94dbad07']}</option>
+                <option value="">${requestScope.i18n['screen.e601c19e94dbad07']}</option>
                 <c:forEach var="option" items="${filter.methods}">
                     <option value="${option}" ${filter.method == option ? 'selected' : ''}>
-                        <c:out value="${fn:replace(option, '_', ' ')}" />
+                        <ui:message text="${option}"/>
                     </option>
                 </c:forEach>
             </select>
@@ -129,7 +129,7 @@
     </c:if>
     <div>
         <label for="reportBookingId"><ui:text key="screen.a85aca2f532a24ab"/></label>
-        <input id="reportBookingId" type="number" min="1" max="2147483647" name="bookingId" value="${filter.bookingId}" placeholder="${requestScope.i18n['screen.39cefa5922bf6c16']}" data-i18n-placeholder="screen.39cefa5922bf6c16">
+        <input id="reportBookingId" type="number" min="1" max="2147483647" name="bookingId" value="${filter.bookingId}" placeholder="${requestScope.i18n['screen.39cefa5922bf6c16']}">
     </div>
     <div>
         <label for="reportPageSize"><ui:text key="screen.101f2ff3de22441f"/></label>

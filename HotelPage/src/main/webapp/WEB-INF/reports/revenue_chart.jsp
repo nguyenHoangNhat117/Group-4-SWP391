@@ -26,12 +26,12 @@
        value="${reportMaximumRevenue > 0 ? reportMaximumRevenue : 1}" />
 
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}" class="hotel-reports-page">
+<html lang="vi" class="hotel-reports-page">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <title data-i18n="screen.e67911ea05589dbe">${requestScope.i18n['screen.e67911ea05589dbe']}</title>
+        <title>${requestScope.i18n['screen.e67911ea05589dbe']}</title>
 
         <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
         <link rel="stylesheet" href="${ctx}/assets/css/general.css">
@@ -62,7 +62,7 @@
                 </a>
             </div>
 
-            <div class="report-tabs" aria-label="${requestScope.i18n['screen.19025f8911e31c54']}" data-i18n-aria-label="screen.19025f8911e31c54">
+            <div class="report-tabs" aria-label="${requestScope.i18n['screen.19025f8911e31c54']}">
                 <a href="${ctx}/reports?view=bookings&amp;page-index=1">
                     <ui:text key="screen.4e5f81ada70c344e"/>
                 </a>
@@ -221,7 +221,7 @@
                                                        min="0"
                                                        max="${reportMeterMaximum}"
                                                        value="${item.totalRevenue}"
-                                                       aria-label="Paid revenue for period ${item.timeUnit}">
+                                                       aria-label="Doanh thu đã thu trong kỳ ${item.timeUnit}">
                                                     <c:out value="${item.totalRevenue}" />
                                                 </meter>
                                             </td>

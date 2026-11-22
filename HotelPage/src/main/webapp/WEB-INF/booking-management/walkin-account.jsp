@@ -3,9 +3,9 @@
 <%@taglib prefix="fn" uri="jakarta.tags.functions"%>
 <%@taglib prefix="ui" tagdir="/WEB-INF/tags"%>
 <%@page import="util.AuthSupport"%>
-<!DOCTYPE html><html lang="${requestScope.uiLanguage}"><head>
+<!DOCTYPE html><html lang="vi"><head>
         <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-        <title data-i18n="uc24.activation.title"><c:out value="${requestScope.i18n['uc24.activation.title']}"/></title>
+        <title><c:out value="${requestScope.i18n['uc24.activation.title']}"/></title>
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/login.css">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/luxe-auth.css">
@@ -29,7 +29,7 @@
             font-size:1.8rem
         }</style>
     </head><body class="page-login walkin-activation">
-        <header><span><a href="${pageContext.request.contextPath}/">Luxe Escape</a></span><jsp:include page="/WEB-INF/include/language-switcher.jsp"/></header>
+        <header><span><a href="${pageContext.request.contextPath}/">Luxe Escape</a></span></header>
         <main class="wrapper show"><div class="form-box">
                 <h1 class="text-center"><ui:text key="uc24.activation.heading"/></h1>
                 <c:if test="${not empty error}"><div class="alert alert-danger mt-3" role="alert"><ui:message text="${error}"/></div></c:if>

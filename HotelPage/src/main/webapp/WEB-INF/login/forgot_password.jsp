@@ -15,13 +15,13 @@
     String enteredEmail = (String) request.getAttribute("enteredEmail");
 %>
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0">
 
-        <title data-i18n="screen.a2e53a4889187d56">${requestScope.i18n['screen.a2e53a4889187d56']}</title>
+        <title>${requestScope.i18n['screen.a2e53a4889187d56']}</title>
 
         <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
               rel="stylesheet">

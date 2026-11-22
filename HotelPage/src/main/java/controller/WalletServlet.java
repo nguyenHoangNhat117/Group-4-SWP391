@@ -37,7 +37,7 @@ public class WalletServlet extends HttpServlet {
         }
 
         if (!"customer".equalsIgnoreCase(user.getRole())) {
-            resp.sendError(403, "Access denied");
+            resp.sendError(403, "Bạn không có quyền truy cập");
             return;
         }
 

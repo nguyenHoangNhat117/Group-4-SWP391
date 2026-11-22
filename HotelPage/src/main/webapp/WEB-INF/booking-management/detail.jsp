@@ -5,13 +5,13 @@
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt"%>
 
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1">
 
-        <title data-i18n="screen.a55a969205588064">${requestScope.i18n['screen.a55a969205588064']}</title>
+        <title>${requestScope.i18n['screen.a55a969205588064']}</title>
 
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -33,15 +33,15 @@
                     <c:set var="dateFormat" value="${DateTimeFormatter.ofPattern('dd/MM/uuuu')}"/>
                     <c:set var="dateTimeFormat" value="${DateTimeFormatter.ofPattern('dd/MM/uuuu HH:mm')}"/>
                     <c:set var="bookingTone" value="${booking.status == 'completed' ? 'success'
-                                                      : booking.status == 'cancelled' ? 'danger'
-                                                      : booking.status == 'pending' ? 'warning'
-                                                      : booking.status == 'confirmed' or booking.status == 'checked_in' ? 'info' : 'neutral'}"/>
+                           : booking.status == 'cancelled' ? 'danger'
+                           : booking.status == 'pending' ? 'warning'
+                           : booking.status == 'confirmed' or booking.status == 'checked_in' ? 'info' : 'neutral'}"/>
                     <c:set var="bookingStatusKey" value="${booking.status == 'pending' ? 'screen.331551b0de4157c9'
-                                                           : booking.status == 'confirmed' ? 'screen.fe00b67b6dd1143f'
-                                                           : booking.status == 'checked_in' ? 'screen.17c05c08a9ac3e5a'
-                                                           : booking.status == 'checked_out' ? 'screen.cbe2b33735c6335c'
-                                                           : booking.status == 'completed' ? 'screen.22a970d2e5b1cc23'
-                                                           : booking.status == 'cancelled' ? 'screen.d353a99eb4556847' : ''}"/>
+                           : booking.status == 'confirmed' ? 'screen.fe00b67b6dd1143f'
+                           : booking.status == 'checked_in' ? 'screen.17c05c08a9ac3e5a'
+                           : booking.status == 'checked_out' ? 'screen.cbe2b33735c6335c'
+                           : booking.status == 'completed' ? 'screen.22a970d2e5b1cc23'
+                           : booking.status == 'cancelled' ? 'screen.d353a99eb4556847' : ''}"/>
 
                     <div class="booking-detail-heading">
                         <div>
@@ -51,8 +51,8 @@
                                 <c:choose>
                                     <c:when test="${not empty booking.bookingDate}">
                                         <time datetime="${booking.bookingDate}">${booking.bookingDate.format(dateTimeFormat)}</time>
-                                        </c:when>
-                                        <c:otherwise>—</c:otherwise>
+                                    </c:when>
+                                    <c:otherwise>—</c:otherwise>
                                 </c:choose>
                             </p>
                         </div>
@@ -73,11 +73,11 @@
                             </span>
 
                             <c:if test="${sessionScope.loggedUser.role eq 'staff'}">
-                                <a class="btn btn-primary"
-                                   href="${pageContext.request.contextPath}/counter-payment?bookingId=${booking.id}">
-                                    <ui:text key="screen.feb1966292f16b45"/>
-                                </a>
-                            </c:if>
+                            <a class="btn btn-primary"
+                               href="${pageContext.request.contextPath}/counter-payment?bookingId=${booking.id}">
+                                <ui:text key="screen.feb1966292f16b45"/>
+                            </a>
+                        </c:if>
                         </div>
                     </c:if>
 
@@ -128,54 +128,51 @@
                     </c:if>
                     <c:if test="${empty offlineCreator and not booking.onlineDepositPolicy and booking.status eq 'confirmed'
                                   and sessionScope.loggedUser.role eq 'staff'}">
-                          <a class="btn btn-primary mb-3"
-                             href="<c:url value='/counter-payment?bookingId=${booking.id}'/>">Xếp phòng và nhận phòng</a>
+                        <a class="btn btn-primary mb-3"
+                           href="<c:url value='/counter-payment?bookingId=${booking.id}'/>">Xếp phòng và nhận phòng</a>
                     </c:if>
                     <c:if test="${not empty nextStatuses}">
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <strong><ui:text key="screen.d275eb2a59741cbf"/></strong>
-                            </div>
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <strong><ui:text key="screen.d275eb2a59741cbf"/></strong>
+                        </div>
 
-                            <div class="card-body">
-                                <p class="small text-muted mb-3"><ui:text key="booking.detail.status.hint"/></p>
-                                <form id="booking-status-form" action="${pageContext.request.contextPath}/booking-management"
-                                      method="post"
-                                      class="row g-3 align-items-end">
+                        <div class="card-body">
+                                    <p class="small text-muted mb-3"><ui:text key="booking.detail.status.hint"/></p>
+                                    <form id="booking-status-form" action="${pageContext.request.contextPath}/booking-management"
+                                          method="post"
+                                          class="row g-3 align-items-end">
 
-                                    <input type="hidden"
-                                           name="csrfToken"
-                                           value="${sessionScope.csrfToken}">
+                                        <input type="hidden"
+                                               name="csrfToken"
+                                               value="${sessionScope.csrfToken}">
 
-                                    <input type="hidden"
-                                           name="action"
-                                           value="update-status">
+                                        <input type="hidden"
+                                               name="action"
+                                               value="update-status">
 
-                                    <input type="hidden"
-                                           name="booking-id"
-                                           value="${booking.id}">
+                                        <input type="hidden"
+                                               name="booking-id"
+                                               value="${booking.id}">
 
-                                    <div class="col-md-8">
-                                        <label for="status"
-                                               class="form-label fw-semibold">
-                                            <ui:text key="screen.6355462edd94e4b2"/>
-                                        </label>
+                                        <div class="col-md-8">
+                                            <label for="status"
+                                                   class="form-label fw-semibold">
+                                                <ui:text key="screen.6355462edd94e4b2"/>
+                                            </label>
 
-                                        <select id="status"
-                                                name="status"
-                                                class="form-select"
-                                                required>
+                                            <select id="status"
+                                                    name="status"
+                                                    class="form-select"
+                                                    required>
 
-                                            <option value="" selected disabled data-i18n="screen.b575d3e1b784356d">
-                                                ${requestScope.i18n['screen.b575d3e1b784356d']}
-                                            </option>
+                                                <option value="" selected disabled>
+                                                    ${requestScope.i18n['screen.b575d3e1b784356d']}
+                                                </option>
 
-                                            <c:forEach var="status"
-                                                       items="${nextStatuses}">
-                                                <option value="${status}" data-i18n="${status == 'checked_in' ? 'screen.17c05c08a9ac3e5a'
-                                                                 : status == 'checked_out' ? 'screen.cbe2b33735c6335c'
-                                                                 : status == 'cancelled' ? 'screen.d353a99eb4556847'
-                                                                 : status == 'completed' ? 'screen.22a970d2e5b1cc23' : 'screen.fe00b67b6dd1143f'}">
+                                                <c:forEach var="status"
+                                                           items="${nextStatuses}">
+                                                    <option value="${status}">
                                                         <c:choose>
                                                             <c:when test="${status == 'confirmed'}">
                                                                 ${requestScope.i18n['screen.fe00b67b6dd1143f']}
@@ -196,41 +193,41 @@
                                                                 <c:out value="${status}"/>
                                                             </c:otherwise>
                                                         </c:choose>
-                                                </option>
-                                            </c:forEach>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-md-4">
-                                        <button type="submit"
-                                                class="btn btn-primary w-100">
-                                            <ui:text key="screen.3030ddce9921f3f9"/>
-                                        </button>
-                                    </div>
-                                </form>
-
-                                <dialog class="booking-status-dialog" id="booking-status-dialog"
-                                        aria-labelledby="booking-dialog-title" aria-describedby="booking-dialog-description">
-                                    <div class="booking-dialog-content">
-                                        <h2 id="booking-dialog-title"><ui:text key="booking.detail.confirm.title"/></h2>
-                                        <p id="booking-dialog-description"><ui:text key="booking.detail.confirm.description"/></p>
-                                        <div class="booking-dialog-transition">
-                                            <span id="booking-dialog-current"></span>
-                                            <span aria-hidden="true">&rarr;</span>
-                                            <strong id="booking-dialog-next"></strong>
+                                                    </option>
+                                                </c:forEach>
+                                            </select>
                                         </div>
-                                        <div class="booking-dialog-actions">
-                                            <button type="button" class="btn btn-outline-secondary" id="booking-dialog-back" autofocus>
-                                                <ui:text key="booking.detail.confirm.back"/>
-                                            </button>
-                                            <button type="button" class="btn btn-primary" id="booking-dialog-submit">
-                                                <ui:text key="booking.detail.confirm.submit"/>
+
+                                        <div class="col-md-4">
+                                            <button type="submit"
+                                                    class="btn btn-primary w-100">
+                                                <ui:text key="screen.3030ddce9921f3f9"/>
                                             </button>
                                         </div>
-                                    </div>
-                                </dialog>
-                            </div>
+                                    </form>
+
+                                    <dialog class="booking-status-dialog" id="booking-status-dialog"
+                                            aria-labelledby="booking-dialog-title" aria-describedby="booking-dialog-description">
+                                        <div class="booking-dialog-content">
+                                            <h2 id="booking-dialog-title"><ui:text key="booking.detail.confirm.title"/></h2>
+                                            <p id="booking-dialog-description"><ui:text key="booking.detail.confirm.description"/></p>
+                                            <div class="booking-dialog-transition">
+                                                <span id="booking-dialog-current"></span>
+                                                <span aria-hidden="true">&rarr;</span>
+                                                <strong id="booking-dialog-next"></strong>
+                                            </div>
+                                            <div class="booking-dialog-actions">
+                                                <button type="button" class="btn btn-outline-secondary" id="booking-dialog-back" autofocus>
+                                                    <ui:text key="booking.detail.confirm.back"/>
+                                                </button>
+                                                <button type="button" class="btn btn-primary" id="booking-dialog-submit">
+                                                    <ui:text key="booking.detail.confirm.submit"/>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </dialog>
                         </div>
+                    </div>
                     </c:if>
 
                     <section class="card booking-data-card mb-4" aria-labelledby="stay-heading">
@@ -314,16 +311,16 @@
                                         <tbody>
                                             <c:forEach var="payment" items="${payments}">
                                                 <c:set var="paymentTone" value="${payment.paymentStatus == 'paid' ? 'success'
-                                                                                  : payment.paymentStatus == 'pending' ? 'warning'
-                                                                                  : payment.paymentStatus == 'failed' ? 'danger' : 'neutral'}"/>
+                                                       : payment.paymentStatus == 'pending' ? 'warning'
+                                                       : payment.paymentStatus == 'failed' ? 'danger' : 'neutral'}"/>
                                                 <tr>
                                                     <th scope="row" class="booking-table-id">#${payment.id}</th>
                                                     <td>
                                                         <c:choose>
                                                             <c:when test="${not empty payment.paymentDate}">
                                                                 <time datetime="${payment.paymentDate}">${payment.paymentDate.format(dateTimeFormat)}</time>
-                                                                </c:when>
-                                                                <c:otherwise>—</c:otherwise>
+                                                            </c:when>
+                                                            <c:otherwise>—</c:otherwise>
                                                         </c:choose>
                                                     </td>
                                                     <td class="text-end">
@@ -449,8 +446,8 @@
                                     <c:choose>
                                         <c:when test="${not empty booking.bookingDate}">
                                             <time datetime="${booking.bookingDate}">${booking.bookingDate.format(dateTimeFormat)}</time>
-                                            </c:when>
-                                            <c:otherwise>—</c:otherwise>
+                                        </c:when>
+                                        <c:otherwise>—</c:otherwise>
                                     </c:choose>
                                 </div>
 
@@ -468,8 +465,8 @@
                                         <c:choose>
                                             <c:when test="${not empty booking.cancellationDate}">
                                                 <time datetime="${booking.cancellationDate}">${booking.cancellationDate.format(dateTimeFormat)}</time>
-                                                </c:when>
-                                                <c:otherwise>—</c:otherwise>
+                                            </c:when>
+                                            <c:otherwise>—</c:otherwise>
                                         </c:choose>
                                     </div>
 

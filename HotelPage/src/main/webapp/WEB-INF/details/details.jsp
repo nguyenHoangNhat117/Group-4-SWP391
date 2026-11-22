@@ -2,7 +2,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta charset="UTF-8">
@@ -118,14 +118,12 @@
                     <div class="alert alert-danger alert-dismissible fade show"
                          role="alert">
 
-                        Invalid star rating.
-                        Please select a rating from 1 to 5,
-                        in increments of 0.5.
+                        Số sao không hợp lệ. Vui lòng chọn từ 1 đến 5 sao, theo bước 0,5 sao.
 
                         <button type="button"
                                 class="btn-close"
                                 data-bs-dismiss="alert"
-                                aria-label="Close">
+                                aria-label="Đóng">
                         </button>
                     </div>
                 </c:if>
@@ -134,13 +132,12 @@
                     <div class="alert alert-danger alert-dismissible fade show"
                          role="alert">
 
-                        Unable to submit your review.
-                        Please check your booking and try again.
+                        Không thể gửi đánh giá. Vui lòng kiểm tra đơn đặt phòng và thử lại.
 
                         <button type="button"
                                 class="btn-close"
                                 data-bs-dismiss="alert"
-                                aria-label="Close">
+                                aria-label="Đóng">
                         </button>
                     </div>
                 </c:if>
@@ -149,41 +146,41 @@
                 <c:if test="${param.error == 'invalid-comment'}">
                     <div class="alert alert-danger alert-dismissible fade show"
                          role="alert">
-                        Please enter a review comment before submitting.
+                        Vui lòng nhập nhận xét trước khi gửi.
                         <button type="button"
                                 class="btn-close"
                                 data-bs-dismiss="alert"
-                                aria-label="Close"></button>
+                                aria-label="Đóng"></button>
                     </div>
                 </c:if>
 
                 <c:if test="${param.error == 'comment-too-long'}">
                     <div class="alert alert-danger alert-dismissible fade show"
                          role="alert">
-                        Review comment must not exceed 1000 characters.
+                        Nhận xét không được vượt quá 1000 ký tự.
                         <button type="button"
                                 class="btn-close"
                                 data-bs-dismiss="alert"
-                                aria-label="Close"></button>
+                                aria-label="Đóng"></button>
                     </div>
                 </c:if>
 
                 <c:if test="${param.error == 'review-pending'}">
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <ui:text key="screen.92c7aa32e0c960ae"/>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}" data-i18n-aria-label="screen.7d9eb7acb13e2462"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}"></button>
                     </div>
                 </c:if>
                 <c:if test="${param.error == 'already-review'}">
                     <div class="alert alert-warning alert-dismissible fade show" role="alert">
                         <ui:text key="screen.82c1f7a7faf691d9"/>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}" data-i18n-aria-label="screen.7d9eb7acb13e2462"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}"></button>
                     </div>
                 </c:if>
                 <c:if test="${param.error == 'not-book-yet'}">
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <ui:text key="screen.e45927062807c3b3"/>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}" data-i18n-aria-label="screen.7d9eb7acb13e2462"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}"></button>
                     </div>
                 </c:if>
 
@@ -228,7 +225,7 @@
                         <div class="bg-white border rounded-4 p-4 shadow-sm mb-4">
                             <h4 class="fw-bold mb-3"><ui:text key="screen.de659431fe98de4e"/></h4>
                             <p class="text-secondary mb-3">
-                                <c:out value="${not empty roomType.description ? roomType.description : 'Experience comfort and elegance in our well-appointed room.'}"/>
+                                <c:out value="${not empty roomType.description ? roomType.description : 'Tận hưởng không gian nghỉ ngơi thoải mái với đầy đủ tiện nghi.'}"/>
                             </p>
                             <div class="row g-3 text-center pt-2 border-top">
                                 <div class="${empty roomSpecifications ? 'col-sm-4' : 'col-sm-6 col-xl-3'}">
@@ -273,9 +270,9 @@
                                                     <div>
                                                         <c:set var="amenityNameKey" value="room.amenity.name.${amenity.name}"/>
                                                         <c:set var="amenityDescriptionKey" value="room.amenity.description.${amenity.description}"/>
-                                                        <div class="fw-semibold text-dark" data-i18n="${not empty requestScope.i18n[amenityNameKey] ? amenityNameKey : ''}"><c:out value="${requestScope.i18n[amenityNameKey]}" default="${amenity.name}"/></div>
+                                                        <div class="fw-semibold text-dark"><c:out value="${requestScope.i18n[amenityNameKey]}" default="${amenity.name}"/></div>
                                                         <c:if test="${not empty amenity.description}">
-                                                            <small class="text-muted" data-i18n="${not empty requestScope.i18n[amenityDescriptionKey] ? amenityDescriptionKey : ''}"><c:out value="${requestScope.i18n[amenityDescriptionKey]}" default="${amenity.description}"/></small>
+                                                            <small class="text-muted"><c:out value="${requestScope.i18n[amenityDescriptionKey]}" default="${amenity.description}"/></small>
                                                         </c:if>
                                                     </div>
                                                 </div>
@@ -393,7 +390,7 @@
                                     <div class="mb-3 text-warning fw-semibold">
                                         <i class="bi bi-star-fill"></i> ${averageStar} <ui:text key="screen.18fa6f5773c7b8cf"/>
                                     </div>
-                                    <div style="max-height: 390px; overflow-y: auto;" aria-label="${requestScope.i18n['screen.8380c237806a24e2']}" data-i18n-aria-label="screen.8380c237806a24e2">
+                                    <div style="max-height: 390px; overflow-y: auto;" aria-label="${requestScope.i18n['screen.8380c237806a24e2']}">
                                         <c:forEach var="review" items="${reviews}">
                                             <div class="review-box mb-2">
                                                 <div class="d-flex align-items-center gap-2 mb-2">
@@ -403,7 +400,7 @@
                                                          class="rounded-circle object-fit-cover"
                                                          src="${pageContext.request.contextPath}/avatar/image?reviewId=${review.reviewID}"
                                                          onerror="this.onerror=null;this.src='${pageContext.request.contextPath}/assets/img/avatar.jpg';"
-                                                         alt="Customer avatar"/>
+                                                         alt="Ảnh đại diện khách hàng"/>
 
                                                     <div>
                                                         <strong><c:out value="${review.booking.customer.user.username}"/></strong>

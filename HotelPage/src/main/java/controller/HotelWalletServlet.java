@@ -35,7 +35,7 @@ public class HotelWalletServlet extends HttpServlet {
         String role = user.getRole();
 
         if (!"manager".equalsIgnoreCase(role)) {
-            response.sendError(403, "Access denied");
+            response.sendError(403, "Bạn không có quyền truy cập");
             return;
         }
 
@@ -79,7 +79,7 @@ public class HotelWalletServlet extends HttpServlet {
             String value = request.getParameter(keys[i]);
             if (value != null && !value.isBlank()) {
                 if (value.length()>80 || (i==0 && !value.matches("[0-9]{1,9}"))) {
-                    response.sendError(400, "Invalid payment filter"); return;
+                    response.sendError(400, "Bộ lọc thanh toán không hợp lệ"); return;
                 }
                 where.append(" AND ").append(columns[i]).append("=? ");
                 filters.add(i==0 ? Integer.valueOf(value) : value);
@@ -92,7 +92,7 @@ public class HotelWalletServlet extends HttpServlet {
                 where.append(" AND p.PaymentDate>=? AND p.PaymentDate<? ");
                 filters.add(java.sql.Date.valueOf(day));
                 filters.add(java.sql.Date.valueOf(day.plusDays(1)));
-            } catch (java.time.DateTimeException ex) { response.sendError(400, "Invalid payment date"); return; }
+            } catch (java.time.DateTimeException ex) { response.sendError(400, "Ngày thanh toán không hợp lệ"); return; }
         }
         int page = 1;
         try { page = Math.max(1, Integer.parseInt(request.getParameter("page"))); }

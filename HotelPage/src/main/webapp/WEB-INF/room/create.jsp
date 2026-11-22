@@ -3,11 +3,11 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 
 <!DOCTYPE html>
-<html>
+<html lang="vi">
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
-        <title data-i18n="screen.3f855ba1babcbd8a">${requestScope.i18n['screen.3f855ba1babcbd8a']}</title>
+        <title>${requestScope.i18n['screen.3f855ba1babcbd8a']}</title>
 
         <link
             href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
@@ -99,15 +99,15 @@
                                 class="form-select form-select-lg"
                                 required>
 
-                                <option value="available" ${param.status == 'available' ? 'selected' : ''} data-i18n="screen.e674447337e83c13">
+                                <option value="available" ${param.status == 'available' ? 'selected' : ''}>
                                     ${requestScope.i18n['screen.e674447337e83c13']}
                                 </option>
 
-                                <option value="maintenance" ${param.status == 'maintenance' ? 'selected' : ''} data-i18n="screen.17ccfa5b681e3e7b">
+                                <option value="maintenance" ${param.status == 'maintenance' ? 'selected' : ''}>
                                     ${requestScope.i18n['screen.17ccfa5b681e3e7b']}
                                 </option>
 
-                                <option value="out_of_service" ${param.status == 'out_of_service' ? 'selected' : ''} data-i18n="screen.3cd4b662003a9db7">
+                                <option value="out_of_service" ${param.status == 'out_of_service' ? 'selected' : ''}>
                                     ${requestScope.i18n['screen.3cd4b662003a9db7']}
                                 </option>
 

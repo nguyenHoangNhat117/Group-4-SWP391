@@ -11,7 +11,8 @@ import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
+
+import jakarta.servlet.jsp.jstl.core.Config;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -29,6 +30,7 @@ import util.LanguageSupport;
         }
 )
 public class LanguageFilter implements Filter {
+    private static final Locale VIETNAMESE = Locale.forLanguageTag("vi-VN");
 
     @Override
     public void doFilter(
@@ -62,43 +64,22 @@ public class LanguageFilter implements Filter {
         res.setCharacterEncoding("UTF-8");
         res.setHeader("Cache-Control", "no-store");
 
-        String language
-                = LanguageSupport.resolve(req);
-
-        HttpSession session = req.getSession();
-
-        
-
-        req.setAttribute(
-                "uiLanguage",
-                language
-        );
-
-        req.setAttribute(
-                "i18n",
-                LanguageSupport.messages(language)
-        );
-
-        req.setAttribute(
-                "uc24Token",
-                LanguageSupport.token(session)
-        );
-
-        Locale locale
-                = Locale.forLanguageTag(language);
+        req.setAttribute("i18n", LanguageSupport.messages());
+        Config.set(req, Config.FMT_LOCALE, VIETNAMESE);
+        res.setHeader("Content-Language", "vi");
 
         HttpServletRequestWrapper wrapped
                 = new HttpServletRequestWrapper(req) {
 
             @Override
             public Locale getLocale() {
-                return locale;
+                return VIETNAMESE;
             }
 
             @Override
             public Enumeration<Locale> getLocales() {
                 return Collections.enumeration(
-                        Collections.singletonList(locale)
+                        Collections.singletonList(VIETNAMESE)
                 );
             }
         };

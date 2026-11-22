@@ -158,8 +158,8 @@
 
         if (revenueHeading) {
             revenueHeading.textContent = selectedYear
-                    ? "Revenue overview · " + selectedYear + " (VND)"
-                    : "Revenue overview (VND)";
+                    ? "Tổng quan doanh thu · " + selectedYear + " (VND)"
+                    : "Tổng quan doanh thu (VND)";
         }
 
         const customerLabel = dashboard.querySelector(
@@ -167,7 +167,7 @@
                 );
 
         if (customerLabel) {
-            customerLabel.textContent = "Total customers";
+            customerLabel.textContent = "Tổng số khách hàng";
         }
 
         const roomChart = document.getElementById("hd-room-chart");
@@ -177,7 +177,7 @@
             const heading = panel ? panel.querySelector("h2") : null;
 
             if (heading) {
-                heading.textContent = "Current room status";
+                heading.textContent = "Trạng thái phòng hiện tại";
             }
         }
 
@@ -189,7 +189,7 @@
             const heading = reviewPanel.querySelector("h2");
 
             if (heading) {
-                heading.textContent = "Guest rating · Overall";
+                heading.textContent = "Đánh giá chung của khách";
             }
         }
 
@@ -202,10 +202,10 @@
                 );
 
         if (reviewLink) {
-            reviewLink.textContent = "View reviews";
+            reviewLink.textContent = "Xem đánh giá";
             reviewLink.setAttribute(
                     "aria-label",
-                    "View review records"
+                    "Xem danh sách đánh giá"
                     );
         }
 
@@ -214,7 +214,7 @@
                 );
 
         if (monthlyValues) {
-            monthlyValues.textContent = "Monthly values";
+            monthlyValues.textContent = "Số liệu theo tháng";
         }
 
         /*
@@ -226,8 +226,7 @@
         if (occupancyCard) {
             occupancyCard.setAttribute(
                     "title",
-                    "Estimated from stored stay dates, assuming the currently "
-                    + "available room inventory throughout the selected period."
+                    "Ước tính từ ngày lưu trú đã lưu và số phòng hiện có trong kỳ đã chọn."
                     );
         }
     }

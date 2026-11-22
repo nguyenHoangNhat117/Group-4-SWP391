@@ -2,19 +2,19 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <!DOCTYPE html>
-<html>
+<html lang="vi">
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta charset="UTF-8">
-        <title data-i18n="screen.126850cb3c7e0489">${requestScope.i18n['screen.126850cb3c7e0489']}</title>
+        <title>${requestScope.i18n['screen.126850cb3c7e0489']}</title>
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
         <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" />
         <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
-        <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
+            <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
-    </head>
+</head>
     <body>
         <div class="body-wrapper">
             <%@include file="/WEB-INF/include/header.jsp" %>
@@ -61,10 +61,10 @@
                     <div class="mb-3">
                         <label for="prepayment-percent" class="form-label fw-semibold"><ui:text key="screen.6462ea238a580eb8"/></label>
                         <select id="prepayment-percent" name="prepayment-percent" class="form-select form-select-lg" required>
-                            <option value="0" data-i18n="screen.6500570368820548">${requestScope.i18n['screen.6500570368820548']}</option>
-                            <option value="10" data-i18n="screen.ba120e159f543d2e">${requestScope.i18n['screen.ba120e159f543d2e']}</option>
-                            <option value="20" data-i18n="screen.4a6ff799acf7bfce">${requestScope.i18n['screen.4a6ff799acf7bfce']}</option>
-                            <option value="100" data-i18n="screen.8e92879488898a6c">${requestScope.i18n['screen.8e92879488898a6c']}</option>
+                            <option value="0">${requestScope.i18n['screen.6500570368820548']}</option>
+                            <option value="10">${requestScope.i18n['screen.ba120e159f543d2e']}</option>
+                            <option value="20">${requestScope.i18n['screen.4a6ff799acf7bfce']}</option>
+                            <option value="100">${requestScope.i18n['screen.8e92879488898a6c']}</option>
                         </select>
                         <div class="form-text"><ui:text key="screen.b6db22362a703521"/></div>
                     </div>
@@ -107,8 +107,8 @@
                     document.getElementById("payNowAmount").textContent = money.format(payNow);
                     document.getElementById("remainingAmount").textContent = money.format(Math.max(0, total - payNow));
                     document.getElementById("booking-submit-text").textContent = Number(percentSelect.value) === 0
-                            ? "Confirm Booking (No Payment Required)"
-                            : "Confirm Booking & Continue to Payment";
+                        ? "Xác nhận đặt phòng (chưa cần thanh toán)"
+                        : "Xác nhận đặt phòng và tiếp tục thanh toán";
                 }
 
                 percentSelect.addEventListener("change", calculateTotalPrice);

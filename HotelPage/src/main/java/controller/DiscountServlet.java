@@ -109,7 +109,7 @@ public class DiscountServlet extends HttpServlet {
                 }
 
                 default:
-                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action.");
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Thao tác không hợp lệ.");
             }
         } catch (NumberFormatException | DateTimeParseException ex) {
             response.sendRedirect(request.getContextPath()

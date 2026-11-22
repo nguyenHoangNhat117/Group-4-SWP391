@@ -9,7 +9,7 @@
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt"%>
 <%@taglib prefix="ui" tagdir="/WEB-INF/tags"%>
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width,initial-scale=1">

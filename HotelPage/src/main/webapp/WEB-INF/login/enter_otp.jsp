@@ -23,13 +23,13 @@
     String recoveryEmail = (String) session.getAttribute("email");
 %>
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0">
 
-        <title data-i18n="screen.23edc073bb72c0d2">${requestScope.i18n['screen.23edc073bb72c0d2']}</title>
+        <title>${requestScope.i18n['screen.23edc073bb72c0d2']}</title>
 
         <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
               rel="stylesheet">

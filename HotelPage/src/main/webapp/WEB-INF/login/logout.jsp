@@ -16,13 +16,13 @@
     String logoutToken = (String) request.getAttribute("logoutToken");
 %>
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0">
 
-        <title data-i18n="screen.de97b83b09a01c68">${requestScope.i18n['screen.de97b83b09a01c68']}</title>
+        <title>${requestScope.i18n['screen.de97b83b09a01c68']}</title>
 
         <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
               rel="stylesheet">

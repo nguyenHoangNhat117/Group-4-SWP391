@@ -188,7 +188,7 @@
             </c:choose>
         </ul>
 
-        <%-- One group containing navigation toggle, language and account. --%>
+        <%-- Nhóm nút mở điều hướng và tài khoản. --%>
         <div class="luxe-header-actions">
 
             <button type="button"
@@ -196,7 +196,6 @@
                     data-luxe-nav-toggle
                     aria-controls="navbar"
                     aria-expanded="false"
-                    data-i18n-aria-label="nav.toggle"
                     aria-label="${requestScope.i18n['nav.toggle']}">
 
                 <svg viewBox="0 0 24 24"
@@ -204,8 +203,6 @@
                 <path d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
             </button>
-
-            <jsp:include page="/WEB-INF/include/language-switcher.jsp"/>
 
             <c:choose>
                 <c:when test="${empty sessionScope.loggedUser}">
@@ -258,7 +255,6 @@
                                  data-luxe-account>
 
                             <summary class="luxe-account-trigger"
-                                     data-i18n-aria-label="account.options"
                                      aria-label="${requestScope.i18n['account.options']}">
 
 
@@ -284,7 +280,7 @@
                                     <img
                                         src="<%= request.getContextPath()%>/avatar/image"
                                         onerror="this.onerror=null;this.src='<%= request.getContextPath()%>/assets/img/avatar.jpg';"
-                                        alt="Account avatar"
+                                        alt="Ảnh đại diện tài khoản"
                                         width="44"
                                         height="44"
                                         width: 44px !important;
@@ -328,7 +324,6 @@
 
                             <div class="luxe-account-panel"
                                  role="group"
-                                 data-i18n-aria-label="account.actions"
                                  aria-label="${requestScope.i18n['account.actions']}">
 
                                 <div class="luxe-account-panel-heading">

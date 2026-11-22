@@ -51,7 +51,7 @@ public class RegisterServlet extends HttpServlet {
         HttpSession session = req.getSession(false);
 
         if (session == null) {
-            res.sendError(403, "Form expired. Reload the page and try again.");
+            res.sendError(403, "Biểu mẫu đã hết hạn. Vui lòng tải lại trang và thử lại.");
             return;
         }
 

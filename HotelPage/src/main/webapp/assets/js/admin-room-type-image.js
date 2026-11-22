@@ -6,16 +6,9 @@
     const originalSource = preview.src;
     const maxFileSize = 10 * 1024 * 1024;
     let previewUrl;
-    let errorKind;
 
     function showError(kind) {
-        errorKind = kind;
-        let message = "";
-        if (kind) {
-            const key = "room.type.image." + kind;
-            const translated = window.HotelLanguage?.text(key);
-            message = translated && translated !== key ? translated : error.dataset[kind + "Error"];
-        }
+        const message = kind ? error.dataset[kind + "Error"] : "";
         input.setCustomValidity(message);
         error.textContent = message;
         if (message) {
@@ -64,7 +57,6 @@
     }
 
     input.addEventListener("change", updatePreview);
-    document.addEventListener("hotel:languagechange", () => showError(errorKind));
     reset.addEventListener("click", () => {
         input.value = "";
         updatePreview();

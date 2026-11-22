@@ -1,29 +1,29 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
 <c:set var="ctx" value="${pageContext.request.contextPath}"/>
-<c:set var="vi" value="${requestScope.uiLanguage == 'vi'}"/>
-<fmt:setLocale value="${vi ? 'vi_VN' : 'en_US'}"/>
+<fmt:setLocale value="vi_VN"/>
 
 <c:set var="recordsView" value="${not empty reportView}"/>
 <c:set var="revenueView" value="${not recordsView and not empty view}"/>
 <c:set var="loadError" value="${recordsView ? reportError : dashboardError}"/>
-<c:set var="title" value="${vi ? 'Tổng quan khách sạn' : 'Hotel dashboard'}"/>
+<c:set var="title" value="Tổng quan khách sạn"/>
 
 <c:if test="${recordsView}">
     <c:set var="title"
            value="${reportView == 'bookings'
-                    ? (vi ? 'Báo cáo đặt phòng' : 'Booking report')
+                    ? 'Báo cáo đặt phòng'
                     : reportView == 'payments'
-                    ? (vi ? 'Báo cáo thanh toán' : 'Payment report')
-                    : (vi ? 'Báo cáo đánh giá' : 'Review report')}"/>
+                    ? 'Báo cáo thanh toán'
+                    : 'Báo cáo đánh giá'}"/>
 </c:if>
 
 <c:if test="${revenueView}">
     <c:set var="title"
-           value="${vi ? 'Báo cáo doanh thu' : 'Revenue report'}"/>
+           value="Báo cáo doanh thu"/>
 </c:if>
 
 <c:choose>
@@ -83,7 +83,7 @@
 </c:choose>
 
 <!DOCTYPE html>
-<html lang="${uiLanguage}" class="hotel-reports-page">
+<html lang="vi" class="hotel-reports-page">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -246,7 +246,7 @@
 
                 <a class="btn btn-light"
                    href="<c:out value='${dashboardUrl}'/>">
-                    ${vi ? 'Tổng quan' : 'Dashboard'}
+                    Tổng quan
                 </a>
             </div>
 
@@ -254,23 +254,23 @@
                 <a href="<c:out value='${bookingsUrl}'/>"
                    aria-current="${reportView == 'bookings'
                                    ? 'page' : 'false'}">
-                    ${vi ? 'Đặt phòng' : 'Bookings'}
+                    Đặt phòng
                 </a>
 
                 <a href="<c:out value='${paymentsUrl}'/>"
                    aria-current="${reportView == 'payments'
                                    ? 'page' : 'false'}">
-                    ${vi ? 'Thanh toán' : 'Payments'}
+                    Thanh toán
                 </a>
 
                 <a href="<c:out value='${reviewsUrl}'/>"
                    aria-current="${reportView == 'reviews'
                                    ? 'page' : 'false'}">
-                    ${vi ? 'Đánh giá' : 'Reviews'}
+                    Đánh giá
                 </a>
 
                 <a href="<c:out value='${revenueUrl}'/>">
-                    ${vi ? 'Doanh thu' : 'Revenue'}
+                    Doanh thu
                 </a>
             </div>
 
@@ -283,7 +283,7 @@
 
                 <div>
                     <label for="fromDate">
-                        ${vi ? 'Từ ngày' : 'From date'}
+                        Từ ngày
                     </label>
 
                     <input type="date"
@@ -296,7 +296,7 @@
 
                 <div>
                     <label for="toDate">
-                        ${vi ? 'Đến ngày' : 'To date'}
+                        Đến ngày
                     </label>
 
                     <input type="date"
@@ -309,19 +309,19 @@
 
                 <div>
                     <label for="reportStatus">
-                        ${vi ? 'Trạng thái' : 'Status'}
+                        Trạng thái
                     </label>
 
                     <select id="reportStatus" name="status">
                         <option value="">
-                            ${vi ? 'Tất cả' : 'All'}
+                            Tất cả
                         </option>
 
                         <c:forEach var="option" items="${filter.statuses}">
                             <option value="${option}"
                                     ${filter.status == option
                                       ? 'selected' : ''}>
-                                <c:out value="${fn:replace(option,'_',' ')}"/>
+                                <ui:message text="${option}"/>
                             </option>
                         </c:forEach>
                     </select>
@@ -330,19 +330,19 @@
                 <c:if test="${reportView == 'payments'}">
                     <div>
                         <label for="reportMethod">
-                            ${vi ? 'Phương thức' : 'Method'}
+                            Phương thức
                         </label>
 
                         <select id="reportMethod" name="method">
                             <option value="">
-                                ${vi ? 'Tất cả' : 'All'}
+                                Tất cả
                             </option>
 
                             <c:forEach var="option" items="${filter.methods}">
                                 <option value="${option}"
                                         ${filter.method == option
                                           ? 'selected' : ''}>
-                                    <c:out value="${fn:replace(option,'_',' ')}"/>
+                                    <ui:message text="${option}"/>
                                 </option>
                             </c:forEach>
                         </select>
@@ -351,7 +351,7 @@
 
                 <div>
                     <label for="reportBookingId">
-                        ${vi ? 'Mã đặt phòng' : 'Booking ID'}
+                        Mã đặt phòng
                     </label>
 
                     <input id="reportBookingId"
@@ -364,7 +364,7 @@
 
                 <div>
                     <label for="reportPageSize">
-                        ${vi ? 'Số dòng' : 'Rows'}
+                        Số dòng
                     </label>
 
                     <select id="reportPageSize" name="pageSize">
@@ -379,19 +379,19 @@
                 </div>
 
                 <button class="report-button primary">
-                    ${vi ? 'Áp dụng' : 'Apply'}
+                    Áp dụng
                 </button>
 
                 <a class="report-button"
                    href="<c:out value='${resetUrl}'/>">
-                    ${vi ? 'Hiện tất cả' : 'Reset'}
+                    Hiện tất cả
                 </a>
             </form>
 
             <p class="uc23-scope">
                 ${filterActive
-                  ? (vi ? 'Kỳ: ' : 'Period: ')
-                  : (vi ? 'Toàn bộ thời gian' : 'All periods')}
+                  ? 'Kỳ: '
+                  : 'Toàn bộ thời gian'}
 
                 <c:if test="${filterActive}">
                     ${fromDate} → ${toDate}
@@ -418,25 +418,25 @@
                 </div>
 
                 <c:if test="${revenueView}">
-                    <a class="btn btn-light" href="${ctx}/dashboard">${vi ? 'Tổng quan' : 'Dashboard'}</a>
+                    <a class="btn btn-light" href="${ctx}/dashboard">Tổng quan</a>
                 </c:if>
             </div>
 
             <div class="report-tabs">
                 <a href="<c:out value='${bookingsUrl}'/>">
-                    ${vi ? 'Đặt phòng' : 'Bookings'}
+                    Đặt phòng
                 </a>
 
                 <a href="<c:out value='${paymentsUrl}'/>">
-                    ${vi ? 'Thanh toán' : 'Payments'}
+                    Thanh toán
                 </a>
 
                 <a href="<c:out value='${reviewsUrl}'/>">
-                    ${vi ? 'Đánh giá' : 'Reviews'}
+                    Đánh giá
                 </a>
 
                 <a href="${ctx}/reports?view=month">
-                    ${vi ? 'Doanh thu' : 'Revenue'}
+                    Doanh thu
                 </a>
             </div>
 
@@ -451,7 +451,7 @@
 
                         <div>
                             <label for="fromDate">
-                                ${vi ? 'Từ ngày' : 'From date'}
+                                Từ ngày
                             </label>
 
                             <input id="fromDate"
@@ -465,7 +465,7 @@
 
                         <div>
                             <label for="toDate">
-                                ${vi ? 'Đến ngày' : 'To date'}
+                                Đến ngày
                             </label>
 
                             <input id="toDate"
@@ -478,7 +478,7 @@
                         </div>
 
                         <button class="report-button primary">
-                            ${vi ? 'Xem theo kỳ' : 'View period'}
+                            Xem theo kỳ
                         </button>
                     </form>
 
@@ -490,7 +490,7 @@
 
                         <div>
                             <label for="year">
-                                ${vi ? 'Theo tháng của năm' : 'Months of year'}
+                                Theo tháng của năm
                             </label>
 
                             <input id="year"
@@ -503,12 +503,12 @@
                         </div>
 
                         <button class="report-button">
-                            ${vi ? 'Xem theo tháng' : 'View months'}
+                            Xem theo tháng
                         </button>
 
                         <a class="report-button"
                            href="${ctx}/reports?view=year">
-                            ${vi ? 'So sánh các năm' : 'Compare years'}
+                            So sánh các năm
                         </a>
                     </form>
 
@@ -518,8 +518,8 @@
                               ? 'Toàn bộ các năm. Tab chi tiết mở toàn thời gian.'
                               : 'All years. Detail tabs open all periods.')
                           : view == 'month'
-                          ? (vi ? 'Theo năm: ' : 'Year: ')
-                          : (vi ? 'Theo kỳ: ' : 'Period: ')}
+                          ? 'Theo năm: '
+                          : 'Theo kỳ: '}
 
                         <c:if test="${view == 'month'}">
                             ${selectedYear}
@@ -540,7 +540,7 @@
 
                         <div>
                             <label for="fromDate">
-                                ${vi ? 'Từ ngày' : 'From date'}
+                                Từ ngày
                             </label>
 
                             <input id="fromDate"
@@ -554,7 +554,7 @@
 
                         <div>
                             <label for="toDate">
-                                ${vi ? 'Đến ngày' : 'To date'}
+                                Đến ngày
                             </label>
 
                             <input id="toDate"
@@ -567,11 +567,11 @@
                         </div>
 
                         <button class="report-button primary">
-                            ${vi ? 'Áp dụng' : 'Apply'}
+                            Áp dụng
                         </button>
 
                         <a class="report-button" href="${ctx}/dashboard">
-                            ${vi ? 'Tháng hiện tại' : 'Current month'}
+                            Tháng hiện tại
                         </a>
                     </form>
 
@@ -590,7 +590,7 @@
                     <p>
                         <a class="report-button"
                            href="<c:out value='${reviewRetryUrl}'/>">
-                            ${vi ? 'Thử lại' : 'Retry'}
+                            Thử lại
                         </a>
                     </p>
                 </c:if>
@@ -607,7 +607,7 @@
                         <h2><ui:text key="management.revenueTrend"/></h2>
                         <c:if test="${not revenueView}">
                             <a class="revenue-feature-link" href="<c:out value='${revenueUrl}'/>">
-                                ${vi ? 'Chi tiết' : 'Details'}
+                                Chi tiết
                             </a>
                         </c:if>
                     </div>
@@ -626,16 +626,16 @@
                                     <label class="revenue-chart-filter" for="revenue-metric">
                                         <ui:text key="management.revenueMetric"/>
                                         <select id="revenue-metric" class="form-select">
-                                            <option value="net" data-i18n="management.revenueNet">${requestScope.i18n['management.revenueNet']}</option>
-                                            <option value="collected" data-i18n="management.revenueCollected">${requestScope.i18n['management.revenueCollected']}</option>
-                                            <option value="refunded" data-i18n="management.revenueRefunded">${requestScope.i18n['management.revenueRefunded']}</option>
+                                            <option value="net">${requestScope.i18n['management.revenueNet']}</option>
+                                            <option value="collected">${requestScope.i18n['management.revenueCollected']}</option>
+                                            <option value="refunded">${requestScope.i18n['management.revenueRefunded']}</option>
                                         </select>
                                     </label>
                                 </div>
                                 <div class="revenue-chart-frame">
                                     <div class="revenue-chart-axis" aria-hidden="true"></div>
                                     <div class="revenue-chart-scroll" tabindex="0" role="region"
-                                         aria-label="${requestScope.i18n['management.revenueTrend']}" data-i18n-aria-label="management.revenueTrend">
+                                         aria-label="${requestScope.i18n['management.revenueTrend']}">
                                         <div class="revenue-chart-bars"></div>
                                     </div>
                                 </div>
@@ -676,7 +676,7 @@
             <c:if test="${not recordsView or reportView == 'payments'}">
                 <section class="uc23-cards uc23-money">
                     <div>
-                        <span>${vi ? 'Tổng đã thu' : 'Gross collected'}</span>
+                        <span>Tổng đã thu</span>
                         <strong>
                             <fmt:formatNumber
                                 value="${gross}"
@@ -685,7 +685,7 @@
                     </div>
 
                     <div>
-                        <span>${vi ? 'Đã hoàn' : 'Refunded'}</span>
+                        <span>Đã hoàn</span>
                         <strong>
                             <fmt:formatNumber
                                 value="${refund}"
@@ -695,7 +695,7 @@
 
                     <div>
                         <span>
-                            ${vi ? 'Còn lại sau hoàn' : 'Net after refunds'}
+                            Còn lại sau hoàn
                         </span>
                         <strong>
                             <fmt:formatNumber
@@ -786,7 +786,7 @@
                         <ul>
                             <c:forEach var="r" items="${bookingStatistics}">
                                 <li>
-                                    <span><c:out value="${r.status}"/></span>
+                                    <span><ui:message text="${r.status}"/></span>
                                     <strong>${r.totalCount}</strong>
                                 </li>
                             </c:forEach>
@@ -805,7 +805,7 @@
                         <ul>
                             <c:forEach var="r" items="${roomStatistics}">
                                 <li>
-                                    <span><c:out value="${r.status}"/></span>
+                                    <span><ui:message text="${r.status}"/></span>
                                     <strong>${r.totalCount}</strong>
                                 </li>
                             </c:forEach>
@@ -827,8 +827,8 @@
                         <table class="report-table">
                             <thead>
                             <tr>
-                                <th>${vi ? 'Trạng thái' : 'Status'}</th>
-                                <th>${vi ? 'Số giao dịch' : 'Count'}</th>
+                                <th>Trạng thái</th>
+                                <th>Số giao dịch</th>
                                 <th class="numeric">
                                     ${vi
                                       ? 'Tiền giao dịch trước hoàn'
@@ -840,7 +840,7 @@
                             <tbody>
                             <c:forEach var="r" items="${paymentStatistics}">
                                 <tr>
-                                    <td><c:out value="${r.status}"/></td>
+                                    <td><ui:message text="${r.status}"/></td>
                                     <td>${r.totalCount}</td>
                                     <td class="numeric">
                                         <fmt:formatNumber
@@ -901,7 +901,7 @@
                     <div class="uc23-cards uc23-money">
                         <div>
                             <span>
-                                ${vi ? 'Tổng đánh giá' : 'Total reviews'}
+                                Tổng đánh giá
                             </span>
 
                             <strong>${reviewSummary.total}</strong>
@@ -917,7 +917,7 @@
                         </div>
 
                         <div>
-                            <span>${vi ? 'Đã duyệt' : 'Approved'}</span>
+                            <span>Đã duyệt</span>
                             <strong>${reviewSummary.approved}</strong>
                         </div>
 
@@ -1009,12 +1009,12 @@
                 <section class="report-panel">
                     <div class="report-panel-heading">
                         <h2>
-                            ${vi ? 'Danh sách chi tiết' : 'Detailed records'}
+                            Danh sách chi tiết
                         </h2>
 
                         <span>
                             ${totalRecords}
-                            ${vi ? 'kết quả' : 'results'}
+                            kết quả
                         </span>
                     </div>
 
@@ -1024,29 +1024,29 @@
                             <tr>
                                 <c:choose>
                                     <c:when test="${reportView == 'payments'}">
-                                        <th>ID</th>
+                                        <th>Mã</th>
                                         <th>
                                             ${vi
                                               ? 'Đặt phòng / Khách'
                                               : 'Booking / Guest'}
                                         </th>
-                                        <th>${vi ? 'Phòng' : 'Rooms'}</th>
+                                        <th>Phòng</th>
                                         <th>
                                             ${vi
                                               ? 'Ngày thanh toán'
                                               : 'Payment date'}
                                         </th>
                                         <th class="numeric">
-                                            ${vi ? 'Tiền giao dịch' : 'Amount'}
+                                            Tiền giao dịch
                                         </th>
                                         <th class="numeric">
-                                            ${vi ? 'Đã hoàn' : 'Refunded'}
+                                            Đã hoàn
                                         </th>
                                         <th class="numeric">
-                                            ${vi ? 'Còn lại' : 'Net'}
+                                            Còn lại
                                         </th>
-                                        <th>${vi ? 'Trạng thái' : 'Status'}</th>
-                                        <th>${vi ? 'Phương thức' : 'Method'}</th>
+                                        <th>Trạng thái</th>
+                                        <th>Phương thức</th>
                                         <th>
                                             ${vi
                                               ? 'Giảm đã lưu'
@@ -1060,29 +1060,29 @@
                                     </c:when>
 
                                     <c:when test="${reportView == 'reviews'}">
-                                        <th>ID</th>
+                                        <th>Mã</th>
                                         <th>
                                             ${vi
                                               ? 'Đặt phòng / Khách'
                                               : 'Booking / Guest'}
                                         </th>
-                                        <th>${vi ? 'Phòng' : 'Rooms'}</th>
-                                        <th>${vi ? 'Ngày gửi' : 'Submitted'}</th>
-                                        <th>${vi ? 'Sao' : 'Rating'}</th>
-                                        <th>${vi ? 'Nhận xét' : 'Comment'}</th>
-                                        <th>${vi ? 'Trạng thái' : 'Status'}</th>
+                                        <th>Phòng</th>
+                                        <th>Ngày gửi</th>
+                                        <th>Sao</th>
+                                        <th>Nhận xét</th>
+                                        <th>Trạng thái</th>
                                     </c:when>
 
                                     <c:otherwise>
-                                        <th>ID</th>
-                                        <th>${vi ? 'Khách' : 'Guest'}</th>
-                                        <th>${vi ? 'Ngày tạo' : 'Created'}</th>
+                                        <th>Mã</th>
+                                        <th>Khách</th>
+                                        <th>Ngày tạo</th>
                                         <th>
                                             ${vi
                                               ? 'Phòng / Lưu trú'
                                               : 'Rooms / Stay'}
                                         </th>
-                                        <th>${vi ? 'Trạng thái' : 'Status'}</th>
+                                        <th>Trạng thái</th>
                                         <th class="numeric">
                                             ${vi
                                               ? 'Tổng đơn'
@@ -1169,7 +1169,7 @@
                                                         </c:when>
 
                                                         <c:otherwise>
-                                                            <c:out value="${p.paymentStatus}"/>
+                                                            <ui:message text="${p.paymentStatus}"/>
                                                         </c:otherwise>
                                                     </c:choose>
                                                 </span>
@@ -1267,14 +1267,14 @@
                                                         →
                                                         ${d.checkOutDate};
                                                         ${d.guestCount}
-                                                        ${vi ? 'khách' : 'guests'}
+                                                        khách
                                                     </div>
                                                 </c:forEach>
                                             </td>
 
                                             <td>
                                                 <span class="report-status <c:out value='${b.status}'/>">
-                                                    <c:out value="${b.status}"/>
+                                                    <ui:message text="${b.status}"/>
                                                 </span>
                                             </td>
 

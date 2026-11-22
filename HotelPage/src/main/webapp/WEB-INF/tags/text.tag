@@ -4,4 +4,4 @@
               type="java.lang.String" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 
-<span data-i18n="${key}"><c:out value="${requestScope.i18n[key]}" default="${key}"/></span>
+<span><c:out value="${requestScope.i18n[key]}" default="${key}"/></span>

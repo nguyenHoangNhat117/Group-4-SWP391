@@ -45,7 +45,6 @@ if (window.bootstrap?.Dropdown) {
         select.after(toggle, menu);
         select.hidden = true;
         select.addEventListener("change", syncSelection);
-        document.addEventListener("hotel:languagechange", syncSelection);
         window.addEventListener("pageshow", syncSelection);
         syncSelection();
     });
@@ -66,33 +65,22 @@ if (window.bootstrap?.Dropdown) {
     dateField.type = "hidden";
     dateField.after(display);
 
-    let picker;
-    let activeLanguage;
-    function useLanguage(language) {
-        if (language === activeLanguage) {
-            return;
+    display.placeholder = "Chọn ngày";
+    const picker = new Litepicker({
+        element: display,
+        singleMode: true,
+        autoApply: true,
+        numberOfMonths: 1,
+        numberOfColumns: 1,
+        lang: "vi-VN",
+        format: "DD/MM/YYYY",
+        startDate: dateField.value ? new Date(dateField.value + "T00:00:00") : null,
+        setup(calendar) {
+            calendar.on("selected", start => {
+                dateField.value = start.format("YYYY-MM-DD");
+            });
         }
-        activeLanguage = language;
-        if (picker) {
-            picker.destroy();
-        }
-        display.placeholder = language === "vi" ? "Chọn ngày" : "Select a date";
-        picker = new Litepicker({
-            element: display,
-            singleMode: true,
-            autoApply: true,
-            numberOfMonths: 1,
-            numberOfColumns: 1,
-            lang: language === "vi" ? "vi-VN" : "en-US",
-            format: "DD/MM/YYYY",
-            startDate: dateField.value ? new Date(dateField.value + "T00:00:00") : null,
-            setup(calendar) {
-                calendar.on("selected", start => {
-                    dateField.value = start.format("YYYY-MM-DD");
-                });
-            }
-        });
-    }
+    });
 
     display.addEventListener("keydown", event => {
         if (event.key === "Enter" || event.key === " ") {
@@ -106,29 +94,4 @@ if (window.bootstrap?.Dropdown) {
             picker.hide();
         }
     });
-    useLanguage(document.documentElement.lang);
-    document.addEventListener("hotel:languagechange", ({ detail }) => useLanguage(detail.lang));
 })();
-
-document.addEventListener("hotel:languagechange", ({ detail }) => {
-    const paymentHistory = document.querySelector(".payment-history");
-    const locale = detail.lang === "vi" ? "vi-VN" : "en-US";
-    const numberFormat = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
-    const dateFormat = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" });
-    const dateTimeFormat = new Intl.DateTimeFormat(locale, {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "UTC"
-    });
-
-    paymentHistory.querySelectorAll("[data-history-money]").forEach(amount => {
-        amount.textContent = numberFormat.format(amount.dataset.historyMoney);
-    });
-
-    // PaymentDate and stay dates are stored as local calendar values.
-    paymentHistory.querySelectorAll("[data-history-date], [data-history-datetime]").forEach(time => {
-        const isStayDate = time.hasAttribute("data-history-date");
-        const value = isStayDate ? time.dateTime + "T00:00:00" : time.dateTime;
-        time.textContent = (isStayDate ? dateFormat : dateTimeFormat).format(new Date(value + "Z"));
-    });
-});

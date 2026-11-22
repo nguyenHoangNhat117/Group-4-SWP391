@@ -9,7 +9,7 @@
 <select id="price-band" name="price-band" class="form-select${param.searchStyle == 'booking' ? '' : ' bg-light border-0'}">
     <c:forEach var="band" items="ALL,UNDER_1M,FROM_1M,FROM_5M,ABOVE_15M">
         <option value="${band}" ${sessionScope.searchPriceBand == band ? 'selected' : ''}
-                data-i18n="room.price.${band}"><c:out value="${requestScope.i18n['room.price.'.concat(band)]}"/></option>
+               ><c:out value="${requestScope.i18n['room.price.'.concat(band)]}"/></option>
     </c:forEach>
 </select>
 </div>

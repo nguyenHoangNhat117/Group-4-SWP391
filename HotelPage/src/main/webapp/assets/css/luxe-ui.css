@@ -154,20 +154,19 @@ section#hero::before{width:420px;height:420px;right:-6%;top:-40px;background:rgb
 section#hero::after{width:300px;height:300px;left:-8%;bottom:10%;background:rgba(178,154,123,.22);animation:lx-float 14s ease-in-out infinite reverse}
 @keyframes lx-float{0%,100%{transform:translate(0,0)}50%{transform:translate(26px,-30px)}}
 #hero-heading{font-family:var(--lx-serif);font-weight:600;letter-spacing:-.035em}
-#hero-heading > span:nth-child(2) {
+#hero-heading > .hero-brand {
   background: linear-gradient(to right, #B48E4B 0%, #E6C786 45%, #E6C786 55%, #B48E4B 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
 }
-#hero-heading span:nth-child(1){color:var(--lx-ink)}
 #hero-text p{font-size:1.05rem;line-height:1.7;color:var(--lx-muted)}
 #hero-img{border-radius:28px!important;box-shadow:var(--lx-shadow-lg)!important;border:6px solid rgba(255,255,255,.75)!important}
 #rooms-heading,#restaurant-heading{font-family:var(--lx-serif);font-weight:600;letter-spacing:-.025em;color:var(--lx-ink)}
 #rooms-heading::before,#restaurant-heading::before{display:block;font:600 .74rem var(--lx-sans);letter-spacing:.26em;color:var(--lx-gold-dark);margin-bottom:.8rem;text-transform:uppercase}
-#rooms-heading::before{content:'— Accommodation'}
-#restaurant-heading::before{content:'— Dining'}
+#rooms-heading::before{content:'— Lưu trú'}
+#restaurant-heading::before{content:'— Ẩm thực'}
 #room-container .room-card{border:1px solid var(--lx-line);border-radius:24px;box-shadow:var(--lx-shadow-sm);transition:transform .45s var(--lx-ease),box-shadow .45s,opacity .5s,border-color .3s}
 #room-container .room-card:hover{transform:translateY(-8px);box-shadow:var(--lx-shadow-lg);border-color:rgba(178,154,123,.5)}
 #room-container .room-card>img{transition:transform .8s var(--lx-ease),opacity .4s}
