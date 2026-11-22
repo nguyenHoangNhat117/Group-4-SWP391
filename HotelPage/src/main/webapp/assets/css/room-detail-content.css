@@ -1,0 +1,62 @@
+.review-box {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.room-spec-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: .3rem;
+    min-height: 6rem;
+    height: 100%;
+    padding: .85rem .65rem;
+    background: #f7f3ee;
+    border: 1px solid #ede5dc;
+    border-radius: .75rem;
+    overflow-wrap: anywhere;
+}
+.room-amenity-card {
+    border: 1px solid #ede5dc;
+    background: #fcfaf7;
+}
+.room-amenity-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 2rem;
+    height: 2rem;
+    background: #f1e7d9;
+    border-radius: .6rem;
+    color: #79583c;
+}
+.availability-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+    border: 1px solid #eee;
+}
+.detail-price,
+.detail-total {
+    color: #76583e;
+}
+
+.room-preview-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+        "photo copy"
+        "photo amenities"
+        "specs specs";
+    gap: 1rem;
+    align-items: start;
+}
+
+.room-preview-photo { grid-area: photo; }
+.room-preview-description { display: contents; }
+.room-preview-copy { grid-area: copy; }
+.room-preview-amenities { grid-area: amenities; }
+.room-preview-specs { grid-area: specs; }

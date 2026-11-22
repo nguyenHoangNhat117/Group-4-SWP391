@@ -11,6 +11,20 @@ public class Booking {
     private Customer customer;
     private BookingContact contact;
     private boolean onlineDepositPolicy;
+    private String onlineRequestKey;
+    private Integer onlinePaymentPercent;
+    private Integer adults;
+    private Integer children;
+
+    public Integer getAdults() { return adults; }
+    public void setAdults(Integer adults) { this.adults = adults; }
+    public Integer getChildren() { return children; }
+    public void setChildren(Integer children) { this.children = children; }
+
+    public String getOnlineRequestKey() { return onlineRequestKey; }
+    public void setOnlineRequestKey(String value) { onlineRequestKey = value; }
+    public Integer getOnlinePaymentPercent() { return onlinePaymentPercent; }
+    public void setOnlinePaymentPercent(Integer value) { onlinePaymentPercent = value; }
     private boolean offline;
 
     public boolean isOffline() {

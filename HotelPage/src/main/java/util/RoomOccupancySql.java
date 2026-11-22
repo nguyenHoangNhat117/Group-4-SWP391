@@ -28,7 +28,14 @@ public final class RoomOccupancySql {
         String end = endDate(b, d);
         // Hai dấu ? giữ đúng thứ tự cũ: ngày khách mới trả, rồi ngày khách mới nhận.
         // Lượt nhận/trả trong cùng ngày không chiếm thêm đêm sau khi trả và dọn xong.
-        return b + ".Status<>'cancelled' AND " + end + ">" + d + ".CheckInDate"
+        return active(b) + " AND " + end + ">" + d + ".CheckInDate"
                 + " AND " + d + ".CheckInDate<? AND " + end + ">?";
+    }
+
+    public static String active(String bookingAlias) {
+        String b = alias(bookingAlias);
+        return b + ".Status<>'cancelled' AND (" + b + ".Status<>'pending' OR "
+                + b + ".CreatedByUserID IS NOT NULL OR " + b + ".HoldExpiresAt IS NULL OR "
+                + b + ".HoldExpiresAt>SYSUTCDATETIME())";
     }
 }

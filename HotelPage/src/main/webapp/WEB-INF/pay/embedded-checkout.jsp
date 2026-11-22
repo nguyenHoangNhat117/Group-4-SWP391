@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><c:out value="${requestScope.i18n['room.qr.title']}"/></title>
+    <title><c:out value="${requestScope.i18n['room.qr.title']}" default="Thanh toán chuyển khoản"/></title>
     <link rel="stylesheet" href="<c:url value='/assets/css/bootstrap.min.css'/>">
     <link rel="stylesheet" href="<c:url value='/assets/css/general.css'/>">
     <link rel="stylesheet" href="<c:url value='/assets/css/luxe-shared-shell.css'/>">
@@ -125,6 +125,9 @@
                             </c:when>
                             <c:otherwise>
                                 <p class="mb-3" role="status"><ui:text key="${'room.qr.state.'.concat(qrState)}"/></p>
+                                <c:if test="${qrState == 'unavailable' || qrState == 'checking'}">
+                                    <a class="stay-back" href="<c:out value='${qrPageUrl}'/>"><ui:text key="room.qr.refresh"/></a>
+                                </c:if>
                             </c:otherwise>
                         </c:choose>
                     </section>
@@ -134,6 +137,11 @@
     </main>
     <%@ include file="../include/footer.jsp" %>
     <script src="<c:url value='/assets/js/bootstrap.bundle.min.js'/>"></script>
+    <c:if test="${not empty qrRequestKey}">
+        <span hidden id="confirmed-room-selection" data-request-key="<c:out value='${qrRequestKey}'/>"
+              data-room-url="<c:url value='/room'/>"></span>
+        <script src="<c:url value='/assets/js/confirmed-room-selection.js'/>" defer></script>
+    </c:if>
     <c:if test="${qrState == 'pending'}">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
         <script src="https://cdn.payos.vn/payos-checkout/v1/stable/payos-initialize.js" defer></script>

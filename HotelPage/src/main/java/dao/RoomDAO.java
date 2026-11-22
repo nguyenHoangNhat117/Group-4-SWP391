@@ -46,7 +46,7 @@ public class RoomDAO extends DBContext {
             + "FROM BookingDetail d JOIN Booking b ON b.BookingID=d.BookingID "
             + "LEFT JOIN Room legacy ON legacy.RoomNumber=d.RoomNumber AND d.RoomTypeID IS NULL "
             + "JOIN Inventory i ON i.RoomTypeID=COALESCE(d.RoomTypeID,legacy.RoomTypeID) "
-            + "WHERE b.Status<>'cancelled' AND d.CheckInDate<? AND "
+            + "WHERE " + RoomOccupancySql.active("b") + " AND d.CheckInDate<? AND "
             + RoomOccupancySql.endDate("b", "d") + ">?), "
             + "Nightly AS (SELECT i.RoomTypeID,n.StayDate, "
             + "CASE WHEN COUNT(s.RoomTypeID)>=i.Total THEN 0 ELSE i.Total-COUNT(s.RoomTypeID) END AS FreeRooms "
@@ -61,13 +61,16 @@ public class RoomDAO extends DBContext {
 
         private final RoomType type;
         private final int available;
+        private final int maxChildren;
         private final int reviewCount;
         private final java.math.BigDecimal rating;
         private final Integer readyNow;
 
-        private AvailableType(RoomType type, int available, int reviewCount, java.math.BigDecimal rating, Integer readyNow) {
+        private AvailableType(RoomType type, int available, int maxChildren, int reviewCount,
+                java.math.BigDecimal rating, Integer readyNow) {
             this.type = type;
             this.available = available;
+            this.maxChildren = Math.min(type.getCapacity(), maxChildren);
             this.reviewCount = reviewCount;
             this.rating = rating;
             this.readyNow = readyNow;
@@ -79,6 +82,10 @@ public class RoomDAO extends DBContext {
 
         public int getAvailable() {
             return available;
+        }
+
+        public int getMaxChildren() {
+            return maxChildren;
         }
 
         public int getReviewCount() {
@@ -94,12 +101,21 @@ public class RoomDAO extends DBContext {
         }
 
         AvailableType withReadyNow(int count) {
-            return new AvailableType(type, available, reviewCount, rating, count);
+            return new AvailableType(type, available, maxChildren, reviewCount, rating, count);
         }
     }
 
     public List<AvailableType> findAvailableTypes(LocalDate from, LocalDate to, int guests,
             Integer typeId, model.RoomPriceBand band, String sort) throws SQLException {
+        return findAvailableTypes(from, to, guests, typeId, band, sort, false);
+    }
+
+    public List<AvailableType> findRoomSelectionTypes(LocalDate from, LocalDate to, String sort) throws SQLException {
+        return findAvailableTypes(from, to, 1, null, model.RoomPriceBand.ALL, sort, true);
+    }
+
+    private List<AvailableType> findAvailableTypes(LocalDate from, LocalDate to, int guests,
+            Integer typeId, model.RoomPriceBand band, String sort, boolean includeSoldOut) throws SQLException {
         String order;
         switch (sort) {
             case "price_asc":
@@ -116,13 +132,16 @@ public class RoomDAO extends DBContext {
         }
         String sql = TYPE_AVAILABILITY
                 + ", AvailableTypes AS (" + TYPE_AVAILABILITY_TOTALS + ") "
-                + "SELECT rt.*,a.Available,reviews.ReviewCount,reviews.Rating "
-                + "FROM AvailableTypes a JOIN RoomType rt ON rt.RoomTypeID=a.RoomTypeID CROSS APPLY ("
+                + "SELECT rt.*,COALESCE(a.Available,0) AS Available,reviews.ReviewCount,reviews.Rating "
+                + "FROM RoomType rt " + (includeSoldOut ? "LEFT JOIN" : "JOIN")
+                + " AvailableTypes a ON a.RoomTypeID=rt.RoomTypeID CROSS APPLY ("
                 + "SELECT COUNT(*) AS ReviewCount, CAST(AVG(rv.Star) AS DECIMAL(3,1)) AS Rating "
                 + "FROM Review rv WHERE rv.ReviewStatus='approved' AND EXISTS ("
-                + "SELECT 1 FROM BookingDetail bd JOIN Room r ON r.RoomNumber=bd.RoomNumber "
-                + "WHERE bd.BookingID=rv.BookingID AND r.RoomTypeID=rt.RoomTypeID)"
-                + ") reviews WHERE a.Available>0 ORDER BY " + order + INVENTORY_QUERY_END;
+                + "SELECT 1 FROM BookingDetail bd LEFT JOIN Room r ON r.RoomNumber=bd.RoomNumber "
+                + "WHERE bd.BookingID=rv.BookingID AND COALESCE(bd.RoomTypeID,r.RoomTypeID)=rt.RoomTypeID)"
+                + ") reviews WHERE rt.IsActive=1 "
+                + (includeSoldOut ? "" : "AND a.Available>0 ")
+                + "ORDER BY " + order + INVENTORY_QUERY_END;
         List<AvailableType> types = new ArrayList<>();
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             bindInventory(ps, from, to, guests, typeId, band);
@@ -131,10 +150,13 @@ public class RoomDAO extends DBContext {
                     RoomType type = new RoomType(rs.getInt("RoomTypeID"), rs.getString("Name"),
                             rs.getString("Description"), rs.getBigDecimal("PricePerNight"),
                             rs.getInt("Beds"), rs.getInt("Capacity"), rs.getString("Picture"));
-                    types.add(new AvailableType(type, rs.getInt("Available"),
+                    types.add(new AvailableType(type, rs.getInt("Available"), rs.getInt("MaxChildren"),
                             rs.getInt("ReviewCount"), rs.getBigDecimal("Rating"), null));
                 }
             }
+        }
+        if (includeSoldOut) {
+            types.sort(java.util.Comparator.comparing(type -> type.getAvailable() == 0));
         }
         return types;
     }

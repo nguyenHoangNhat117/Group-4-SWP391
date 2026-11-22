@@ -1,0 +1,166 @@
+<c:set var="summary" value="${bookingDetailsMap[booking.id]}"/>
+<section class="customer-booking-details booking-detail-panel" aria-labelledby="booking-detail-title-${booking.id}">
+    <header class="booking-detail-heading">
+        <h2 id="booking-detail-title-${booking.id}"><ui:text key="history.bookings.detail.title"/> #${booking.id}</h2>
+        <%@ include file="booking-status.jspf" %>
+    </header>
+    <div class="booking-detail-grid">
+        <div class="booking-detail-stay">
+            <section class="booking-detail-card">
+                <h3><ui:text key="room.booking.confirm.stay"/></h3>
+                <dl class="booking-detail-facts">
+                    <c:if test="${not empty summary.checkIn}">
+                        <div>
+                            <dt><ui:text key="history.bookings.detail.checkIn"/></dt>
+                            <dd><time datetime="${summary.checkIn}">${summary.checkIn.format(historyDayFormat)}</time></dd>
+                        </div>
+                        <div>
+                            <dt><ui:text key="history.bookings.detail.checkOut"/></dt>
+                            <dd><time datetime="${summary.checkOut}">${summary.checkOut.format(historyDayFormat)}</time></dd>
+                        </div>
+                        <c:if test="${not summary.mixedDates}">
+                            <div>
+                                <dt><ui:text key="history.bookings.detail.nights"/></dt>
+                                <dd>${summary.nights} <ui:text key="room.nights"/></dd>
+                            </div>
+                        </c:if>
+                    </c:if>
+                    <c:if test="${not empty booking.adults or summary.guestCount > 0}">
+                        <div>
+                            <dt><ui:text key="history.bookings.detail.guests"/></dt>
+                            <dd>
+                                <c:choose>
+                                    <c:when test="${not empty booking.adults and not empty booking.children}">
+                                        ${booking.adults} <ui:text key="room.selection.adultUnit"/> &middot;
+                                        ${booking.children} <ui:text key="room.selection.childUnit"/>
+                                    </c:when>
+                                    <c:otherwise>${summary.guestCount} <ui:text key="room.selection.guestUnit"/></c:otherwise>
+                                </c:choose>
+                            </dd>
+                        </div>
+                    </c:if>
+                    <c:if test="${not empty booking.contact.name}">
+                        <div>
+                            <dt><ui:text key="room.booking.contact.representative"/></dt>
+                            <dd><c:out value="${booking.contact.name}"/></dd>
+                        </div>
+                    </c:if>
+                </dl>
+                <c:if test="${not empty booking.specialRequest}">
+                    <p class="booking-detail-note"><strong><ui:text key="screen.906fb211c5e1ee2e"/></strong> <c:out value="${booking.specialRequest}"/></p>
+                </c:if>
+                <c:if test="${booking.status == 'cancelled' and (not empty booking.cancellationDate or not empty booking.cancellationReason)}">
+                    <div class="booking-detail-note">
+                        <c:if test="${not empty booking.cancellationDate}">
+                            <div><strong><ui:text key="screen.873135e90ec6e045"/></strong> ${booking.cancellationDate.format(historyDayFormat)}</div>
+                        </c:if>
+                        <c:if test="${not empty booking.cancellationReason}">
+                            <div><strong><ui:text key="screen.821b8e24bc1baa29"/></strong> <c:out value="${booking.cancellationReason}"/></div>
+                        </c:if>
+                    </div>
+                </c:if>
+            </section>
+            <c:if test="${not empty summary.rooms}">
+                <section class="booking-detail-card">
+                    <h3><ui:text key="history.bookings.detail.rooms"/></h3>
+                    <ul class="booking-detail-room-list">
+                        <c:forEach var="line" items="${summary.rooms}">
+                            <li class="booking-detail-room">
+                                <div>
+                                    <h4><c:out value="${line.name}" default="${requestScope.i18n['history.bookings.detail.room']}"/></h4>
+                                    <p class="booking-detail-calculation">
+                                        ${line.quantity} <ui:text key="room.selection.roomUnit"/> &times;
+                                        ${line.nights} <ui:text key="room.nights"/> &times;
+                                        <ui:money amount="${line.nightly}"/>
+                                    </p>
+                                    <c:if test="${summary.mixedDates}">
+                                        <p class="booking-detail-calculation">${line.checkIn.format(historyDayFormat)} &ndash; ${line.checkOut.format(historyDayFormat)}</p>
+                                    </c:if>
+                                    <c:if test="${not empty line.roomNumbers}">
+                                        <p class="booking-detail-calculation">
+                                            <ui:text key="history.bookings.detail.roomNumbers"/>
+                                            <c:forEach var="roomNumber" items="${line.roomNumbers}" varStatus="numberIndex">
+                                                <c:url var="assignedRoomUrl" value="/details"><c:param name="roomNumber" value="${roomNumber}"/></c:url>
+                                                <c:if test="${not numberIndex.first}">, </c:if><a href="<c:out value='${assignedRoomUrl}'/>">#${roomNumber}</a>
+                                            </c:forEach>
+                                        </p>
+                                    </c:if>
+                                    <c:if test="${not empty line.request}">
+                                        <p class="booking-detail-calculation"><c:out value="${line.request}"/></p>
+                                    </c:if>
+                                </div>
+                                <strong class="booking-detail-room-price"><ui:money amount="${line.subtotal}"/></strong>
+                            </li>
+                        </c:forEach>
+                    </ul>
+                    <c:if test="${summary.unassigned and booking.status != 'cancelled'}">
+                        <p class="booking-detail-note"><ui:text key="room.confirm.unassigned"/></p>
+                    </c:if>
+                </section>
+            </c:if>
+        </div>
+
+        <section class="booking-detail-card">
+            <h3><ui:text key="history.bookings.detail.payment"/></h3>
+            <dl class="booking-detail-totals">
+                <c:if test="${not empty summary.rooms}">
+                    <div><dt><ui:text key="history.bookings.detail.roomTotal"/></dt><dd><ui:money amount="${summary.roomTotal}"/></dd></div>
+                </c:if>
+                <c:if test="${not empty summary.discountCode or summary.discountAmount > 0}">
+                    <div>
+                        <dt><ui:text key="history.bookings.detail.discount"/>
+                            <c:if test="${not empty summary.discountCode}"><small class="d-block"><c:out value="${summary.discountCode}"/></small></c:if>
+                        </dt>
+                        <c:if test="${summary.discountAmount > 0}"><dd>&minus;<ui:money amount="${summary.discountAmount}"/></dd></c:if>
+                    </div>
+                </c:if>
+                <c:if test="${not empty summary.rooms and (summary.adjustment > 0 or summary.adjustment < 0)}">
+                    <div><dt><ui:text key="history.bookings.detail.adjustment"/></dt><dd><ui:money amount="${summary.adjustment}"/></dd></div>
+                </c:if>
+                <div class="booking-detail-order-total"><dt><ui:text key="room.confirm.orderTotal"/></dt><dd><ui:money amount="${summary.orderTotal}"/></dd></div>
+                <div><dt><ui:text key="history.bookings.detail.paid"/></dt><dd><ui:money amount="${summary.paid}"/></dd></div>
+                <c:if test="${summary.refunded > 0}">
+                    <div><dt><ui:text key="history.payments.refundedAmount"/></dt><dd><ui:money amount="${summary.refunded}"/></dd></div>
+                </c:if>
+                <c:if test="${booking.status != 'cancelled'}">
+                    <div class="booking-detail-balance"><dt><ui:text key="history.bookings.detail.balance"/></dt><dd><ui:money amount="${summary.remaining}"/></dd></div>
+                </c:if>
+            </dl>
+            <c:choose>
+                <c:when test="${not empty lateRefundMessageMap[booking.id]}">
+                    <p class="booking-detail-note"><ui:text key="${lateRefundMessageMap[booking.id]}"/></p>
+                </c:when>
+                <c:when test="${booking.status == 'cancelled' and refundedMap[booking.id]}">
+                    <p class="booking-detail-note"><ui:text key="screen.ace7885e1829b09f"/></p>
+                </c:when>
+                <c:when test="${booking.status == 'cancelled' and summary.refunded == 0}">
+                    <p class="booking-detail-note"><ui:text key="room.cancel.no.refund"/></p>
+                </c:when>
+                <c:when test="${booking.onlineDepositPolicy and booking.status == 'confirmed' and summary.remaining > 0}">
+                    <p class="booking-detail-note"><ui:text key="history.bookings.detail.payAtHotel"/></p>
+                </c:when>
+            </c:choose>
+            <c:if test="${booking.status != 'cancelled'
+                          and ((booking.onlineDepositPolicy and booking.status == 'pending')
+                          or (!booking.onlineDepositPolicy and remainingAmountMap[booking.id] > 0))}">
+                <form action="<c:url value='/payment'/>" method="get" class="mt-3">
+                    <input type="hidden" name="bookingId" value="${booking.id}">
+                    <button class="btn btn-success btn-sm w-100" type="submit">
+                        <ui:text key="${paidAmountMap[booking.id] > 0 ? 'screen.4c84ed0cee20c477' : 'screen.42a327fadf7f52c2'}"/>
+                    </button>
+                </form>
+            </c:if>
+            <c:if test="${not cancellableMap[booking.id] and (booking.status == 'pending'
+                          or booking.status == 'confirmed' or booking.status == 'checked_in')}">
+                <p class="booking-detail-note"><ui:text key="screen.b0ebf4bfbb10b71b"/></p>
+            </c:if>
+            <c:if test="${booking.status == 'completed' and not empty booking.details and booking.details[0].roomNumber > 0}">
+                <c:url var="reviewUrl" value="/review">
+                    <c:param name="booking-id" value="${booking.id}"/>
+                    <c:param name="room-number" value="${booking.details[0].roomNumber}"/>
+                </c:url>
+                <a href="<c:out value='${reviewUrl}'/>" class="btn btn-outline-primary btn-sm mt-3"><ui:text key="screen.aff0766a5290e117"/></a>
+            </c:if>
+        </section>
+    </div>
+</section>

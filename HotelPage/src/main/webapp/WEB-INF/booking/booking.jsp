@@ -33,6 +33,7 @@
 
                     <h2 class="text-center mb-4"><ui:text key="screen.c5b08e9a585393a8"/></h2>
 
+                    <input type="hidden" name="csrfToken" value="${checkoutCsrfToken}">
                     <div class="mb-3">
                         <p><strong><c:out value="${roomType.name}"/></strong> · Còn ${available} phòng</p>
                         <input type="hidden" name="roomTypeId" value="${roomType.id}">
@@ -74,6 +75,7 @@
                         <div class="d-flex justify-content-between"><span><ui:text key="screen.8d779b7e1ba93913"/></span><strong><span id="remainingAmount">0.00</span></strong></div>
                     </div>
 
+                    <%@ include file="booking-consent.jspf" %>
                     <button type="submit" class="btn btn-lg w-100 text-white" style="background-color: #b29575;">
                         <i class="bi bi-check-circle"></i> <span id="booking-submit-text"><ui:text key="screen.4755e39fe9490bb6"/></span>
                     </button>

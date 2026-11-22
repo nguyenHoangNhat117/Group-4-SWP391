@@ -1,66 +1,14 @@
 (() => {
-    if (window.bootstrap && window.bootstrap.Dropdown) {
-        document.querySelectorAll('.booking-search-page .search-field .form-select').forEach(select => {
-            const label = select.labels[0];
-            const toggle = document.createElement('button');
-            toggle.type = 'button';
-            toggle.id = select.id + '-toggle';
-            toggle.className = 'dropdown-toggle search-filter-toggle';
-            toggle.setAttribute('data-bs-toggle', 'dropdown');
-            toggle.setAttribute('aria-expanded', 'false');
-            label.id = select.id + '-label';
-            label.htmlFor = toggle.id;
-            toggle.setAttribute('aria-labelledby', label.id + ' ' + toggle.id);
-
-            const menu = document.createElement('div');
-            menu.className = 'dropdown-menu search-filter-menu';
-            menu.setAttribute('aria-labelledby', label.id);
-            const items = Array.from(select.options, option => {
-                const item = document.createElement('button');
-                item.type = 'button';
-                item.className = 'dropdown-item';
-                item.addEventListener('click', () => {
-                    if (select.selectedIndex !== option.index) {
-                        select.selectedIndex = option.index;
-                        select.dispatchEvent(new Event('change', {bubbles: true}));
-                    }
-                    toggle.focus();
-                });
-                menu.append(item);
-                return item;
-            });
-
-            function syncSelection() {
-                toggle.textContent = select.options[select.selectedIndex].text;
-                items.forEach((item, index) => {
-                    const selected = index === select.selectedIndex;
-                    item.textContent = select.options[index].text;
-                    item.classList.toggle('active', selected);
-                    if (selected) {
-                        item.setAttribute('aria-current', 'true');
-                    } else {
-                        item.removeAttribute('aria-current');
-                    }
-                });
-            }
-
-            select.after(toggle, menu);
-            select.hidden = true;
-            select.addEventListener('change', syncSelection);
-            window.addEventListener('pageshow', syncSelection);
-            syncSelection();
-        });
-    }
-
     const input = document.getElementById('floatingBookingDate') || document.getElementById('detailBookingDates');
     const details = input && input.id === 'detailBookingDates';
     const status = document.getElementById(details ? 'detail-calendar-status' : 'search-calendar-status');
+    const stayNights = document.getElementById('search-stay-nights');
     if (!input || !status || typeof Litepicker === 'undefined') {
         return;
     }
 
     const form = input.form;
-    const filters = ['room-type-id', 'guest-count', 'price-band'];
+    const roomTypeFilter = details ? null : form.elements.namedItem('room-type-id');
     const today = new Intl.DateTimeFormat('sv-SE', {timeZone: 'Asia/Ho_Chi_Minh'}).format(new Date());
     const minDate = new Date(today + 'T00:00:00');
     const maxDate = new Date(minDate);
@@ -68,6 +16,15 @@
     let inventory;
     let pending;
     let checkIn;
+
+    function updateStayNights(start, end) {
+        if (stayNights) {
+            const nights = start && end
+                ? (Date.parse(end.format('YYYY-MM-DD')) - Date.parse(start.format('YYYY-MM-DD'))) / 86400000
+                : 0;
+            stayNights.textContent = nights > 0 ? nights + ' ' + stayNights.dataset.unit : '';
+        }
+    }
 
     function markDay(day) {
         const date = day.dataset.stayDate;
@@ -109,8 +66,8 @@
             const guests = Number(form.elements.guests.value) || 1;
             query.searchParams.set('quantity', quantity);
             query.searchParams.set('guest-count', Math.ceil(guests / quantity));
-        } else {
-            filters.forEach(name => query.searchParams.set(name, form.elements.namedItem(name).value));
+        } else if (roomTypeFilter && roomTypeFilter.value) {
+            query.searchParams.set('room-type-id', roomTypeFilter.value);
         }
         const request = new AbortController();
         pending = request;
@@ -131,6 +88,7 @@
             const end = picker.getEndDate();
             if (!details && start && end && !canBook(start, end)) {
                 picker.clearSelection();
+                updateStayNights();
                 checkIn = null;
                 status.textContent = status.dataset.changed;
             } else {
@@ -166,13 +124,17 @@
         minDate,
         maxDate,
         setup(calendar) {
-            if (details) {
-                calendar.on('selected', (start, end) => {
+            calendar.on('selected', (start, end) => {
+                if (details) {
                     form.elements.checkIn.value = start.format('YYYY-MM-DD');
                     form.elements.checkOut.value = end.format('YYYY-MM-DD');
                     input.dispatchEvent(new Event('change', {bubbles: true}));
-                });
-            }
+                }
+                updateStayNights(start, end);
+                if (input.hasAttribute('data-submit-on-select') && start.format('YYYY-MM-DD') < end.format('YYYY-MM-DD')) {
+                    form.requestSubmit();
+                }
+            });
             calendar.on('render:day', (day, date) => {
                 day.dataset.stayDate = date.format('YYYY-MM-DD');
                 markDay(day);
@@ -185,13 +147,16 @@
             });
         }
     });
-    if (!details) {
-        filters.forEach(name => form.elements.namedItem(name).addEventListener('change', refreshAvailability));
+    updateStayNights(picker.getStartDate(), picker.getEndDate());
+    if (roomTypeFilter) {
+        roomTypeFilter.addEventListener('change', refreshAvailability);
     }
     form.addEventListener('submit', event => {
+        const start = picker.getStartDate();
+        const end = picker.getEndDate();
         if (pending) {
             event.preventDefault();
-        } else if (!picker.getStartDate() || !picker.getEndDate()) {
+        } else if (!start || !end || start.format('YYYY-MM-DD') >= end.format('YYYY-MM-DD')) {
             event.preventDefault();
             picker.show();
         }

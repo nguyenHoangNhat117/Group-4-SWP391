@@ -23,6 +23,7 @@ import java.util.Objects;
         urlPatterns = {
             "/booking",
             "/checkout",
+            "/booking-confirmation",
             "/payment",
             "/review",
             "/profile",
@@ -283,8 +284,17 @@ public class AuthenticationFilter implements Filter {
             HttpServletRequest req,
             String servletPath
     ) {
-        if (!"/booking".equals(servletPath)
-                || !"GET".equalsIgnoreCase(req.getMethod())) {
+        if (!"GET".equalsIgnoreCase(req.getMethod())) {
+            return;
+        }
+        if ("/booking-confirmation".equals(servletPath)) {
+            String token = req.getParameter("draft");
+            if (token != null && token.matches("[0-9a-f-]{36}")) {
+                req.getSession().setAttribute("pendingBookingUrl", servletPath + "?draft=" + token);
+            }
+            return;
+        }
+        if (!"/booking".equals(servletPath)) {
             return;
         }
 
@@ -328,11 +338,12 @@ public class AuthenticationFilter implements Filter {
         }
 
         return "POST".equalsIgnoreCase(req.getMethod())
-                && "search".equalsIgnoreCase(action);
+                && ("search".equalsIgnoreCase(action) || "check-selection".equals(action));
     }
 
     private boolean isCustomerPath(String path) {
         return "/booking".equals(path)
+                || "/booking-confirmation".equals(path)
                 || "/checkout".equals(path)
                 || "/payment".equals(path)
                 || "/review".equals(path)

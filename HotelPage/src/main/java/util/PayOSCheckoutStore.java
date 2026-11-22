@@ -34,6 +34,7 @@ public final class PayOSCheckoutStore {
             }
         }
         entry.put("returnUrl", returnUrl);
+        entry.put("savedAt", Instant.now().getEpochSecond());
         entry.put("expiresAt", expiresAt.getEpochSecond());
         Path temp = Files.createTempFile(directory, "checkout-", ".tmp");
         try {

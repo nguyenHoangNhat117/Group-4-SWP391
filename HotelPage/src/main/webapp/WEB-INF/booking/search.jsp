@@ -101,12 +101,19 @@
                 box-shadow: 0 0 0 0.25rem rgba(178, 149, 117, 0.25);
             }
 
-            .search-field i {
-                position: absolute;
-                left: 15px;
-                top: 40px; /* Căn giữa theo chiều dọc ô input */
-                color: #b29575;
-                font-size: 1.1rem;
+            .search-guest-counts {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 12px;
+            }
+
+            .search-guest-counts .form-control {
+                padding-inline: 15px;
+            }
+
+            .search-guest-counts label {
+                text-transform: none;
+                letter-spacing: normal;
             }
 
             .btn-search {
@@ -177,10 +184,10 @@
                             </div>
                         </c:if>
 
-                        <c:if test="${param.error == 'invalid-filter'}">
+                        <c:if test="${param.error == 'invalid-guests'}">
                             <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                <ui:text key="screen.5effc47a5bae9591"/>
+                                <ui:text key="room.search.party.invalid"/>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}"></button>
                             </div>
                         </c:if>
@@ -193,12 +200,11 @@
                             </div>
                         </c:if>
 
-                        <form method="post" action="<%= request.getContextPath()%>/room?action=search">
+                        <form method="post" action="${pageContext.request.contextPath}/room?action=search">
                             <input type="hidden" name="source" value="search">
                             <div class="row g-3 align-items-end">
 
-                                <!-- Cột 1: Ngày Check-in & Check-out -->
-                                <div class="col-lg-4 col-md-6">
+                                <div class="col-lg-5">
                                     <div class="search-field">
                                         <label for="floatingBookingDate"><ui:text key="screen.c832b0d0d927dcff"/> <span class="text-danger">*</span></label>
                                         <i class="bi bi-calendar3"></i>
@@ -207,7 +213,8 @@
                                                id="floatingBookingDate"
                                                placeholder="${requestScope.i18n['screen.d54be811186bb99f']}"
                                                name="booking-dates"
-                                               value="${sessionScope.dates}"
+                                               value="<c:out value='${sessionScope.dates}'/>"
+                                               aria-describedby="search-stay-nights search-calendar-status"
                                                readonly required>
                                         <small id="search-calendar-status" class="visually-hidden" aria-live="polite"
                                            data-loading="${requestScope.i18n['room.calendar.loading']}"
@@ -217,51 +224,36 @@
                                     </div>
                                 </div>
 
-                                <!-- Cột 2: Số lượng khách (Capacity - BR-15) -->
-                                <div class="col-lg-2 col-md-3 col-sm-6">
-                                    <div class="search-field">
-                                        <label for="guest-count"><ui:text key="room.search.guestsPerRoom"/> <span class="text-danger">*</span></label>
-                                        <i class="bi bi-people-fill"></i>
-                                        <input type="number"
-                                               class="form-control ${param.error == 'invalid-filter' ? 'is-invalid border-danger' : ''}"
-                                               id="guest-count"
-                                               name="guest-count"
-                                               min="1" max="20"
-                                               value="${not empty sessionScope.guestCount ? sessionScope.guestCount : 2}"
-                                               required>
+                                <div class="col-lg-5">
+                                    <div class="search-guest-counts">
+                                        <div class="search-field">
+                                            <label for="search-adults"><ui:text key="room.search.party.adults"/></label>
+                                            <input type="number" id="search-adults" name="adults"
+                                                   class="form-control ${param.error == 'invalid-guests' ? 'is-invalid' : ''}"
+                                                   min="1" step="1" required
+                                                   value="${empty sessionScope.searchAdults ? 1 : sessionScope.searchAdults}">
+                                        </div>
+                                        <div class="search-field">
+                                            <label for="search-children"><ui:text key="room.search.party.children"/></label>
+                                            <input type="number" id="search-children" name="children"
+                                                   class="form-control ${param.error == 'invalid-guests' ? 'is-invalid' : ''}"
+                                                   min="0" step="1" required
+                                                   value="${empty sessionScope.searchChildren ? 0 : sessionScope.searchChildren}">
+                                        </div>
                                     </div>
                                 </div>
 
-                                <!-- Cột 3: Loại phòng (Optional RoomType - BR-16) -->
-                                <div class="col-lg-2 col-md-3 col-sm-6">
-                                    <div class="search-field">
-                                        <label for="room-type-id"><ui:text key="screen.82dea9a01c0033ec"/></label>
-                                        <i class="bi bi-door-open-fill"></i>
-                                        <select class="form-select" id="room-type-id" name="room-type-id">
-                                            <option value="">${requestScope.i18n['screen.bc01325482f36133']}</option>
-                                            <c:forEach var="rt" items="${requestScope.roomTypes}">
-                                                <option value="${rt.id}" ${sessionScope.searchRoomTypeId == rt.id ? 'selected' : ''}>
-                                                    <c:out value="${rt.name}"/>
-                                                </option>
-                                            </c:forEach>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <!-- Cột 4: Khoảng giá (Optional Price Range - BR-16) -->
-                                <div class="col-lg-2 col-md-6 col-sm-12">
-                                    <div class="search-field">
-                                        <jsp:include page="/WEB-INF/room/price-band.jsp"><jsp:param name="searchStyle" value="booking"/></jsp:include>
-                                    </div>
-                                </div>
-
-                                <!-- Cột 5: Nút Search -->
-                                <div class="col-lg-2 col-md-6 col-sm-12">
+                                <div class="col-lg-2">
                                     <button class="btn btn-search" type="submit" id="find-rooms-button">
                                         <i class="bi bi-search"></i> <ui:text key="screen.49c266baaaa70981"/>
                                     </button>
                                 </div>
-
+                            </div>
+                            <div class="row">
+                                <div class="col-lg-5">
+                                    <small id="search-stay-nights" class="d-block text-muted mt-1" aria-live="polite"
+                                           data-unit="${requestScope.i18n['room.search.party.nights']}"></small>
+                                </div>
                             </div>
                         </form>
                     </div>

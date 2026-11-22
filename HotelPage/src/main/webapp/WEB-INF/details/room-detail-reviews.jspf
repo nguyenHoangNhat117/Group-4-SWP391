@@ -1,0 +1,70 @@
+<div class="bg-white border rounded-4 p-4 shadow-sm" id="review-title">
+    <h4 class="fw-bold mb-3">
+        <ui:text key="screen.e7cb00891c5b4234"/>
+        <c:if test="${not empty reviews}">
+            <span class="text-muted fw-normal fs-6">(${reviews.size()})</span>
+        </c:if>
+    </h4>
+    <c:choose>
+        <c:when test="${empty reviews}">
+            <p class="text-muted mb-0"><ui:text key="screen.f53aac7ea48e404f"/></p>
+        </c:when>
+        <c:otherwise>
+            <div class="mb-3 text-warning fw-semibold">
+                <i class="bi bi-star-fill"></i> ${averageStar} <ui:text key="screen.18fa6f5773c7b8cf"/>
+            </div>
+            <div style="max-height: 390px; overflow-y: auto;" aria-label="${requestScope.i18n['screen.8380c237806a24e2']}">
+                <c:forEach var="review" items="${reviews}">
+                    <div class="review-box mb-2">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+
+                            <img width="40"
+                                 height="40"
+                                 class="rounded-circle object-fit-cover"
+                                 src="${pageContext.request.contextPath}/avatar/image?reviewId=${review.reviewID}"
+                                 onerror="this.onerror=null;this.src='${pageContext.request.contextPath}/assets/img/avatar.jpg';"
+                                 alt="Ảnh đại diện khách hàng"/>
+
+                            <div>
+                                <strong><c:out value="${review.booking.customer.user.username}"/></strong>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    <c:out value="${review.reviewDate}"/>
+                                </div>
+                            </div>
+                            <span class="ms-auto text-warning fw-bold">
+
+                                <c:forEach var="i" begin="1" end="5">
+
+                                    <c:choose>
+
+                                        <c:when test="${review.star >= i}">
+                                            <i class="bi bi-star-fill"></i>
+                                        </c:when>
+
+                                        <c:when test="${review.star >= i - 0.5}">
+                                            <i class="bi bi-star-half"></i>
+                                        </c:when>
+
+                                        <c:otherwise>
+                                            <i class="bi bi-star"></i>
+                                        </c:otherwise>
+
+                                    </c:choose>
+
+                                </c:forEach>
+
+                                <span class="ms-1">
+                                    <c:out value="${review.star}"/>/5
+                                </span>
+
+                            </span>
+                        </div>
+                        <p class="mb-0 text-secondary" style="overflow-wrap: anywhere;">
+                            <c:out value="${review.comment}"/>
+                        </p>
+                    </div>
+                </c:forEach>
+            </div>
+        </c:otherwise>
+    </c:choose>
+</div>

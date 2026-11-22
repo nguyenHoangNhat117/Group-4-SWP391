@@ -103,8 +103,17 @@ public final class OnlinePaymentGateway {
 
     public static JsonNode getPayOSOrder(long orderCode, long amount)
             throws java.io.IOException, InterruptedException {
+        return getPayOSOrder(orderCode, amount, null);
+    }
+
+    public static JsonNode getPayOSOrder(long orderCode, long amount, String paymentLinkId)
+            throws java.io.IOException, InterruptedException {
+        String lookupId = paymentLinkId == null ? Long.toString(orderCode) : paymentLinkId;
+        if (paymentLinkId != null && !paymentLinkId.matches("[a-fA-F0-9]{32}")) {
+            throw new IllegalArgumentException("Invalid payOS link ID");
+        }
         HttpRequest request = HttpRequest.newBuilder(URI.create(
-                OnlinePaymentConfig.payosBaseUrl() + "/v2/payment-requests/" + orderCode))
+                OnlinePaymentConfig.payosBaseUrl() + "/v2/payment-requests/" + lookupId))
                 .timeout(Duration.ofSeconds(5))
                 .header("x-client-id", OnlinePaymentConfig.payosClientId())
                 .header("x-api-key", OnlinePaymentConfig.payosApiKey())
@@ -115,11 +124,20 @@ public final class OnlinePaymentGateway {
         }
         JsonNode root = JSON.readTree(response.body());
         JsonNode data = root.path("data");
-        if (!"00".equals(root.path("code").asText()) || data.path("orderCode").asLong(-1) != orderCode
-                || data.path("amount").asLong(-1) != amount) {
-            throw new java.io.IOException("payOS lookup response did not match the requested order");
+        if (!"00".equals(root.path("code").asText())) {
+            throw new java.io.IOException("payOS did not return a payment status");
+        }
+        if (data.path("orderCode").asLong(-1) != orderCode || data.path("amount").asLong(-1) != amount
+                || (paymentLinkId != null && !paymentLinkId.equals(data.path("id").asText()))) {
+            throw new PayOSOrderMismatchException();
         }
         return data;
+    }
+
+    public static final class PayOSOrderMismatchException extends java.io.IOException {
+        private PayOSOrderMismatchException() {
+            super("payOS lookup response did not match the requested order");
+        }
     }
 
     public static JsonNode parse(String json) throws Exception { return JSON.readTree(json); }

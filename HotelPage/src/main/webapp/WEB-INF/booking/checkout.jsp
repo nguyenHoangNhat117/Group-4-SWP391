@@ -46,7 +46,6 @@
                 </div>
             </aside>
             <div class="col-lg-7">
-                <c:if test="${checkoutError}"><p class="alert alert-warning" role="alert"><ui:text key="room.booking.contact.error"/></p></c:if>
                 <c:if test="${paymentChoiceError}"><p class="alert alert-warning" role="alert"><ui:text key="room.checkout.choice.error"/></p></c:if>
                 <c:if test="${not empty paymentError}">
                     <p class="alert alert-warning" role="alert">
@@ -67,34 +66,11 @@
                 <form id="checkout-form" class="stay-panel p-3 p-md-4" action="<c:url value='/payment'/>" method="post" data-total="${total}">
                     <input type="hidden" name="action" value="confirm">
                     <input type="hidden" name="draft" value="${draftToken}">
+                    <input type="hidden" name="csrfToken" value="${checkoutCsrfToken}">
+                    <c:if test="${contactError}"><p class="alert alert-warning" role="alert"><ui:text key="room.booking.contact.error"/></p></c:if>
                     <fieldset class="mb-4">
-                      <legend class="h5 stay-form-heading"><i class="bi bi-person me-2" aria-hidden="true"></i><ui:text key="room.booking.contact.title"/></legend>
-                      <div class="row g-3">
-                        <div class="col-md-6">
-                            <label for="contact-name" class="form-label"><ui:text key="room.contact.name"/></label>
-                            <input id="contact-name" name="contact-name" autocomplete="name" maxlength="120" required class="form-control"
-                                   ${not empty bookingContact ? 'readonly' : ''}
-                                   value="<c:out value="${not empty bookingContact ? bookingContact.name : checkoutError ? param['contact-name'] : contactName}"/>">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="contact-phone" class="form-label"><ui:text key="room.contact.phone"/></label>
-                            <input id="contact-phone" name="contact-phone" type="tel" autocomplete="tel" maxlength="32" required class="form-control"
-                                   ${not empty bookingContact ? 'readonly' : ''}
-                                   value="<c:out value="${not empty bookingContact ? bookingContact.phone : checkoutError ? param['contact-phone'] : customer.phone}"/>">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="contact-email" class="form-label"><ui:text key="room.contact.email"/></label>
-                            <input id="contact-email" name="contact-email" type="email" autocomplete="email" maxlength="254" required class="form-control"
-                                   ${not empty bookingContact ? 'readonly' : ''}
-                                   value="<c:out value="${not empty bookingContact ? bookingContact.email : checkoutError ? param['contact-email'] : customer.email}"/>">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="contact-country" class="form-label"><ui:text key="room.contact.country"/></label>
-                            <input id="contact-country" name="contact-country" autocomplete="country-name" maxlength="80" required class="form-control"
-                                   ${not empty bookingContact ? 'readonly' : ''}
-                                   value="<c:out value="${not empty bookingContact ? bookingContact.country : checkoutError ? param['contact-country'] : customer.country}"/>">
-                        </div>
-                      </div>
+                        <legend class="h5 stay-form-heading"><ui:text key="room.booking.contact.representative"/></legend>
+                        <%@ include file="booking-contact-fields.jspf" %>
                     </fieldset>
                     <fieldset class="border-top pt-4">
                         <legend class="h5 stay-form-heading"><i class="bi bi-credit-card me-2" aria-hidden="true"></i><ui:text key="room.booking.payment.title"/></legend>
@@ -119,6 +95,7 @@
                             </select>
                         </div>
                     </fieldset>
+                    <%@ include file="booking-consent.jspf" %>
                     <button class="btn stay-action w-100" type="submit"><ui:text key="room.booking.payment.confirm"/></button>
                 </form>
                 </c:if>

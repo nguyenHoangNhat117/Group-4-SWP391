@@ -3,7 +3,7 @@
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" class="${sessionScope.loggedUser.role == 'admin' ? '' : 'room-selection-page'}">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,6 +23,7 @@
 
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+        <link rel="stylesheet" href="<c:url value='/assets/css/room-detail-content.css'/>">
 
         <style>
             /* ==== ADMIN STYLES ==== */
@@ -72,15 +73,18 @@
             }
 
             /* ==== CUSTOMER STYLES ==== */
+            html.room-selection-page {
+                scroll-snap-type: none;
+                scroll-behavior: auto;
+            }
             .room-card {
                 border: none;
                 border-radius: 16px;
                 overflow: hidden;
-                transition: all 0.3s ease;
+                transition: box-shadow 0.3s ease;
                 box-shadow: 0 5px 15px rgba(0,0,0,0.08);
             }
             .room-card:hover {
-                transform: translateY(-5px);
                 box-shadow: 0 15px 30px rgba(0,0,0,0.15);
             }
             .room-card-specs {
@@ -139,6 +143,49 @@
                 box-shadow: 0 5px 20px rgba(0,0,0,0.05);
                 margin-bottom: 30px;
             }
+            .selection-date {
+                position: relative;
+            }
+            .selection-date #search-stay-nights {
+                position: absolute;
+                top: 100%;
+            }
+
+            .room-selection-layout {
+                display: grid;
+                grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+                gap: 24px;
+                align-items: start;
+            }
+            .room-cart {
+                --cart-top: 104px;
+                position: sticky;
+                top: var(--cart-top);
+                max-height: calc(100vh - var(--cart-top) - 24px);
+                overflow-y: auto;
+                border-radius: 16px;
+            }
+            .room-quantity {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .room-quantity output {
+                min-width: 1.5rem;
+                text-align: center;
+            }
+            .room-quantity button {
+                width: 34px;
+                height: 34px;
+                padding: 0;
+            }
+            .room-cart-warning {
+                color: #874500;
+                background-color: #fff1dd;
+            }
+            html.room-selection-page body.modal-open .lx-top {
+                visibility: hidden;
+            }
 
             .room-title-hover {
                 transition: color 0.3s ease;
@@ -149,10 +196,11 @@
         </style>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/search-calendar.css">
         <script src="${pageContext.request.contextPath}/assets/js/search-calendar.js" defer></script>
+        <script src="<c:url value='/assets/js/room-selection.js?v=2'/>" defer></script>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
 </head>
 
-    <body class="management-page bg-light">
+    <body class="management-page bg-light ${sessionScope.loggedUser.role == 'admin' ? '' : 'disable-animation'}">
         <div class="body-wrapper">
             <%@include file="../include/header.jsp" %>
 
@@ -336,20 +384,20 @@
                             </div>
                         </c:if>
 
-                        <c:if test="${param.error == 'invalid-filter'}">
+                        <c:if test="${param.error == 'invalid-filter' || param.error == 'invalid-guests'}">
                             <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                <ui:text key="screen.5effc47a5bae9591"/>
+                                <ui:text key="${param.error == 'invalid-guests' ? 'room.search.party.invalid' : 'screen.5effc47a5bae9591'}"/>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}"></button>
                             </div>
                         </c:if>
 
                         <!-- Search & Refine Filter Bar (Normal Flow Step 2 & Alternative Flow 3a) -->
                         <div class="search-bar-wrapper mx-auto">
-                            <form class="row g-3 align-items-end" method="post" action="${pageContext.request.contextPath}/room?action=search">
+                            <form class="row g-3 align-items-end pb-3" method="post" action="${pageContext.request.contextPath}/room?action=search">
                                 <input type="hidden" name="source" value="room">
 
-                                <div class="col-lg-3 col-md-6">
+                                <div class="col-lg-4 col-md-6 selection-date">
                                     <label for="floatingBookingDate" class="form-label small fw-bold text-uppercase text-muted mb-1"><ui:text key="screen.c832b0d0d927dcff"/></label>
                                     <div class="position-relative">
                                         <i class="bi bi-calendar-range position-absolute top-50 translate-middle-y ms-3 text-muted"></i>
@@ -358,72 +406,102 @@
                                                id="floatingBookingDate"
                                                value="${sessionScope.dates}"
                                                placeholder="${sessionScope.dates}"
-                                               name="booking-dates" readonly required>
+                                               name="booking-dates" aria-describedby="search-stay-nights search-calendar-status"
+                                               data-submit-on-select readonly required>
                                         <small id="search-calendar-status" class="visually-hidden" aria-live="polite"
                                            data-loading="${requestScope.i18n['room.calendar.loading']}"
                                            data-error="${requestScope.i18n['room.calendar.error']}"
                                            data-unavailable="${requestScope.i18n['room.calendar.unavailable']}"
                                            data-changed="${requestScope.i18n['room.calendar.changed']}"></small>
                                     </div>
-                                </div>
-
-                                <div class="col-lg-1 col-md-3 col-6">
-                                    <label for="guest-count" class="form-label small fw-bold text-uppercase text-muted mb-1"><ui:text key="screen.3c8e0fde6fcc71e0"/></label>
-                                    <input type="number" min="1" max="20"
-                                           class="form-control bg-light ${param.error == 'invalid-filter' ? 'is-invalid border-danger' : 'border-0'}"
-                                           id="guest-count" name="guest-count"
-                                           value="${not empty sessionScope.guestCount ? sessionScope.guestCount : 1}" required>
+                                    <small id="search-stay-nights" class="d-block mt-1 text-muted" aria-live="polite"
+                                           data-unit="${requestScope.i18n['room.search.party.nights']}">${requestScope.searchNights} <ui:text key="room.search.party.nights"/></small>
                                 </div>
 
                                 <div class="col-lg-2 col-md-3 col-6">
-                                    <label for="room-type-id" class="form-label small fw-bold text-uppercase text-muted mb-1"><ui:text key="screen.82dea9a01c0033ec"/></label>
-                                    <select class="form-select bg-light border-0" id="room-type-id" name="room-type-id">
-                                        <option value="">${requestScope.i18n['screen.bc01325482f36133']}</option>
-                                        <c:forEach var="rt" items="${requestScope.roomTypes}">
-                                            <option value="${rt.id}" ${sessionScope.searchRoomTypeId == rt.id ? 'selected' : ''}>
-                                                ${rt.name}
-                                            </option>
-                                        </c:forEach>
-                                    </select>
+                                    <label for="selection-adults" class="form-label small fw-bold text-muted mb-1"><ui:text key="room.search.party.adults"/></label>
+                                    <input type="number" min="1" step="1" class="form-control bg-light border-0"
+                                           id="selection-adults" name="adults" value="${requestScope.searchAdults}" required>
                                 </div>
 
-                                <div class="col-lg-2 col-md-4 col-6">
-                                    <jsp:include page="/WEB-INF/room/price-band.jsp"/>
+                                <div class="col-lg-2 col-md-3 col-6">
+                                    <label for="selection-children" class="form-label small fw-bold text-muted mb-1"><ui:text key="room.search.party.children"/></label>
+                                    <input type="number" min="0" step="1" class="form-control bg-light border-0"
+                                           id="selection-children" name="children" value="${requestScope.searchChildren}" required>
                                 </div>
 
                                 <div class="col-lg-2 col-md-4 col-6">
                                     <label for="sort-by" class="form-label small fw-bold text-uppercase text-muted mb-1"><ui:text key="screen.6d2227555fccff99"/></label>
                                     <select class="form-select bg-light border-0" id="sort-by" name="sort-by">
-                                        <option value="room_asc" ${sessionScope.searchSortBy == 'room_asc' ? 'selected' : ''}>${requestScope.i18n['screen.82dea9a01c0033ec']}</option>
-                                        <option value="price_asc" ${sessionScope.searchSortBy == 'price_asc' ? 'selected' : ''}>${requestScope.i18n['screen.3044c75602f03114']}</option>
-                                        <option value="price_desc" ${sessionScope.searchSortBy == 'price_desc' ? 'selected' : ''}>${requestScope.i18n['screen.8abbc1606cfd7f90']}</option>
-                                        <option value="capacity_desc" ${sessionScope.searchSortBy == 'capacity_desc' ? 'selected' : ''}>${requestScope.i18n['screen.a980d50906f2f261']}</option>
+                                        <option value="price_asc" ${requestScope.searchSortBy == 'price_asc' ? 'selected' : ''}>${requestScope.i18n['screen.3044c75602f03114']}</option>
+                                        <option value="price_desc" ${requestScope.searchSortBy == 'price_desc' ? 'selected' : ''}>${requestScope.i18n['screen.8abbc1606cfd7f90']}</option>
                                     </select>
                                 </div>
 
                                 <div class="col-lg-2 col-md-4 col-12">
                                     <button class="btn btn-book w-100 text-nowrap py-2" type="submit">
-                                        <i class="bi bi-search me-1"></i> <ui:text key="screen.49c266baaaa70981"/>
+                                        <i class="bi bi-search me-1"></i> <ui:text key="room.selection.update"/>
                                     </button>
                                 </div>
                             </form>
                         </div>
 
-                        <div class="row g-4 mb-5">
+                        <c:if test="${requestScope.insufficientPartyCapacity}">
+                            <div class="alert room-cart-warning" role="status">
+                                <strong><ui:text key="room.search.party.insufficient"/></strong>
+                                <p class="mb-0"><ui:text key="room.selection.changeSearch"/></p>
+                            </div>
+                        </c:if>
+
+                        <div id="room-selection" class="room-selection-layout mb-5"
+                             data-check-url="${pageContext.request.contextPath}/room?action=check-selection"
+                             data-csrf-token="${requestScope.selectionCsrfToken}"
+                             data-criteria="${requestScope.searchCriteria}"
+                             data-adults="${requestScope.searchAdults}" data-children="${requestScope.searchChildren}"
+                             data-nights="${requestScope.searchNights}" data-price-order="${requestScope.searchSortBy}"
+                             data-night-unit="${requestScope.i18n['room.search.party.nights']}"
+                             data-room-unit="${requestScope.i18n['room.selection.roomUnit']}"
+                             data-empty="${requestScope.i18n['room.selection.empty']}"
+                             data-sold-out="${requestScope.i18n['room.selection.soldOut']}"
+                             data-available="${requestScope.i18n['room.available']}"
+                             data-short-guests="${requestScope.i18n['room.selection.shortGuests']}"
+                             data-short-children="${requestScope.i18n['room.selection.shortChildren']}"
+                             data-too-many="${requestScope.i18n['room.selection.tooManyRooms']}"
+                             data-apply-search="${requestScope.i18n['room.selection.applySearch']}"
+                             data-adjusted="${requestScope.i18n['room.selection.adjusted']}"
+                             data-adjusted-unknown="${requestScope.i18n['room.selection.adjustedUnknown']}"
+                             data-invalid="${requestScope.i18n['room.selection.invalid']}"
+                             data-reload="${requestScope.i18n['room.selection.reload']}"
+                             data-failed="${requestScope.i18n['room.selection.failed']}"
+                             data-checking="${requestScope.i18n['room.selection.checking']}">
+                            <section class="row g-4" data-room-catalog aria-label="${requestScope.i18n['room.selection.catalog']}">
                             <c:forEach var="result" items="${availableTypes}">
                                 <c:set var="type" value="${result.type}"/>
                                 <c:url var="pictureUrl" value="/assets/img/${empty type.picture ? 'avatar.jpg' : type.picture}"/>
-                                <c:url var="detailsUrl" value="/details">
+                                <c:url var="previewUrl" value="/details">
+                                    <c:param name="action" value="preview"/>
                                     <c:param name="roomTypeId" value="${type.id}"/>
                                 </c:url>
-                                <div class="col-md-6 col-lg-4">
+                                <div class="col-6" data-room-type="${type.id}" data-available="${result.available}"
+                                     data-capacity="${type.capacity}" data-max-children="${result.maxChildren}"
+                                     data-nightly="${type.pricePerNight}" data-preview-url="${previewUrl}">
                                     <article class="card room-card h-100">
-                                        <a href="${detailsUrl}" class="room-img-wrap d-block text-decoration-none">
+                                        <button type="button" class="room-img-wrap d-block w-100 p-0 border-0"
+                                                data-preview-open aria-haspopup="dialog"
+                                                aria-label="<c:out value="${requestScope.i18n['screen.cb4759ed919a639c']} ${type.name}"/>">
                                             <img src="<c:out value='${pictureUrl}'/>" alt="<c:out value='${type.name}'/>">
-                                            <span class="room-badge">${result.available} <ui:text key="room.available"/></span>
-                                        </a>
+                                            <span class="room-badge" data-room-badge>
+                                                <c:choose>
+                                                    <c:when test="${result.available > 0}">${result.available} <ui:text key="room.available"/></c:when>
+                                                    <c:otherwise><ui:text key="room.selection.soldOut"/></c:otherwise>
+                                                </c:choose>
+                                            </span>
+                                        </button>
                                         <div class="card-body d-flex flex-column p-4">
-                                            <h5 class="fw-bold"><a class="text-dark text-decoration-none" href="${detailsUrl}"><c:out value="${type.name}"/></a></h5>
+                                            <h5 class="fw-bold">
+                                                <button type="button" class="btn btn-link p-0 text-dark text-start text-decoration-none fw-bold"
+                                                        data-room-name data-preview-open aria-haspopup="dialog"><c:out value="${type.name}"/></button>
+                                            </h5>
                                             <c:if test="${result.reviewCount > 0}">
                                                 <div class="small mb-2"><i class="bi bi-star-fill text-warning"></i>
                                                     ${result.rating} <span class="text-muted">(${result.reviewCount})</span>
@@ -432,12 +510,23 @@
                                             <p class="text-muted small"><ui:catalogText group="room.catalog.description" value="${type.description}"/></p>
                                             <div class="room-card-specs text-muted small mt-auto mb-3">
                                                 <span><i class="bi bi-moon-stars me-1" aria-hidden="true"></i>${type.beds} <ui:text key="${type.beds == 1 ? 'room.catalog.one.bed' : 'screen.2e2a3cd1a00809d3'}"/></span>
-                                                <span><i class="bi bi-people me-1" aria-hidden="true"></i>${type.capacity} <ui:text key="screen.3c8e0fde6fcc71e0"/></span>
+                                                <span><i class="bi bi-people me-1" aria-hidden="true"></i><ui:text key="room.details.max"/>
+                                                    ${type.capacity} <ui:text key="room.selection.guestUnit"/>
+                                                    (<ui:text key="room.selection.includingMax"/> ${result.maxChildren} <ui:text key="room.selection.childUnit"/>)
+                                                </span>
                                             </div>
                                             <div class="d-flex justify-content-between align-items-center border-top pt-3">
                                                 <span><strong class="room-price"><ui:money amount="${type.pricePerNight}"/></strong> <ui:text key="screen.f8b08898c2e4a561"/></span>
-                                                <a href="${detailsUrl}" class="btn btn-book"><ui:text key="screen.cb4759ed919a639c"/></a>
+                                                <div class="room-quantity" role="group" aria-label="<c:out value='${type.name}'/>">
+                                                    <button type="button" class="btn btn-outline-secondary" data-quantity-minus
+                                                            aria-label="${requestScope.i18n['room.selection.remove']}" disabled>&minus;</button>
+                                                    <output data-quantity>0</output>
+                                                    <button type="button" class="btn btn-outline-secondary" data-quantity-plus
+                                                            aria-label="${requestScope.i18n['room.selection.add']}" disabled>+</button>
+                                                </div>
                                             </div>
+                                            <button type="button" class="btn btn-link align-self-start p-0 mt-3"
+                                                    data-preview-open aria-haspopup="dialog"><ui:text key="screen.cb4759ed919a639c"/></button>
                                         </div>
                                     </article>
                                 </div>
@@ -451,33 +540,59 @@
                                     <p class="text-muted"><ui:text key="screen.2ce4d43e6899b3e3"/></p>
                                 </div>
                             </c:if>
-                        </div>
+                            </section>
 
-                        <!-- Pagination Customer (BR-17 & Alternative Flow 3a) -->
-                        <c:if test="${requestScope.totalPages > 1}">
-                            <!-- THÊM class d-flex và justify-content-center TRỰC TIẾP VÀO THẺ NAV -->
-                            <nav aria-label="${requestScope.i18n['screen.024148d6099b7d63']}" class="mt-5 d-flex justify-content-center w-100">
-                                <ul class="pagination pagination-lg mb-0">
-                                    <li class="page-item ${pageIndex <= 1 ? 'disabled' : ''}">
-                                        <a class="page-link" href="./room?page-index=${pageIndex - 1}"><i class="bi bi-chevron-left"></i></a>
-                                    </li>
-                                    <c:forEach var="i" begin="1" end="${totalPages}">
-                                        <li class="page-item ${pageIndex == i ? 'active' : ''}">
-                                            <a class="page-link" href="./room?page-index=${i}">${i}</a>
-                                        </li>
-                                    </c:forEach>
-                                    <li class="page-item ${pageIndex >= totalPages ? 'disabled' : ''}">
-                                        <a class="page-link" href="./room?page-index=${pageIndex + 1}"><i class="bi bi-chevron-right"></i></a>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </c:if>
+                            <aside class="room-cart card border-0 shadow-sm p-4" aria-labelledby="room-cart-heading">
+                                <h2 id="room-cart-heading" class="h5 mb-3"><ui:text key="room.selection.cart"/></h2>
+                                <p class="small text-muted">${requestScope.searchAdults} <ui:text key="room.selection.adultUnit"/>
+                                    &middot; ${requestScope.searchChildren} <ui:text key="room.selection.childUnit"/>
+                                    &middot; ${requestScope.searchNights} <ui:text key="room.search.party.nights"/></p>
+                                <ul class="list-unstyled mb-3" data-cart-lines></ul>
+                                <div class="border-top pt-3 mb-3 d-flex justify-content-between gap-2">
+                                    <strong><ui:text key="room.selection.total"/></strong>
+                                    <output data-cart-total aria-live="polite"><ui:money amount="${0}"/></output>
+                                </div>
+                                <p class="alert room-cart-warning small p-2" data-cart-warning aria-live="polite" hidden></p>
+                                <p class="small" data-cart-notice aria-live="polite" hidden></p>
+                                <button type="button" class="btn btn-book w-100" data-cart-continue disabled>
+                                    <ui:text key="room.selection.continue"/>
+                                </button>
+                            </aside>
+                        </div>
                     </main>
                 </c:otherwise>
             </c:choose>
 
             <%@include file="../include/footer.jsp" %>
         </div>
+
+        <c:if test="${sessionScope.loggedUser.role != 'admin' and not empty availableTypes}">
+            <div class="modal fade" id="room-preview" tabindex="-1" aria-labelledby="room-preview-title" aria-hidden="true"
+                 data-loading="${requestScope.i18n['room.preview.loading']}"
+                 data-failed="${requestScope.i18n['room.preview.failed']}"
+                 data-limit="${requestScope.i18n['room.preview.limit']}"
+                 data-guest-unit="${requestScope.i18n['room.selection.guestUnit']}"
+                 data-including-max="${requestScope.i18n['room.selection.includingMax']}"
+                 data-child-unit="${requestScope.i18n['room.selection.childUnit']}">
+                <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2 id="room-preview-title" class="modal-title h4"></h2>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <p class="mb-0" role="status" data-preview-status></p>
+                            <div data-preview-content></div>
+                        </div>
+                        <div class="modal-footer gap-2">
+                            <p class="text-muted small mb-0" data-preview-stock aria-live="polite"></p>
+                            <button type="button" class="btn btn-book" data-preview-add disabled><ui:text key="room.preview.choose"/></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </c:if>
 
         <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js"></script>
         <script>

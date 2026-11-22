@@ -70,6 +70,7 @@ public class BookingServlet extends HttpServlet {
 
         request.setAttribute("roomType", type);
         request.setAttribute("nights", ChronoUnit.DAYS.between(from, to));
+        request.setAttribute("checkoutCsrfToken", util.AuthSupport.token(session));
         request.getRequestDispatcher("/WEB-INF/booking/booking.jsp").forward(request, response);
     }
 
@@ -90,6 +91,13 @@ public class BookingServlet extends HttpServlet {
         }
 
         String bookingPath = request.getContextPath() + "/booking?roomTypeId=" + type.getId();
+        if (!util.AuthSupport.checkCsrf(request, response)) {
+            return;
+        }
+        if (!"yes".equals(request.getParameter("booking-consent"))) {
+            response.sendRedirect(bookingPath + "&error=consent");
+            return;
+        }
         LocalDate from = (LocalDate) session.getAttribute("checkInDate");
         LocalDate to = (LocalDate) session.getAttribute("checkOutDate");
         if (!OnlineStayDates.isValid(from, to, ReportPeriod.today())) {

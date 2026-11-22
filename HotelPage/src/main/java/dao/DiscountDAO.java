@@ -12,10 +12,27 @@ import java.time.LocalDate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import model.Discount;
+import util.OnlineStayPolicy;
 
 public class DiscountDAO extends DBContext {
+    public Map<String, BigDecimal> getOnlineVoucherTotals(BigDecimal total) {
+        Map<String, BigDecimal> totals = new LinkedHashMap<>();
+        for (Discount voucher : getActivePromotions()) {
+            if (voucher.getMinimumAmount() != null && total.compareTo(voucher.getMinimumAmount()) < 0) {
+                continue;
+            }
+            BigDecimal payable = total.subtract(OnlineStayPolicy.voucherDiscount(
+                    total, voucher.getSaleOff(), voucher.getMaximumDiscount()));
+            if (payable.signum() > 0 && payable.compareTo(total) < 0 && payable.stripTrailingZeros().scale() <= 0) {
+                totals.put(voucher.getCode(), payable.setScale(0));
+            }
+        }
+        return totals;
+    }
 
     /*
      * =========================================================

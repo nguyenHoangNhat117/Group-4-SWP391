@@ -11,15 +11,22 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.ToIntFunction;
 import model.Room;
+import model.OnlineBookingDraft;
 import model.RoomPriceBand;
 import java.sql.SQLException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import model.RoomType;
 import model.User;
 import util.OnlineStayDates;
+import util.OnlineStayPolicy;
 import util.ReportPeriod;
 
 @WebServlet(name = "RoomServlet", urlPatterns = {"/room"})
@@ -189,38 +196,147 @@ public class RoomServlet extends HttpServlet {
             return;
         }
 
-        Integer guestCount = session.getAttribute("guestCount") instanceof Integer
-                ? (Integer) session.getAttribute("guestCount") : 1;
-        if (guestCount <= 0) {
-            guestCount = 1;
+        int guestCount = session.getAttribute("guestCount") instanceof Integer
+                ? (Integer) session.getAttribute("guestCount") : 0;
+        int adults = searchAdults(session);
+        if (adults < 1 || guestCount < adults) {
+            redirect(request, response, "/booking?error=invalid-guests");
+            return;
         }
 
-        Integer selectedRoomTypeId = session.getAttribute("searchRoomTypeId") instanceof Integer
-                ? (Integer) session.getAttribute("searchRoomTypeId") : null;
-        RoomPriceBand band = RoomPriceBand.parse((String) session.getAttribute("searchPriceBand"));
-        String sort = (String) session.getAttribute("searchSortBy");
+        String sort = searchSort(session.getAttribute("searchSortBy"));
         List<RoomDAO.AvailableType> types;
         try {
-            types = roomDAO.findAvailableTypes(checkIn, checkOut, guestCount,
-                    selectedRoomTypeId, band, sort == null ? "room_asc" : sort);
+            types = roomDAO.findRoomSelectionTypes(checkIn, checkOut, sort);
         } catch (SQLException ex) {
             throw new ServletException("Unable to load room inventory", ex);
         }
-        int totalPages = (types.size() + PAGE_SIZE - 1) / PAGE_SIZE;
-        Integer parsedPage = positiveInt(request.getParameter("page-index"));
-        int page = parsedPage == null ? 1 : Math.min(parsedPage, Math.max(1, totalPages));
-        int offset = (page - 1) * PAGE_SIZE;
-        request.setAttribute("roomTypes", new RoomTypeDAO().getAllActive());
-        request.setAttribute("availableTypes", types.subList(offset, Math.min(offset + PAGE_SIZE, types.size())));
-        request.setAttribute("totalPages", totalPages);
-        request.setAttribute("pageIndex", page);
-
-        if (request.getParameter("page-index") == null && totalPages > 0) {
-            redirect(request, response, "/room?page-index=1");
-            return;
-        }
+        request.setAttribute("insufficientPartyCapacity",
+                !types.isEmpty() && !hasCapacityForParty(types, adults, guestCount, RoomDAO.AvailableType::getAvailable));
+        request.setAttribute("availableTypes", types);
+        request.setAttribute("searchSortBy", sort);
+        request.setAttribute("searchAdults", adults);
+        request.setAttribute("searchChildren", guestCount - adults);
+        request.setAttribute("searchNights", ChronoUnit.DAYS.between(checkIn, checkOut));
+        request.setAttribute("searchCriteria", searchCriteria(checkIn, checkOut, adults, guestCount));
+        request.setAttribute("selectionCsrfToken", util.AuthSupport.token(session));
         request.getRequestDispatcher("/WEB-INF/room/room.jsp")
                 .forward(request, response);
+    }
+
+    private static int searchAdults(HttpSession session) {
+        return session.getAttribute("searchAdults") instanceof Integer
+                ? (Integer) session.getAttribute("searchAdults") : 0;
+    }
+
+    private static String searchCriteria(LocalDate from, LocalDate to, int adults, int guests) {
+        return from + "|" + to + "|" + adults + "|" + guests;
+    }
+
+    private static boolean hasCapacityForParty(List<RoomDAO.AvailableType> types, int adults, int guests,
+            ToIntFunction<RoomDAO.AvailableType> quantity) {
+        long totalCapacity = 0;
+        long childCapacity = 0;
+        for (RoomDAO.AvailableType result : types) {
+            long capacity = result.getType().getCapacity();
+            int rooms = quantity.applyAsInt(result);
+            totalCapacity += capacity * rooms;
+            childCapacity += (long) result.getMaxChildren() * rooms;
+        }
+        // This checks available stock. The maximum number of rooms applies to selected rooms.
+        return OnlineStayPolicy.fitsParty(adults, guests - adults, totalCapacity, childCapacity);
+    }
+
+    private static String searchSort(Object value) {
+        return "price_desc".equals(value) ? "price_desc" : "price_asc";
+    }
+
+    private void checkSelection(HttpServletRequest request, HttpServletResponse response)
+            throws IOException, ServletException {
+        HttpSession session = request.getSession(false);
+        LocalDate from = session == null ? null : (LocalDate) session.getAttribute("checkInDate");
+        LocalDate to = session == null ? null : (LocalDate) session.getAttribute("checkOutDate");
+        int guests = session != null && session.getAttribute("guestCount") instanceof Integer
+                ? (Integer) session.getAttribute("guestCount") : 0;
+        int adults = session == null ? 0 : searchAdults(session);
+        if (!OnlineStayDates.isValid(from, to, ReportPeriod.today()) || adults < 1 || guests < adults
+                || !searchCriteria(from, to, adults, guests).equals(request.getParameter("criteria"))) {
+            writeSelectionResponse(response, HttpServletResponse.SC_CONFLICT, Map.of("status", "search-changed"));
+            return;
+        }
+        if (!util.AuthSupport.checkCsrf(request, response)) {
+            return;
+        }
+
+        String[] ids = request.getParameterValues("roomTypeId");
+        String[] quantities = request.getParameterValues("quantity");
+        Map<Integer, Integer> selected = new HashMap<>();
+        long roomCount = 0;
+        if (ids == null || quantities == null || ids.length != quantities.length) {
+            writeSelectionResponse(response, HttpServletResponse.SC_BAD_REQUEST, Map.of("status", "capacity"));
+            return;
+        }
+        for (int index = 0; index < ids.length; index++) {
+            Integer id = positiveInt(ids[index]);
+            Integer quantity = positiveInt(quantities[index]);
+            if (id == null || quantity == null || selected.putIfAbsent(id, quantity) != null) {
+                writeSelectionResponse(response, HttpServletResponse.SC_BAD_REQUEST, Map.of("status", "capacity"));
+                return;
+            }
+            roomCount += quantity;
+        }
+
+        List<RoomDAO.AvailableType> inventory;
+        try {
+            new dao.BookingDAO().expirePendingBookings();
+            inventory = new RoomDAO().findRoomSelectionTypes(from, to, "price_asc");
+        } catch (SQLException ex) {
+            throw new ServletException("Unable to check room selection", ex);
+        }
+        Map<Integer, Integer> stock = new HashMap<>();
+        for (RoomDAO.AvailableType type : inventory) {
+            stock.put(type.getType().getId(), type.getAvailable());
+        }
+        if (selected.entrySet().stream().anyMatch(entry -> entry.getValue() > stock.getOrDefault(entry.getKey(), 0))) {
+            writeSelectionResponse(response, HttpServletResponse.SC_CONFLICT, Map.of("status", "stock", "stock", stock));
+        } else if (roomCount < 1 || roomCount > guests
+                || !hasCapacityForParty(inventory, adults, guests, type -> selected.getOrDefault(type.getType().getId(), 0))) {
+            writeSelectionResponse(response, HttpServletResponse.SC_BAD_REQUEST, Map.of("status", "capacity"));
+        } else {
+            List<OnlineBookingDraft.RoomLine> lines = new ArrayList<>();
+            for (RoomDAO.AvailableType type : inventory) {
+                Integer quantity = selected.get(type.getType().getId());
+                if (quantity != null) {
+                    lines.add(new OnlineBookingDraft.RoomLine(type.getType(), quantity));
+                }
+            }
+            OnlineBookingDraft draft;
+            synchronized (session) {
+                if (!from.equals(session.getAttribute("checkInDate")) || !to.equals(session.getAttribute("checkOutDate"))
+                        || !Integer.valueOf(guests).equals(session.getAttribute("guestCount"))
+                        || adults != searchAdults(session)) {
+                    writeSelectionResponse(response, HttpServletResponse.SC_CONFLICT, Map.of("status", "search-changed"));
+                    return;
+                }
+                draft = new OnlineBookingDraft(from, to, adults, guests - adults, lines);
+                Object previous = session.getAttribute(OnlineBookingDraft.SESSION_ATTRIBUTE);
+                if (previous instanceof OnlineBookingDraft) {
+                    draft.copyContactFrom((OnlineBookingDraft) previous);
+                }
+                session.setAttribute(OnlineBookingDraft.SESSION_ATTRIBUTE, draft);
+            }
+            writeSelectionResponse(response, HttpServletResponse.SC_OK, Map.of(
+                    "status", "available", "nextUrl", request.getContextPath() + draft.getPath(),
+                    "requestKey", draft.getToken()));
+        }
+    }
+
+    private static void writeSelectionResponse(HttpServletResponse response, int status, Map<String, ?> body)
+            throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json");
+        response.setHeader("Cache-Control", "no-store");
+        new ObjectMapper().writeValue(response.getOutputStream(), body);
     }
 
     private void showAdminList(HttpServletRequest request, HttpServletResponse response,
@@ -272,6 +388,10 @@ public class RoomServlet extends HttpServlet {
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         String action = request.getParameter("action");
+        if ("check-selection".equals(action)) {
+            checkSelection(request, response);
+            return;
+        }
         // Search is public for Guest/Customer. Create a session so the selected
         // dates survive until the user logs in and proceeds to booking.
         if ("search".equals(action)) {
@@ -402,74 +522,35 @@ public class RoomServlet extends HttpServlet {
             return;
         }
 
-        // 2. Validate Guest Count (BR-15 & Exception 4b)
-        int guestCount = 0;
-        String guestCountParam = request.getParameter("guest-count");
-        if (guestCountParam != null && !guestCountParam.isBlank()) {
-            try {
-                guestCount = Integer.parseInt(guestCountParam.trim());
-            } catch (NumberFormatException ex) {
-                redirect(request, response, errorTarget + "error=invalid-filter");
-                return;
-            }
-        } else {
-            // Support adults + children fields from search.jsp if submitted separately
-            String adultsParam = request.getParameter("adults");
-            String childrenParam = request.getParameter("children");
-            try {
-                int adults = (adultsParam == null || adultsParam.isBlank()) ? 1 : Integer.parseInt(adultsParam.trim());
-                int children = (childrenParam == null || childrenParam.isBlank()) ? 0 : Integer.parseInt(childrenParam.trim());
-                if (adults <= 0 || children < 0) {
-                    redirect(request, response, errorTarget + "error=invalid-filter");
-                    return;
-                }
-                guestCount = adults + children;
-            } catch (NumberFormatException ex) {
-                redirect(request, response, errorTarget + "error=invalid-filter");
-                return;
-            }
-        }
-
-        if (guestCount <= 0) {
-            redirect(request, response, errorTarget + "error=invalid-filter");
-            return;
-        }
-
-        // 3. Validate Optional RoomType & Price Range Filters (BR-16, BR-32 & Exception 4b)
-        String roomTypeParam = request.getParameter("room-type-id");
-        Integer roomTypeId = null;
-        if (roomTypeParam != null && !roomTypeParam.isBlank()) {
-            roomTypeId = positiveInt(roomTypeParam.trim());
-            if (roomTypeId == null) {
-                redirect(request, response, errorTarget + "error=invalid-filter");
-                return;
-            }
-        }
-
-        RoomPriceBand band;
+        String adultsParam = request.getParameter("adults");
+        String childrenParam = request.getParameter("children");
+        Integer adults = positiveInt(adultsParam == null ? null : adultsParam.strip());
+        int children;
+        int guestCount;
         try {
-            band = RoomPriceBand.parse(request.getParameter("price-band"));
-        } catch (IllegalArgumentException ex) {
-            redirect(request, response, errorTarget + "error=invalid-filter");
+            children = Integer.parseInt(childrenParam == null ? "" : childrenParam.strip());
+            if (adults == null || children < 0) {
+                redirect(request, response, errorTarget + "error=invalid-guests");
+                return;
+            }
+            guestCount = Math.addExact(adults, children);
+        } catch (NumberFormatException | ArithmeticException ex) {
+            redirect(request, response, errorTarget + "error=invalid-guests");
             return;
         }
 
-        String sortBy = request.getParameter("sort-by");
-        if (sortBy == null || (!"price_asc".equals(sortBy)
-                && !"price_desc".equals(sortBy)
-                && !"capacity_desc".equals(sortBy))) {
-            sortBy = "room_asc";
+        synchronized (session) {
+            session.setAttribute("dates", OnlineStayDates.formatSearchRange(checkIn, checkOut));
+            session.setAttribute("checkInDate", checkIn);
+            session.setAttribute("checkOutDate", checkOut);
+            session.setAttribute("searchAdults", adults);
+            session.setAttribute("searchChildren", children);
+            session.setAttribute("guestCount", guestCount);
+            session.removeAttribute("searchRoomTypeId");
+            session.removeAttribute("searchPriceBand");
+            session.setAttribute("searchSortBy", searchSort(request.getParameter("sort-by")));
+            session.removeAttribute("availableRooms");
         }
-
-        // 4. Retain search criteria in session (UC06 Postconditions)
-        session.setAttribute("dates", OnlineStayDates.formatSearchRange(checkIn, checkOut));
-        session.setAttribute("checkInDate", checkIn);
-        session.setAttribute("checkOutDate", checkOut);
-        session.setAttribute("guestCount", guestCount);
-        session.setAttribute("searchRoomTypeId", roomTypeId);
-        session.setAttribute("searchPriceBand", band.name());
-        session.setAttribute("searchSortBy", sortBy);
-        session.removeAttribute("availableRooms"); // prevent stale results
 
         redirect(request, response, "/room?page-index=1");
     }

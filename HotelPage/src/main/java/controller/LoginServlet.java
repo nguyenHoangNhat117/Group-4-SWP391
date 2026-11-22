@@ -256,6 +256,8 @@ public class LoginServlet extends HttpServlet {
                         } else if (pendingUrl.matches("/booking\\?roomTypeId=[0-9]+")) {
                             target = pendingUrl;
 
+                        } else if (pendingUrl.matches("/booking-confirmation\\?draft=[0-9a-f-]{36}")) {
+                            target = pendingUrl;
                         } else if (pendingUrl.matches(
                                 "/details\\?roomNumber=[0-9]+")
                                 || pendingUrl.matches(

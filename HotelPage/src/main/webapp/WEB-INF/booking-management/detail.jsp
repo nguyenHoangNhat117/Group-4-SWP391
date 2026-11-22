@@ -269,7 +269,7 @@
                                                     <td class="booking-stay-date">
                                                         <time datetime="${detail.checkOutDate}">${detail.checkOutDate.format(dateFormat)}</time>
                                                     </td>
-                                                    <td class="text-center">${detail.guestCount}</td>
+                                                    <td class="text-center">${not empty booking.onlineRequestKey ? '—' : detail.guestCount}</td>
                                                     <td class="text-end">
                                                         <span class="booking-money">
                                                             <fmt:formatNumber value="${detail.pricePerNight}" maxFractionDigits="0"/>

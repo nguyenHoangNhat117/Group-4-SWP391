@@ -36,6 +36,10 @@ public class DetailsServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        if ("preview".equals(request.getParameter("action"))) {
+            showRoomTypePreview(request, response);
+            return;
+        }
         handleDetails(request, response, false);
     }
 
@@ -44,6 +48,70 @@ public class DetailsServlet extends HttpServlet {
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         handleDetails(request, response, "review".equals(request.getParameter("action")));
+    }
+
+    private void showRoomTypePreview(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        int typeId = number(request.getParameter("roomTypeId"), 0);
+        if (typeId < 1) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        RoomType type = new RoomTypeDAO().getActiveRoomTypeById(typeId);
+        if (type == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        setRoomDetails(request, type);
+        setRoomReviews(request, null, type);
+        request.getRequestDispatcher("/WEB-INF/details/room-preview.jsp").forward(request, response);
+    }
+
+    private void setRoomDetails(HttpServletRequest request, RoomType type) throws ServletException {
+        request.setAttribute("roomType", type);
+        try {
+            request.setAttribute("roomSpecifications", new RoomTypeDAO().getSpecifications(type.getId()));
+        } catch (SQLException ex) {
+            throw new ServletException("Unable to load room specifications", ex);
+        }
+        request.setAttribute("amenities", new AmenityDAO().getAmenitiesByRoomTypeId(type.getId()));
+    }
+
+    private void setRoomReviews(HttpServletRequest request, Room room, RoomType type) {
+        ReviewDAO reviewDAO = new ReviewDAO();
+
+        List<Review> approved;
+
+        if (room != null) {
+            approved = reviewDAO.getReviewsByRoomNumber(
+                    room.getRoomNumber()
+            );
+        } else {
+            approved = reviewDAO.getReviewsByRoomTypeId(
+                    type.getId()
+            );
+        }
+
+        request.setAttribute("reviews", approved);
+
+        BigDecimal averageStar = BigDecimal.ZERO;
+
+        if (!approved.isEmpty()) {
+
+            BigDecimal sum = BigDecimal.ZERO;
+
+            for (Review r : approved) {
+                sum = sum.add(r.getStar());
+            }
+
+            averageStar = sum.divide(
+                    BigDecimal.valueOf(approved.size()),
+                    1,
+                    java.math.RoundingMode.HALF_UP
+            );
+        }
+
+        request.setAttribute("averageStar", averageStar);
     }
 
     private void handleDetails(HttpServletRequest request, HttpServletResponse response, boolean review)
@@ -168,40 +236,7 @@ public class DetailsServlet extends HttpServlet {
             }
         }
 
-        ReviewDAO reviewDAO = new ReviewDAO();
-
-        List<Review> approved;
-
-        if (room != null) {
-            approved = reviewDAO.getReviewsByRoomNumber(
-                    room.getRoomNumber()
-            );
-        } else {
-            approved = reviewDAO.getReviewsByRoomTypeId(
-                    type.getId()
-            );
-        }
-
-        request.setAttribute("reviews", approved);
-
-        BigDecimal averageStar = BigDecimal.ZERO;
-
-        if (!approved.isEmpty()) {
-
-            BigDecimal sum = BigDecimal.ZERO;
-
-            for (Review r : approved) {
-                sum = sum.add(r.getStar());
-            }
-
-            averageStar = sum.divide(
-                    BigDecimal.valueOf(approved.size()),
-                    1,
-                    java.math.RoundingMode.HALF_UP
-            );
-        }
-
-        request.setAttribute("averageStar", averageStar);
+        setRoomReviews(request, room, type);
         boolean staffRoomAvailable = room != null
                 && validDates
                 && validQuantity
@@ -215,16 +250,7 @@ public class DetailsServlet extends HttpServlet {
 
         request.setAttribute(
                 "room", room);
-        request.setAttribute(
-                "roomType", type);
-        try {
-            request.setAttribute("roomSpecifications", new RoomTypeDAO().getSpecifications(type.getId()));
-        } catch (SQLException ex) {
-            throw new ServletException("Unable to load room specifications", ex);
-        }
-
-        request.setAttribute(
-                "amenities", new AmenityDAO().getAmenitiesByRoomTypeId(type.getId()));
+        setRoomDetails(request, type);
         request.setAttribute(
                 "checkInDate", checkIn);
         request.setAttribute(

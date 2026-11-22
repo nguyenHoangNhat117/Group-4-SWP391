@@ -15,9 +15,12 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Booking;
+import model.BookingContact;
 import model.BookingDetail;
 import model.Customer;
+import model.OnlineBookingDraft;
 import model.User;
+import util.OnlineStayPolicy;
 
 public class BookingDAO extends DBContext {
 
@@ -261,13 +264,11 @@ public class BookingDAO extends DBContext {
                         quantity, guests, nightly, specialRequest, null, null, null);
                 if (contact != null) {
                     try (PreparedStatement ps = conn.prepareStatement(
-                            "UPDATE Booking SET OnlineDepositPolicy=1, ContactName=?, "
+                            "UPDATE Booking SET OnlineDepositPolicy=1, HoldExpiresAt=DATEADD(MINUTE,?,SYSUTCDATETIME()), ContactName=?, "
                             + "ContactPhone=?, ContactEmail=?, ContactCountry=? WHERE BookingID=?")) {
-                        ps.setNString(1, contact.getName());
-                        ps.setNString(2, contact.getPhone());
-                        ps.setNString(3, contact.getEmail());
-                        ps.setNString(4, contact.getCountry());
-                        ps.setInt(5, bookingId);
+                        ps.setInt(1, OnlineStayPolicy.HOLD_MINUTES);
+                        bindContact(ps, 2, contact);
+                        ps.setInt(6, bookingId);
                         ps.executeUpdate();
                     }
                 }
@@ -276,6 +277,174 @@ public class BookingDAO extends DBContext {
             } catch (SQLException | RuntimeException ex) {
                 conn.rollback();
                 throw ex;
+            }
+        }
+    }
+
+    public static final class SelectionConflict extends Exception {
+        private final String reason;
+        private final String roomName;
+        private final int available;
+
+        private SelectionConflict(String reason, String roomName, int available) {
+            this.reason = reason;
+            this.roomName = roomName;
+            this.available = available;
+        }
+
+        public String getReason() { return reason; }
+        public String getRoomName() { return roomName; }
+        public int getAvailable() { return available; }
+    }
+
+    public int confirmOnlineSelection(int customerId, OnlineBookingDraft draft, int percent,
+            String voucherCode, BigDecimal payable)
+            throws SQLException, SelectionConflict {
+        List<OnlineBookingDraft.RoomLine> lines = new ArrayList<>(draft.getRooms());
+        lines.sort(java.util.Comparator.comparingInt(OnlineBookingDraft.RoomLine::getTypeId));
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                for (OnlineBookingDraft.RoomLine line : lines) {
+                    lockRoomType(conn, line.getTypeId());
+                }
+                int previous = findOnlineBooking(conn, customerId, draft.getToken());
+                if (previous > 0) {
+                    conn.commit();
+                    return previous;
+                }
+                validateOnlineSelection(conn, draft, lines, percent, payable);
+                int bookingId = insertOnlineSelection(conn, customerId, draft, percent);
+                String sql = "INSERT BookingDetail(BookingID,RoomTypeID,CheckInDate,CheckOutDate,PricePerNight) VALUES(?,?,?,?,?)";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    for (OnlineBookingDraft.RoomLine line : lines) {
+                        ps.setInt(1, bookingId);
+                        ps.setInt(2, line.getTypeId());
+                        ps.setObject(3, draft.getCheckIn());
+                        ps.setObject(4, draft.getCheckOut());
+                        ps.setBigDecimal(5, line.getNightly());
+                        for (int room = 0; room < line.getQuantity(); room++) {
+                            ps.addBatch();
+                        }
+                    }
+                    ps.executeBatch();
+                }
+                if (voucherCode != null) {
+                    try {
+                        PaymentDAO.createPendingOnlinePayment(conn, bookingId, customerId,
+                                "bank_transfer", voucherCode, percent, payable);
+                    } catch (PaymentDAO.VoucherUnavailableException ex) {
+                        throw new SelectionConflict("voucher", null, 0);
+                    }
+                }
+                conn.commit();
+                return bookingId;
+            } catch (SQLException | RuntimeException | SelectionConflict ex) {
+                conn.rollback();
+                throw ex;
+            }
+        }
+    }
+
+    private void validateOnlineSelection(Connection conn, OnlineBookingDraft draft,
+            List<OnlineBookingDraft.RoomLine> lines, int percent, BigDecimal payable) throws SQLException, SelectionConflict {
+        if (!util.OnlineStayDates.isValid(draft.getCheckIn(), draft.getCheckOut(), util.ReportPeriod.today())
+                || draft.getAdults() < 1 || draft.getChildren() < 0 || lines.isEmpty() || draft.getContact() == null
+                || payable.signum() <= 0 || payable.stripTrailingZeros().scale() > 0 || payable.compareTo(draft.getTotal()) > 0
+                || (percent != OnlineStayPolicy.FULL_PERCENT
+                && (percent != OnlineStayPolicy.DEPOSIT_PERCENT || !OnlineStayPolicy.canDeposit(payable)))) {
+            throw new SelectionConflict("criteria", null, 0);
+        }
+        long totalCapacity = 0;
+        long childCapacity = 0;
+        long roomCount = 0;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT PricePerNight,Capacity,MaxChildren FROM RoomType WHERE RoomTypeID=? AND IsActive=1")) {
+            for (OnlineBookingDraft.RoomLine line : lines) {
+                ps.setInt(1, line.getTypeId());
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        throw new SelectionConflict("stock", line.getName(), 0);
+                    }
+                    if (line.getNightly().compareTo(rs.getBigDecimal(1)) != 0) {
+                        throw new SelectionConflict("price", line.getName(), 0);
+                    }
+                    int quantity = line.getQuantity();
+                    int capacity = rs.getInt(2);
+                    roomCount += quantity;
+                    totalCapacity += (long) capacity * quantity;
+                    childCapacity += (long) Math.min(capacity, rs.getInt(3)) * quantity;
+                }
+                int available = RoomDAO.countAvailableRoomsByType(conn,
+                        draft.getCheckIn(), draft.getCheckOut(), line.getTypeId(), 1);
+                if (line.getQuantity() < 1 || available < line.getQuantity()) {
+                    throw new SelectionConflict("stock", line.getName(), available);
+                }
+            }
+        }
+        long guests = (long) draft.getAdults() + draft.getChildren();
+        if (!OnlineStayPolicy.fitsParty(draft.getAdults(), draft.getChildren(), totalCapacity, childCapacity)) {
+            throw new SelectionConflict(totalCapacity < guests ? "capacity" : "children", null, 0);
+        }
+        if (roomCount > guests) {
+            throw new SelectionConflict("criteria", null, 0);
+        }
+    }
+
+    private int insertOnlineSelection(Connection conn, int customerId, OnlineBookingDraft draft, int percent)
+            throws SQLException {
+        String sql = "SET NOCOUNT ON; DECLARE @ids TABLE(ID INT); "
+                + "INSERT Booking(CustomerID,TotalPrice,Status,OnlineDepositPolicy,HoldExpiresAt,OnlineRequestKey,Adults,Children,OnlinePaymentPercent,"
+                + "ContactName,ContactPhone,ContactEmail,ContactCountry) OUTPUT INSERTED.BookingID INTO @ids "
+                + "VALUES(?,?,'pending',1,DATEADD(MINUTE,?,SYSUTCDATETIME()),?,?,?,?,?,?,?,?); SELECT ID FROM @ids;";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, customerId);
+            ps.setBigDecimal(2, draft.getTotal());
+            ps.setInt(3, OnlineStayPolicy.HOLD_MINUTES);
+            ps.setString(4, draft.getToken());
+            ps.setInt(5, draft.getAdults());
+            ps.setInt(6, draft.getChildren());
+            ps.setInt(7, percent);
+            bindContact(ps, 8, draft.getContact());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new SQLException("Missing BookingID");
+                }
+                return rs.getInt(1);
+            }
+        }
+    }
+
+    private static void bindContact(PreparedStatement ps, int from, BookingContact contact) throws SQLException {
+        ps.setNString(from, contact.getName());
+        ps.setNString(from + 1, contact.getPhone());
+        ps.setNString(from + 2, contact.getEmail());
+        ps.setNString(from + 3, contact.getCountry());
+    }
+
+    public int findOnlineBooking(int customerId, String requestKey) throws SQLException {
+        try (Connection conn = getConnection()) {
+            return findOnlineBooking(conn, customerId, requestKey);
+        }
+    }
+
+    private int findOnlineBooking(Connection conn, int customerId, String requestKey) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT BookingID FROM Booking WHERE OnlineRequestKey=? AND CustomerID=?")) {
+            ps.setString(1, requestKey);
+            ps.setInt(2, customerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    static void lockRoomType(Connection conn, int typeId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT RoomTypeID FROM RoomType WITH(UPDLOCK,HOLDLOCK) WHERE RoomTypeID=?")) {
+            ps.setInt(1, typeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
             }
         }
     }
@@ -398,7 +567,6 @@ public class BookingDAO extends DBContext {
 
                     BookingDetail detail
                             = new BookingDetail();
-
                     detail.setId(
                             rs.getInt(
                                     "BookingDetailID"
@@ -472,6 +640,7 @@ public class BookingDAO extends DBContext {
                 + "b.CancellationDate, "
                 + "b.CancellationReason, "
                 + "b.ContactName, b.ContactPhone, b.ContactEmail, b.ContactCountry, b.OnlineDepositPolicy, "
+                + "b.OnlineRequestKey,b.OnlinePaymentPercent, "
                 + "c.CustomerID, "
                 + "c.FirstName, "
                 + "c.LastName, "
@@ -533,6 +702,9 @@ public class BookingDAO extends DBContext {
 
                 booking.setCustomer(customer);
                 booking.setOnlineDepositPolicy(rs.getBoolean("OnlineDepositPolicy"));
+                booking.setOnlineRequestKey(rs.getString("OnlineRequestKey"));
+                Number percent = (Number) rs.getObject("OnlinePaymentPercent");
+                booking.setOnlinePaymentPercent(percent == null ? null : percent.intValue());
                 if (rs.getString("ContactName") != null) {
                     booking.setContact(new model.BookingContact(rs.getString("ContactName"), rs.getString("ContactPhone"),
                             rs.getString("ContactEmail"), rs.getString("ContactCountry")));
@@ -596,7 +768,6 @@ public class BookingDAO extends DBContext {
                     Booking booking
                             = mapBooking(rs);
                     booking.setOnlineDepositPolicy(rs.getBoolean("OnlineDepositPolicy"));
-
                     booking.setDetails(
                             getBookingDetails(
                                     conn,
@@ -647,7 +818,8 @@ public class BookingDAO extends DBContext {
                 + "TotalPrice, "
                 + "SpecialRequest, "
                 + "CancellationDate, "
-                + "CancellationReason, OnlineDepositPolicy "
+                + "CancellationReason, OnlineDepositPolicy, Adults, Children, "
+                + "ContactName, ContactPhone, ContactEmail, ContactCountry "
                 + "FROM Booking "
                 + "WHERE CustomerID = ? "
                 + "ORDER BY BookingDate DESC, "
@@ -673,6 +845,12 @@ public class BookingDAO extends DBContext {
                     Booking booking
                             = mapBooking(rs);
                     booking.setOnlineDepositPolicy(rs.getBoolean("OnlineDepositPolicy"));
+                    booking.setAdults(rs.getObject("Adults", Integer.class));
+                    booking.setChildren(rs.getObject("Children", Integer.class));
+                    if (rs.getString("ContactName") != null) {
+                        booking.setContact(new model.BookingContact(rs.getString("ContactName"), rs.getString("ContactPhone"),
+                                rs.getString("ContactEmail"), rs.getString("ContactCountry")));
+                    }
 
                     booking.setDetails(
                             getBookingDetails(
@@ -1216,14 +1394,28 @@ public class BookingDAO extends DBContext {
                 + "'Expired pending booking' "
                 + "WHERE Status = 'pending' "
                 + "AND CreatedByUserID IS NULL "
-                + "AND BookingDate < "
-                + "DATEADD(MINUTE, -30, "
-                + "SYSDATETIME())";
+                + "AND ((HoldExpiresAt IS NOT NULL AND HoldExpiresAt<=SYSUTCDATETIME()) "
+                + "OR (HoldExpiresAt IS NULL AND BookingDate<=DATEADD(MINUTE,-30,SYSDATETIME())))";
 
-        try (Connection conn = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
-            return ps.executeUpdate();
+        String releaseVouchers = "DECLARE @released TABLE(DiscountID INT NOT NULL); "
+                + "UPDATE p SET PaymentStatus='failed' OUTPUT deleted.DiscountID INTO @released "
+                + "FROM Payment p JOIN Booking b ON b.BookingID=p.BookingID WHERE b.Status='cancelled' "
+                + "AND b.OnlineRequestKey IS NOT NULL AND p.PaymentStatus='pending' AND p.DiscountID IS NOT NULL; "
+                + "UPDATE d SET Quantity=d.Quantity+returned.Released FROM Discount d JOIN "
+                + "(SELECT DiscountID,COUNT(*) Released FROM @released GROUP BY DiscountID) returned "
+                + "ON returned.DiscountID=d.DiscountID;";
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement expire = conn.prepareStatement(sql);
+                    PreparedStatement release = conn.prepareStatement(releaseVouchers)) {
+                int expired = expire.executeUpdate();
+                release.executeUpdate();
+                conn.commit();
+                return expired;
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            }
 
         } catch (SQLException ex) {
 

@@ -1,0 +1,8 @@
+<div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" id="booking-consent" name="booking-consent" value="yes" required
+           ${param['booking-consent'] == 'yes' ? 'checked' : ''}>
+    <label class="form-check-label" for="booking-consent"><ui:text key="room.booking.consent"/></label>
+    <c:if test="${consentError or param.error == 'consent'}">
+        <p class="small text-danger mt-2 mb-0" role="alert"><ui:text key="room.booking.consent.required"/></p>
+    </c:if>
+</div>

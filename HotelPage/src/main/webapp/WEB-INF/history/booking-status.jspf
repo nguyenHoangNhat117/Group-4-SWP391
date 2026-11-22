@@ -1,0 +1,9 @@
+<c:choose>
+    <c:when test="${booking.status == 'pending'}"><span class="badge bg-warning text-dark"><ui:text key="screen.331551b0de4157c9"/></span></c:when>
+    <c:when test="${booking.status == 'confirmed'}"><span class="badge bg-primary"><ui:text key="screen.fe00b67b6dd1143f"/></span></c:when>
+    <c:when test="${booking.status == 'cancelled'}"><span class="badge bg-danger"><ui:text key="screen.d353a99eb4556847"/></span></c:when>
+    <c:when test="${booking.status == 'checked_in'}"><span class="badge bg-info text-dark"><ui:text key="screen.17c05c08a9ac3e5a"/></span></c:when>
+    <c:when test="${booking.status == 'checked_out'}"><span class="badge bg-secondary"><ui:text key="screen.cbe2b33735c6335c"/></span></c:when>
+    <c:when test="${booking.status == 'completed'}"><span class="badge bg-success"><ui:text key="screen.22a970d2e5b1cc23"/></span></c:when>
+    <c:otherwise><span class="badge bg-secondary"><ui:message text="${booking.status}"/></span></c:otherwise>
+</c:choose>

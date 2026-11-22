@@ -24,6 +24,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import model.Booking;
+import model.BookingHistoryDetails;
 import model.Customer;
 import model.Payment;
 import model.User;
@@ -245,22 +246,30 @@ public class HistoryServlet extends HttpServlet {
         Map<Integer, String> lateRefundMessageMap = new HashMap<>();
 
         Map<Integer, Boolean> cancellableMap = new HashMap<>();
+        Map<Integer, BookingHistoryDetails> bookingDetailsMap = new HashMap<>();
+        boolean ownHistory = Boolean.TRUE.equals(request.getAttribute("ownHistory"));
 
         for (Booking booking : bookings) {
-            BigDecimal paidAmount = paymentDAO.getTotalPaidAmount(booking.getId());
-            BigDecimal remainingAmount = booking.getTotalPrice().subtract(paidAmount);
-            if (remainingAmount.compareTo(BigDecimal.ZERO) < 0) {
-                remainingAmount = BigDecimal.ZERO;
-            }
-
-            paidAmountMap.put(booking.getId(), paidAmount);
             boolean refunded = bookingDAO.hasRefundedPayment(booking.getId(), customerId);
             refundedMap.put(booking.getId(), refunded);
-            String lateRefundMessage = lateRefundMessage(booking, paymentDAO, refunded);
+            boolean checkLateRefund = booking.isOnlineDepositPolicy() && "cancelled".equals(booking.getStatus())
+                    && booking.getCancellationDate() != null;
+            List<Payment> payments = ownHistory || checkLateRefund
+                    ? paymentDAO.getPaymentsByBookingId(booking.getId()) : List.of();
+            if (ownHistory) {
+                BookingHistoryDetails details = new BookingHistoryDetails(booking, payments);
+                bookingDetailsMap.put(booking.getId(), details);
+                paidAmountMap.put(booking.getId(), details.getNetPaid());
+                remainingAmountMap.put(booking.getId(), details.getRemaining());
+            } else {
+                BigDecimal paidAmount = paymentDAO.getTotalPaidAmount(booking.getId());
+                paidAmountMap.put(booking.getId(), paidAmount);
+                remainingAmountMap.put(booking.getId(), booking.getTotalPrice().subtract(paidAmount).max(BigDecimal.ZERO));
+            }
+            String lateRefundMessage = checkLateRefund ? lateRefundMessage(booking, payments, refunded) : null;
             if (lateRefundMessage != null) {
                 lateRefundMessageMap.put(booking.getId(), lateRefundMessage);
             }
-            remainingAmountMap.put(booking.getId(), remainingAmount);
             reviewedMap.put(
                     booking.getId(),
                     reviewDAO.isBookingReviewed(booking.getId())
@@ -277,6 +286,8 @@ public class HistoryServlet extends HttpServlet {
         );
 
         request.setAttribute("paidAmountMap", paidAmountMap);
+        request.setAttribute("bookingDetailsMap", bookingDetailsMap);
+        request.setAttribute("historyDayFormat", DateTimeFormatter.ofPattern("dd/MM/yyyy"));
         request.setAttribute("refundedMap", refundedMap);
         request.setAttribute("lateRefundMessageMap", lateRefundMessageMap);
         request.setAttribute("remainingAmountMap", remainingAmountMap);
@@ -306,13 +317,9 @@ public class HistoryServlet extends HttpServlet {
         ).forward(request, response);
     }
 
-    private String lateRefundMessage(Booking booking, PaymentDAO payments, boolean refunded) {
-        if (!booking.isOnlineDepositPolicy() || !"cancelled".equals(booking.getStatus())
-                || booking.getCancellationDate() == null) {
-            return null;
-        }
+    private String lateRefundMessage(Booking booking, List<Payment> payments, boolean refunded) {
         boolean lateRefunded = false;
-        for (Payment payment : payments.getPaymentsByBookingId(booking.getId())) {
+        for (Payment payment : payments) {
             if (!"bank_transfer".equals(payment.getPaymentMethod()) || payment.getPaymentDate() == null
                     || !payment.getPaymentDate().isAfter(booking.getCancellationDate())) {
                 continue;

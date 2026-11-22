@@ -32,7 +32,7 @@
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
     <c:if test="${ownHistory}">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
-        <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/customer-bookings.css">
+        <link rel="stylesheet" href="<c:url value='/assets/css/customer-bookings.css?v=2'/>">
     </c:if>
 </head>
 
@@ -175,19 +175,11 @@
                                         </td>
                                         <td role="cell" class="fw-bold text-success text-nowrap">
                                             <c:if test="${ownHistory}"><span class="customer-booking-mobile-label" aria-hidden="true"><ui:text key="screen.c9b3c38247f744e1"/></span></c:if>
-                                            <div class="customer-booking-cell"><ui:money amount="${booking.totalPrice}"/></div>
+                                            <div class="customer-booking-cell"><ui:money amount="${ownHistory ? bookingDetailsMap[booking.id].orderTotal : booking.totalPrice}"/></div>
                                         </td>
                                         <td role="cell">
                                             <c:if test="${ownHistory}"><span class="customer-booking-mobile-label" aria-hidden="true"><ui:text key="screen.ea50259543e17999"/></span></c:if>
-                                            <div class="customer-booking-cell"><c:choose>
-                                                <c:when test="${booking.status == 'pending'}"><span class="badge bg-warning text-dark"><ui:text key="screen.331551b0de4157c9"/></span></c:when>
-                                                <c:when test="${booking.status == 'confirmed'}"><span class="badge bg-primary"><ui:text key="screen.fe00b67b6dd1143f"/></span></c:when>
-                                                <c:when test="${booking.status == 'cancelled'}"><span class="badge bg-danger"><ui:text key="screen.d353a99eb4556847"/></span></c:when>
-                                                <c:when test="${booking.status == 'checked_in'}"><span class="badge bg-info text-dark"><ui:text key="screen.17c05c08a9ac3e5a"/></span></c:when>
-                                                <c:when test="${booking.status == 'checked_out'}"><span class="badge bg-secondary"><ui:text key="screen.cbe2b33735c6335c"/></span></c:when>
-                                                <c:when test="${booking.status == 'completed'}"><span class="badge bg-success"><ui:text key="screen.22a970d2e5b1cc23"/></span></c:when>
-                                                <c:otherwise><span class="badge bg-secondary"><ui:message text="${booking.status}"/></span></c:otherwise>
-                                            </c:choose></div>
+                                            <div class="customer-booking-cell"><%@ include file="booking-status.jspf" %></div>
                                         </td>
                                         <td role="cell">
                                             <c:if test="${ownHistory}"><span class="customer-booking-mobile-label" aria-hidden="true"><ui:text key="screen.7048f38b33f135df"/></span></c:if>
@@ -222,13 +214,14 @@
                                         </td>
                                         <td role="cell" class="text-end text-nowrap">
                                             <c:if test="${ownHistory}"><span class="customer-booking-mobile-label" aria-hidden="true"><ui:text key="screen.ff8059dc6752afdd"/></span></c:if>
-                                            <div class="customer-booking-cell customer-booking-actions"><button class="btn btn-outline-primary btn-sm"
+                                            <div class="customer-booking-cell customer-booking-actions"><button class="btn btn-outline-primary btn-sm ${ownHistory ? 'booking-details-toggle' : ''}"
                                                     type="button"
                                                     data-bs-toggle="collapse"
                                                     data-bs-target="#booking-details-${booking.id}"
                                                     aria-expanded="false"
                                                     aria-controls="booking-details-${booking.id}">
-                                                <ui:text key="screen.90789c12d0731b44"/>
+                                                <span class="booking-details-show"><ui:text key="screen.90789c12d0731b44"/></span>
+                                                <c:if test="${ownHistory}"><span class="booking-details-hide"><ui:text key="history.payments.hideDetails"/></span></c:if>
                                             </button>
                                                 <c:if test="${ownHistory and cancellableMap[booking.id]}">
                                                     <a href="${pageContext.request.contextPath}/history/cancel-booking?id=${booking.id}"
@@ -240,6 +233,11 @@
                                     <tr class="table-light customer-booking-details-row" role="row">
                                         <td colspan="7" class="p-0 border-0" role="cell">
                                             <div class="collapse" id="booking-details-${booking.id}">
+                                                <c:choose>
+                                                    <c:when test="${ownHistory}">
+                                                        <%@ include file="customer-booking-details.jspf" %>
+                                                    </c:when>
+                                                    <c:otherwise>
                                                 <div class="p-3 p-md-4 border-bottom customer-booking-details">
                                                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
                                                         <div>
@@ -278,7 +276,9 @@
                                                                         <p class="mb-1"><strong><ui:text key="screen.865998541ea4eba7"/></strong> ${fn:substring(detail.checkOutDate, 8, 10)}/${fn:substring(detail.checkOutDate, 5, 7)}/${fn:substring(detail.checkOutDate, 0, 4)}</p>
                                                                     </div>
                                                                     <div class="col-12 col-md-6">
-                                                                        <p class="mb-1"><strong><ui:text key="screen.fe89253ac2b97036"/></strong> ${detail.guestCount}</p>
+                                                                        <c:if test="${empty booking.adults}">
+                                                                            <p class="mb-1"><strong><ui:text key="screen.fe89253ac2b97036"/></strong> ${detail.guestCount}</p>
+                                                                        </c:if>
                                                                         <p class="mb-1"><strong><ui:text key="screen.5721f9a3c415ad9e"/></strong> <ui:money amount="${detail.pricePerNight}"/></p>
                                                                         <c:if test="${not empty detail.specialRequest}">
                                                                             <p class="mb-0"><strong><ui:text key="screen.d0a5e5a4c95e9e12"/></strong> <c:out value="${detail.specialRequest}"/></p>
@@ -289,37 +289,9 @@
                                                         </div>
                                                     </c:forEach>
 
-                                                    <c:if test="${loggedUser.role == 'customer'}">
-                                                        <div class="d-flex justify-content-end flex-wrap gap-2 mt-3">
-                            <c:if test="${booking.status != 'cancelled'
-                                          && ((booking.onlineDepositPolicy && booking.status == 'pending')
-                                          || (!booking.onlineDepositPolicy && remainingAmountMap[booking.id] > 0))}">
-                                <form action="${pageContext.request.contextPath}/payment" method="get" class="m-0">
-                                    <input type="hidden" name="bookingId" value="${booking.id}">
-                                    <button class="btn btn-success btn-sm" type="submit">
-                                        <c:choose>
-                                            <c:when test="${paidAmountMap[booking.id] > 0}"><ui:text key="screen.4c84ed0cee20c477"/></c:when>
-                                            <c:otherwise><ui:text key="screen.42a327fadf7f52c2"/></c:otherwise>
-                                        </c:choose>
-                                    </button>
-                                </form>
-                            </c:if>
-                            <c:if test="${booking.onlineDepositPolicy && booking.status == 'confirmed'
-                                          && remainingAmountMap[booking.id] > 0}">
-                                <span class="small text-muted"><ui:text key="room.checkout.hotel.balance"/>
-                                    <ui:money amount="${remainingAmountMap[booking.id]}"/></span>
-                            </c:if>
-                            <c:if test="${not cancellableMap[booking.id]
-                                          and (booking.status == 'pending' or booking.status == 'confirmed' or booking.status == 'checked_in')}">
-                                <span class="small text-muted"><ui:text key="screen.b0ebf4bfbb10b71b"/></span>
-                            </c:if>
-                            <c:if test="${booking.status == 'completed' && not empty booking.details}">
-                                <a href="${pageContext.request.contextPath}/review?booking-id=${booking.id}&amp;room-number=${booking.details[0].roomNumber}"
-                                   class="btn btn-outline-primary btn-sm"><ui:text key="screen.aff0766a5290e117"/></a>
-                            </c:if>
-                                                        </div>
-                                                    </c:if>
                                                 </div>
+                                                    </c:otherwise>
+                                                </c:choose>
                                             </div>
                                         </td>
                                     </tr>

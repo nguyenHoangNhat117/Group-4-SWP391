@@ -19,6 +19,7 @@
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
         <link rel="stylesheet" href="<c:url value='/assets/css/search-calendar.css'/>">
+        <link rel="stylesheet" href="<c:url value='/assets/css/room-detail-content.css'/>">
 
         <style>
             body {
@@ -29,50 +30,6 @@
                 margin-bottom: 15px;
                 font-weight: bold;
                 font-size: 1.4rem;
-            }
-            .review-box {
-                background-color: #ffffff;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 15px;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            }
-            .room-spec-card {
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                gap: .3rem;
-                min-height: 6rem;
-                height: 100%;
-                padding: .85rem .65rem;
-                background: #f7f3ee;
-                border: 1px solid #ede5dc;
-                border-radius: .75rem;
-                overflow-wrap: anywhere;
-            }
-            .room-amenity-card {
-                border: 1px solid #ede5dc;
-                background: #fcfaf7;
-            }
-            .room-amenity-icon {
-                display: grid;
-                place-items: center;
-                flex: 0 0 2rem;
-                height: 2rem;
-                background: #f1e7d9;
-                border-radius: .6rem;
-                color: #79583c;
-            }
-            .availability-card {
-                background: #ffffff;
-                border-radius: 16px;
-                box-shadow: 0 8px 25px rgba(0,0,0,0.06);
-                border: 1px solid #eee;
-            }
-            .detail-price,
-            .detail-total {
-                color: #76583e;
             }
             .detail-quote {
                 background: #f8f3ec;
@@ -215,76 +172,7 @@
                 <div class="row g-4 mt-1 align-items-start">
                     <!-- Left Column: Image, Description, Amenities -->
                     <div class="col-lg-7">
-                        <c:url var="pictureUrl" value="/assets/img/${empty roomType.picture ? 'avatar.jpg' : roomType.picture}"/>
-                        <img src="<c:out value='${pictureUrl}'/>"
-                             class="img-fluid w-100 rounded-4 shadow-sm mb-4"
-                             style="max-height: 480px; object-fit: cover;"
-                             alt="<c:out value='${roomType.name}'/>"/>
-
-                        <!-- Room Description -->
-                        <div class="bg-white border rounded-4 p-4 shadow-sm mb-4">
-                            <h4 class="fw-bold mb-3"><ui:text key="screen.de659431fe98de4e"/></h4>
-                            <p class="text-secondary mb-3">
-                                <c:out value="${not empty roomType.description ? roomType.description : 'Tận hưởng không gian nghỉ ngơi thoải mái với đầy đủ tiện nghi.'}"/>
-                            </p>
-                            <div class="row g-3 text-center pt-2 border-top">
-                                <div class="${empty roomSpecifications ? 'col-sm-4' : 'col-sm-6 col-xl-3'}">
-                                    <div class="room-spec-card">
-                                        <div class="text-muted small text-uppercase"><ui:text key="screen.bf193eab4a1aafb0"/></div>
-                                        <div class="fs-5 fw-bold text-dark"><ui:money amount="${roomType.pricePerNight}"/></div>
-                                    </div>
-                                </div>
-                                <div class="${empty roomSpecifications ? 'col-sm-4' : 'col-sm-6 col-xl-3'}">
-                                    <div class="room-spec-card">
-                                        <div class="text-muted small text-uppercase"><ui:text key="screen.2e2a3cd1a00809d3"/></div>
-                                        <div class="fs-5 fw-bold text-dark">${roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></div>
-                                    </div>
-                                </div>
-                                <div class="${empty roomSpecifications ? 'col-sm-4' : 'col-sm-6 col-xl-3'}">
-                                    <div class="room-spec-card">
-                                        <div class="text-muted small text-uppercase"><ui:text key="screen.a641d8404ba319e8"/></div>
-                                        <div class="fs-5 fw-bold text-dark">${roomType.capacity} <ui:text key="screen.3c8e0fde6fcc71e0"/></div>
-                                    </div>
-                                </div>
-                                <c:if test="${not empty roomSpecifications}">
-                                    <div class="col-sm-6 col-xl-3">
-                                        <div class="room-spec-card">
-                                            <div class="text-muted small text-uppercase"><ui:text key="room.spec.area"/></div>
-                                            <div class="fs-5 fw-bold text-dark">${roomSpecifications.areaM2} m²</div>
-                                        </div>
-                                    </div>
-                                </c:if>
-                            </div>
-                        </div>
-
-                        <!-- Dynamic RoomType Amenities (Normal Flow Step 2) -->
-                        <div class="bg-white border rounded-4 p-4 shadow-sm mb-4">
-                            <h4 class="fw-bold mb-3"><ui:text key="screen.fa7a5f35ea119b26"/></h4>
-                            <c:choose>
-                                <c:when test="${not empty amenities}">
-                                    <div class="row g-3">
-                                        <c:forEach var="amenity" items="${amenities}">
-                                            <div class="col-md-6">
-                                                <div class="room-amenity-card d-flex align-items-center gap-3 p-3 rounded-3 h-100">
-                                                    <span class="room-amenity-icon"><i class="bi bi-stars" aria-hidden="true"></i></span>
-                                                    <div>
-                                                        <c:set var="amenityNameKey" value="room.amenity.name.${amenity.name}"/>
-                                                        <c:set var="amenityDescriptionKey" value="room.amenity.description.${amenity.description}"/>
-                                                        <div class="fw-semibold text-dark"><c:out value="${requestScope.i18n[amenityNameKey]}" default="${amenity.name}"/></div>
-                                                        <c:if test="${not empty amenity.description}">
-                                                            <small class="text-muted"><c:out value="${requestScope.i18n[amenityDescriptionKey]}" default="${amenity.description}"/></small>
-                                                        </c:if>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </c:forEach>
-                                    </div>
-                                </c:when>
-                                <c:otherwise>
-                                    <p class="text-muted mb-0"><ui:text key="screen.f0b00dafda36d5eb"/></p>
-                                </c:otherwise>
-                            </c:choose>
-                        </div>
+                        <%@ include file="room-detail-info.jspf" %>
                     </div>
 
                     <!-- Right Column: Availability Widget, Price Calculation & Reviews -->
@@ -375,76 +263,7 @@
 
 
                         <!-- Approved Customer Reviews Section  -->
-                        <div class="bg-white border rounded-4 p-4 shadow-sm" id="review-title">
-                            <h4 class="fw-bold mb-3">
-                                <ui:text key="screen.e7cb00891c5b4234"/>
-                                <c:if test="${not empty reviews}">
-                                    <span class="text-muted fw-normal fs-6">(${reviews.size()})</span>
-                                </c:if>
-                            </h4>
-                            <c:choose>
-                                <c:when test="${empty reviews}">
-                                    <p class="text-muted mb-0"><ui:text key="screen.f53aac7ea48e404f"/></p>
-                                </c:when>
-                                <c:otherwise>
-                                    <div class="mb-3 text-warning fw-semibold">
-                                        <i class="bi bi-star-fill"></i> ${averageStar} <ui:text key="screen.18fa6f5773c7b8cf"/>
-                                    </div>
-                                    <div style="max-height: 390px; overflow-y: auto;" aria-label="${requestScope.i18n['screen.8380c237806a24e2']}">
-                                        <c:forEach var="review" items="${reviews}">
-                                            <div class="review-box mb-2">
-                                                <div class="d-flex align-items-center gap-2 mb-2">
-
-                                                    <img width="40"
-                                                         height="40"
-                                                         class="rounded-circle object-fit-cover"
-                                                         src="${pageContext.request.contextPath}/avatar/image?reviewId=${review.reviewID}"
-                                                         onerror="this.onerror=null;this.src='${pageContext.request.contextPath}/assets/img/avatar.jpg';"
-                                                         alt="Ảnh đại diện khách hàng"/>
-
-                                                    <div>
-                                                        <strong><c:out value="${review.booking.customer.user.username}"/></strong>
-                                                        <div class="text-muted" style="font-size: 0.75rem;">
-                                                            <c:out value="${review.reviewDate}"/>
-                                                        </div>
-                                                    </div>
-                                                    <span class="ms-auto text-warning fw-bold">
-
-                                                        <c:forEach var="i" begin="1" end="5">
-
-                                                            <c:choose>
-
-                                                                <c:when test="${review.star >= i}">
-                                                                    <i class="bi bi-star-fill"></i>
-                                                                </c:when>
-
-                                                                <c:when test="${review.star >= i - 0.5}">
-                                                                    <i class="bi bi-star-half"></i>
-                                                                </c:when>
-
-                                                                <c:otherwise>
-                                                                    <i class="bi bi-star"></i>
-                                                                </c:otherwise>
-
-                                                            </c:choose>
-
-                                                        </c:forEach>
-
-                                                        <span class="ms-1">
-                                                            <c:out value="${review.star}"/>/5
-                                                        </span>
-
-                                                    </span>
-                                                </div>
-                                                <p class="mb-0 text-secondary" style="overflow-wrap: anywhere;">
-                                                    <c:out value="${review.comment}"/>
-                                                </p>
-                                            </div>
-                                        </c:forEach>
-                                    </div>
-                                </c:otherwise>
-                            </c:choose>
-                        </div>
+                        <%@ include file="room-detail-reviews.jspf" %>
 
                     </div>
                 </div>
