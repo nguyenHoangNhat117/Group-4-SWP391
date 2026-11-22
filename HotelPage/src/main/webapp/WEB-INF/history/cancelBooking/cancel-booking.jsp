@@ -9,11 +9,11 @@
 </c:url>
 
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title data-i18n="screen.dcd0884db34dcece">${requestScope.i18n['screen.dcd0884db34dcece']}</title>
+    <title>${requestScope.i18n['screen.dcd0884db34dcece']}</title>
     <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="${ctx}/assets/css/general.css">
     <link rel="stylesheet" href="${ctx}/assets/css/luxe-modern.css">
@@ -98,7 +98,7 @@
                     </label>
                     <textarea id="reason" name="reason" class="form-control" rows="4" maxlength="255"
                               aria-describedby="cancel-reason-help"
-                              placeholder="${requestScope.i18n['screen.4e158e9f92517c1a']}" data-i18n-placeholder="screen.4e158e9f92517c1a"></textarea>
+                              placeholder="${requestScope.i18n['screen.4e158e9f92517c1a']}"></textarea>
                     <p id="cancel-reason-help" class="small text-muted mt-2"><ui:text key="history.cancel.reasonLimit"/></p>
 
                     <div class="booking-cancel-actions">

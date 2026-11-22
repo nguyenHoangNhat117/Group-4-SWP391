@@ -24,13 +24,13 @@
 </c:choose>
 
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}" class="hotel-reports-page">
+<html lang="vi" class="hotel-reports-page">
 
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <title data-i18n="screen.d0315fc960e50004">${requestScope.i18n['screen.d0315fc960e50004']}</title>
+        <title>${requestScope.i18n['screen.d0315fc960e50004']}</title>
 
         <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
         <link rel="stylesheet" href="${ctx}/assets/css/general.css">
@@ -48,7 +48,7 @@
 
         <main class="hotel-reports"><c:if test="${reportIsAdmin}"><div class="management-hero"><div><div class="eyebrow">LUXE ESCAPE</div><h1><ui:text key="screen.47bf4e92fa8a67be"/></h1><p><ui:text key="screen.326be3a3dda19299"/></p></div><a class="btn btn-light" href="${ctx}/"><ui:text key="management.back"/></a></div></c:if>
 
-            <c:if test="${reportIsAdmin}"><form method="get" action="${ctx}/admin/reviews" class="management-filters"><div><label for="rating"><ui:text key="management.rating"/></label><select id="rating" name="rating" class="form-select"><option value="" data-i18n="management.all">${requestScope.i18n['management.all']}</option><c:forEach var="i" begin="2" end="10"><option value="${i / 2}" ${param.rating == i / 2 ? 'selected' : ''}>${i / 2} ★</option></c:forEach></select></div><div><label for="roomStatus"><ui:text key="management.roomStatus"/></label><select id="roomStatus" name="roomStatus" class="form-select"><option value="" data-i18n="management.all">${requestScope.i18n['management.all']}</option><option value="available" ${param.roomStatus == 'available' ? 'selected' : ''} data-i18n="management.available">${requestScope.i18n['management.available']}</option><option value="maintenance" ${param.roomStatus == 'maintenance' ? 'selected' : ''} data-i18n="management.maintenance">${requestScope.i18n['management.maintenance']}</option><option value="out_of_service" ${param.roomStatus == 'out_of_service' ? 'selected' : ''} data-i18n="management.out_of_service">${requestScope.i18n['management.out_of_service']}</option></select></div><div><label for="reviewStatus"><ui:text key="management.reviewStatus"/></label><select id="reviewStatus" name="reviewStatus" class="form-select"><option value="" data-i18n="management.all">${requestScope.i18n['management.all']}</option><option value="pending" ${param.reviewStatus == 'pending' ? 'selected' : ''} data-i18n="management.pending">${requestScope.i18n['management.pending']}</option><option value="approved" ${param.reviewStatus == 'approved' ? 'selected' : ''} data-i18n="management.approved">${requestScope.i18n['management.approved']}</option><option value="rejected" ${param.reviewStatus == 'rejected' ? 'selected' : ''} data-i18n="management.rejected">${requestScope.i18n['management.rejected']}</option></select></div><button type="submit" class="btn btn-primary"><ui:text key="room.admin.applyFilters"/></button><a class="btn btn-outline-secondary" href="${ctx}/admin/reviews"><ui:text key="room.admin.clearFilters"/></a></form></c:if>
+            <c:if test="${reportIsAdmin}"><form method="get" action="${ctx}/admin/reviews" class="management-filters"><div><label for="rating"><ui:text key="management.rating"/></label><select id="rating" name="rating" class="form-select"><option value="">${requestScope.i18n['management.all']}</option><c:forEach var="i" begin="2" end="10"><option value="${i / 2}" ${param.rating == i / 2 ? 'selected' : ''}>${i / 2} ★</option></c:forEach></select></div><div><label for="roomStatus"><ui:text key="management.roomStatus"/></label><select id="roomStatus" name="roomStatus" class="form-select"><option value="">${requestScope.i18n['management.all']}</option><option value="available" ${param.roomStatus == 'available' ? 'selected' : ''}>${requestScope.i18n['management.available']}</option><option value="maintenance" ${param.roomStatus == 'maintenance' ? 'selected' : ''}>${requestScope.i18n['management.maintenance']}</option><option value="out_of_service" ${param.roomStatus == 'out_of_service' ? 'selected' : ''}>${requestScope.i18n['management.out_of_service']}</option></select></div><div><label for="reviewStatus"><ui:text key="management.reviewStatus"/></label><select id="reviewStatus" name="reviewStatus" class="form-select"><option value="">${requestScope.i18n['management.all']}</option><option value="pending" ${param.reviewStatus == 'pending' ? 'selected' : ''}>${requestScope.i18n['management.pending']}</option><option value="approved" ${param.reviewStatus == 'approved' ? 'selected' : ''}>${requestScope.i18n['management.approved']}</option><option value="rejected" ${param.reviewStatus == 'rejected' ? 'selected' : ''}>${requestScope.i18n['management.rejected']}</option></select></div><button type="submit" class="btn btn-primary"><ui:text key="room.admin.applyFilters"/></button><a class="btn btn-outline-secondary" href="${ctx}/admin/reviews"><ui:text key="room.admin.clearFilters"/></a></form></c:if>
 <%-- Review summary for the currently loaded result set. Manager filters/pages apply. --%>
             <c:set var="approvedCount" value="0" />
             <c:set var="pendingCount" value="0" />
@@ -66,7 +66,7 @@
                     <c:when test="${review.reviewStatus == 'rejected'}"><c:set var="rejectedCount" value="${rejectedCount + 1}" /></c:when>
                 </c:choose>
             </c:forEach>
-            <section class="container my-4" aria-label="${requestScope.i18n['screen.d796c3f47a2c5009']}" data-i18n-aria-label="screen.d796c3f47a2c5009">
+            <section class="container my-4" aria-label="${requestScope.i18n['screen.d796c3f47a2c5009']}">
                 <h2><ui:text key="screen.d796c3f47a2c5009"/></h2>
                 <div class="row g-3">
                     <div class="col-md-3"><div class="card p-3"><strong><ui:text key="screen.980777020186b784"/></strong><h3>${fn:length(reviews)}</h3></div></div>
@@ -77,8 +77,8 @@
 
                         <div class="rating-distribution">
                             <div class="rating-distribution-header">
-                                <strong>Approved rating distribution</strong>
-                                    <span>${approvedCount} approved reviews</span>
+                                <strong>Phân bố sao đã duyệt</strong>
+                                    <span>${approvedCount} đánh giá đã duyệt</span>
                     </div>
 
                     <c:forEach var="i" begin="2" end="10">
@@ -115,7 +115,7 @@
                 <c:when test="${reportIsAdmin}">
                     <%-- Manager report navigation. --%>
                     <c:if test="${not reportIsAdmin}">
-                        <div class="report-tabs" aria-label="${requestScope.i18n['screen.19025f8911e31c54']}" data-i18n-aria-label="screen.19025f8911e31c54">
+                        <div class="report-tabs" aria-label="${requestScope.i18n['screen.19025f8911e31c54']}">
 
                             <a href="${ctx}/reports?view=bookings&amp;page-index=1">
                                 <ui:text key="screen.4e5f81ada70c344e"/>
@@ -193,8 +193,7 @@
 
                             <c:when test="${param.message == 'already-processed'}">
                                 <div class="report-note" role="alert">
-                                    This review has already been processed
-                                    by another admin. Please refresh the page.
+                                    Đánh giá đã được quản trị viên khác xử lý. Vui lòng tải lại trang.
                                 </div>
                             </c:when>
 
@@ -268,7 +267,7 @@
                                                         <strong>#${r.booking.id}</strong>
 
                                                         <span class="report-muted">
-                                                            <c:out value="${fn:replace(r.booking.status, '_', ' ')}" />
+                                                            <ui:message text="${fn:replace(r.booking.status, '_', ' ')}"/>
                                                         </span>
                                                     </td>
 
@@ -352,7 +351,7 @@
 
 
                                                     <td>
-                                                        <div class="report-comment"><c:out value="${empty r.comment ? 'No comment' : r.comment}" /></div>
+                                                        <div class="report-comment"><c:out value="${empty r.comment ? 'Chưa có nhận xét' : r.comment}" /></div>
                                                     </td>
 
                                                     <td class="report-nowrap">

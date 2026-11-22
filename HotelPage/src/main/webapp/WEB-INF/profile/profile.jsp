@@ -11,11 +11,11 @@
     }
 %>
 <!DOCTYPE html>
-<html>
+<html lang="vi">
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta charset="UTF-8">
-        <title data-i18n="screen.dbbe59230e6703c7">${requestScope.i18n['screen.dbbe59230e6703c7']}</title>
+        <title>${requestScope.i18n['screen.dbbe59230e6703c7']}</title>
 
         <!-- Bootstrap & Custom CSS -->
         <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
@@ -94,7 +94,7 @@
                     if ("updated".equals(success)) {
                 %>
                 <div class="alert alert-success" role="alert">
-                    Profile updated successfully.
+                    Cập nhật hồ sơ thành công.
                 </div>
                 <%
                 } else if (error != null) {

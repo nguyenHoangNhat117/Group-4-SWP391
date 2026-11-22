@@ -1,6 +1,5 @@
 (() => {
     'use strict';
-    const vi = () => document.documentElement.lang === 'vi' || document.querySelector('[data-language="vi"]');
     let pending = null;
     const dialog = document.createElement('dialog');
     dialog.className = 'management-confirm';
@@ -18,10 +17,10 @@
         if (task) task();
     });
     window.managementConfirm = (message, task) => {
-        dialog.querySelector('h2').textContent = vi() ? 'Xác nhận thao tác' : 'Confirm action';
+        dialog.querySelector('h2').textContent = 'Xác nhận thao tác';
         dialog.querySelector('p').textContent = message;
-        cancel.textContent = vi() ? 'Hủy' : 'Cancel';
-        accept.textContent = vi() ? 'Xác nhận' : 'Confirm';
+        cancel.textContent = 'Hủy';
+        accept.textContent = 'Xác nhận';
         pending = task;
         dialog.showModal();
         cancel.focus();
@@ -35,13 +34,11 @@
         event.preventDefault();
         event.stopImmediatePropagation();
         const submitter = event.submitter;
-        let message = window.UC24Translate ? window.UC24Translate(form.dataset.confirm) : form.dataset.confirm;
-        if (form.dataset.confirmKey) {
-            const translated = window.HotelLanguage?.text(form.dataset.confirmKey);
-            const template = translated && translated !== form.dataset.confirmKey ? translated : form.dataset.confirm;
-            message = template.replace('{name}', () => form.dataset.confirmTarget);
+        let message = form.dataset.confirm;
+        if (form.dataset.confirmTarget) {
+            message = message.replace('{name}', () => form.dataset.confirmTarget);
         }
-        if (form.dataset.roomNumber) message = (vi() ? 'Xóa phòng #' : 'Delete room #') + form.dataset.roomNumber + '?';
+        if (form.dataset.roomNumber) message = 'Xóa phòng #' + form.dataset.roomNumber + '?';
         window.managementConfirm(message, () => {
             form.dataset.confirmed = 'true';
             form.requestSubmit(submitter || undefined);

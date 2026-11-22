@@ -12,7 +12,7 @@
 <c:if test="${empty reportError and totalPages > 1}">
 
     <nav class="report-pagination d-flex justify-content-center flex-wrap w-100 p-0"
-         aria-label="${requestScope.i18n['screen.797d81d2f4c89f38']}" data-i18n-aria-label="screen.797d81d2f4c89f38">
+         aria-label="${requestScope.i18n['screen.797d81d2f4c89f38']}">
 
         <c:choose>
             <c:when test="${currentPage > 1}">

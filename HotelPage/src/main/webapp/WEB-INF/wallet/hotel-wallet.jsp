@@ -7,14 +7,14 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
 
     <meta name="viewport"
           content="width=device-width, initial-scale=1">
 
-    <title>Hotel Wallet - Luxe Escape</title>
+    <title>Ví khách sạn - Luxe Escape</title>
 
     <link rel="stylesheet"
           href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -213,7 +213,7 @@
 
         <h3 class="mb-4"><ui:text key="management.transactionsTitle"/></h3>
 
-        <form method="get" class="management-filters" action="${pageContext.request.contextPath}/hotel-wallet"><input type="hidden" name="sort" value="${param.sort == 'asc' ? 'asc' : param.sort == 'desc' ? 'desc' : ''}"><div><label for="paymentId"><ui:text key="management.paymentId"/></label><input id="paymentId" name="paymentId" class="form-control" type="text" inputmode="numeric" pattern="[0-9]{1,9}" value="<c:out value='${param.paymentId}'/>"></div><div><label for="method"><ui:text key="management.method"/></label><select class="form-select" id="method" name="method"><option value="" data-i18n="management.all">${requestScope.i18n['management.all']}</option><c:forEach var="option" items="${paymentMethods}"><option value="<c:out value='${option}'/>" ${param.method == option ? 'selected' : ''}><c:out value="${option}"/></option></c:forEach></select></div><div><label for="paymentStatus"><ui:text key="management.paymentStatus"/></label><select class="form-select" id="paymentStatus" name="paymentStatus"><option value="" data-i18n="management.all">${requestScope.i18n['management.all']}</option><c:forEach var="option" items="${paymentStatuses}"><option value="<c:out value='${option}'/>" ${param.paymentStatus == option ? 'selected' : ''}><c:out value="${option}"/></option></c:forEach></select></div><div><label for="bookingStatus"><ui:text key="management.bookingStatus"/></label><select class="form-select" id="bookingStatus" name="bookingStatus"><option value="" data-i18n="management.all">${requestScope.i18n['management.all']}</option><c:forEach var="option" items="${bookingStatuses}"><option value="<c:out value='${option}'/>" ${param.bookingStatus == option ? 'selected' : ''}><c:out value="${option}"/></option></c:forEach></select></div><div><label for="paymentDate"><ui:text key="management.paymentDate"/></label><input id="paymentDate" class="form-control" type="date" name="date" value="<c:out value='${param.date}'/>"></div><button class="btn btn-primary" type="submit"><ui:text key="room.admin.applyFilters"/></button><a class="btn btn-outline-secondary" href="${pageContext.request.contextPath}/hotel-wallet"><ui:text key="room.admin.clearFilters"/></a></form>
+        <form method="get" class="management-filters" action="${pageContext.request.contextPath}/hotel-wallet"><input type="hidden" name="sort" value="${param.sort == 'asc' ? 'asc' : param.sort == 'desc' ? 'desc' : ''}"><div><label for="paymentId"><ui:text key="management.paymentId"/></label><input id="paymentId" name="paymentId" class="form-control" type="text" inputmode="numeric" pattern="[0-9]{1,9}" value="<c:out value='${param.paymentId}'/>"></div><div><label for="method"><ui:text key="management.method"/></label><select class="form-select" id="method" name="method"><option value="">${requestScope.i18n['management.all']}</option><c:forEach var="option" items="${paymentMethods}"><option value="<c:out value='${option}'/>" ${param.method == option ? 'selected' : ''}><ui:message text="${option}"/></option></c:forEach></select></div><div><label for="paymentStatus"><ui:text key="management.paymentStatus"/></label><select class="form-select" id="paymentStatus" name="paymentStatus"><option value="">${requestScope.i18n['management.all']}</option><c:forEach var="option" items="${paymentStatuses}"><option value="<c:out value='${option}'/>" ${param.paymentStatus == option ? 'selected' : ''}><ui:message text="${option}"/></option></c:forEach></select></div><div><label for="bookingStatus"><ui:text key="management.bookingStatus"/></label><select class="form-select" id="bookingStatus" name="bookingStatus"><option value="">${requestScope.i18n['management.all']}</option><c:forEach var="option" items="${bookingStatuses}"><option value="<c:out value='${option}'/>" ${param.bookingStatus == option ? 'selected' : ''}><ui:message text="${option}"/></option></c:forEach></select></div><div><label for="paymentDate"><ui:text key="management.paymentDate"/></label><input id="paymentDate" class="form-control" type="date" name="date" value="<c:out value='${param.date}'/>"></div><button class="btn btn-primary" type="submit"><ui:text key="room.admin.applyFilters"/></button><a class="btn btn-outline-secondary" href="${pageContext.request.contextPath}/hotel-wallet"><ui:text key="room.admin.clearFilters"/></a></form>
 <div class="table-responsive">
 
             <table class="table wallet-table">
@@ -251,15 +251,15 @@
                             </td>
 
                             <td>
-                                <c:out value="${p.method}"/>
+                                <ui:message text="${p.method}"/>
                             </td>
 
                             <td>
-                                <c:out value="${p.status}"/>
+                                <ui:message text="${p.status}"/>
                             </td>
 
                             <td>
-                                <c:out value="${p.bookingStatus}"/>
+                                <ui:message text="${p.bookingStatus}"/>
                             </td>
 
                             <td>
@@ -279,7 +279,7 @@
                     </c:if>
 
                 </tbody>
-            </table><nav aria-label="Pagination"><ul class="pagination"><li class="page-item ${currentPage <= 1 ? 'disabled' : ''}"><button type="button" class="page-link" data-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''} aria-label="${requestScope.i18n['screen.1208ec01f223c616']}">‹</button></li><c:forEach var="n" begin="${currentPage > 2 ? currentPage - 2 : 1}" end="${currentPage + 2 < totalPages ? currentPage + 2 : totalPages}"><c:url var="pageUrl" value="/hotel-wallet"><c:param name="page" value="${n}"/><c:param name="paymentId" value="${param.paymentId}"/><c:param name="method" value="${param.method}"/><c:param name="paymentStatus" value="${param.paymentStatus}"/><c:param name="bookingStatus" value="${param.bookingStatus}"/><c:param name="date" value="${param.date}"/><c:param name="sort" value="${param.sort}"/></c:url><li class="page-item ${n == currentPage ? 'active' : ''}"><a class="page-link" href="<c:out value='${pageUrl}'/>" ${n == currentPage ? 'aria-current="page"' : ''}>${n}</a></li></c:forEach><li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}"><button type="button" class="page-link" data-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''} aria-label="${requestScope.i18n['screen.c08ac736a5e29c29']}">›</button></li></ul><p class="text-center text-muted"><ui:text key="management.page"/> ${currentPage} / ${totalPages} · ${totalPaymentsCount} <ui:text key="management.transactions"/></p></nav>
+            </table><nav aria-label="Phân trang"><ul class="pagination"><li class="page-item ${currentPage <= 1 ? 'disabled' : ''}"><button type="button" class="page-link" data-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''} aria-label="${requestScope.i18n['screen.1208ec01f223c616']}">‹</button></li><c:forEach var="n" begin="${currentPage > 2 ? currentPage - 2 : 1}" end="${currentPage + 2 < totalPages ? currentPage + 2 : totalPages}"><c:url var="pageUrl" value="/hotel-wallet"><c:param name="page" value="${n}"/><c:param name="paymentId" value="${param.paymentId}"/><c:param name="method" value="${param.method}"/><c:param name="paymentStatus" value="${param.paymentStatus}"/><c:param name="bookingStatus" value="${param.bookingStatus}"/><c:param name="date" value="${param.date}"/><c:param name="sort" value="${param.sort}"/></c:url><li class="page-item ${n == currentPage ? 'active' : ''}"><a class="page-link" href="<c:out value='${pageUrl}'/>" ${n == currentPage ? 'aria-current="page"' : ''}>${n}</a></li></c:forEach><li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}"><button type="button" class="page-link" data-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''} aria-label="${requestScope.i18n['screen.c08ac736a5e29c29']}">›</button></li></ul><p class="text-center text-muted"><ui:text key="management.page"/> ${currentPage} / ${totalPages} · ${totalPaymentsCount} <ui:text key="management.transactions"/></p></nav>
         </div>
     </div>
 

@@ -105,12 +105,14 @@
     min-height:0!important
 }
 .luxe-shared-footer .luxe-footer-inner{
-    width:min(1300px,calc(100% - 2 * clamp(18px,6vw,80px)));
+    width:min(1360px,calc(100% - 2 * clamp(18px,4vw,72px)));
     margin:auto;
     padding:clamp(2.5rem,5vw,4.5rem) 0 clamp(2rem,4vw,3.25rem);
     display:grid;
-    grid-template-columns:minmax(0,1.1fr) minmax(0,.7fr) minmax(0,1.25fr);
-    gap:clamp(1.75rem,4vw,4rem)
+    grid-template-columns:repeat(3,max-content);
+    justify-content:space-between;
+    align-items:start;
+    gap:1.5rem
 }
 .luxe-shared-footer .luxe-footer-logo{
     display:inline-block;
@@ -132,7 +134,6 @@
     margin:13px 0 0;
     padding:0;
     text-align:left;
-    max-width:310px;
     color:#cdbeb1;
     font-size:.94rem;
     line-height:1.8
@@ -159,10 +160,6 @@
 }
 .luxe-shared-footer .luxe-footer-group a:hover{
     color:#ffe7c2
-}
-.luxe-shared-footer .luxe-footer-contact{
-    border-inline-start:1px solid #614a34;
-    padding-inline-start:clamp(1rem,3vw,2.5rem)
 }
 .luxe-shared-footer .luxe-footer-info{
     display:grid;
@@ -206,15 +203,18 @@
         justify-content:center
     }
 }
+@media(max-width:1240px){
+    .luxe-shared-footer .luxe-footer-inner{
+        grid-template-columns:minmax(0,1fr) auto
+    }
+    .luxe-shared-footer .luxe-footer-group:last-child{
+        grid-column:1 / -1
+    }
+}
 @media(max-width:760px){
     .luxe-shared-footer .luxe-footer-inner{
         grid-template-columns:1fr;
         gap:1.5rem
-    }
-    .luxe-shared-footer .luxe-footer-contact{
-        border-inline-start:0;
-        border-top:1px solid #614a34;
-        padding:1.5rem 0 0
     }
 }
 @media(max-width:650px){

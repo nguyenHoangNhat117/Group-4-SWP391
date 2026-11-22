@@ -2,11 +2,11 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ page contentType="text/html" pageEncoding="UTF-8" %>
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
-    <title data-i18n="screen.0ef7a6fd6e4ace71">${requestScope.i18n['screen.0ef7a6fd6e4ace71']}</title>
+    <title>${requestScope.i18n['screen.0ef7a6fd6e4ace71']}</title>
     <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">
     <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />

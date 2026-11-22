@@ -74,7 +74,7 @@ public class ResetPasswordServlet extends HttpServlet {
         HttpSession session = req.getSession(false);
 
         if (session == null) {
-            res.sendError(403, "Verify a new OTP before resetting.");
+            res.sendError(403, "Vui lòng xác minh mã OTP mới trước khi đặt lại mật khẩu.");
             return;
         }
 

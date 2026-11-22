@@ -11,10 +11,10 @@
 <%@taglib prefix="fn" uri="jakarta.tags.functions"%>
 <%@taglib prefix="ui" tagdir="/WEB-INF/tags"%>
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}" class="uc09-page"><head>
+<html lang="vi" class="uc09-page"><head>
         <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
         <c:set var="titleKey" value="${summary.offline ? 'offline.title' : 'counter.online.title'}"/>
-        <title data-i18n="${titleKey}"><c:out value="${requestScope.i18n[titleKey]}"/></title>
+        <title><c:out value="${requestScope.i18n[titleKey]}"/></title>
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/general.css">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/luxe-shared-shell.css">
@@ -129,7 +129,7 @@
                     <div class="oc-table"><table><thead><tr><th><ui:text key="offline.action"/></th><th><ui:text key="offline.description"/></th><th><ui:text key="offline.amount"/></th><th><ui:text key="offline.actor"/></th><th>UTC</th></tr></thead><tbody>
                                 <c:forEach items="${operations.events}" var="event"><tr><td><ui:text key="offline.action.${event.Action}"/></td><td><c:out value="${event.Note}"/></td><td><fmt:formatNumber value="${event.Amount}"/></td><td><c:out value="${event.Actor}"/></td><td><c:out value="${event.CreatedAt}"/></td></tr></c:forEach>
                                 </tbody></table></div></section>
-                    <section class="ob-panel oc-history"><h2><ui:text key="offline.receipts"/></h2><div class="oc-table"><table><thead><tr><th>ID</th><th><ui:text key="offline.amount"/></th><th><ui:text key="offline.method"/></th><th><ui:text key="offline.reference"/></th><th><ui:text key="offline.status"/></th><th><ui:text key="offline.refunded"/></th></tr></thead><tbody>
+                    <section class="ob-panel oc-history"><h2><ui:text key="offline.receipts"/></h2><div class="oc-table"><table><thead><tr><th>Mã</th><th><ui:text key="offline.amount"/></th><th><ui:text key="offline.method"/></th><th><ui:text key="offline.reference"/></th><th><ui:text key="offline.status"/></th><th><ui:text key="offline.refunded"/></th></tr></thead><tbody>
                                 <c:forEach items="${operations.payments}" var="payment"><tr><td>${payment.PaymentID}</td><td><fmt:formatNumber value="${payment.Amount}"/></td><td><c:out value="${payment.PaymentMethod}"/></td><td><c:out value="${payment.TransactionCode}"/><br><c:out value="${payment.CounterReference}"/></td><td><c:out value="${payment.PaymentStatus}"/></td><td><fmt:formatNumber value="${payment.RefundedAmount}"/></td></tr></c:forEach>
                                 </tbody></table></div></section>
                     <a class="ob-button ob-secondary" href="${pageContext.request.contextPath}/offline-booking"><ui:text key="offline.newBooking"/></a>

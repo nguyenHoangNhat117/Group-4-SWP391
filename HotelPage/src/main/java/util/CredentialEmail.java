@@ -60,8 +60,8 @@ public final class CredentialEmail {
         MimeMessage message = new MimeMessage(session);
         message.setFrom(new InternetAddress(from));
         message.setRecipient(Message.RecipientType.TO, new InternetAddress(email, true));
-        message.setSubject("Luxe Escape — Your account credentials", "UTF-8");
-        message.setText("Luxe Escape Hotel\n\nUsername: " + username + "\nInitial password: " + password + "\nRole: " + role + "\nSign in: " + base.replaceAll("/+$", "") + "/login\n\nPlease change your password after signing in. Do not share these credentials.", "UTF-8");
+        message.setSubject("Luxe Escape — Thông tin đăng nhập của bạn", "UTF-8");
+        message.setText("Luxe Escape Hotel\n\nTên đăng nhập: " + username + "\nMật khẩu ban đầu: " + password + "\nVai trò: " + MessageTranslations.text(role) + "\nĐăng nhập: " + base.replaceAll("/+$", "") + "/login\n\nVui lòng đổi mật khẩu sau khi đăng nhập và giữ kín thông tin đăng nhập.", "UTF-8");
         Transport.send(message);
     }
 }

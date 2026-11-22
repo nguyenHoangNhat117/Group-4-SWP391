@@ -2,7 +2,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
-<fmt:setLocale value="${requestScope.uiLanguage == 'vi' ? 'vi_VN' : 'en_US'}" scope="page"/>
+<fmt:setLocale value="vi_VN" scope="page"/>
 <c:url var="paymentHistoryUrl" value="/history">
     <c:param name="view" value="payments"/>
     <c:if test="${not ownHistory}">
@@ -29,11 +29,11 @@
     </c:if>
 </c:url>
 <!DOCTYPE html>
-<html lang="<c:out value='${requestScope.uiLanguage}'/>">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title data-i18n="screen.d4c7bc94c3af4d4f"><c:out value="${requestScope.i18n['screen.d4c7bc94c3af4d4f']}"/></title>
+    <title><c:out value="${requestScope.i18n['screen.d4c7bc94c3af4d4f']}"/></title>
     <link rel="stylesheet" href="<c:url value='/assets/css/bootstrap.min.css'/>">
     <link rel="stylesheet" href="<c:url value='/assets/css/general.css'/>">
     <link rel="stylesheet" href="<c:url value='/assets/css/luxe-modern.css'/>">
@@ -49,9 +49,9 @@
     <main class="payment-history container" aria-labelledby="payment-history-title">
         <a class="payment-history-back" href="<c:out value='${pageContext.request.contextPath}'/>/">
             <span aria-hidden="true">←</span>
-            <span data-i18n="history.payments.backHome"><c:out
+            <span><c:out
                 value="${requestScope.i18n['history.payments.backHome']}"
-                default="${requestScope.uiLanguage == 'vi' ? 'Về trang chủ' : 'Back to home'}"/></span>
+                default="Về trang chủ"/></span>
         </a>
         <div class="payment-history-heading">
             <h1 id="payment-history-title"><ui:text key="screen.d4c7bc94c3af4d4f"/></h1>
@@ -70,24 +70,24 @@
             <div class="payment-history-search-field">
                 <label id="payment-search-label" for="payment-search"><ui:text key="history.payments.search"/></label>
                 <input class="form-control" id="payment-search" name="q" type="search" maxlength="100"
-                       value="<c:out value='${paymentSearch}'/>" data-i18n-placeholder="history.payments.searchHint"
+                       value="<c:out value='${paymentSearch}'/>"
                        placeholder="<c:out value='${requestScope.i18n["history.payments.searchHint"]}'/>">
             </div>
             <div class="payment-history-filter">
                 <label for="payment-method"><ui:text key="screen.52a0f9b65b278850"/></label>
                 <select class="form-select" id="payment-method" name="method">
-                    <option value="" data-i18n="screen.a52ace420f2175d0"><c:out value="${requestScope.i18n['screen.a52ace420f2175d0']}"/></option>
+                    <option value=""><c:out value="${requestScope.i18n['screen.a52ace420f2175d0']}"/></option>
                     <c:forEach var="method" items="${paymentMethods}">
-                        <option value="${method}" data-i18n="${paymentLabels[method]}" ${method == paymentMethodFilter ? 'selected' : ''}><c:out value="${requestScope.i18n[paymentLabels[method]]}"/></option>
+                        <option value="${method}" ${method == paymentMethodFilter ? 'selected' : ''}><c:out value="${requestScope.i18n[paymentLabels[method]]}"/></option>
                     </c:forEach>
                 </select>
             </div>
             <div class="payment-history-filter">
                 <label for="payment-status"><ui:text key="screen.920e413c7d411b61"/></label>
                 <select class="form-select" id="payment-status" name="status">
-                    <option value="" data-i18n="screen.a52ace420f2175d0"><c:out value="${requestScope.i18n['screen.a52ace420f2175d0']}"/></option>
+                    <option value=""><c:out value="${requestScope.i18n['screen.a52ace420f2175d0']}"/></option>
                     <c:forEach var="status" items="${paymentStatuses}">
-                        <option value="${status}" data-i18n="${paymentLabels[status]}" ${status == paymentStatusFilter ? 'selected' : ''}><c:out value="${requestScope.i18n[paymentLabels[status]]}"/></option>
+                        <option value="${status}" ${status == paymentStatusFilter ? 'selected' : ''}><c:out value="${requestScope.i18n[paymentLabels[status]]}"/></option>
                     </c:forEach>
                 </select>
             </div>
@@ -145,7 +145,7 @@
                                 <div>
                                     <dt><ui:text key="history.payments.amount"/></dt>
                                     <dd class="payment-history-amount">
-                                        <span data-history-money="${payment.amount}"><fmt:formatNumber value="${payment.amount}" maxFractionDigits="2"/></span>&nbsp;VND
+                                        <span><fmt:formatNumber value="${payment.amount}" maxFractionDigits="2"/></span>&nbsp;VND
                                     </dd>
                                 </div>
                                 <div>
@@ -193,7 +193,7 @@
                                     <dd>
                                         <c:choose>
                                             <c:when test="${payment.paymentDate != null}">
-                                                <time datetime="${payment.paymentDate}" data-history-datetime>
+                                                <time datetime="${payment.paymentDate}">
                                                     <c:out value="${payment.paymentDate.format(paymentDateFormat)}"/>
                                                 </time>
                                             </c:when>
@@ -206,9 +206,9 @@
                             <details class="payment-history-details">
                                 <summary>
                                     <span class="payment-history-show"><ui:text key="screen.90789c12d0731b44"/></span>
-                                    <span class="payment-history-hide" data-i18n="history.payments.hideDetails"><c:out
+                                    <span class="payment-history-hide"><c:out
                                         value="${requestScope.i18n['history.payments.hideDetails']}"
-                                        default="${requestScope.uiLanguage == 'vi' ? 'Thu gọn' : 'Hide details'}"/></span>
+                                        default="Thu gọn"/></span>
                                     <span class="payment-history-chevron" aria-hidden="true"></span>
                                 </summary>
                                 <div class="payment-history-expanded">
@@ -218,13 +218,13 @@
                                             <div>
                                                 <dt><ui:text key="history.payments.bookingTotal"/></dt>
                                                 <dd>
-                                                    <span data-history-money="${payment.booking.totalPrice}"><fmt:formatNumber value="${payment.booking.totalPrice}" maxFractionDigits="2"/></span>&nbsp;VND
+                                                    <span><fmt:formatNumber value="${payment.booking.totalPrice}" maxFractionDigits="2"/></span>&nbsp;VND
                                                 </dd>
                                             </div>
                                             <c:if test="${payment.historyRemainingAmount > 0 and (payment.historyStatus == 'partial' or payment.historyStatus == 'partially_refunded')}">
                                                 <div class="payment-history-balance">
                                                     <dt><ui:text key="history.payments.balance"/></dt>
-                                                    <dd><span data-history-money="${payment.historyRemainingAmount}"><fmt:formatNumber value="${payment.historyRemainingAmount}" maxFractionDigits="2"/></span>&nbsp;VND</dd>
+                                                    <dd><span><fmt:formatNumber value="${payment.historyRemainingAmount}" maxFractionDigits="2"/></span>&nbsp;VND</dd>
                                                 </div>
                                             </c:if>
                                         </dl>
@@ -245,7 +245,7 @@
                                                             <span class="payment-history-discount-code"><c:out value="${payment.discount.code}"/></span>
                                                         </c:if>
                                                         <c:if test="${payment.discountAmount != null}">
-                                                            <span><span data-history-money="${payment.discountAmount}"><fmt:formatNumber value="${payment.discountAmount}" maxFractionDigits="2"/></span>&nbsp;VND</span>
+                                                            <span><span><fmt:formatNumber value="${payment.discountAmount}" maxFractionDigits="2"/></span>&nbsp;VND</span>
                                                         </c:if>
                                                     </dd>
                                                 </div>
@@ -254,7 +254,7 @@
                                                 <div class="payment-history-refund">
                                                     <dt><ui:text key="history.payments.refundedAmount"/></dt>
                                                     <dd>
-                                                        <span data-history-money="${payment.refundedAmount}"><fmt:formatNumber value="${payment.refundedAmount}" maxFractionDigits="2"/></span>&nbsp;VND
+                                                        <span><fmt:formatNumber value="${payment.refundedAmount}" maxFractionDigits="2"/></span>&nbsp;VND
                                                     </dd>
                                                 </div>
                                             </c:if>
@@ -277,11 +277,11 @@
                                                         <dl class="payment-history-breakdown">
                                                             <div>
                                                                 <dt><ui:text key="screen.f49fc7767bcfb17b"/></dt>
-                                                                <dd><time datetime="${detail.checkInDate}" data-history-date><c:out value="${detail.checkInDate.format(stayDateFormat)}"/></time></dd>
+                                                                <dd><time datetime="${detail.checkInDate}"><c:out value="${detail.checkInDate.format(stayDateFormat)}"/></time></dd>
                                                             </div>
                                                             <div>
                                                                 <dt><ui:text key="screen.5b4ecf4c9808dca1"/></dt>
-                                                                <dd><time datetime="${detail.checkOutDate}" data-history-date><c:out value="${detail.checkOutDate.format(stayDateFormat)}"/></time></dd>
+                                                                <dd><time datetime="${detail.checkOutDate}"><c:out value="${detail.checkOutDate.format(stayDateFormat)}"/></time></dd>
                                                             </div>
                                                         </dl>
                                                     </li>
@@ -296,7 +296,7 @@
                 </ul>
 
                 <c:if test="${totalPages > 1}">
-                    <nav class="payment-history-pages" data-i18n-aria-label="screen.34c35b4b93d2c51e"
+                    <nav class="payment-history-pages"
                          aria-label="<c:out value="${requestScope.i18n['screen.34c35b4b93d2c51e']}"/>">
                         <c:if test="${currentPage > 1}">
                             <a href="<c:out value='${paymentHistoryUrl}'/>&amp;page=${currentPage - 1}"><ui:text key="screen.a57b08a480b822a0"/></a>

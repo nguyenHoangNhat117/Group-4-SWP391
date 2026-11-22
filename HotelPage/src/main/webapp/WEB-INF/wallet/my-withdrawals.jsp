@@ -1,3 +1,4 @@
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 
 <%@ page contentType="text/html; charset=UTF-8"
          pageEncoding="UTF-8" %>
@@ -5,13 +6,13 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, initial-scale=1">
 
-    <title>My Withdrawal Requests - Luxe Escape</title>
+    <title>Yêu cầu rút tiền của tôi - Luxe Escape</title>
 
     <link rel="stylesheet"
           href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -83,30 +84,29 @@
     <main class="page-container">
 
         <h1 class="page-title">
-            My Withdrawal Requests
+            Yêu cầu rút tiền của tôi
         </h1>
 
         <p class="text-muted">
-            Track your withdrawal requests
-            and their current status.
+            Theo dõi yêu cầu rút tiền và trạng thái xử lý.
         </p>
 
         <div class="mb-4">
             <a href="${pageContext.request.contextPath}/withdrawal"
                class="wallet-btn">
-                New Withdrawal Request
+                Tạo yêu cầu rút tiền
             </a>
 
             <a href="${pageContext.request.contextPath}/wallet"
                class="btn btn-outline-secondary ms-2">
-                Back to Wallet
+                Về ví
             </a>
         </div>
 
         <section class="wallet-card">
 
             <h3 class="mb-4">
-                Withdrawal History
+                Lịch sử rút tiền
             </h3>
 
             <div class="table-responsive">
@@ -114,12 +114,12 @@
 
                     <thead>
                         <tr>
-                            <th>Request ID</th>
-                            <th>Amount</th>
-                            <th>Bank</th>
-                            <th>Submitted</th>
-                            <th>Status</th>
-                            <th>Details</th>
+                            <th>Mã yêu cầu</th>
+                            <th>Số tiền</th>
+                            <th>Ngân hàng</th>
+                            <th>Ngày gửi</th>
+                            <th>Trạng thái</th>
+                            <th>Chi tiết</th>
                         </tr>
                     </thead>
 
@@ -151,30 +151,30 @@
                                     <c:choose>
                                         <c:when test="${w.status == 'pending'}">
                                             <span class="badge bg-warning text-dark">
-                                                Pending
+                                                Chờ xử lý
                                             </span>
                                         </c:when>
 
                                         <c:when test="${w.status == 'approved'}">
                                             <span class="badge bg-info text-dark">
-                                                Approved
+                                                Đã duyệt
                                             </span>
                                         </c:when>
 
                                         <c:when test="${w.status == 'paid'}">
                                             <span class="badge bg-success">
-                                                Paid
+                                                Đã thanh toán
                                             </span>
                                         </c:when>
 
                                         <c:when test="${w.status == 'rejected'}">
                                             <span class="badge bg-danger">
-                                                Rejected
+                                                Đã từ chối
                                             </span>
                                         </c:when>
 
                                         <c:otherwise>
-                                            <c:out value="${w.status}"/>
+                                            <ui:message text="${w.status}"/>
                                         </c:otherwise>
                                     </c:choose>
                                 </td>
@@ -183,20 +183,20 @@
                                     <c:if test="${w.status == 'rejected'
                                                 and not empty w.rejectReason}">
                                         <div class="small text-danger">
-                                            Reason:
+                                            Lý do:
                                             <c:out value="${w.rejectReason}"/>
                                         </div>
                                     </c:if>
 
                                     <c:if test="${w.status == 'approved'}">
                                         <span class="small text-muted">
-                                            Awaiting payout confirmation
+                                            Đang chờ xác nhận chi trả
                                         </span>
                                     </c:if>
 
                                     <c:if test="${w.status == 'paid'}">
                                         <span class="small text-success">
-                                            Payout recorded
+                                            Đã ghi nhận chi trả
                                         </span>
                                     </c:if>
                                 </td>
@@ -207,7 +207,7 @@
                             <tr>
                                 <td colspan="6"
                                     class="text-center text-muted py-5">
-                                    No withdrawal requests found.
+                                    Chưa có yêu cầu rút tiền.
                                 </td>
                             </tr>
                         </c:if>

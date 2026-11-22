@@ -9,13 +9,13 @@
 <c:set var="ctx" value="${pageContext.request.contextPath}" />
 
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}" class="hotel-reports-page">
+<html lang="vi" class="hotel-reports-page">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title data-i18n="screen.a0bcbfd785ede222">${requestScope.i18n['screen.a0bcbfd785ede222']}</title>
+    <title>${requestScope.i18n['screen.a0bcbfd785ede222']}</title>
 
     <link rel="stylesheet" href="${ctx}/assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="${ctx}/assets/css/general.css">
@@ -110,7 +110,7 @@
                                         <strong>#${payment.booking.id}</strong>
 
                                         <span class="report-muted">
-                                            <c:out value="${fn:replace(payment.booking.status, '_', ' ')}" />
+                                            <ui:message text="${fn:replace(payment.booking.status, '_', ' ')}"/>
                                         </span>
 
                                     </td>

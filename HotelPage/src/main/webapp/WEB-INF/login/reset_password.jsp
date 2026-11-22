@@ -14,13 +14,13 @@
     String error = (String) request.getAttribute("error");
 %>
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1.0">
 
-        <title data-i18n="screen.2611d4632dce2a7a">${requestScope.i18n['screen.2611d4632dce2a7a']}</title>
+        <title>${requestScope.i18n['screen.2611d4632dce2a7a']}</title>
 
         <link href="<%= contextPath%>/assets/css/bootstrap.min.css"
               rel="stylesheet">

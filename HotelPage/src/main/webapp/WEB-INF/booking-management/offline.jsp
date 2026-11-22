@@ -13,14 +13,14 @@
 <%@taglib prefix="fn" uri="jakarta.tags.functions"%>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt"%>
 
-<fmt:setLocale value="${requestScope.uiLanguage == 'vi' ? 'vi_VN' : 'en_US'}" scope="page"/>
+<fmt:setLocale value="vi_VN" scope="page"/>
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}" class="uc09-page">
+<html lang="vi" class="uc09-page">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title data-i18n="screen.5a779d440195be98">${requestScope.i18n['screen.5a779d440195be98']}</title>
+        <title>${requestScope.i18n['screen.5a779d440195be98']}</title>
 
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -155,7 +155,7 @@
                                         <legend><ui:text key="screen.7c2d837276e934c7"/></legend>
                                         <label class="visually-hidden" for="obRoomSearch"><ui:text key="offline.roomSearch"/></label>
                                         <input class="ob-input" type="search" id="obRoomSearch" autocomplete="off"
-                                               placeholder="${requestScope.i18n['offline.roomSearch']}" data-i18n-placeholder="offline.roomSearch">
+                                               placeholder="${requestScope.i18n['offline.roomSearch']}">
                                         <div class="ob-room-results" id="obRoomResults">
                                             <c:forEach items="${rooms}" var="room">
                                                 <label class="ob-room-choice">
@@ -189,7 +189,7 @@
 
                                 <div class="ob-mode"
                                      role="group"
-                                     aria-label="${requestScope.i18n['screen.4ac86ab4f546c113']}" data-i18n-aria-label="screen.4ac86ab4f546c113">
+                                     aria-label="${requestScope.i18n['screen.4ac86ab4f546c113']}">
 
                                     <label>
                                         <input type="radio"
@@ -223,7 +223,7 @@
                                                    name="q"
                                                    maxlength="100"
                                                    value="${fn:escapeXml(form.q)}"
-                                                   placeholder="${requestScope.i18n['screen.bd9ab9176cf69767']}" data-i18n-placeholder="screen.bd9ab9176cf69767">
+                                                   placeholder="${requestScope.i18n['screen.bd9ab9176cf69767']}">
                                         </div>
 
                                         <button class="ob-button ob-secondary"
@@ -250,7 +250,7 @@
                                                 name="customerId"
                                                 id="customerId">
 
-                                            <option value="" data-i18n="screen.255c4597f3d79f5a">
+                                            <option value="">
                                                 ${requestScope.i18n['screen.255c4597f3d79f5a']}
                                             </option>
 
@@ -343,7 +343,7 @@
 
                                         <select class="ob-input" name="promotionCode" id="promotionCode"
                                                 aria-describedby="obPromotionHint">
-                                            <option value="" data-i18n="offline.noPromotion">${requestScope.i18n['offline.noPromotion']}</option>
+                                            <option value="">${requestScope.i18n['offline.noPromotion']}</option>
                                             <c:forEach var="promotion" items="${promotions}">
                                                 <option value="${fn:escapeXml(promotion.code)}" data-minimum="${promotion.minimum}"
                                                         ${form.promotionCode eq promotion.code ? 'selected' : ''}>
@@ -364,14 +364,14 @@
                                                   id="specialRequest"
                                                   maxlength="500"
                                                   rows="3"
-                                                  placeholder="${requestScope.i18n['screen.8ec7552bf0a4f249']}" data-i18n-placeholder="screen.8ec7552bf0a4f249"><c:out value="${form.specialRequest}"/></textarea>
+                                                  placeholder="${requestScope.i18n['screen.8ec7552bf0a4f249']}"><c:out value="${form.specialRequest}"/></textarea>
                                     </div>
                                 </div>
                             </section>
                         </div>
 
                         <aside class="ob-panel ob-summary"
-                               aria-label="${requestScope.i18n['screen.6b00218f389a7460']}" data-i18n-aria-label="screen.6b00218f389a7460">
+                               aria-label="${requestScope.i18n['screen.6b00218f389a7460']}">
 
                             <div class="ob-summary-head">
                                 <small>LUXE ESCAPE</small>

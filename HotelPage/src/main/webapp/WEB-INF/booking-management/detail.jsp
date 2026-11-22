@@ -5,13 +5,13 @@
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt"%>
 
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1">
 
-        <title data-i18n="screen.a55a969205588064">${requestScope.i18n['screen.a55a969205588064']}</title>
+        <title>${requestScope.i18n['screen.a55a969205588064']}</title>
 
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -161,16 +161,13 @@
                                                     class="form-select"
                                                     required>
 
-                                                <option value="" selected disabled data-i18n="screen.b575d3e1b784356d">
+                                                <option value="" selected disabled>
                                                     ${requestScope.i18n['screen.b575d3e1b784356d']}
                                                 </option>
 
                                                 <c:forEach var="status"
                                                            items="${nextStatuses}">
-                                                    <option value="${status}" data-i18n="${status == 'checked_in' ? 'screen.17c05c08a9ac3e5a'
-                                                            : status == 'checked_out' ? 'screen.cbe2b33735c6335c'
-                                                            : status == 'cancelled' ? 'screen.d353a99eb4556847'
-                                                            : status == 'completed' ? 'screen.22a970d2e5b1cc23' : 'screen.fe00b67b6dd1143f'}">
+                                                    <option value="${status}">
                                                         <c:choose>
                                                             <c:when test="${status == 'confirmed'}">
                                                                 ${requestScope.i18n['screen.fe00b67b6dd1143f']}

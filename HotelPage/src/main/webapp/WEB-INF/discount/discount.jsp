@@ -2,10 +2,10 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ page contentType="text/html" pageEncoding="UTF-8" %>
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title data-i18n="screen.fa6c1175dc521169">${requestScope.i18n['screen.fa6c1175dc521169']}</title>
+    <title>${requestScope.i18n['screen.fa6c1175dc521169']}</title>
     <link href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="<%= request.getContextPath()%>/assets/css/general.css" rel="stylesheet">
 
@@ -17,7 +17,7 @@
 <div class="body-wrapper">
     <%@ include file="/WEB-INF/include/header.jsp" %>
     <main class="container-fluid px-5 py-5 min-vh-100">
-        <div class="luxe-admin-banner" aria-label="${requestScope.i18n['screen.bf10d5aa163cf2b9']}" data-i18n-aria-label="screen.bf10d5aa163cf2b9">
+        <div class="luxe-admin-banner" aria-label="${requestScope.i18n['screen.bf10d5aa163cf2b9']}">
           <span class="luxe-admin-banner-eyebrow">LUXE ESCAPE <span aria-hidden="true">/</span> <ui:text key="screen.65345f6b7bf401ea"/></span>
           <span class="luxe-admin-banner-title"><ui:text key="screen.bf10d5aa163cf2b9"/></span>
           <span class="luxe-admin-banner-art" aria-hidden="true"></span>

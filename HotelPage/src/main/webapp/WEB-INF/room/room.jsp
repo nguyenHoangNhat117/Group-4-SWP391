@@ -3,11 +3,11 @@
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title data-i18n="screen.67a6f4f9750ef17b">${requestScope.i18n['screen.67a6f4f9750ef17b']}</title>
+        <title>${requestScope.i18n['screen.67a6f4f9750ef17b']}</title>
 
         <!-- CSS Dependencies -->
         <link href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css" rel="stylesheet">
@@ -196,7 +196,7 @@
                             <div class="col-sm-5 col-lg-4">
                                 <label for="admin-room-type" class="form-label"><ui:text key="screen.82dea9a01c0033ec"/></label>
                                 <select id="admin-room-type" name="room-type-id" class="form-select">
-                                    <option value="" data-i18n="room.admin.allTypes">${requestScope.i18n['room.admin.allTypes']}</option>
+                                    <option value="">${requestScope.i18n['room.admin.allTypes']}</option>
                                     <c:forEach var="roomType" items="${roomTypes}">
                                         <option value="${roomType.id}" ${roomType.id == adminRoomTypeId ? 'selected' : ''}>
                                             <c:out value="${roomType.name}"/>
@@ -211,7 +211,7 @@
                                        aria-invalid="${invalidRoomNumber}"
                                        value="<c:out value='${param["room-number"]}'/>">
                             </div>
-                            <input type="hidden" name="sort" value="${priceSort}"><div class="col-sm-4 col-lg-3"><label for="admin-status" class="form-label"><ui:text key="screen.920e413c7d411b61"/></label><select id="admin-status" name="status" class="form-select"><option value="" data-i18n="management.all">${requestScope.i18n['management.all']}</option><option value="available" ${adminStatus == 'available' ? 'selected' : ''} data-i18n="screen.e674447337e83c13">${requestScope.i18n['screen.e674447337e83c13']}</option><option value="maintenance" ${adminStatus == 'maintenance' ? 'selected' : ''} data-i18n="screen.17ccfa5b681e3e7b">${requestScope.i18n['screen.17ccfa5b681e3e7b']}</option><option value="out_of_service" ${adminStatus == 'out_of_service' ? 'selected' : ''} data-i18n="screen.3cd4b662003a9db7">${requestScope.i18n['screen.3cd4b662003a9db7']}</option></select></div><div class="col-sm-auto d-flex gap-2">
+                            <input type="hidden" name="sort" value="${priceSort}"><div class="col-sm-4 col-lg-3"><label for="admin-status" class="form-label"><ui:text key="screen.920e413c7d411b61"/></label><select id="admin-status" name="status" class="form-select"><option value="">${requestScope.i18n['management.all']}</option><option value="available" ${adminStatus == 'available' ? 'selected' : ''}>${requestScope.i18n['screen.e674447337e83c13']}</option><option value="maintenance" ${adminStatus == 'maintenance' ? 'selected' : ''}>${requestScope.i18n['screen.17ccfa5b681e3e7b']}</option><option value="out_of_service" ${adminStatus == 'out_of_service' ? 'selected' : ''}>${requestScope.i18n['screen.3cd4b662003a9db7']}</option></select></div><div class="col-sm-auto d-flex gap-2">
                                 <button class="btn btn-primary" type="submit"><ui:text key="room.admin.applyFilters"/></button>
                                 <a class="btn btn-outline-secondary" href="${pageContext.request.contextPath}/room">
                                     <ui:text key="room.admin.clearFilters"/>
@@ -268,11 +268,11 @@
                                                 <td class="text-end pe-4">
                                                     <div class="d-flex justify-content-end gap-2">
                                                         <a href="${pageContext.request.contextPath}/details?roomNumber=${room.roomNumber}"
-                                                           class="btn btn-icon btn-light text-primary" data-bs-toggle="tooltip" title="${requestScope.i18n['screen.90789c12d0731b44']}" data-i18n-title="screen.90789c12d0731b44">
+                                                           class="btn btn-icon btn-light text-primary" data-bs-toggle="tooltip" title="${requestScope.i18n['screen.90789c12d0731b44']}">
                                                             <i class="bi bi-eye"></i>
                                                         </a>
                                                         <a href="${pageContext.request.contextPath}/room?view=update&roomNumber=${room.roomNumber}"
-                                                           class="btn btn-icon btn-light text-warning" data-bs-toggle="tooltip" title="${requestScope.i18n['screen.1e15cc0c5d15cccb']}" data-i18n-title="screen.1e15cc0c5d15cccb">
+                                                           class="btn btn-icon btn-light text-warning" data-bs-toggle="tooltip" title="${requestScope.i18n['screen.1e15cc0c5d15cccb']}">
                                                             <i class="bi bi-pencil-square"></i>
                                                         </a>
                                                         <form method="post" action="${pageContext.request.contextPath}/room?action=delete" data-room-number="${room.roomNumber}" data-confirm="${requestScope.i18n['management.deleteRoom']} #${room.roomNumber}?">
@@ -302,7 +302,7 @@
 
                         <!-- Pagination Admin -->
                         <c:if test="${totalPages > 1}">
-                            <nav class="room-admin-pagination d-flex justify-content-center w-100 p-0" aria-label="${requestScope.i18n['screen.d75e66b013af28b8']}" data-i18n-aria-label="screen.d75e66b013af28b8">
+                            <nav class="room-admin-pagination d-flex justify-content-center w-100 p-0" aria-label="${requestScope.i18n['screen.d75e66b013af28b8']}">
                                 <ul class="pagination justify-content-center flex-wrap w-100 mb-0">
                                     <li class="page-item ${pageIndex <= 1 ? 'disabled' : ''}">
                                         <a class="page-link" href="${pageContext.request.contextPath}/room?page-index=${pageIndex - 1}&amp;room-type-id=${adminRoomTypeId}&amp;room-number=${adminRoomNumber}&amp;status=${adminStatus}&amp;sort=${priceSort}"><ui:text key="screen.a57b08a480b822a0"/></a>
@@ -332,7 +332,7 @@
                             <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
                                 <ui:text key="screen.0fd3e982eaee6db5"/>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}" data-i18n-aria-label="screen.7d9eb7acb13e2462"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}"></button>
                             </div>
                         </c:if>
 
@@ -340,7 +340,7 @@
                             <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
                                 <ui:text key="screen.5effc47a5bae9591"/>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}" data-i18n-aria-label="screen.7d9eb7acb13e2462"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}"></button>
                             </div>
                         </c:if>
 
@@ -378,7 +378,7 @@
                                 <div class="col-lg-2 col-md-3 col-6">
                                     <label for="room-type-id" class="form-label small fw-bold text-uppercase text-muted mb-1"><ui:text key="screen.82dea9a01c0033ec"/></label>
                                     <select class="form-select bg-light border-0" id="room-type-id" name="room-type-id">
-                                        <option value="" data-i18n="screen.bc01325482f36133">${requestScope.i18n['screen.bc01325482f36133']}</option>
+                                        <option value="">${requestScope.i18n['screen.bc01325482f36133']}</option>
                                         <c:forEach var="rt" items="${requestScope.roomTypes}">
                                             <option value="${rt.id}" ${sessionScope.searchRoomTypeId == rt.id ? 'selected' : ''}>
                                                 ${rt.name}
@@ -394,10 +394,10 @@
                                 <div class="col-lg-2 col-md-4 col-6">
                                     <label for="sort-by" class="form-label small fw-bold text-uppercase text-muted mb-1"><ui:text key="screen.6d2227555fccff99"/></label>
                                     <select class="form-select bg-light border-0" id="sort-by" name="sort-by">
-                                        <option value="room_asc" ${sessionScope.searchSortBy == 'room_asc' ? 'selected' : ''} data-i18n="screen.82dea9a01c0033ec">${requestScope.i18n['screen.82dea9a01c0033ec']}</option>
-                                        <option value="price_asc" ${sessionScope.searchSortBy == 'price_asc' ? 'selected' : ''} data-i18n="screen.3044c75602f03114">${requestScope.i18n['screen.3044c75602f03114']}</option>
-                                        <option value="price_desc" ${sessionScope.searchSortBy == 'price_desc' ? 'selected' : ''} data-i18n="screen.8abbc1606cfd7f90">${requestScope.i18n['screen.8abbc1606cfd7f90']}</option>
-                                        <option value="capacity_desc" ${sessionScope.searchSortBy == 'capacity_desc' ? 'selected' : ''} data-i18n="screen.a980d50906f2f261">${requestScope.i18n['screen.a980d50906f2f261']}</option>
+                                        <option value="room_asc" ${sessionScope.searchSortBy == 'room_asc' ? 'selected' : ''}>${requestScope.i18n['screen.82dea9a01c0033ec']}</option>
+                                        <option value="price_asc" ${sessionScope.searchSortBy == 'price_asc' ? 'selected' : ''}>${requestScope.i18n['screen.3044c75602f03114']}</option>
+                                        <option value="price_desc" ${sessionScope.searchSortBy == 'price_desc' ? 'selected' : ''}>${requestScope.i18n['screen.8abbc1606cfd7f90']}</option>
+                                        <option value="capacity_desc" ${sessionScope.searchSortBy == 'capacity_desc' ? 'selected' : ''}>${requestScope.i18n['screen.a980d50906f2f261']}</option>
                                     </select>
                                 </div>
 
@@ -456,7 +456,7 @@
                         <!-- Pagination Customer (BR-17 & Alternative Flow 3a) -->
                         <c:if test="${requestScope.totalPages > 1}">
                             <!-- THÊM class d-flex và justify-content-center TRỰC TIẾP VÀO THẺ NAV -->
-                            <nav aria-label="${requestScope.i18n['screen.024148d6099b7d63']}" class="mt-5 d-flex justify-content-center w-100" data-i18n-aria-label="screen.024148d6099b7d63">
+                            <nav aria-label="${requestScope.i18n['screen.024148d6099b7d63']}" class="mt-5 d-flex justify-content-center w-100">
                                 <ul class="pagination pagination-lg mb-0">
                                     <li class="page-item ${pageIndex <= 1 ? 'disabled' : ''}">
                                         <a class="page-link" href="./room?page-index=${pageIndex - 1}"><i class="bi bi-chevron-left"></i></a>

@@ -190,7 +190,7 @@ public class ChangePasswordServlet extends HttpServlet {
         User user = (User) value;
 
         if (!supportedRole(user.getRole())) {
-            res.sendError(403, "You cannot access this function.");
+            res.sendError(403, "Bạn không có quyền sử dụng chức năng này.");
             return null;
         }
 

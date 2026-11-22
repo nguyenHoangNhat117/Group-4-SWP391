@@ -3,7 +3,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 
     <head>
 
@@ -11,7 +11,7 @@
             http-equiv="Content-Type"
             content="text/html; charset=UTF-8">
 
-        <title data-i18n="screen.28dd027503c97963">${requestScope.i18n['screen.28dd027503c97963']}</title>
+        <title>${requestScope.i18n['screen.28dd027503c97963']}</title>
 
         <link
             href="<%= request.getContextPath()%>/assets/css/bootstrap.min.css"
@@ -173,7 +173,7 @@
                                     value="available"
                                     ${requestScope.room.status == 'available'
                                       ? 'selected'
-                                      : ''} data-i18n="screen.e674447337e83c13">
+                                      : ''}>
 
                                     ${requestScope.i18n['screen.e674447337e83c13']}
 
@@ -183,7 +183,7 @@
                                     value="maintenance"
                                     ${requestScope.room.status == 'maintenance'
                                       ? 'selected'
-                                      : ''} data-i18n="screen.17ccfa5b681e3e7b">
+                                      : ''}>
 
                                     ${requestScope.i18n['screen.17ccfa5b681e3e7b']}
 
@@ -193,7 +193,7 @@
                                     value="out_of_service"
                                     ${requestScope.room.status == 'out_of_service'
                                       ? 'selected'
-                                      : ''} data-i18n="screen.3cd4b662003a9db7">
+                                      : ''}>
 
                                     ${requestScope.i18n['screen.3cd4b662003a9db7']}
 

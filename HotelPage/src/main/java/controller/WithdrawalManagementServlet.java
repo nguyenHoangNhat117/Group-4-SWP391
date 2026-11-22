@@ -92,16 +92,16 @@ public class WithdrawalManagementServlet
             if (!dateInput.isEmpty()) {
                 date = LocalDate.parse(dateInput);
                 if (date.getYear() < 2 || date.getYear() > 9998) {
-                    response.sendError(400, "Invalid date");
+                    response.sendError(400, "Ngày không hợp lệ");
                     return;
                 }
             }
         } catch (DateTimeParseException e) {
-            response.sendError(400, "Invalid date");
+            response.sendError(400, "Ngày không hợp lệ");
             return;
         }
         if (keyword.length() > 150 || bank.length() > 100) {
-            response.sendError(400, "Invalid search filters");
+            response.sendError(400, "Bộ lọc tìm kiếm không hợp lệ");
             return;
         }
 

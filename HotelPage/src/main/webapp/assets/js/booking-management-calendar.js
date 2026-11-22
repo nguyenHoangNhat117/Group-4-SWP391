@@ -1,10 +1,6 @@
 (() => {
     if (typeof Litepicker === 'undefined') return;
 
-    const isVietnamese = () => (window.HotelLanguage?.language
-        || document.querySelector('[data-language-endpoint]')?.dataset.language
-        || document.documentElement.lang) === 'vi';
-    const locale = () => isVietnamese() ? 'vi-VN' : 'en-US';
     const isoDate = /^\d{4}-\d{2}-\d{2}$/;
 
     document.querySelectorAll('input[type="date"]').forEach(input => {
@@ -27,18 +23,16 @@
             nativeDate.step = input.getAttribute('step') || '1';
             nativeDate.value = input.value;
             const invalid = input.value && (!isoDate.test(input.value) || !nativeDate.value || !nativeDate.validity.valid);
-            const error = isVietnamese()
-                ? 'Nhập ngày hợp lệ theo định dạng YYYY-MM-DD và trong khoảng cho phép.'
-                : 'Enter a valid date in YYYY-MM-DD format within the allowed range.';
+            const error = 'Nhập ngày hợp lệ theo định dạng YYYY-MM-DD và trong khoảng cho phép.';
             input.setCustomValidity(invalid ? error : '');
         };
 
         const updatePlaceholder = () => {
             const key = input.dataset.datePlaceholder;
             if (key === 'management.createdDate') {
-                input.placeholder = isVietnamese() ? 'Ngày tạo tài khoản' : 'Created date';
+                input.placeholder = 'Ngày tạo tài khoản';
             } else {
-                input.placeholder = isVietnamese() ? 'Chọn ngày' : 'Choose a date';
+                input.placeholder = 'Chọn ngày';
             }
         };
 
@@ -52,7 +46,7 @@
             numberOfMonths: 1,
             numberOfColumns: 1,
             format: 'YYYY-MM-DD',
-            lang: locale(),
+            lang: 'vi-VN',
             minDate: minDate() || null,
             maxDate: input.getAttribute('max') || null,
             setup(calendar) {
@@ -87,11 +81,6 @@
             });
         }
         input.form?.addEventListener('reset', () => setTimeout(syncBounds, 0));
-        document.addEventListener('hotel:languagechange', () => {
-            picker.setOptions({lang: locale()});
-            updatePlaceholder();
-            validate();
-        });
         validate();
     });
 })();

@@ -9,13 +9,13 @@
 <c:set var="withdrawalDateFormat" value='<%= DateTimeFormatter.ofPattern("dd/MM/uuuu HH:mm") %>'/>
 
 <!DOCTYPE html>
-<html lang="${requestScope.uiLanguage}">
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1">
 
-        <title data-i18n="management.withdrawals">${requestScope.i18n['management.withdrawals']}</title>
+        <title>${requestScope.i18n['management.withdrawals']}</title>
 
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/assets/css/bootstrap.min.css">
@@ -80,14 +80,13 @@
 
             <c:if test="${param.result == 'success'}">
                 <div class="alert alert-success">
-                    Withdrawal request updated successfully.
+                    Đã cập nhật yêu cầu rút tiền.
                 </div>
             </c:if>
 
             <c:if test="${param.result == 'not-processed'}">
                 <div class="alert alert-warning">
-                    Request could not be processed.
-                    Check its status and your permissions.
+                    Không thể xử lý yêu cầu. Vui lòng kiểm tra trạng thái và quyền truy cập.
                 </div>
             </c:if>
 
@@ -97,7 +96,7 @@
 
                     <div>
                         <label for="withdrawal-status" class="form-label">
-                            Filter by Status
+                            Lọc theo trạng thái
                         </label>
 
                         <select id="withdrawal-status" name="status"
@@ -105,27 +104,27 @@
 
                             <option value=""
                                     ${empty selectedStatus ? 'selected' : ''}>
-                                All Requests
+                                Tất cả yêu cầu
                             </option>
 
                             <option value="pending"
                                     ${selectedStatus == 'pending' ? 'selected' : ''}>
-                                Pending
+                                Chờ xử lý
                             </option>
 
                             <option value="approved"
                                     ${selectedStatus == 'approved' ? 'selected' : ''}>
-                                Approved
+                                Đã duyệt
                             </option>
 
                             <option value="rejected"
                                     ${selectedStatus == 'rejected' ? 'selected' : ''}>
-                                Rejected
+                                Đã từ chối
                             </option>
 
                             <option value="paid"
                                     ${selectedStatus == 'paid' ? 'selected' : ''}>
-                                Paid
+                                Đã thanh toán
                             </option>
                         </select>
                     </div>
@@ -146,11 +145,11 @@
                     </div>
 
                         <button type="submit" class="btn btn-success">
-                            Apply Filter
+                            Áp dụng bộ lọc
                         </button>
                         <a href="${pageContext.request.contextPath}/withdrawal-management"
                            class="btn btn-outline-secondary">
-                            Clear
+                            Xóa bộ lọc
                         </a>
                 </form>
 
@@ -161,13 +160,13 @@
 
                         <thead>
                             <tr>
-                                <th>Request ID</th>
-                                <th>Customer ID</th>
-                                <th>Amount</th>
-                                <th>Bank</th>
-                                <th>Submitted</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th>Mã yêu cầu</th>
+                                <th>Mã khách hàng</th>
+                                <th>Số tiền</th>
+                                <th>Ngân hàng</th>
+                                <th>Ngày gửi</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
                             </tr>
                         </thead>
 
@@ -215,30 +214,30 @@
 
                                             <c:when test="${w.status == 'pending'}">
                                                 <span class="badge bg-warning text-dark">
-                                                    Pending
+                                                    Chờ xử lý
                                                 </span>
                                             </c:when>
 
                                             <c:when test="${w.status == 'approved'}">
                                                 <span class="badge bg-info text-dark">
-                                                    Approved
+                                                    Đã duyệt
                                                 </span>
                                             </c:when>
 
                                             <c:when test="${w.status == 'rejected'}">
                                                 <span class="badge bg-danger">
-                                                    Rejected
+                                                    Đã từ chối
                                                 </span>
                                             </c:when>
 
                                             <c:when test="${w.status == 'paid'}">
                                                 <span class="badge bg-success">
-                                                    Paid
+                                                    Đã thanh toán
                                                 </span>
                                             </c:when>
 
                                             <c:otherwise>
-                                                <c:out value="${w.status}"/>
+                                                <ui:message text="${w.status}"/>
                                             </c:otherwise>
 
                                         </c:choose>
@@ -267,7 +266,7 @@
 
                                                     <button type="submit"
                                                             class="btn btn-success btn-sm">
-                                                        Approve
+                                                        Duyệt
                                                     </button>
 
                                                 </form>
@@ -290,14 +289,14 @@
                                                     <input type="text"
                                                            name="rejectReason"
                                                            class="form-control form-control-sm mb-2"
-                                                           placeholder="Reason for rejection"
-                                                           aria-label="Reason for rejection"
+                                                           placeholder="Lý do từ chối"
+                                                           aria-label="Lý do từ chối"
                                                            maxlength="500"
                                                            required>
 
                                                     <button type="submit"
                                                             class="btn btn-outline-danger btn-sm">
-                                                        Reject
+                                                        Từ chối
                                                     </button>
                                                 </form>
 
@@ -322,7 +321,7 @@
                                                          value="markPaid">
 
                                                   <label for="payout-reference-${w.withdrawalId}" class="form-label small">
-                                                      Verified Payout Reference
+                                                      Mã giao dịch chi trả đã kiểm tra
                                                   </label>
 
                                                   <input type="text"
@@ -339,14 +338,14 @@
                                                              required>
 
                                                       <span class="form-check-label">
-                                                          I confirm that the payout has been verified.
+                                                          Tôi xác nhận đã kiểm tra khoản chi trả.
                                                       </span>
                                                   </label>
 
 
                                                   <button type="submit"
                                                           class="btn btn-success btn-sm">
-                                                      Record as Paid
+                                                      Ghi nhận đã chi trả
                                                   </button>
                                               </form>
                                         </c:if>
@@ -359,7 +358,7 @@
 
                                         <c:if test="${w.status == 'paid'}">
                                             <span class="small text-success">
-                                                Payment recorded
+                                                Đã ghi nhận chi trả
                                             </span>
                                         </c:if>
                                     </td>
@@ -371,7 +370,7 @@
                                 <tr>
                                     <td colspan="7"
                                         class="text-center text-muted py-5">
-                                        No withdrawal requests found.
+                                        Chưa có yêu cầu rút tiền.
                                     </td>
                                 </tr>
                             </c:if>
@@ -383,7 +382,7 @@
                 <c:if test="${totalPages > 1}">
                     <nav class="d-flex justify-content-center
                          align-items-center flex-wrap gap-3 p-3 border-top"
-                         aria-label="Withdrawal pages">
+                         aria-label="Phân trang yêu cầu rút tiền">
 
                         <c:choose>
                             <c:when test="${currentPage > 1}">
@@ -400,7 +399,7 @@
 
                                 <a href="${previousUrl}"
                                    class="btn btn-outline-secondary">
-                                    Previous
+                                    Trước
                                 </a>
                             </c:when>
 
@@ -408,14 +407,14 @@
                                 <button type="button"
                                         class="btn btn-outline-secondary"
                                         disabled>
-                                    Previous
+                                    Trước
                                 </button>
                             </c:otherwise>
                         </c:choose>
 
                         <span class="small text-muted">
-                            Page ${currentPage} of ${totalPages}
-                            (${totalRequests} requests)
+                            Trang ${currentPage} trên ${totalPages}
+                            (${totalRequests} yêu cầu)
                         </span>
 
                         <c:choose>
@@ -433,7 +432,7 @@
 
                                 <a href="${nextUrl}"
                                    class="btn btn-outline-secondary">
-                                    Next
+                                    Tiếp
                                 </a>
                             </c:when>
 
@@ -441,7 +440,7 @@
                                 <button type="button"
                                         class="btn btn-outline-secondary"
                                         disabled>
-                                    Next
+                                    Tiếp
                                 </button>
                             </c:otherwise>
                         </c:choose>

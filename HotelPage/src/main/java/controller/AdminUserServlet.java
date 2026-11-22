@@ -46,7 +46,7 @@ public class AdminUserServlet extends HttpServlet {
         try {
             current = new UserDAO().getUserById(old.getId());
         } catch (IllegalStateException e) {
-            s.sendError(503, "Database temporarily unavailable.");
+            s.sendError(503, "Cơ sở dữ liệu tạm thời không khả dụng.");
             return null;
         }
         if (current == null || !"active".equals(current.getAccountStatus()) || !Objects.equals(old.getPassword(), current.getPassword())) {
@@ -80,13 +80,13 @@ public class AdminUserServlet extends HttpServlet {
     private void render(HttpServletRequest r, HttpServletResponse s) throws SQLException, ServletException, IOException {
         String q = text(r, "q"), role = text(r, "role"), status = text(r, "status");
         if (q.length() > 100 || (!role.isEmpty() && !AdminAccount.ROLES.contains(role)) || (!status.isEmpty() && !AdminAccount.STATUSES.contains(status))) {
-            s.sendError(400, "Invalid search filters");
+            s.sendError(400, "Bộ lọc tìm kiếm không hợp lệ");
             return;
         }
         java.time.LocalDate date = null;
         try {
             if (!text(r, "date").isEmpty()) date = java.time.LocalDate.parse(text(r, "date"));
-        } catch (java.time.DateTimeException ex) { s.sendError(400, "Invalid date"); return; }
+        } catch (java.time.DateTimeException ex) { s.sendError(400, "Ngày không hợp lệ"); return; }
         r.setAttribute("dateFilter", date);
         AdminUserDAO dao = new AdminUserDAO();
         r.setAttribute("pageData", dao.search(q, role, status, number(r.getParameter("page"), 1), date));

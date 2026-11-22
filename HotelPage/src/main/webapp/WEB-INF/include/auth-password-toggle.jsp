@@ -74,8 +74,8 @@
     (() => {
         function initializePasswordFields() {
             const labels = {
-                show: ${msg:js("Show password", requestScope.uiLanguage)},
-                hide: ${msg:js("Hide password", requestScope.uiLanguage)}
+                show: ${msg:js("Show password")},
+                hide: ${msg:js("Hide password")}
             };
 
             document.querySelectorAll('.input-box input[type="password"], .ua-password input[type="password"]').forEach(input => {
@@ -98,9 +98,7 @@
 
                 function updateToggle() {
                     const visible = input.type === 'text';
-                    const key = visible ? 'screen.a60a56c584b3b05b' : 'screen.6aeaa6a53d09dcad';
-                    const translated = window.HotelLanguage?.text(key);
-                    const label = translated && translated !== key ? translated : labels[visible ? 'hide' : 'show'];
+                    const label = labels[visible ? 'hide' : 'show'];
                     button.dataset.visible = String(visible);
                     button.setAttribute('aria-label', label);
                     button.title = label;
@@ -111,7 +109,6 @@
                     input.type = input.type === 'password' ? 'text' : 'password';
                     updateToggle();
                 });
-                document.addEventListener('hotel:languagechange', updateToggle);
                 updateToggle();
             });
 
@@ -147,7 +144,7 @@
 
                     confirmation.setCustomValidity(
                             mismatch
-                            ? ${msg:js("Passwords do not match.", requestScope.uiLanguage)}
+                            ? ${msg:js("Passwords do not match.")}
                             : ""
                             );
 
@@ -158,7 +155,7 @@
 
                         newPassword.setCustomValidity(
                                 sameAsCurrent
-                                ? ${msg:js("New password must differ from the current password.", requestScope.uiLanguage)}
+                                ? ${msg:js("New password must differ from the current password.")}
                                 : ""
                                 );
                     }
