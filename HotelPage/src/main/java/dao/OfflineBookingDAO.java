@@ -39,41 +39,60 @@ public class OfflineBookingDAO extends DBContext {
         }
     }
 
+    public static final class RoomLine implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+        private final int typeId;
+        private final String name;
+        private final int quantity;
+        private final BigDecimal nightly;
+        private final int guests;
+
+        private RoomLine(int typeId, String name, int quantity, BigDecimal nightly, int guests) {
+            this.typeId = typeId;
+            this.name = name;
+            this.quantity = quantity;
+            this.nightly = nightly;
+            this.guests = guests;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public int getQuantity() {
+            return quantity;
+        }
+
+        public BigDecimal getNightly() {
+            return nightly;
+        }
+    }
+
     public static final class Quote implements Serializable {
 
         private static final long serialVersionUID = 1L;
-
         public final OfflineBookingDraft draft;
-
-        private final BigDecimal nightly;
+        private final List<RoomLine> lines;
         private final BigDecimal gross;
         private final BigDecimal payable;
         private final String customerName;
 
-        public Quote(
-                OfflineBookingDraft draft,
-                BigDecimal nightly,
-                BigDecimal payable,
-                String name
-        ) {
+        private Quote(OfflineBookingDraft draft, List<RoomLine> lines, BigDecimal gross,
+                BigDecimal payable, String customerName) {
             this.draft = draft;
-            this.nightly = nightly;
+            this.lines = List.copyOf(lines);
+            this.gross = gross;
             this.payable = payable;
-            this.customerName = name;
-
-            gross = nightly.multiply(BigDecimal.valueOf(
-                    ChronoUnit.DAYS.between(
-                            draft.checkIn, draft.checkOut
-                    ) * draft.quantity
-            ));
+            this.customerName = customerName;
         }
 
         public OfflineBookingDraft getDraft() {
             return draft;
         }
 
-        public BigDecimal getNightly() {
-            return nightly;
+        public List<RoomLine> getLines() {
+            return lines;
         }
 
         public BigDecimal getGross() {
@@ -89,32 +108,62 @@ public class OfflineBookingDAO extends DBContext {
         }
 
         public long getNights() {
-            return ChronoUnit.DAYS.between(
-                    draft.checkIn, draft.checkOut
-            );
+            return ChronoUnit.DAYS.between(draft.checkIn, draft.checkOut);
         }
     }
 
-    public List<RoomDAO.AvailableType> availableTypes(LocalDate from, LocalDate to,
-            int guests, int quantity) throws SQLException {
-        OfflineBookingDraft.validateStay(from, to, guests, ReportPeriod.today());
-        if (quantity < 1 || quantity > guests) {
-            throw new IllegalArgumentException("Số phòng phải từ 1 đến số khách.");
+    public static final class RoomOption {
+
+        private final RoomDAO.AvailableType stock;
+        private final int maximum;
+
+        private RoomOption(RoomDAO.AvailableType stock) {
+            this.stock = stock;
+            this.maximum = stock.getReadyNow() == null ? stock.getAvailable()
+                    : Math.min(stock.getAvailable(), stock.getReadyNow());
         }
+
+        public RoomDAO.AvailableType getStock() {
+            return stock;
+        }
+
+        public int getMaximum() {
+            return maximum;
+        }
+    }
+
+    public List<RoomOption> availableTypes(LocalDate from, LocalDate to, int guests) throws SQLException {
+        LocalDate today = ReportPeriod.today();
+        OfflineBookingDraft.validateStay(from, to, guests, today);
         expireHolds();
         new BookingDAO().expirePendingBookings();
         List<RoomDAO.AvailableType> types = new RoomDAO().findAvailableTypes(from, to,
-                (guests + quantity - 1) / quantity, null, RoomPriceBand.ALL, "room_asc");
-        if (from.equals(ReportPeriod.today()) && !types.isEmpty()) {
-            try (Connection connection = getConnection()) {
-                for (int i = 0; i < types.size(); i++) {
-                    RoomDAO.AvailableType type = types.get(i);
-                    int ready = RoomDAO.countReadyRooms(connection, type.getType().getId(), from, to);
-                    types.set(i, type.withReadyNow(ready));
-                }
+                1, null, RoomPriceBand.ALL, "room_asc");
+        List<RoomOption> options = new ArrayList<>();
+        if (!from.equals(today) || types.isEmpty()) {
+            types.forEach(type -> options.add(new RoomOption(type)));
+            return options;
+        }
+        try (Connection connection = getConnection()) {
+            for (RoomDAO.AvailableType type : types) {
+                int ready = RoomDAO.countReadyRooms(connection, type.getType().getId(), from, to);
+                options.add(new RoomOption(type.withReadyNow(ready)));
             }
         }
-        return types;
+        return options;
+    }
+
+    public static long feasibleCapacity(List<RoomOption> rooms, int adults) {
+        List<RoomOption> ranked = new ArrayList<>(rooms);
+        ranked.sort(Comparator.comparingInt((RoomOption option) -> option.stock.getType().getCapacity()).reversed());
+        long capacity = 0;
+        int remaining = adults;
+        for (RoomOption option : ranked) {
+            int count = Math.min(option.maximum, remaining);
+            capacity += (long) count * option.stock.getType().getCapacity();
+            remaining -= count;
+        }
+        return capacity;
     }
 
     public List<Map<String, Object>> lookupBookings(String query) throws SQLException {
@@ -303,19 +352,7 @@ public class OfflineBookingDAO extends DBContext {
             try {
                 requireActor(c, actor);
 
-                String name = customerName(c, draft);
-
-                BigDecimal nightly = BookingDAO.lockAvailableRoomType(
-                        c, draft.roomTypeId, draft.checkIn, draft.checkOut, draft.quantity, draft.guests, true);
-                BigDecimal gross = nightly.multiply(BigDecimal.valueOf(
-                        ChronoUnit.DAYS.between(draft.checkIn, draft.checkOut) * draft.quantity));
-
-                Quote quote = new Quote(
-                        draft,
-                        nightly,
-                        discounted(c, draft.promotionCode, gross),
-                        name
-                );
+                Quote quote = quote(c, draft, customerName(c, draft));
 
                 c.commit();
                 return quote;
@@ -390,38 +427,20 @@ public class OfflineBookingDAO extends DBContext {
                 }
 
                 d.validate(ReportPeriod.today());
-                customerName(c, d);
-
-                BigDecimal nightly = BookingDAO.lockAvailableRoomType(
-                        c, d.roomTypeId, d.checkIn, d.checkOut, d.quantity, d.guests, true);
-                BigDecimal gross = nightly.multiply(BigDecimal.valueOf(
-                        ChronoUnit.DAYS.between(d.checkIn, d.checkOut) * d.quantity));
-
-                BigDecimal payable = discounted(
-                        c, d.promotionCode, gross
-                );
-
-                if (nightly.compareTo(accepted.nightly) != 0
-                        || payable.compareTo(accepted.payable) != 0) {
-                    throw new IllegalArgumentException(
-                            "Giá hoặc khuyến mãi đã thay đổi. "
-                            + "Vui lòng xem lại tóm tắt."
-                    );
+                Quote current = quote(c, d, customerName(c, d));
+                if (!samePrices(accepted.lines, current.lines)
+                        || current.payable.compareTo(accepted.payable) != 0) {
+                    throw new IllegalArgumentException("Giá hoặc khuyến mãi đã thay đổi. Vui lòng xem lại tóm tắt.");
                 }
 
-                int customer = d.customerId == null
-                        ? createCustomer(c, d)
-                        : d.customerId;
-
-                int id = new BookingDAO().insertRoomTypeBooking(c, customer, d.roomTypeId,
-                        d.checkIn, d.checkOut, d.quantity, d.guests, nightly, d.specialRequest,
-                        actor, d.requestKey, d.promotionCode);
+                int customer = d.customerId == null ? createCustomer(c, d) : d.customerId;
+                int id = insertReservation(c, customer, actor, current);
 
                 try (PreparedStatement audit = c.prepareStatement("INSERT OfflineBookingEvent(BookingID,ActorUserID,RequestKey,Action,Note,Amount) VALUES(?,?,?,'create',N'Tạo đơn giữ phòng tại quầy',?)")) {
                     audit.setInt(1, id);
                     audit.setInt(2, actor);
                     audit.setString(3, d.requestKey);
-                    audit.setBigDecimal(4, gross);
+                    audit.setBigDecimal(4, current.gross);
                     audit.executeUpdate();
                 }
                 c.commit();
@@ -432,6 +451,96 @@ public class OfflineBookingDAO extends DBContext {
                 throw e;
             }
         }
+    }
+
+    private Quote quote(Connection connection, OfflineBookingDraft draft, String customer) throws SQLException {
+        List<RoomLine> lines = new ArrayList<>();
+        int remaining = draft.guests - draft.quantity;
+        long nights = ChronoUnit.DAYS.between(draft.checkIn, draft.checkOut);
+        BigDecimal gross = BigDecimal.ZERO;
+        // draft.rooms được xếp theo mã loại để các đơn khóa kho theo cùng thứ tự.
+        try (PreparedStatement type = connection.prepareStatement(
+                "SELECT Name,Capacity FROM RoomType WHERE RoomTypeID=?")) {
+            for (Map.Entry<Integer, Integer> entry : draft.rooms.entrySet()) {
+                int id = entry.getKey();
+                int count = entry.getValue();
+                BigDecimal nightly = BookingDAO.lockAvailableRoomType(
+                        connection, id, draft.checkIn, draft.checkOut, count, count, true);
+                type.setInt(1, id);
+                try (ResultSet rows = type.executeQuery()) {
+                    if (!rows.next()) {
+                        throw new SQLException("Không tìm được loại phòng đã khóa.");
+                    }
+                    // Dành một chỗ mỗi phòng trước, rồi phân thêm khách theo sức chứa.
+                    int assigned = (int) Math.min(remaining, (long) count * (rows.getInt(2) - 1));
+                    lines.add(new RoomLine(id, rows.getString(1), count, nightly, count + assigned));
+                    remaining -= assigned;
+                }
+                gross = gross.add(nightly.multiply(BigDecimal.valueOf(nights * count)));
+            }
+        }
+        if (remaining > 0) {
+            throw new IllegalArgumentException("Các phòng đã chọn chưa đủ sức chứa cho cả đoàn.");
+        }
+        return new Quote(draft, lines, gross, discounted(connection, draft.promotionCode, gross), customer);
+    }
+
+    private static boolean samePrices(List<RoomLine> accepted, List<RoomLine> current) {
+        if (accepted == null || accepted.size() != current.size()) {
+            return false;
+        }
+        for (int i = 0; i < current.size(); i++) {
+            RoomLine before = accepted.get(i);
+            RoomLine after = current.get(i);
+            if (before.typeId != after.typeId || before.quantity != after.quantity
+                    || before.nightly.compareTo(after.nightly) != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private int insertReservation(Connection connection, int customer, int actor, Quote quote) throws SQLException {
+        OfflineBookingDraft draft = quote.draft;
+        String sql = "SET NOCOUNT ON; DECLARE @ids TABLE(ID INT); "
+                + "INSERT Booking(CustomerID,TotalPrice,Status,SpecialRequest,CreatedByUserID,OfflineRequestKey,"
+                + "OfflinePromotionCode,HoldExpiresAt,OfflineDepositPercent) OUTPUT INSERTED.BookingID INTO @ids "
+                + "VALUES(?,?,'pending',?,?,?,?,DATEADD(MINUTE,?,SYSUTCDATETIME()),?); SELECT ID FROM @ids;";
+        int id;
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, customer);
+            ps.setBigDecimal(2, quote.gross);
+            ps.setNString(3, draft.specialRequest);
+            ps.setInt(4, actor);
+            ps.setString(5, draft.requestKey);
+            ps.setNString(6, draft.promotionCode.isEmpty() ? null : draft.promotionCode);
+            ps.setInt(7, util.OfflineBookingPolicy.HOLD_MINUTES);
+            ps.setInt(8, util.OfflineBookingPolicy.DEPOSIT_PERCENT);
+            try (ResultSet rows = ps.executeQuery()) {
+                if (!rows.next()) {
+                    throw new SQLException("Không lấy được mã đơn đặt phòng.");
+                }
+                id = rows.getInt(1);
+            }
+        }
+        try (PreparedStatement ps = connection.prepareStatement(
+                "INSERT BookingDetail(BookingID,RoomTypeID,RoomNumber,CheckInDate,CheckOutDate,"
+                + "PricePerNight,GuestCount,SpecialRequest) VALUES(?,?,NULL,?,?,?,?,?)")) {
+            ps.setInt(1, id);
+            ps.setObject(3, draft.checkIn);
+            ps.setObject(4, draft.checkOut);
+            ps.setNString(7, draft.specialRequest);
+            for (RoomLine line : quote.lines) {
+                ps.setInt(2, line.typeId);
+                ps.setBigDecimal(5, line.nightly);
+                for (int i = 0; i < line.quantity; i++) {
+                    ps.setInt(6, line.guests / line.quantity + (i < line.guests % line.quantity ? 1 : 0));
+                    ps.addBatch();
+                }
+            }
+            ps.executeBatch();
+        }
+        return id;
     }
 
     private void requireActor(Connection c, int actor)

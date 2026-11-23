@@ -141,7 +141,8 @@ public class CounterPaymentServlet extends HttpServlet {
                     String message;
                     try {
                         ops.checkIn(id, actor.getId(), key, "yes".equals(r.getParameter("identityVerified")),
-                                positive(r.getParameter("actualGuests")), r.getParameterMap());
+                                Boolean.TRUE.equals(quote.get("offline")) ? 0 : positive(r.getParameter("actualGuests")),
+                                r.getParameterMap());
                         message = "Đã nhận phòng thành công.";
                     } catch (IllegalArgumentException ex) {
                         message = ex.getMessage();

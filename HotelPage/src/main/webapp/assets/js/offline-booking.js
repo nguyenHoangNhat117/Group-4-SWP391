@@ -5,19 +5,28 @@
     const fields = form.elements;
     const roomPicker = document.getElementById('obRoomPicker');
     const roomSearch = document.getElementById('obRoomSearch');
-    const roomChoices = Array.from(form.querySelectorAll('input[name="roomTypeId"]'));
+    const results = Array.from(form.querySelectorAll('[data-room-type]'), input => ({
+            input,
+            row: input.closest('.ob-room-choice'),
+            id: Number(input.dataset.roomType),
+            label: input.dataset.label,
+            capacity: Number(input.dataset.capacity),
+            price: Number(input.dataset.price),
+            stock: Number(input.dataset.stock)
+        }));
+    const stepButtons = Array.from(form.querySelectorAll('[data-step]'));
     const previous = document.getElementById('obRoomsPrevious');
     const nextPage = document.getElementById('obRoomsNext');
     const promotion = fields.promotionCode;
-    const promotionOptions = Array.from(promotion.options).filter(option => option.value);
     const pageSize = 10;
-    let roomPage = Math.max(0, Math.floor(roomChoices.findIndex(input => input.checked) / pageSize));
-    const selectedRoom = () => roomChoices.find(input => input.checked);
+    let roomPage = 0;
+    let searchingCustomers = false;
     const create = form.querySelector('button[value="create"]');
     const preview = form.querySelector('button[value="preview"]');
     const reviewed = form.dataset.reviewed === 'true';
     const uncertain = form.dataset.uncertain === 'true';
-    const signatureFields = ['checkIn', 'checkOut', 'guests', 'quantity', 'roomTypeId', 'customerMode',
+    const matchingVersion = form.dataset.formVersion === 'multi-room-quote-1';
+    const signatureFields = ['checkIn', 'checkOut', 'adults', 'children', 'roomSelection', 'customerMode',
         'customerId', 'firstName', 'lastName', 'email', 'phone', 'promotionCode', 'specialRequest'];
     const show = (id, text) => {
         const node = document.getElementById(id);
@@ -29,7 +38,22 @@
         if (node)
             node.hidden = value;
     };
-    const stayKey = () => JSON.stringify([fields.checkIn.value, fields.checkOut.value, fields.guests.value, fields.quantity.value]);
+    const stayFields = [fields.checkIn, fields.checkOut, fields.adults, fields.children];
+    const criteriaKey = ([checkIn, checkOut, adults, children]) => JSON.stringify([
+            checkIn, checkOut, adults.trim() === '' ? '' : Number(adults), children.trim() === '' ? '' : Number(children)
+        ]);
+    const stayKey = () => criteriaKey(stayFields.map(field => field.value));
+    if (stayFields.some(field => !field) || !fields.promotionCode) {
+        show('obRoomProgress', 'Form chưa tải đủ thông tin. Tải lại trang rồi tìm phòng lại.');
+        return;
+    }
+    const promotionOptions = Array.from(promotion.options).filter(option => option.value);
+    const roomSelection = fields.namedItem('roomSelection') || document.createElement('input');
+    if (!roomSelection.form) {
+        roomSelection.type = 'hidden';
+        roomSelection.name = 'roomSelection';
+        form.appendChild(roomSelection);
+    }
     function signature() {
         const data = new FormData(form);
         return JSON.stringify(signatureFields.map(key => String(data.get(key) || '').trim()));
@@ -47,22 +71,52 @@
         });
     }
     mode();
-    const searchedStay = form.dataset.searchKey || stayKey();
+    let searchedStay = '';
+    if (form.dataset.searched === 'true') {
+        try {
+            const criteria = JSON.parse(form.dataset.searchKey || 'null');
+            if (Array.isArray(criteria) && criteria.length === stayFields.length
+                    && criteria.every(value => typeof value === 'string')) {
+                searchedStay = criteriaKey(criteria);
+                // Dùng lại dữ liệu máy chủ nếu ô bị bỏ trống khi trình duyệt tải kết quả.
+                stayFields.forEach((field, index) => {
+                    if (!field.value && !field.validity.badInput)
+                        field.value = criteria[index];
+                });
+            }
+        } catch (error) {
+            // Không mở lại kết quả khi thiếu thông tin lần tìm. Lễ tân có thể tìm lại.
+        }
+    }
+    // Giữ số lượng từ yêu cầu vừa gửi nếu trang không điền lại được giá trị ở từng dòng.
+    if (searchedStay && stayKey() === searchedStay) {
+        const previous = new Map(roomSelection.value.split(',').filter(line => /^\d{1,10}:\d{1,4}$/.test(line))
+                .map(line => line.split(':').map(Number)));
+        for (const room of results) {
+            if (room.input.valueAsNumber === 0 && previous.has(room.id)) {
+                room.input.value = Math.min(room.stock, previous.get(room.id));
+            }
+        }
+    }
     const reviewedSignature = form.dataset.quoteSignature || signature();
     let quoteExpired = reviewed && !(Number(form.dataset.quoteAge) > 0);
-    const quantity = () => Number(fields.quantity.value);
-    const nights = () => (Date.parse(fields.checkOut.value + 'T00:00:00Z')
-        - Date.parse(fields.checkIn.value + 'T00:00:00Z')) / 86400000;
+    function utcDate(field) {
+        const time = new Date(field.value + 'T00:00:00Z');
+        if (!Number.isFinite(time.getTime()) || time.toISOString().slice(0, 10) !== field.value)
+            return NaN;
+        return time.getTime();
+    }
+    const nights = () => (utcDate(fields.checkOut) - utcDate(fields.checkIn)) / 86400000;
 
     function renderRoomList() {
-        if (!roomPicker) return;
+        if (!roomPicker)
+            return;
         const query = roomSearch.value.trim().toLocaleLowerCase().replace(/^#/, '');
-        const matches = roomChoices.filter(input =>
-            input.dataset.label.toLocaleLowerCase().includes(query));
+        const matches = results.filter(({label}) => label.toLocaleLowerCase().includes(query));
         const offset = roomPage * pageSize;
         const visible = new Set(matches.slice(offset, offset + pageSize));
-        roomChoices.forEach(input => {
-            input.closest('.ob-room-choice').hidden = !visible.has(input);
+        results.forEach(result => {
+            result.row.hidden = !visible.has(result);
         });
         previous.disabled = roomPage === 0;
         nextPage.disabled = offset + pageSize >= matches.length;
@@ -75,7 +129,8 @@
         renderRoomList();
     });
     roomSearch?.addEventListener('keydown', event => {
-        if (event.key === 'Enter') event.preventDefault();
+        if (event.key === 'Enter')
+            event.preventDefault();
     });
     previous?.addEventListener('click', () => {
         roomPage--;
@@ -86,61 +141,141 @@
         renderRoomList();
     });
 
-    function updatePromotions(room) {
-        const gross = room && nights() > 0 ? Number(room.dataset.price) * nights() * quantity() : null;
+    function updatePromotions(gross) {
         promotionOptions.forEach(option => {
             const eligible = gross !== null && Number(option.dataset.minimum) <= gross;
-            if (!eligible && option.selected) promotion.value = '';
+            if (!eligible && option.selected)
+                promotion.value = '';
             option.hidden = !eligible;
             option.disabled = !eligible;
         });
         promotion.disabled = uncertain || !promotionOptions.some(option => !option.disabled);
     }
 
-    function renderSummary() {
-        const room = selectedRoom();
+    function renderSummary(selected, roomCount, gross) {
         const stayNights = nights();
         const date = value => value ? value.split('-').reverse().join('/') : '—';
-        show('obRoom', room ? room.dataset.label : 'Chọn loại phòng');
-        show('obType', room ? `${quantity()} phòng` : 'Thông tin đặt phòng');
+        show('obRoom', selected.length ? selected.map(room => room.label + ' × ' + room.count).join(', ') : 'Chọn loại phòng');
+        show('obType', roomCount ? roomCount + ' phòng' : 'Thông tin đặt phòng');
         show('obDates', date(fields.checkIn.value) + ' → ' + date(fields.checkOut.value));
-        show('obNights', stayNights > 0 ? stayNights + ' đêm' : '—');
-        show('obGuests', fields.guests.value ? fields.guests.value + ' khách' : '—');
-        const price = Number(room?.dataset.price);
+        const nightText = stayNights > 0 && fields.checkIn.value >= fields.checkIn.getAttribute('min')
+                ? stayNights + ' đêm' : '';
+        show('obNights', nightText || '—');
+        show('obStayNights', nightText);
+        hide('obStayNights', !nightText);
+        show('obGuests', fields.adults.value
+                ? fields.adults.value + ' người lớn · ' + (fields.children.value || 0) + ' trẻ em' : '—');
         const money = new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'});
-        show('obAmount', room && stayNights > 0 && Number.isFinite(price) ? money.format(price * stayNights * quantity()) : '—');
+        show('obAmount', gross === null ? '—' : money.format(gross));
     }
-    function update() {
-        const stale = stayKey() !== searchedStay;
-        roomChoices.forEach(input => {
-            if (stale) input.checked = false;
-            const insufficient = quantity() > Number(input.dataset.available);
-            if (insufficient && !uncertain) input.checked = false;
-            input.disabled = stale || uncertain || insufficient;
-        });
-        const room = selectedRoom();
-        const notReady = room && room.dataset.ready !== '' && Number(room.dataset.ready) < quantity();
-        hide('obReadinessWarning', !notReady);
-        updatePromotions(room);
-        hide('obSearchChanged', !stale);
-        renderSummary();
-        if (fields.checkIn.value) {
-            const next = new Date(fields.checkIn.value + 'T00:00:00Z');
-            if (Number.isFinite(next.getTime())) {
-                next.setUTCDate(next.getUTCDate() + 1);
-                fields.checkOut.min = next.toISOString().slice(0, 10);
-            }
+    function updateSearchFields() {
+        const checkIn = new Date(utcDate(fields.checkIn));
+        const earliest = fields.checkIn.getAttribute('min');
+        let checkoutMin = earliest;
+        if (Number.isFinite(checkIn.getTime())) {
+            checkIn.setUTCDate(checkIn.getUTCDate() + 1);
+            checkoutMin = [earliest, checkIn.toISOString().slice(0, 10)].sort().pop();
         }
+        if (fields.checkOut.getAttribute('min') !== checkoutMin) {
+            fields.checkOut.setAttribute('min', checkoutMin);
+        }
+        const adults = Number(fields.adults.value);
+        const children = Number(fields.children.value);
+        fields.adults.max = Math.max(1, 1000 - children);
+        fields.children.max = Math.max(0, 1000 - adults);
+    }
+
+    function stepField(button) {
+        return document.getElementById(button.getAttribute('aria-controls'));
+    }
+
+    function updateStepButtons(roomCount, adultCount) {
+        stepButtons.forEach(button => {
+            const field = stepField(button);
+            if (!field) {
+                button.disabled = true;
+                return;
+            }
+            const value = Number(field.value);
+            const decrease = button.dataset.step === '-1';
+            button.disabled = uncertain || field.disabled || (decrease
+                    ? value <= Number(field.min)
+                    : value >= Number(field.max) || (button.hasAttribute('data-room-step') && roomCount >= adultCount));
+        });
+    }
+
+    function update() {
+        updateSearchFields();
+        const stale = form.dataset.searched === 'true' && stayKey() !== searchedStay;
+        const adultCount = Number(fields.adults.value);
+        const guestCount = adultCount + Number(fields.children.value);
+        const selected = [];
+        let validQuantities = true;
+        for (const room of results) {
+            if (stale)
+                room.input.value = '0';
+            room.input.disabled = stale || uncertain || room.stock === 0;
+            room.input.max = Math.min(room.stock, Math.max(0, adultCount));
+            const count = room.input.valueAsNumber;
+            if ((!room.input.disabled && !room.input.validity.valid) || (count > 0 && count > room.stock)) {
+                validQuantities = false;
+            }
+            room.row.classList.toggle('is-selected', count > 0);
+            if (count > 0)
+                selected.push({...room, count});
+        }
+        selected.sort((a, b) => a.id - b.id);
+        roomSelection.value = selected.map(room => room.id + ':' + room.count).join(',');
+        const roomCount = selected.reduce((sum, room) => sum + room.count, 0);
+        updateStepButtons(roomCount, adultCount);
+        const capacity = selected.reduce((sum, room) => sum + room.capacity * room.count, 0);
+        const nightly = selected.reduce((sum, room) => sum + room.price * room.count, 0);
+        const gross = validQuantities && roomCount && nights() > 0 ? nightly * nights() : null;
+        const canQuoteRooms = matchingVersion && !stale && !uncertain && !searchingCustomers
+                && validQuantities && roomCount > 0 && roomCount <= adultCount && capacity >= guestCount
+                && stayFields.every(field => field.validity.valid);
+        const customerMode = form.querySelector('[name="customerMode"]:checked')?.value || 'existing';
+        const customerFields = customerMode === 'new'
+                ? [fields.lastName, fields.firstName, fields.phone, fields.email] : [fields.customerId];
+        const hasCustomer = customerFields.every(field => field && field.validity.valid && (field.value.trim() || !field.required));
+        const canBook = canQuoteRooms && hasCustomer;
+        const customerHint = customerMode === 'new' ? 'Nhập đủ họ tên và điện thoại của người đại diện.'
+                : 'Chọn một hồ sơ ở mục Khách hàng để kiểm tra giá.';
+        show('obQuoteCustomerHint', customerHint);
+        hide('obQuoteCustomerHint', !canQuoteRooms || hasCustomer);
+        hide('obFormVersionError', matchingVersion);
+        updatePromotions(gross);
+        hide('obSearchChanged', !stale);
+        hide('obAdultLimit', stale || roomCount <= adultCount);
+        const progress = capacity >= guestCount ? 'Đủ chỗ cho ' : 'Đã chọn chỗ cho ';
+        const selectionStatus = 'Đã chọn ' + roomCount + ' phòng (tối đa ' + adultCount + ') · '
+                + progress + Math.min(capacity, guestCount) + '/' + guestCount + ' khách';
+        const searchStatus = searchedStay
+                ? 'Ngày hoặc số khách đã đổi. Bấm Tìm phòng trống để chọn lại.'
+                : 'Thiếu thông tin của lần tìm. Bấm Tìm phòng trống để chọn lại.';
+        show('obRoomProgress', uncertain ? 'Hãy kiểm tra kết quả của yêu cầu trước khi chọn phòng.'
+                : stale ? searchStatus : selectionStatus);
+        renderSummary(selected, roomCount, gross);
         if (preview)
-            preview.disabled = !room || notReady || uncertain;
+            preview.disabled = !canBook;
         const quoteChanged = !reviewed || quoteExpired || signature() !== reviewedSignature;
         if (create)
-            create.disabled = quoteChanged || !room || notReady || uncertain;
+            create.disabled = quoteChanged || !canBook;
         hide('obQuoteChanged', !quoteChanged);
         const quote = document.getElementById('obReviewedQuote');
         if (quote)
             quote.style.opacity = quoteChanged ? '.55' : '1';
     }
+    stepButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const field = stepField(button);
+            if (!field)
+                return;
+            const next = (field.valueAsNumber || 0) + Number(button.dataset.step);
+            field.value = Math.min(Number(field.max), Math.max(Number(field.min), next));
+            update();
+        });
+    });
     form.addEventListener('input', update);
     form.addEventListener('change', event => {
         if (event.target.name === 'customerMode')
@@ -153,11 +288,64 @@
             update();
         }, Number(form.dataset.quoteAge));
     }
-    let actionInput;
+    async function searchCustomers(button) {
+        searchingCustomers = true;
+        const request = new URLSearchParams(new FormData(form));
+        request.set(button.name, button.value);
+        // Tìm khách xóa báo giá cũ trên máy chủ. Giữ nguyên lựa chọn phòng trên trang.
+        quoteExpired = reviewed;
+        button.disabled = true;
+        show('obCustomerSearchStatus', 'Đang tìm khách…');
+        hide('obCustomerSearchStatus', false);
+        update();
+        try {
+            const response = await fetch(form.getAttribute('action'), {
+                method: 'POST',
+                body: request,
+                credentials: 'same-origin'
+            });
+            const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+            const current = form.querySelector('[data-customer-search-results]');
+            const found = page.querySelector('[data-customer-search-results]');
+            if (response.redirected || response.status === 403) {
+                show('obCustomerSearchStatus', 'Phiên đã hết hạn. Mở lại màn hình đặt tại quầy và đăng nhập nếu cần.');
+                return;
+            }
+            if (!response.ok || !found) {
+                const error = page.querySelector('[data-offline-booking-error]')?.textContent.trim();
+                show('obCustomerSearchStatus', error || 'Chưa thể tải danh sách khách. Vui lòng thử lại.');
+                return;
+            }
+            current.replaceWith(document.importNode(found, true));
+            hide('obCustomerSearchStatus', true);
+        } catch (error) {
+            show('obCustomerSearchStatus', 'Chưa thể tìm khách do lỗi kết nối. Vui lòng thử lại.');
+        } finally {
+            searchingCustomers = false;
+            mode();
+            update();
+        }
+    }
+
     let locked = [];
     form.addEventListener('submit', event => {
-        if (form.dataset.submitting === 'true') {
+        if (form.dataset.submitting === 'true' || searchingCustomers) {
             event.preventDefault();
+            return;
+        }
+        if (event.submitter?.hasAttribute('data-search-rooms')) {
+            updateSearchFields();
+            const valid = stayFields.every(field => field.reportValidity());
+            if (!valid)
+                event.preventDefault();
+            return;
+        }
+        if (event.submitter?.hasAttribute('data-search-customers')) {
+            update();
+            if (typeof fetch === 'function' && form.querySelector('[data-customer-search-results]')) {
+                event.preventDefault();
+                searchCustomers(event.submitter);
+            }
             return;
         }
         const action = event.submitter?.value;
@@ -168,14 +356,11 @@
             event.preventDefault();
             return;
         }
-        actionInput = document.createElement('input');
-        actionInput.type = 'hidden';
-        actionInput.name = 'action';
-        actionInput.value = action;
-        form.appendChild(actionInput);
         form.dataset.submitting = 'true';
         form.setAttribute('aria-busy', 'true');
-        locked = Array.from(form.querySelectorAll('button:not(:disabled)'));
+        // Giữ nút đã bấm ở trong dữ liệu gửi để máy chủ nhận đúng action.
+        locked = Array.from(form.querySelectorAll('button:not(:disabled)'))
+                .filter(button => button !== event.submitter);
         locked.forEach(button => {
             button.disabled = true;
         });
@@ -183,8 +368,6 @@
     window.addEventListener('pageshow', () => {
         delete form.dataset.submitting;
         form.removeAttribute('aria-busy');
-        actionInput?.remove();
-        actionInput = null;
         locked.forEach(button => {
             button.disabled = false;
         });
