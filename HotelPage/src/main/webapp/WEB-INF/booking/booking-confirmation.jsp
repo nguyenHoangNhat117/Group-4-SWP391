@@ -1,4 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
@@ -12,7 +13,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="<c:url value='/assets/css/general.css'/>">
     <link rel="stylesheet" href="<c:url value='/assets/css/luxe-shared-shell.css'/>">
-    <link rel="stylesheet" href="<c:url value='/assets/css/room-checkout.css'/>">
+    <link rel="stylesheet" href="<c:url value='/assets/css/room-checkout.css?v=2'/>">
+    <link rel="stylesheet" href="<c:url value='/assets/css/online-booking-select.css?v=4'/>">
 </head>
 <body class="body-wrapper">
     <%@ include file="../include/header.jsp" %>
@@ -50,46 +52,62 @@
                         </c:if>
                         <%@ include file="booking-contact-fields.jspf" %>
                     </fieldset>
-                    <div class="stay-panel p-4">
-                        <h2 class="h5 fw-bold mb-3"><ui:text key="room.booking.confirm.stay"/></h2>
-                        <p class="stay-dates flex-wrap"><i class="bi bi-calendar3" aria-hidden="true"></i>
-                            <time datetime="${confirmationDraft.checkIn}">${confirmationDraft.checkIn}</time> &rarr;
-                            <time datetime="${confirmationDraft.checkOut}">${confirmationDraft.checkOut}</time>
-                            <span>(${confirmationDraft.nights} <ui:text key="room.search.party.nights"/>)</span>
-                        </p>
-                        <p class="text-muted">${confirmationDraft.adults} <ui:text key="room.search.party.adults"/> &middot;
-                            ${confirmationDraft.children} <ui:text key="room.search.party.children"/></p>
-                        <table class="table mb-0 align-middle">
-                            <thead><tr>
-                                <th scope="col"><ui:text key="screen.82dea9a01c0033ec"/></th>
-                                <th scope="col"><ui:text key="room.quantity"/></th>
-                                <th scope="col" class="text-end"><ui:text key="screen.bf193eab4a1aafb0"/></th>
-                                <th scope="col" class="text-end"><ui:text key="room.confirm.lineTotal"/></th>
-                            </tr></thead>
-                            <tbody>
-                                <c:forEach var="line" items="${confirmationDraft.rooms}">
-                                    <tr>
-                                        <th scope="row"><c:out value="${line.name}"/></th>
-                                        <td>${line.quantity}</td>
-                                        <td class="text-end text-nowrap"><ui:money amount="${line.nightly}"/></td>
-                                        <td class="text-end text-nowrap"><ui:money amount="${line.nightly * line.quantity * confirmationDraft.nights}"/></td>
-                                    </tr>
-                                </c:forEach>
-                            </tbody>
-                        </table>
-                    </div>
+                    <section class="stay-panel stay-overview p-3 p-sm-4" aria-labelledby="stay-overview-title">
+                        <c:set var="stayDateFormat" value="${DateTimeFormatter.ofPattern('dd/MM/uuuu')}"/>
+                        <div class="stay-overview-heading">
+                            <h2 class="h5 fw-bold mb-0" id="stay-overview-title"><ui:text key="room.booking.confirm.stay"/></h2>
+                            <span class="stay-overview-nights"><i class="bi bi-moon-stars" aria-hidden="true"></i>
+                                ${confirmationDraft.nights} <ui:text key="room.search.party.nights"/></span>
+                        </div>
+                        <dl class="stay-overview-facts">
+                            <div>
+                                <dt><ui:text key="history.bookings.detail.checkIn"/></dt>
+                                <dd><time datetime="${confirmationDraft.checkIn}">${confirmationDraft.checkIn.format(stayDateFormat)}</time></dd>
+                            </div>
+                            <div>
+                                <dt><ui:text key="history.bookings.detail.checkOut"/></dt>
+                                <dd><time datetime="${confirmationDraft.checkOut}">${confirmationDraft.checkOut.format(stayDateFormat)}</time></dd>
+                            </div>
+                            <div class="stay-overview-party">
+                                <dt><ui:text key="room.selection.partyTotal"/></dt>
+                                <dd>${confirmationDraft.adults} <ui:text key="room.selection.adultUnit"/> &middot;
+                                    ${confirmationDraft.children} <ui:text key="room.selection.childUnit"/></dd>
+                            </div>
+                        </dl>
+                        <ul class="stay-overview-rooms list-unstyled mb-0" role="list">
+                            <c:forEach var="line" items="${confirmationDraft.rooms}">
+                                <li class="stay-overview-room">
+                                    <div>
+                                        <h3 class="h6 fw-bold mb-1"><c:out value="${line.name}"/></h3>
+                                        <p class="stay-overview-room-meta mb-0">
+                                            ${line.quantity} <ui:text key="room.selection.roomUnit"/> &middot;
+                                            ${line.adults} <ui:text key="room.selection.adultUnit"/> &middot;
+                                            ${line.children} <ui:text key="room.selection.childUnit"/>
+                                        </p>
+                                    </div>
+                                    <div class="stay-overview-price">
+                                        <strong><span class="visually-hidden"><ui:text key="room.confirm.lineTotal"/> </span>
+                                            <ui:money amount="${line.nightly * line.quantity * confirmationDraft.nights}"/></strong>
+                                        <span class="stay-overview-room-meta"><ui:money amount="${line.nightly}"/> / <ui:text key="room.search.party.nights"/></span>
+                                    </div>
+                                </li>
+                            </c:forEach>
+                        </ul>
+                    </section>
                 </section>
                 <div class="col-lg-5">
                     <div class="stay-panel p-4">
                         <h2 class="h5 stay-form-heading"><ui:text key="room.booking.payment.title"/></h2>
-                        <label class="form-label" for="payment-plan"><ui:text key="room.checkout.method"/></label>
-                        <select id="payment-plan" name="payment-plan" class="form-select mb-3" required>
+                        <label class="form-label booking-select-label" for="payment-plan"><ui:text key="room.checkout.method"/></label>
+                        <select id="payment-plan" name="payment-plan" class="form-select booking-select mb-3"
+                                aria-invalid="${paymentChoiceError eq true}" required>
                             <option value="deposit" ${canDeposit ? '' : 'disabled'} ${selectedPlan == 'deposit' ? 'selected' : ''}><ui:text key="room.checkout.deposit"/></option>
                             <option value="transfer" ${selectedPlan == 'transfer' ? 'selected' : ''}><ui:text key="room.checkout.transfer"/></option>
                         </select>
                         <c:if test="${paymentChoiceError}"><p class="text-danger small" role="alert"><ui:text key="room.checkout.choice.error"/></p></c:if>
-                        <label class="form-label" for="discount-code"><ui:text key="room.checkout.discount"/></label>
-                        <select id="discount-code" name="discount-code" class="form-select mb-3">
+                        <label class="form-label booking-select-label" for="discount-code"><ui:text key="room.checkout.discount"/></label>
+                        <select id="discount-code" name="discount-code" class="form-select booking-select mb-3"
+                                aria-invalid="${voucherError eq true}">
                             <option value=""><c:out value="${requestScope.i18n['room.checkout.no.voucher']}"/></option>
                             <c:forEach var="voucher" items="${voucherTotals}">
                                 <option value="<c:out value='${voucher.key}'/>" data-total="${voucher.value}"
@@ -129,6 +147,6 @@
     </main>
     <%@ include file="../include/footer.jsp" %>
     <script src="<c:url value='/assets/js/bootstrap.bundle.min.js'/>"></script>
-    <script src="<c:url value='/assets/js/booking-confirmation.js'/>" defer></script>
+    <script type="module" src="<c:url value='/assets/js/booking-confirmation.js?v=3'/>"></script>
 </body>
 </html>

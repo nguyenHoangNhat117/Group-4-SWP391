@@ -1,0 +1,27 @@
+<fieldset class="room-types-panel room-types-form-card" data-amenity-list>
+    <legend class="h5 mb-3"><ui:text key="screen.fa7a5f35ea119b26"/></legend>
+    <c:choose>
+        <c:when test="${empty allAmenities}">
+            <p class="room-types-help mb-0"><ui:text key="room.type.amenities.empty"/></p>
+        </c:when>
+        <c:otherwise>
+            <div class="mb-3" data-amenity-filter hidden>
+                <label for="amenity-search" class="form-label"><ui:text key="room.amenity.search"/></label>
+                <input type="search" class="form-control" id="amenity-search" data-amenity-search>
+            </div>
+            <div class="room-types-amenities">
+                <c:forEach var="amenity" items="${allAmenities}">
+                    <label class="room-types-amenity" data-amenity-item>
+                        <input class="form-check-input" type="checkbox" name="amenities" value="${amenity.amenityID}"
+                               ${selectedAmenities.contains(amenity.amenityID) ? 'checked' : ''}>
+                        <span data-amenity-name><c:out value="${amenity.name}"/></span>
+                        <c:if test="${not amenity.active}">
+                            <span class="small text-muted"><ui:text key="room.amenity.inactive"/></span>
+                        </c:if>
+                    </label>
+                </c:forEach>
+            </div>
+            <p class="text-muted mb-0" data-amenity-no-results hidden><ui:text key="room.amenity.noResults"/></p>
+        </c:otherwise>
+    </c:choose>
+</fieldset>

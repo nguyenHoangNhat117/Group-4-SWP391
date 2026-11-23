@@ -49,10 +49,18 @@ HotelPage/
 ## 2. Database
 
 ```text
-HotelDB.sql
+NewDB.sql
 ```
 
 Dữ liệu mẫu liên kết: [`HotelDB.seed.sql`](HotelDB.seed.sql). Xem tài khoản, tình huống và cách chạy tại [`DATABASE_SAMPLE.md`](DATABASE_SAMPLE.md).
+
+Với HotelDB đã cài từ bản cũ, chạy [migration giới hạn phòng](HotelPage/src/main/resources/db/room_inventory_settings.sql) trước khi triển khai. Quản trị viên cập nhật giới hạn tại **Quản lý phòng → Chỉnh giới hạn**.
+
+Với HotelDB chưa có trạng thái tiện nghi, chạy [migration tiện nghi](HotelPage/src/main/resources/db/amenity_status.sql) trước khi triển khai trang quản lý tiện nghi.
+
+Với HotelDB đang dùng, chạy [migration giữ phòng online](HotelPage/src/main/resources/db/online_room_reservations.sql) trước khi triển khai bản có giữ phòng theo số phòng và lưu người lớn, trẻ em theo từng phòng.
+
+Với HotelDB đã cài, chọn database đó trong SSMS rồi chạy [migration xóa bảng thông số phòng](HotelPage/src/main/resources/db/drop_room_type_specifications.sql). Bản cài mới từ `NewDB.sql` đã bỏ bảng này.
 
 ## 3. Main Components
 

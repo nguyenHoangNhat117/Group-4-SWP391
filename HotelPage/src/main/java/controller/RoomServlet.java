@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.ToIntFunction;
 import model.Room;
 import model.OnlineBookingDraft;
 import model.RoomPriceBand;
@@ -52,11 +51,24 @@ public class RoomServlet extends HttpServlet {
         request.setAttribute("roomTypes", types);
     }
 
-    private void showCreateForm(HttpServletRequest request, HttpServletResponse response)
+    private void showCreateForm(HttpServletRequest request, HttpServletResponse response, RoomDAO roomDAO)
             throws ServletException, IOException {
         showRoomTypes(request);
-        request.setAttribute("maxQuantity", RoomDAO.MAX_CREATE_QUANTITY);
+        try {
+            setRoomCapacity(request, roomDAO);
+        } catch (SQLException ex) {
+            throw new ServletException("Could not load the hotel room capacity", ex);
+        }
         request.getRequestDispatcher("/WEB-INF/room/create.jsp").forward(request, response);
+    }
+
+    private static void setRoomCapacity(HttpServletRequest request, RoomDAO roomDAO) throws SQLException {
+        RoomDAO.RoomCapacity capacity = roomDAO.roomCapacity();
+        int remaining = capacity.getRemaining();
+        request.setAttribute("registeredRoomCount", capacity.getRegistered());
+        request.setAttribute("roomLimit", capacity.getLimit());
+        request.setAttribute("remainingRoomSlots", remaining);
+        request.setAttribute("maxQuantity", Math.min(remaining, RoomDAO.MAX_CREATE_QUANTITY));
     }
 
     private Integer positiveInt(String value) {
@@ -108,7 +120,7 @@ public class RoomServlet extends HttpServlet {
         RoomDAO roomDAO = new RoomDAO();
         switch (view) {
             case "create":
-                showCreateForm(request, response);
+                showCreateForm(request, response, roomDAO);
                 return;
             case "update": {
                 Integer roomNumber = positiveInt(request.getParameter("roomNumber"));
@@ -205,18 +217,17 @@ public class RoomServlet extends HttpServlet {
         }
 
         String sort = searchSort(session.getAttribute("searchSortBy"));
+        int children = guestCount - adults;
         List<RoomDAO.AvailableType> types;
         try {
-            types = roomDAO.findRoomSelectionTypes(checkIn, checkOut, sort);
+            types = roomDAO.findRoomSelectionTypes(checkIn, checkOut, adults, children, sort);
         } catch (SQLException ex) {
             throw new ServletException("Unable to load room inventory", ex);
         }
-        request.setAttribute("insufficientPartyCapacity",
-                !types.isEmpty() && !hasCapacityForParty(types, adults, guestCount, RoomDAO.AvailableType::getAvailable));
         request.setAttribute("availableTypes", types);
         request.setAttribute("searchSortBy", sort);
         request.setAttribute("searchAdults", adults);
-        request.setAttribute("searchChildren", guestCount - adults);
+        request.setAttribute("searchChildren", children);
         request.setAttribute("searchNights", ChronoUnit.DAYS.between(checkIn, checkOut));
         request.setAttribute("searchCriteria", searchCriteria(checkIn, checkOut, adults, guestCount));
         request.setAttribute("selectionCsrfToken", util.AuthSupport.token(session));
@@ -231,20 +242,6 @@ public class RoomServlet extends HttpServlet {
 
     private static String searchCriteria(LocalDate from, LocalDate to, int adults, int guests) {
         return from + "|" + to + "|" + adults + "|" + guests;
-    }
-
-    private static boolean hasCapacityForParty(List<RoomDAO.AvailableType> types, int adults, int guests,
-            ToIntFunction<RoomDAO.AvailableType> quantity) {
-        long totalCapacity = 0;
-        long childCapacity = 0;
-        for (RoomDAO.AvailableType result : types) {
-            long capacity = result.getType().getCapacity();
-            int rooms = quantity.applyAsInt(result);
-            totalCapacity += capacity * rooms;
-            childCapacity += (long) result.getMaxChildren() * rooms;
-        }
-        // This checks available stock. The maximum number of rooms applies to selected rooms.
-        return OnlineStayPolicy.fitsParty(adults, guests - adults, totalCapacity, childCapacity);
     }
 
     private static String searchSort(Object value) {
@@ -269,27 +266,36 @@ public class RoomServlet extends HttpServlet {
         }
 
         String[] ids = request.getParameterValues("roomTypeId");
-        String[] quantities = request.getParameterValues("quantity");
-        Map<Integer, Integer> selected = new HashMap<>();
-        long roomCount = 0;
-        if (ids == null || quantities == null || ids.length != quantities.length) {
+        String[] roomAdults = request.getParameterValues("roomAdults");
+        String[] roomChildren = request.getParameterValues("roomChildren");
+        if (ids == null || roomAdults == null || roomChildren == null
+                || ids.length == 0 || ids.length != roomAdults.length || ids.length != roomChildren.length) {
             writeSelectionResponse(response, HttpServletResponse.SC_BAD_REQUEST, Map.of("status", "capacity"));
             return;
         }
+        Map<Integer, List<OnlineBookingDraft.RoomParty>> selected = new HashMap<>();
+        long cartGuests = 0;
         for (int index = 0; index < ids.length; index++) {
             Integer id = positiveInt(ids[index]);
-            Integer quantity = positiveInt(quantities[index]);
-            if (id == null || quantity == null || selected.putIfAbsent(id, quantity) != null) {
+            Integer partyAdults = positiveInt(roomAdults[index]);
+            Integer partyChildren = "0".equals(roomChildren[index]) ? Integer.valueOf(0) : positiveInt(roomChildren[index]);
+            if (id == null || partyAdults == null || partyChildren == null) {
                 writeSelectionResponse(response, HttpServletResponse.SC_BAD_REQUEST, Map.of("status", "capacity"));
                 return;
             }
-            roomCount += quantity;
+            cartGuests += (long) partyAdults + partyChildren;
+            if (cartGuests > 1000) {
+                writeSelectionResponse(response, HttpServletResponse.SC_BAD_REQUEST, Map.of("status", "capacity"));
+                return;
+            }
+            selected.computeIfAbsent(id, key -> new ArrayList<>())
+                    .add(new OnlineBookingDraft.RoomParty(partyAdults, partyChildren));
         }
 
         List<RoomDAO.AvailableType> inventory;
         try {
             new dao.BookingDAO().expirePendingBookings();
-            inventory = new RoomDAO().findRoomSelectionTypes(from, to, "price_asc");
+            inventory = new RoomDAO().findAvailableTypes(from, to, 1, null, RoomPriceBand.ALL, "price_asc");
         } catch (SQLException ex) {
             throw new ServletException("Unable to check room selection", ex);
         }
@@ -297,38 +303,41 @@ public class RoomServlet extends HttpServlet {
         for (RoomDAO.AvailableType type : inventory) {
             stock.put(type.getType().getId(), type.getAvailable());
         }
-        if (selected.entrySet().stream().anyMatch(entry -> entry.getValue() > stock.getOrDefault(entry.getKey(), 0))) {
+        if (selected.entrySet().stream().anyMatch(entry -> entry.getValue().size() > stock.getOrDefault(entry.getKey(), 0))) {
             writeSelectionResponse(response, HttpServletResponse.SC_CONFLICT, Map.of("status", "stock", "stock", stock));
-        } else if (roomCount < 1 || roomCount > guests
-                || !hasCapacityForParty(inventory, adults, guests, type -> selected.getOrDefault(type.getType().getId(), 0))) {
-            writeSelectionResponse(response, HttpServletResponse.SC_BAD_REQUEST, Map.of("status", "capacity"));
-        } else {
-            List<OnlineBookingDraft.RoomLine> lines = new ArrayList<>();
-            for (RoomDAO.AvailableType type : inventory) {
-                Integer quantity = selected.get(type.getType().getId());
-                if (quantity != null) {
-                    lines.add(new OnlineBookingDraft.RoomLine(type.getType(), quantity));
-                }
-            }
-            OnlineBookingDraft draft;
-            synchronized (session) {
-                if (!from.equals(session.getAttribute("checkInDate")) || !to.equals(session.getAttribute("checkOutDate"))
-                        || !Integer.valueOf(guests).equals(session.getAttribute("guestCount"))
-                        || adults != searchAdults(session)) {
-                    writeSelectionResponse(response, HttpServletResponse.SC_CONFLICT, Map.of("status", "search-changed"));
-                    return;
-                }
-                draft = new OnlineBookingDraft(from, to, adults, guests - adults, lines);
-                Object previous = session.getAttribute(OnlineBookingDraft.SESSION_ATTRIBUTE);
-                if (previous instanceof OnlineBookingDraft) {
-                    draft.copyContactFrom((OnlineBookingDraft) previous);
-                }
-                session.setAttribute(OnlineBookingDraft.SESSION_ATTRIBUTE, draft);
-            }
-            writeSelectionResponse(response, HttpServletResponse.SC_OK, Map.of(
-                    "status", "available", "nextUrl", request.getContextPath() + draft.getPath(),
-                    "requestKey", draft.getToken()));
+            return;
         }
+        List<OnlineBookingDraft.RoomLine> lines = new ArrayList<>();
+        for (RoomDAO.AvailableType type : inventory) {
+            List<OnlineBookingDraft.RoomParty> parties = selected.get(type.getType().getId());
+            if (parties == null) {
+                continue;
+            }
+            OnlineBookingDraft.RoomLine line = new OnlineBookingDraft.RoomLine(type.getType(), parties);
+            if (!OnlineStayPolicy.fitsParty(line.getMaxAdultsPerRoom(), line.getMaxChildrenPerRoom(),
+                    type.getType().getCapacity(), type.getMaxChildren())) {
+                writeSelectionResponse(response, HttpServletResponse.SC_BAD_REQUEST, Map.of("status", "capacity"));
+                return;
+            }
+            lines.add(line);
+        }
+        OnlineBookingDraft draft = new OnlineBookingDraft(from, to, lines);
+        synchronized (session) {
+            if (!from.equals(session.getAttribute("checkInDate")) || !to.equals(session.getAttribute("checkOutDate"))
+                    || !Integer.valueOf(guests).equals(session.getAttribute("guestCount"))
+                    || adults != searchAdults(session)) {
+                writeSelectionResponse(response, HttpServletResponse.SC_CONFLICT, Map.of("status", "search-changed"));
+                return;
+            }
+            Object previous = session.getAttribute(OnlineBookingDraft.SESSION_ATTRIBUTE);
+            if (previous instanceof OnlineBookingDraft) {
+                draft.copyContactFrom((OnlineBookingDraft) previous);
+            }
+            session.setAttribute(OnlineBookingDraft.SESSION_ATTRIBUTE, draft);
+        }
+        writeSelectionResponse(response, HttpServletResponse.SC_OK, Map.of(
+                "status", "available", "nextUrl", request.getContextPath() + draft.getPath(),
+                "requestKey", draft.getToken()));
     }
 
     private static void writeSelectionResponse(HttpServletResponse response, int status, Map<String, ?> body)
@@ -358,6 +367,7 @@ public class RoomServlet extends HttpServlet {
         int page = 1;
         List<Room> rooms = Collections.emptyList();
         try {
+            setRoomCapacity(request, roomDAO);
             if (!invalidRoomNumber) {
                 totalPages = roomDAO.getTotalPages(roomTypeId, roomNumber, status);
                 if (totalPages > 0) {
@@ -413,6 +423,26 @@ public class RoomServlet extends HttpServlet {
 
         RoomDAO roomDAO = new RoomDAO();
         switch (action == null ? "" : action) {
+            case "update-room-limit": {
+                if (!util.AuthSupport.checkCsrf(request, response)) {
+                    return;
+                }
+                Integer limit = positiveInt(util.AuthSupport.text(request.getParameter("room-limit")));
+                String outcome;
+                if (limit == null) {
+                    outcome = "invalid";
+                } else {
+                    try {
+                        outcome = roomDAO.updateRoomLimit(limit) ? "updated" : "below-count";
+                    } catch (SQLException ex) {
+                        log("Could not update the hotel room capacity", ex);
+                        outcome = "failed";
+                    }
+                }
+                response.setStatus(HttpServletResponse.SC_SEE_OTHER);
+                response.setHeader("Location", request.getContextPath() + "/room?room-limit-result=" + outcome);
+                return;
+            }
             case "create": {
                 String status = request.getParameter("status");
                 Integer roomTypeId = positiveInt(request.getParameter("room-type-id"));
@@ -426,20 +456,24 @@ public class RoomServlet extends HttpServlet {
                 } else if (roomTypeId == null || new RoomTypeDAO().getRoomTypeById(roomTypeId) == null) {
                     error = "invalid-room-type";
                 } else {
-                    List<Integer> roomNumbers = roomDAO.create(status, roomTypeId, quantity);
-                    if (!roomNumbers.isEmpty()) {
-                        synchronized (session) {
-                            session.setAttribute(CREATED_ROOMS, roomNumbers);
+                    try {
+                        List<Integer> roomNumbers = roomDAO.create(status, roomTypeId, quantity);
+                        if (!roomNumbers.isEmpty()) {
+                            synchronized (session) {
+                                session.setAttribute(CREATED_ROOMS, roomNumbers);
+                            }
+                            response.setStatus(HttpServletResponse.SC_SEE_OTHER);
+                            response.setHeader("Location", request.getContextPath() + "/room");
+                            return;
                         }
-                        response.setStatus(HttpServletResponse.SC_SEE_OTHER);
-                        response.setHeader("Location", request.getContextPath() + "/room");
-                        return;
+                        error = "create-failed";
+                    } catch (RoomDAO.RoomLimitExceededException ex) {
+                        error = "capacity-limit";
                     }
-                    error = "create-failed";
                 }
                 request.setAttribute("createError", error);
                 request.setAttribute("selectedRoomTypeId", roomTypeId);
-                showCreateForm(request, response);
+                showCreateForm(request, response, roomDAO);
                 return;
             }
             case "update": {
@@ -455,12 +489,16 @@ public class RoomServlet extends HttpServlet {
                     response.sendError(HttpServletResponse.SC_BAD_REQUEST);
                     return;
                 }
-                int changed = roomDAO.update(roomNumber, status, roomTypeId);
+                int changed;
+                try {
+                    changed = roomDAO.update(roomNumber, status, roomTypeId);
+                } catch (RoomDAO.InventoryConflict conflict) {
+                    redirect(request, response, "/room?view=update&roomNumber=" + roomNumber + conflictQuery(conflict));
+                    return;
+                }
                 if (changed <= 0) {
-                    String error = changed == RoomDAO.CHANGE_BLOCKED_BY_BOOKING
-                            ? "active-booking" : "update-failed";
                     redirect(request, response, "/room?view=update&roomNumber="
-                            + roomNumber + "&error=" + error);
+                            + roomNumber + "&error=update-failed");
                     return;
                 }
                 redirect(request, response, "/room?page-index=1");
@@ -474,9 +512,11 @@ public class RoomServlet extends HttpServlet {
                     response.sendError(HttpServletResponse.SC_BAD_REQUEST);
                     return;
                 }
-                int changed = roomDAO.delete(roomNumber);
-                if (changed == RoomDAO.CHANGE_BLOCKED_BY_BOOKING) {
-                    redirect(request, response, "/room?error=active-booking");
+                int changed;
+                try {
+                    changed = roomDAO.delete(roomNumber);
+                } catch (RoomDAO.InventoryConflict conflict) {
+                    redirect(request, response, "/room?page-index=1" + conflictQuery(conflict));
                     return;
                 }
                 if (changed <= 0) {
@@ -489,6 +529,10 @@ public class RoomServlet extends HttpServlet {
             default:
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Thao tác không hợp lệ.");
         }
+    }
+
+    private static String conflictQuery(RoomDAO.InventoryConflict conflict) {
+        return "&error=active-booking&stayFrom=" + conflict.getFrom() + "&stayTo=" + conflict.getTo();
     }
 
     private void handleSearch(HttpServletRequest request, HttpServletResponse response,

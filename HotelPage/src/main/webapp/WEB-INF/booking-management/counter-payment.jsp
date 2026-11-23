@@ -77,7 +77,15 @@
                     <c:forEach items="${operations.rooms}" var="room"><p><strong><c:choose>
                             <c:when test="${empty room.RoomNumber}">Chưa xếp phòng</c:when>
                             <c:otherwise>#${room.RoomNumber}</c:otherwise>
-                        </c:choose></strong><c:if test="${not empty room.RoomTypeName}"> · <c:out value="${room.RoomTypeName}"/></c:if> · <fmt:formatDate value="${room.CheckInDate}" pattern="dd/MM/yyyy"/> → <fmt:formatDate value="${room.CheckOutDate}" pattern="dd/MM/yyyy"/> · ${room.GuestCount} <ui:text key="offline.guests"/>
+                        </c:choose></strong><c:if test="${not empty room.RoomTypeName}"> · <c:out value="${room.RoomTypeName}"/></c:if> · <fmt:formatDate value="${room.CheckInDate}" pattern="dd/MM/yyyy"/> → <fmt:formatDate value="${room.CheckOutDate}" pattern="dd/MM/yyyy"/> ·
+                            <c:choose>
+                                <c:when test="${not empty room.BookedAdults}">
+                                    ${room.BookedAdults} <ui:text key="room.selection.adultUnit"/>
+                                    · ${room.BookedChildren} <ui:text key="room.selection.childUnit"/>
+                                </c:when>
+                                <c:when test="${operations.online}"><ui:text key="room.booking.party.unknown"/></c:when>
+                                <c:otherwise>${room.GuestCount} <ui:text key="offline.guests"/></c:otherwise>
+                            </c:choose>
                             <c:if test="${room.NeedsCleaning}"><span class="oc-badge"><ui:text key="offline.dirty"/></span></c:if></p></c:forEach>
                         <c:if test="${not empty operations.actualCheckoutDate}">
                         <p><strong>Ngày trả phòng thực tế (Việt Nam):</strong> <c:out value="${operations.actualCheckoutDate}"/>. Lịch phía trên là lịch đặt ban đầu.</p>
@@ -131,11 +139,15 @@
                                                             <c:set var="hasUnassignedSlot" value="${true}"/>
                                                             <label>
                                                                 ${line.count}. <c:out value="${slot.typeName}"/>
+                                                                <c:if test="${not empty slot.bookedAdults}">
+                                                                    · ${slot.bookedAdults} <ui:text key="room.selection.adultUnit"/>
+                                                                    · ${slot.bookedChildren} <ui:text key="room.selection.childUnit"/>
+                                                                </c:if>
                                                                 <select class="ob-input" name="room-${slot.id}" required
                                                                         data-assigned-room data-auto-room="${operations.checkIn.suggested[slot.id]}">
                                                                     <option value="">Chọn phòng</option>
                                                                     <c:forEach items="${slot.options}" var="roomNumber">
-                                                                        <option value="${roomNumber}">Phòng #${roomNumber}</option>
+                                                                        <option value="${roomNumber}" ${slot.provisional and operations.checkIn.suggested[slot.id] == roomNumber ? 'selected' : ''}>Phòng #${roomNumber}</option>
                                                                     </c:forEach>
                                                                 </select>
                                                             </label>

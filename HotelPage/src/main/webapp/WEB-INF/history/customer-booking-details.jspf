@@ -76,6 +76,24 @@
                                     <c:if test="${summary.mixedDates}">
                                         <p class="booking-detail-calculation">${line.checkIn.format(historyDayFormat)} &ndash; ${line.checkOut.format(historyDayFormat)}</p>
                                     </c:if>
+                                    <c:if test="${not booking.offline}">
+                                        <c:choose>
+                                            <c:when test="${empty line.details[0].bookedAdults}">
+                                                <p class="booking-detail-calculation"><ui:text key="room.booking.party.unknown"/></p>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <c:forEach var="roomDetail" items="${line.details}" varStatus="partyIndex">
+                                                    <p class="booking-detail-calculation">
+                                                        <c:if test="${line.quantity gt 1}">
+                                                            <ui:text key="history.bookings.detail.room"/> ${partyIndex.count} ·
+                                                        </c:if>
+                                                        ${roomDetail.bookedAdults} <ui:text key="room.selection.adultUnit"/>
+                                                        · ${roomDetail.bookedChildren} <ui:text key="room.selection.childUnit"/>
+                                                    </p>
+                                                </c:forEach>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </c:if>
                                     <c:if test="${not empty line.roomNumbers}">
                                         <p class="booking-detail-calculation">
                                             <ui:text key="history.bookings.detail.roomNumbers"/>

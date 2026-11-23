@@ -14,6 +14,7 @@
             <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+        <link rel="stylesheet" href="<c:url value='/assets/css/online-booking-select.css?v=2'/>">
 </head>
     <body>
         <div class="body-wrapper">
@@ -60,8 +61,8 @@
 
                     <!-- Initial payment option -->
                     <div class="mb-3">
-                        <label for="prepayment-percent" class="form-label fw-semibold"><ui:text key="screen.6462ea238a580eb8"/></label>
-                        <select id="prepayment-percent" name="prepayment-percent" class="form-select form-select-lg" required>
+                        <label for="prepayment-percent" class="form-label booking-select-label"><ui:text key="screen.6462ea238a580eb8"/></label>
+                        <select id="prepayment-percent" name="prepayment-percent" class="form-select booking-select" required>
                             <option value="0">${requestScope.i18n['screen.6500570368820548']}</option>
                             <option value="10">${requestScope.i18n['screen.ba120e159f543d2e']}</option>
                             <option value="20">${requestScope.i18n['screen.4a6ff799acf7bfce']}</option>

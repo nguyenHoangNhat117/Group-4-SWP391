@@ -39,6 +39,12 @@
                         </p>
                     </c:when>
 
+                    <c:when test="${createError == 'capacity-limit'}">
+                        <p class="alert alert-warning text-center" role="alert">
+                            <ui:text key="room.admin.capacity.exceeded"/>
+                        </p>
+                    </c:when>
+
                     <c:when test="${createError == 'invalid-status'}">
                         <p class="alert alert-danger text-center">
                             <ui:text key="screen.3e84be96fde86c7f"/>
@@ -65,6 +71,7 @@
 
                     <form
                         id="create-rooms-form"
+                        data-at-capacity="${maxQuantity eq 0}"
                         action="${pageContext.request.contextPath}/room?action=create"
                         method="post"
                         class="d-flex flex-column">
@@ -72,6 +79,15 @@
                         <h2 class="mb-4 text-center">
                             <ui:text key="screen.4494068281a6d314"/>
                         </h2>
+
+                        <p class="text-muted mb-4">
+                            <ui:text key="room.admin.capacity.registered"/>
+                            <strong>${registeredRoomCount} / ${roomLimit}</strong>
+                            &middot; <ui:text key="room.admin.capacity.remaining"/> <strong>${remainingRoomSlots}</strong>
+                        </p>
+                        <c:if test="${maxQuantity eq 0}">
+                            <p class="alert alert-warning" role="status"><ui:text key="room.admin.capacity.full"/></p>
+                        </c:if>
 
                         <!--
                             Room Number is NOT entered manually.
@@ -156,9 +172,15 @@
                             </label>
                             <input id="room-quantity" name="quantity" class="form-control form-control-lg"
                                    type="number" min="1" max="${maxQuantity}" step="1" required
+                                   ${maxQuantity eq 0 ? 'disabled' : ''}
                                    aria-describedby="room-quantity-help"
                                    value="<c:out value='${param.quantity}' default='1'/>">
-                            <div id="room-quantity-help" class="form-text"><ui:text key="room.admin.quantity.help"/></div>
+                            <div id="room-quantity-help" class="form-text">
+                                <c:if test="${maxQuantity gt 0}">
+                                    <ui:text key="room.admin.quantity.limit"/> ${maxQuantity}.
+                                </c:if>
+                                <ui:text key="room.admin.quantity.help"/>
+                            </div>
                         </div>
 
                         <!-- Submit -->
@@ -167,6 +189,7 @@
                             <button
                                 id="create-rooms-submit"
                                 type="submit"
+                                ${maxQuantity eq 0 ? 'disabled' : ''}
                                 class="btn btn-primary
                                        fs-5 px-4 rounded-3">
 
@@ -207,7 +230,7 @@
             });
 
             window.addEventListener('pageshow', () => {
-                createRoomsButton.disabled = false;
+                createRoomsButton.disabled = createRoomsForm.dataset.atCapacity === 'true';
                 createRoomsLabel.hidden = false;
                 createRoomsPendingLabel.hidden = true;
             });

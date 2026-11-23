@@ -12,8 +12,8 @@ public final class OnlineStayPolicy {
     private OnlineStayPolicy() {
     }
 
-    public static boolean fitsParty(int adults, int children, long totalCapacity, long childCapacity) {
-        return adults >= 1 && children >= 0 && totalCapacity >= (long) adults + children
+    public static boolean fitsParty(int adults, int children, long adultCapacity, long childCapacity) {
+        return adults >= 1 && children >= 0 && adultCapacity >= adults
                 && childCapacity >= children;
     }
 

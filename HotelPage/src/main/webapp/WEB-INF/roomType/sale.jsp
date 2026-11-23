@@ -17,14 +17,15 @@
         <main class="container py-5">
             <h1><ui:text key="${roomType.active ? 'room.admin.sale.stop' : 'room.admin.sale.resume'}"/></h1>
             <p><strong><c:out value="${roomType.name}"/></strong></p>
-            <p><ui:text key="room.admin.sale.rooms"/> <strong>${roomCount}</strong></p>
-            <p><ui:text key="room.admin.sale.bookings"/> <strong>${activeBookingCount}</strong></p>
+            <p><ui:text key="room.admin.sale.rooms"/> <strong>${roomType.roomCount}</strong></p>
+            <p><ui:text key="room.admin.sale.bookings"/> <strong>${roomType.activeBookingCount}</strong></p>
             <c:if test="${roomType.active}">
                 <p><ui:text key="room.admin.sale.existing"/></p>
             </c:if>
             <form action="${pageContext.request.contextPath}/room-type?action=sale" method="post" class="d-flex gap-2">
-                <input type="hidden" name="csrfToken" value="${roomAdminCsrf}"/>
+                <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}"/>
                 <input type="hidden" name="id" value="${roomType.id}"/>
+                <input type="hidden" name="page-index" value="<c:out value="${param['page-index']}"/>"/>
                 <input type="hidden" name="active" value="${not roomType.active}"/>
                 <button type="submit" class="btn btn-primary">
                     <ui:text key="${roomType.active ? 'room.admin.sale.stop' : 'room.admin.sale.resume'}"/>

@@ -12,6 +12,7 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Booking;
@@ -156,8 +157,14 @@ public class BookingDAO extends DBContext {
             Integer actor, String requestKey, String promotionCode) throws SQLException {
         long nights = java.time.temporal.ChronoUnit.DAYS.between(from, to);
         BigDecimal total = nightly.multiply(BigDecimal.valueOf(nights * quantity));
+        List<Integer> rooms = actor == null
+                ? RoomTypeInventory.load(conn, typeId, from, null).reserve(from, to, quantity)
+                : java.util.Collections.nCopies(quantity, null);
+        if (rooms.size() != quantity) {
+            throw new IllegalArgumentException("Không đủ phòng loại đã chọn trong kỳ lưu trú.");
+        }
         int bookingId = insertBooking(conn, customerId, total, specialRequest, actor, requestKey, promotionCode);
-        insertBookingDetails(conn, bookingId, typeId, from, to, nightly, quantity, guests, specialRequest);
+        insertBookingDetails(conn, bookingId, typeId, from, to, nightly, rooms, guests, specialRequest);
         return bookingId;
     }
 
@@ -219,18 +226,21 @@ public class BookingDAO extends DBContext {
     }
 
     private void insertBookingDetails(Connection conn, int id, int typeId, LocalDate checkIn,
-            LocalDate checkOut, BigDecimal nightly, int quantity, int guests, String specialRequest) throws SQLException {
+            LocalDate checkOut, BigDecimal nightly, List<Integer> rooms, int guests, String specialRequest) throws SQLException {
         String sql = "INSERT BookingDetail(BookingID,RoomTypeID,RoomNumber,CheckInDate,CheckOutDate,"
-                + "PricePerNight,GuestCount,SpecialRequest) VALUES(?,?,NULL,?,?,?,?,?)";
+                + "PricePerNight,GuestCount,SpecialRequest,IsProvisionalRoom) VALUES(?,?,?,?,?,?,?,?,?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
             ps.setInt(2, typeId);
-            ps.setObject(3, checkIn);
-            ps.setObject(4, checkOut);
-            ps.setBigDecimal(5, nightly);
-            ps.setNString(7, specialRequest);
+            ps.setObject(4, checkIn);
+            ps.setObject(5, checkOut);
+            ps.setBigDecimal(6, nightly);
+            ps.setNString(8, specialRequest);
+            int quantity = rooms.size();
             for (int i = 0; i < quantity; i++) {
-                ps.setInt(6, guests / quantity + (i < guests % quantity ? 1 : 0));
+                ps.setObject(3, rooms.get(i), java.sql.Types.INTEGER);
+                ps.setInt(7, guests / quantity + (i < guests % quantity ? 1 : 0));
+                ps.setBoolean(9, rooms.get(i) != null);
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -313,17 +323,24 @@ public class BookingDAO extends DBContext {
                     conn.commit();
                     return previous;
                 }
-                validateOnlineSelection(conn, draft, lines, percent, payable);
+                Map<Integer, List<Integer>> rooms = validateOnlineSelection(conn, draft, lines, percent, payable);
                 int bookingId = insertOnlineSelection(conn, customerId, draft, percent);
-                String sql = "INSERT BookingDetail(BookingID,RoomTypeID,CheckInDate,CheckOutDate,PricePerNight) VALUES(?,?,?,?,?)";
+                String sql = "INSERT BookingDetail(BookingID,RoomTypeID,RoomNumber,CheckInDate,CheckOutDate,"
+                        + "PricePerNight,GuestCount,BookedAdults,BookedChildren,IsProvisionalRoom) VALUES(?,?,?,?,?,?,?,?,?,1)";
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     for (OnlineBookingDraft.RoomLine line : lines) {
                         ps.setInt(1, bookingId);
                         ps.setInt(2, line.getTypeId());
-                        ps.setObject(3, draft.getCheckIn());
-                        ps.setObject(4, draft.getCheckOut());
-                        ps.setBigDecimal(5, line.getNightly());
+                        ps.setObject(4, draft.getCheckIn());
+                        ps.setObject(5, draft.getCheckOut());
+                        ps.setBigDecimal(6, line.getNightly());
+                        List<Integer> assigned = rooms.get(line.getTypeId());
                         for (int room = 0; room < line.getQuantity(); room++) {
+                            OnlineBookingDraft.RoomParty party = line.getParties().get(room);
+                            ps.setInt(3, assigned.get(room));
+                            ps.setInt(7, party.getAdults() + party.getChildren());
+                            ps.setInt(8, party.getAdults());
+                            ps.setInt(9, party.getChildren());
                             ps.addBatch();
                         }
                     }
@@ -346,7 +363,7 @@ public class BookingDAO extends DBContext {
         }
     }
 
-    private void validateOnlineSelection(Connection conn, OnlineBookingDraft draft,
+    private Map<Integer, List<Integer>> validateOnlineSelection(Connection conn, OnlineBookingDraft draft,
             List<OnlineBookingDraft.RoomLine> lines, int percent, BigDecimal payable) throws SQLException, SelectionConflict {
         if (!util.OnlineStayDates.isValid(draft.getCheckIn(), draft.getCheckOut(), util.ReportPeriod.today())
                 || draft.getAdults() < 1 || draft.getChildren() < 0 || lines.isEmpty() || draft.getContact() == null
@@ -355,12 +372,14 @@ public class BookingDAO extends DBContext {
                 && (percent != OnlineStayPolicy.DEPOSIT_PERCENT || !OnlineStayPolicy.canDeposit(payable)))) {
             throw new SelectionConflict("criteria", null, 0);
         }
-        long totalCapacity = 0;
-        long childCapacity = 0;
-        long roomCount = 0;
+        Map<Integer, List<Integer>> rooms = new java.util.HashMap<>();
         try (PreparedStatement ps = conn.prepareStatement(
                 "SELECT PricePerNight,Capacity,MaxChildren FROM RoomType WHERE RoomTypeID=? AND IsActive=1")) {
             for (OnlineBookingDraft.RoomLine line : lines) {
+                if (line.getQuantity() < 1 || rooms.containsKey(line.getTypeId())
+                        || line.getParties().stream().anyMatch(party -> party.getAdults() < 1 || party.getChildren() < 0)) {
+                    throw new SelectionConflict("criteria", null, 0);
+                }
                 ps.setInt(1, line.getTypeId());
                 try (ResultSet rs = ps.executeQuery()) {
                     if (!rs.next()) {
@@ -369,26 +388,23 @@ public class BookingDAO extends DBContext {
                     if (line.getNightly().compareTo(rs.getBigDecimal(1)) != 0) {
                         throw new SelectionConflict("price", line.getName(), 0);
                     }
-                    int quantity = line.getQuantity();
-                    int capacity = rs.getInt(2);
-                    roomCount += quantity;
-                    totalCapacity += (long) capacity * quantity;
-                    childCapacity += (long) Math.min(capacity, rs.getInt(3)) * quantity;
+                    if (line.getMaxAdultsPerRoom() > rs.getInt(2)) {
+                        throw new SelectionConflict("capacity", line.getName(), 0);
+                    }
+                    if (line.getMaxChildrenPerRoom() > rs.getInt(3)) {
+                        throw new SelectionConflict("children", line.getName(), 0);
+                    }
                 }
-                int available = RoomDAO.countAvailableRoomsByType(conn,
-                        draft.getCheckIn(), draft.getCheckOut(), line.getTypeId(), 1);
-                if (line.getQuantity() < 1 || available < line.getQuantity()) {
+                RoomTypeInventory inventory = RoomTypeInventory.load(conn, line.getTypeId(), draft.getCheckIn(), null);
+                List<Integer> assigned = inventory.reserve(draft.getCheckIn(), draft.getCheckOut(), line.getQuantity());
+                if (assigned.size() < line.getQuantity()) {
+                    int available = inventory.available(draft.getCheckIn(), draft.getCheckOut());
                     throw new SelectionConflict("stock", line.getName(), available);
                 }
+                rooms.put(line.getTypeId(), assigned);
             }
         }
-        long guests = (long) draft.getAdults() + draft.getChildren();
-        if (!OnlineStayPolicy.fitsParty(draft.getAdults(), draft.getChildren(), totalCapacity, childCapacity)) {
-            throw new SelectionConflict(totalCapacity < guests ? "capacity" : "children", null, 0);
-        }
-        if (roomCount > guests) {
-            throw new SelectionConflict("criteria", null, 0);
-        }
+        return rooms;
     }
 
     private int insertOnlineSelection(Connection conn, int customerId, OnlineBookingDraft draft, int percent)
@@ -549,8 +565,9 @@ public class BookingDAO extends DBContext {
         List<BookingDetail> details
                 = new ArrayList<>();
 
-        String sql = "SELECT d.BookingDetailID,d.BookingID,d.RoomNumber,d.CheckInDate,d.CheckOutDate,"
-                + "d.PricePerNight,d.GuestCount,d.SpecialRequest,t.Name AS RoomTypeName "
+        String sql = "SELECT d.BookingDetailID,d.BookingID,CASE WHEN d.IsProvisionalRoom=0 THEN d.RoomNumber END AS RoomNumber,"
+                + "d.CheckInDate,d.CheckOutDate,d.PricePerNight,d.GuestCount,d.BookedAdults,d.BookedChildren,"
+                + "d.SpecialRequest,t.Name AS RoomTypeName "
                 + "FROM BookingDetail d LEFT JOIN Room r ON r.RoomNumber=d.RoomNumber "
                 + "LEFT JOIN RoomType t ON t.RoomTypeID=COALESCE(d.RoomTypeID,r.RoomTypeID) "
                 + "WHERE d.BookingID=? ORDER BY d.BookingDetailID";
@@ -581,6 +598,8 @@ public class BookingDAO extends DBContext {
 
                     detail.setRoomNumber(rs.getObject("RoomNumber", Integer.class));
                     detail.setRoomTypeName(rs.getString("RoomTypeName"));
+                    detail.setBookedAdults(rs.getObject("BookedAdults", Integer.class));
+                    detail.setBookedChildren(rs.getObject("BookedChildren", Integer.class));
 
                     detail.setCheckInDate(
                             rs.getObject(

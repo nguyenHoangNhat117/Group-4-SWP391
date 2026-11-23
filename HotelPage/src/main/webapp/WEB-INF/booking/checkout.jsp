@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/general.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/luxe-shared-shell.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/room-checkout.css">
+    <link rel="stylesheet" href="<c:url value='/assets/css/online-booking-select.css?v=2'/>">
 </head>
 <body class="body-wrapper">
     <%@ include file="../include/header.jsp" %>
@@ -75,16 +76,17 @@
                     <fieldset class="border-top pt-4">
                         <legend class="h5 stay-form-heading"><i class="bi bi-credit-card me-2" aria-hidden="true"></i><ui:text key="room.booking.payment.title"/></legend>
                         <div class="mb-3">
-                            <label for="payment-plan" class="form-label"><ui:text key="room.checkout.method"/></label>
-                            <select id="payment-plan" name="payment-plan" class="form-select" required>
+                            <label for="payment-plan" class="form-label booking-select-label"><ui:text key="room.checkout.method"/></label>
+                            <select id="payment-plan" name="payment-plan" class="form-select booking-select" required
+                                    aria-describedby="${canDeposit ? '' : 'deposit-note'}">
                                 <option value="deposit" ${canDeposit ? '' : 'disabled'}><c:out value="${requestScope.i18n['room.checkout.deposit']}"/></option>
                                 <option value="transfer" ${!canDeposit || selectedPlan == 'transfer' ? 'selected' : ''}><c:out value="${requestScope.i18n['room.checkout.transfer']}"/></option>
                             </select>
                             <div id="deposit-note" class="form-text" ${canDeposit ? 'hidden' : ''}><ui:text key="room.checkout.deposit.unavailable"/></div>
                         </div>
                         <div class="mb-4">
-                            <label for="discount-code" class="form-label"><ui:text key="room.checkout.discount"/></label>
-                            <select id="discount-code" name="discount-code" class="form-select">
+                            <label for="discount-code" class="form-label booking-select-label"><ui:text key="room.checkout.discount"/></label>
+                            <select id="discount-code" name="discount-code" class="form-select booking-select">
                                 <option value=""><c:out value="${requestScope.i18n['room.checkout.no.voucher']}"/></option>
                                 <c:forEach var="voucher" items="${voucherTotals}">
                                     <option value="<c:out value='${voucher.key}'/>" data-total="${voucher.value}"
@@ -113,6 +115,6 @@
     </main>
     <%@ include file="../include/footer.jsp" %>
     <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.min.js"></script>
-    <script src="${pageContext.request.contextPath}/assets/js/room-checkout.js" defer></script>
+    <script src="<c:url value='/assets/js/room-checkout.js?v=2'/>" defer></script>
 </body>
 </html>

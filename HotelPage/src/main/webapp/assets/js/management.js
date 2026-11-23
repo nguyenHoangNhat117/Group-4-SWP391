@@ -4,7 +4,8 @@
     const dialog = document.createElement('dialog');
     dialog.className = 'management-confirm';
     dialog.setAttribute('aria-labelledby', 'management-confirm-title');
-    dialog.innerHTML = '<h2 id="management-confirm-title"></h2><p></p><div class="confirm-actions"><button type="button" class="btn btn-outline-secondary" data-cancel></button><button type="button" class="btn btn-danger" data-accept></button></div>';
+    dialog.setAttribute('aria-describedby', 'management-confirm-message');
+    dialog.innerHTML = '<h2 id="management-confirm-title"></h2><p id="management-confirm-message"></p><div class="confirm-actions"><button type="button" class="btn btn-outline-secondary" data-cancel></button><button type="button" class="btn btn-danger" data-accept></button></div>';
     document.body.append(dialog);
     const cancel = dialog.querySelector('[data-cancel]');
     const accept = dialog.querySelector('[data-accept]');
@@ -16,11 +17,13 @@
         close();
         if (task) task();
     });
-    window.managementConfirm = (message, task) => {
-        dialog.querySelector('h2').textContent = 'Xác nhận thao tác';
+    window.managementConfirm = (message, task, title, confirmLabel) => {
+        dialog.querySelector('h2').textContent = title || 'Xác nhận thao tác';
         dialog.querySelector('p').textContent = message;
         cancel.textContent = 'Hủy';
-        accept.textContent = 'Xác nhận';
+        accept.textContent = confirmLabel || 'Xác nhận';
+        accept.classList.toggle('btn-danger', !confirmLabel);
+        accept.classList.toggle('btn-success', Boolean(confirmLabel));
         pending = task;
         dialog.showModal();
         cancel.focus();
@@ -43,7 +46,7 @@
             form.dataset.confirmed = 'true';
             form.requestSubmit(submitter || undefined);
             delete form.dataset.confirmed;
-        });
+        }, form.dataset.confirmTitle, form.dataset.confirmLabel);
     }, true);
     document.querySelectorAll('[data-page]').forEach(button => {
         button.addEventListener('click', () => {

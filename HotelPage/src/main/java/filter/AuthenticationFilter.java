@@ -34,6 +34,7 @@ import java.util.Objects;
             "/booking-management",
             "/room",
             "/room-type",
+            "/amenity",
             "/discounts",
             "/reports",
             "/dashboard",
@@ -247,7 +248,7 @@ public class AuthenticationFilter implements Filter {
             return;
         }
 
-        if ("/room-type".equals(servletPath)
+        if ("/room-type".equals(servletPath) || "/amenity".equals(servletPath)
                 || "/discounts".equals(servletPath)
                 || fullPath.startsWith("/admin/")) {
 
@@ -354,7 +355,8 @@ public class AuthenticationFilter implements Filter {
     private boolean isRoomManagementAction(String action) {
         return "create".equalsIgnoreCase(action)
                 || "update".equalsIgnoreCase(action)
-                || "delete".equalsIgnoreCase(action);
+                || "delete".equalsIgnoreCase(action)
+                || "update-room-limit".equalsIgnoreCase(action);
     }
 
     private boolean isRoomManagementView(String view) {

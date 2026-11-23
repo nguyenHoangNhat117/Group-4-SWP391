@@ -1,26 +1,20 @@
 <div class="row g-3">
-    <div class="col-md-6">
+    <div class="col-12">
         <label for="contact-name" class="form-label"><ui:text key="room.contact.name"/></label>
         <input class="form-control" id="contact-name" name="contact-name" type="text" autocomplete="name"
                maxlength="120" required ${contactReadOnly ? 'readonly' : ''}
                value="<c:out value="${contactFields['contact-name']}"/>">
     </div>
-    <div class="col-md-6">
+    <div class="col-6">
         <label for="contact-phone" class="form-label"><ui:text key="room.contact.phone"/></label>
         <input class="form-control" id="contact-phone" name="contact-phone" type="tel" autocomplete="tel"
                maxlength="32" required ${contactReadOnly ? 'readonly' : ''}
                value="<c:out value="${contactFields['contact-phone']}"/>">
     </div>
-    <div class="col-md-6">
+    <div class="col-6">
         <label for="contact-email" class="form-label"><ui:text key="room.contact.email"/></label>
         <input class="form-control" id="contact-email" name="contact-email" type="email" autocomplete="email"
                maxlength="254" required ${contactReadOnly ? 'readonly' : ''}
                value="<c:out value="${contactFields['contact-email']}"/>">
-    </div>
-    <div class="col-md-6">
-        <label for="contact-country" class="form-label"><ui:text key="room.contact.country"/></label>
-        <input class="form-control" id="contact-country" name="contact-country" type="text" autocomplete="country-name"
-               maxlength="80" required ${contactReadOnly ? 'readonly' : ''}
-               value="<c:out value="${contactFields['contact-country']}"/>">
     </div>
 </div>

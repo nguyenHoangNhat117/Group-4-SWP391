@@ -13,22 +13,19 @@
         </p>
     </div>
     <div class="row g-3 text-center ${inRoomPreview ? 'room-preview-specs m-0' : 'pt-2 border-top'}">
-        <div class="${empty roomSpecifications ? 'col-sm-4' : 'col-sm-6 col-xl-3'}">
+        <div class="col-sm-4">
             <div class="room-spec-card">
                 <div class="text-muted small text-uppercase"><ui:text key="screen.bf193eab4a1aafb0"/></div>
                 <div class="fs-5 fw-bold text-dark"><ui:money amount="${roomType.pricePerNight}"/></div>
             </div>
         </div>
-        <div class="${empty roomSpecifications ? 'col-sm-4' : 'col-sm-6 col-xl-3'}">
+        <div class="col-sm-4">
             <div class="room-spec-card">
                 <div class="text-muted small text-uppercase"><ui:text key="screen.2e2a3cd1a00809d3"/></div>
                 <div class="fs-5 fw-bold text-dark">${roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></div>
-                <c:if test="${inRoomPreview and not empty roomSpecifications.bedLabel}">
-                    <small class="text-muted"><ui:catalogText group="room.catalog.bed" value="${roomSpecifications.bedLabel}"/></small>
-                </c:if>
             </div>
         </div>
-        <div class="${empty roomSpecifications ? 'col-sm-4' : 'col-sm-6 col-xl-3'}">
+        <div class="col-sm-4">
             <div class="room-spec-card">
                 <div class="text-muted small text-uppercase"><ui:text key="${inRoomPreview ? 'room.preview.capacity' : 'screen.a641d8404ba319e8'}"/></div>
                 <c:choose>
@@ -39,14 +36,6 @@
                 </c:choose>
             </div>
         </div>
-        <c:if test="${not empty roomSpecifications}">
-            <div class="col-sm-6 col-xl-3">
-                <div class="room-spec-card">
-                    <div class="text-muted small text-uppercase"><ui:text key="room.spec.area"/></div>
-                    <div class="fs-5 fw-bold text-dark">${roomSpecifications.areaM2} m²</div>
-                </div>
-            </div>
-        </c:if>
     </div>
 </div>
 

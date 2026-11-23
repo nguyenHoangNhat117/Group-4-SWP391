@@ -42,6 +42,9 @@
                     <c:when test="${param.error == 'active-booking'}">
                         <p class="alert alert-danger text-center" role="alert">
                             <ui:text key="room.update.activeBooking"/>
+                            <c:if test="${not empty param.stayFrom and not empty param.stayTo}">
+                                <span class="d-block"><ui:text key="room.inventory.affectedStay"/> <c:out value="${param.stayFrom}"/> → <c:out value="${param.stayTo}"/></span>
+                            </c:if>
                         </p>
                     </c:when>
                     <c:when test="${param.error == 'missing-params'}">

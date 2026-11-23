@@ -88,9 +88,14 @@
                 box-shadow: 0 15px 30px rgba(0,0,0,0.15);
             }
             .room-card-specs {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: .5rem;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: .375rem 1rem;
+            }
+            .room-card-specs > span {
+                white-space: nowrap;
             }
             .room-img-wrap {
                 position: relative;
@@ -143,14 +148,6 @@
                 box-shadow: 0 5px 20px rgba(0,0,0,0.05);
                 margin-bottom: 30px;
             }
-            .selection-date {
-                position: relative;
-            }
-            .selection-date #search-stay-nights {
-                position: absolute;
-                top: 100%;
-            }
-
             .room-selection-layout {
                 display: grid;
                 grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
@@ -164,6 +161,15 @@
                 max-height: calc(100vh - var(--cart-top) - 24px);
                 overflow-y: auto;
                 border-radius: 16px;
+            }
+            @media (max-width: 991.98px) {
+                .room-selection-layout {
+                    grid-template-columns: minmax(0, 1fr);
+                }
+                .room-cart {
+                    position: static;
+                    max-height: none;
+                }
             }
             .room-quantity {
                 display: inline-flex;
@@ -183,6 +189,24 @@
                 color: #874500;
                 background-color: #fff1dd;
             }
+            .room-cart-party {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: .5rem;
+                padding: .375rem .5rem .375rem .625rem;
+                border-radius: .5rem;
+                background: #f7f4ef;
+                color: #51473e;
+                font-size: .875rem;
+            }
+            .room-cart-remove {
+                flex: none;
+                width: 2rem;
+                height: 2rem;
+                padding: 0;
+                line-height: 1;
+            }
             html.room-selection-page body.modal-open .lx-top {
                 visibility: hidden;
             }
@@ -196,8 +220,9 @@
         </style>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/search-calendar.css">
         <script src="${pageContext.request.contextPath}/assets/js/search-calendar.js" defer></script>
-        <script src="<c:url value='/assets/js/room-selection.js?v=2'/>" defer></script>
+        <script type="module" src="<c:url value='/assets/js/room-selection.js?v=6'/>"></script>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
+    <link rel="stylesheet" href="<c:url value='/assets/css/online-booking-select.css?v=4'/>">
 </head>
 
     <body class="management-page bg-light ${sessionScope.loggedUser.role == 'admin' ? '' : 'disable-animation'}">
@@ -217,12 +242,47 @@
                                 <div class="eyebrow">LUXE ESCAPE</div>
                                 <h2 class="fw-bold text-dark mb-0"><ui:text key="screen.47ec390c932e0f88"/></h2>
                                 <p class="text-secondary mt-2 mb-0"><ui:text key="screen.e669adda2b5a7a71"/></p>
+                                <p class="mt-2 mb-0">
+                                    <ui:text key="room.admin.capacity.registered"/>
+                                    <strong>${registeredRoomCount} / ${roomLimit}</strong>
+                                    &middot; <ui:text key="room.admin.capacity.remaining"/> <strong>${remainingRoomSlots}</strong>
+                                </p>
                             </div>
-                            <a class="btn btn-primary rounded-pill px-4 shadow-sm" style="background-color: #b29575; border-color: #b29575;"
-                               href="${pageContext.request.contextPath}/room?view=create">
-                                <i class="bi bi-plus-lg me-1"></i> <ui:text key="screen.3ff00245ea9cde06"/>
-                            </a>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-outline-light rounded-pill px-4" type="button"
+                                        data-bs-toggle="modal" data-bs-target="#room-limit-dialog">
+                                    <ui:text key="room.admin.capacity.edit"/>
+                                </button>
+                                <c:choose>
+                                    <c:when test="${remainingRoomSlots gt 0}">
+                                        <a class="btn btn-primary rounded-pill px-4 shadow-sm" style="background-color: #b29575; border-color: #b29575;"
+                                           href="${pageContext.request.contextPath}/room?view=create">
+                                            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> <ui:text key="screen.3ff00245ea9cde06"/>
+                                        </a>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <button class="btn btn-light rounded-pill px-4" type="button" disabled>
+                                            <ui:text key="room.admin.capacity.reached"/>
+                                        </button>
+                                    </c:otherwise>
+                                </c:choose>
+                            </div>
                         </div>
+
+                        <c:choose>
+                            <c:when test="${param['room-limit-result'] eq 'updated'}">
+                                <p class="alert alert-success" role="status"><ui:text key="room.admin.capacity.updated"/></p>
+                            </c:when>
+                            <c:when test="${param['room-limit-result'] eq 'below-count'}">
+                                <p class="alert alert-warning" role="alert"><ui:text key="room.admin.capacity.belowCount"/></p>
+                            </c:when>
+                            <c:when test="${param['room-limit-result'] eq 'invalid'}">
+                                <p class="alert alert-warning" role="alert"><ui:text key="room.admin.capacity.invalid"/></p>
+                            </c:when>
+                            <c:when test="${param['room-limit-result'] eq 'failed'}">
+                                <p class="alert alert-danger" role="alert"><ui:text key="room.admin.capacity.failed"/></p>
+                            </c:when>
+                        </c:choose>
 
                         <c:if test="${not empty createdRooms}">
                             <div class="alert alert-success" role="status">
@@ -270,7 +330,14 @@
                             <p class="alert alert-danger" role="alert"><ui:text key="room.admin.invalidNumber"/></p>
                         </c:if>
 
-                        <c:if test="${param.error == 'active-booking' || param.error == 'delete-failed'}"><div class="alert alert-danger" role="alert"><ui:text key="${param.error == 'active-booking' ? 'room.delete.activeBooking' : 'management.deleteFailed'}"/></div></c:if>
+                        <c:if test="${param.error == 'active-booking' || param.error == 'delete-failed'}">
+                            <div class="alert alert-danger" role="alert">
+                                <ui:text key="${param.error == 'active-booking' ? 'room.delete.activeBooking' : 'management.deleteFailed'}"/>
+                                <c:if test="${param.error == 'active-booking' and not empty param.stayFrom and not empty param.stayTo}">
+                                    <span class="d-block"><ui:text key="room.inventory.affectedStay"/> <c:out value="${param.stayFrom}"/> → <c:out value="${param.stayTo}"/></span>
+                                </c:if>
+                            </div>
+                        </c:if>
 <!-- Table Card -->
                         <div class="admin-card p-0 mb-4">
                             <div class="table-responsive">
@@ -397,7 +464,7 @@
                             <form class="row g-3 align-items-end pb-3" method="post" action="${pageContext.request.contextPath}/room?action=search">
                                 <input type="hidden" name="source" value="room">
 
-                                <div class="col-lg-4 col-md-6 selection-date">
+                                <div class="col-xl-4 col-lg-3 col-md-6">
                                     <label for="floatingBookingDate" class="form-label small fw-bold text-uppercase text-muted mb-1"><ui:text key="screen.c832b0d0d927dcff"/></label>
                                     <div class="position-relative">
                                         <i class="bi bi-calendar-range position-absolute top-50 translate-middle-y ms-3 text-muted"></i>
@@ -406,7 +473,7 @@
                                                id="floatingBookingDate"
                                                value="${sessionScope.dates}"
                                                placeholder="${sessionScope.dates}"
-                                               name="booking-dates" aria-describedby="search-stay-nights search-calendar-status"
+                                               name="booking-dates" aria-describedby="search-calendar-status"
                                                data-submit-on-select readonly required>
                                         <small id="search-calendar-status" class="visually-hidden" aria-live="polite"
                                            data-loading="${requestScope.i18n['room.calendar.loading']}"
@@ -414,8 +481,6 @@
                                            data-unavailable="${requestScope.i18n['room.calendar.unavailable']}"
                                            data-changed="${requestScope.i18n['room.calendar.changed']}"></small>
                                     </div>
-                                    <small id="search-stay-nights" class="d-block mt-1 text-muted" aria-live="polite"
-                                           data-unit="${requestScope.i18n['room.search.party.nights']}">${requestScope.searchNights} <ui:text key="room.search.party.nights"/></small>
                                 </div>
 
                                 <div class="col-lg-2 col-md-3 col-6">
@@ -430,9 +495,9 @@
                                            id="selection-children" name="children" value="${requestScope.searchChildren}" required>
                                 </div>
 
-                                <div class="col-lg-2 col-md-4 col-6">
-                                    <label for="sort-by" class="form-label small fw-bold text-uppercase text-muted mb-1"><ui:text key="screen.6d2227555fccff99"/></label>
-                                    <select class="form-select bg-light border-0" id="sort-by" name="sort-by">
+                                <div class="col-xl-2 col-lg-3 col-md-4 col-12">
+                                    <label for="sort-by" class="form-label booking-select-label"><ui:text key="screen.6d2227555fccff99"/></label>
+                                    <select class="form-select booking-select" id="sort-by" name="sort-by">
                                         <option value="price_asc" ${requestScope.searchSortBy == 'price_asc' ? 'selected' : ''}>${requestScope.i18n['screen.3044c75602f03114']}</option>
                                         <option value="price_desc" ${requestScope.searchSortBy == 'price_desc' ? 'selected' : ''}>${requestScope.i18n['screen.8abbc1606cfd7f90']}</option>
                                     </select>
@@ -446,30 +511,25 @@
                             </form>
                         </div>
 
-                        <c:if test="${requestScope.insufficientPartyCapacity}">
-                            <div class="alert room-cart-warning" role="status">
-                                <strong><ui:text key="room.search.party.insufficient"/></strong>
-                                <p class="mb-0"><ui:text key="room.selection.changeSearch"/></p>
-                            </div>
-                        </c:if>
-
                         <div id="room-selection" class="room-selection-layout mb-5"
                              data-check-url="${pageContext.request.contextPath}/room?action=check-selection"
                              data-csrf-token="${requestScope.selectionCsrfToken}"
                              data-criteria="${requestScope.searchCriteria}"
+                             data-stay="${sessionScope.checkInDate}|${sessionScope.checkOutDate}"
                              data-adults="${requestScope.searchAdults}" data-children="${requestScope.searchChildren}"
                              data-nights="${requestScope.searchNights}" data-price-order="${requestScope.searchSortBy}"
                              data-night-unit="${requestScope.i18n['room.search.party.nights']}"
                              data-room-unit="${requestScope.i18n['room.selection.roomUnit']}"
+                             data-per-room="${requestScope.i18n['room.selection.perRoom']}"
                              data-empty="${requestScope.i18n['room.selection.empty']}"
                              data-sold-out="${requestScope.i18n['room.selection.soldOut']}"
                              data-available="${requestScope.i18n['room.available']}"
-                             data-short-guests="${requestScope.i18n['room.selection.shortGuests']}"
-                             data-short-children="${requestScope.i18n['room.selection.shortChildren']}"
-                             data-too-many="${requestScope.i18n['room.selection.tooManyRooms']}"
+                             data-adult-unit="${requestScope.i18n['room.selection.adultUnit']}"
+                             data-child-unit="${requestScope.i18n['room.selection.childUnit']}"
+                             data-remove="${requestScope.i18n['room.selection.remove']}"
                              data-apply-search="${requestScope.i18n['room.selection.applySearch']}"
-                             data-adjusted="${requestScope.i18n['room.selection.adjusted']}"
-                             data-adjusted-unknown="${requestScope.i18n['room.selection.adjustedUnknown']}"
+                             data-stock-changed="${requestScope.i18n['room.selection.stockChanged']}"
+                             data-stay-changed="${requestScope.i18n['room.selection.stayChanged']}"
                              data-invalid="${requestScope.i18n['room.selection.invalid']}"
                              data-reload="${requestScope.i18n['room.selection.reload']}"
                              data-failed="${requestScope.i18n['room.selection.failed']}"
@@ -482,7 +542,7 @@
                                     <c:param name="action" value="preview"/>
                                     <c:param name="roomTypeId" value="${type.id}"/>
                                 </c:url>
-                                <div class="col-6" data-room-type="${type.id}" data-available="${result.available}"
+                                <div class="col-12 col-md-6" data-room-type="${type.id}" data-available="${result.available}"
                                      data-capacity="${type.capacity}" data-max-children="${result.maxChildren}"
                                      data-nightly="${type.pricePerNight}" data-preview-url="${previewUrl}">
                                     <article class="card room-card h-100">
@@ -497,7 +557,7 @@
                                                 </c:choose>
                                             </span>
                                         </button>
-                                        <div class="card-body d-flex flex-column p-4">
+                                        <div class="card-body d-flex flex-column p-3 p-sm-4">
                                             <h5 class="fw-bold">
                                                 <button type="button" class="btn btn-link p-0 text-dark text-start text-decoration-none fw-bold"
                                                         data-room-name data-preview-open aria-haspopup="dialog"><c:out value="${type.name}"/></button>
@@ -511,8 +571,8 @@
                                             <div class="room-card-specs text-muted small mt-auto mb-3">
                                                 <span><i class="bi bi-moon-stars me-1" aria-hidden="true"></i>${type.beds} <ui:text key="${type.beds == 1 ? 'room.catalog.one.bed' : 'screen.2e2a3cd1a00809d3'}"/></span>
                                                 <span><i class="bi bi-people me-1" aria-hidden="true"></i><ui:text key="room.details.max"/>
-                                                    ${type.capacity} <ui:text key="room.selection.guestUnit"/>
-                                                    (<ui:text key="room.selection.includingMax"/> ${result.maxChildren} <ui:text key="room.selection.childUnit"/>)
+                                                    ${type.capacity} <ui:text key="room.selection.adultUnit"/>
+                                                    + ${result.maxChildren} <ui:text key="room.selection.childUnit"/>
                                                 </span>
                                             </div>
                                             <div class="d-flex justify-content-between align-items-center border-top pt-3">
@@ -543,11 +603,12 @@
                             </section>
 
                             <aside class="room-cart card border-0 shadow-sm p-4" aria-labelledby="room-cart-heading">
-                                <h2 id="room-cart-heading" class="h5 mb-3"><ui:text key="room.selection.cart"/></h2>
-                                <p class="small text-muted">${requestScope.searchAdults} <ui:text key="room.selection.adultUnit"/>
-                                    &middot; ${requestScope.searchChildren} <ui:text key="room.selection.childUnit"/>
-                                    &middot; ${requestScope.searchNights} <ui:text key="room.search.party.nights"/></p>
+                                <h2 id="room-cart-heading" class="h5 mb-3" tabindex="-1"><ui:text key="room.selection.cart"/></h2>
                                 <ul class="list-unstyled mb-3" data-cart-lines></ul>
+                                <div class="small d-flex justify-content-between gap-2 mb-2">
+                                    <strong><ui:text key="room.selection.partyTotal"/></strong>
+                                    <output data-cart-party aria-live="polite"></output>
+                                </div>
                                 <div class="border-top pt-3 mb-3 d-flex justify-content-between gap-2">
                                     <strong><ui:text key="room.selection.total"/></strong>
                                     <output data-cart-total aria-live="polite"><ui:money amount="${0}"/></output>
@@ -566,13 +627,42 @@
             <%@include file="../include/footer.jsp" %>
         </div>
 
+        <c:if test="${sessionScope.loggedUser.role eq 'admin'}">
+            <div class="modal fade" id="room-limit-dialog" tabindex="-1" aria-labelledby="room-limit-title" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <form class="modal-content" method="post" action="<c:url value='/room'/>">
+                        <input type="hidden" name="action" value="update-room-limit">
+                        <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                        <div class="modal-header">
+                            <h2 class="modal-title h5" id="room-limit-title"><ui:text key="room.admin.capacity.edit"/></h2>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label fw-semibold" for="room-limit"><ui:text key="room.admin.capacity.limit"/></label>
+                            <input class="form-control" id="room-limit" name="room-limit" type="number"
+                                   min="${registeredRoomCount gt 0 ? registeredRoomCount : 1}" max="2147483647"
+                                   step="1" value="${roomLimit}" aria-describedby="room-limit-help" required>
+                            <div class="form-text" id="room-limit-help">
+                                <ui:text key="room.admin.capacity.registered"/> <strong>${registeredRoomCount}</strong>.
+                                <ui:text key="room.admin.capacity.belowCount"/>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal"><ui:text key="common.cancel"/></button>
+                            <button class="btn btn-primary" type="submit"><ui:text key="common.save"/></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </c:if>
+
         <c:if test="${sessionScope.loggedUser.role != 'admin' and not empty availableTypes}">
             <div class="modal fade" id="room-preview" tabindex="-1" aria-labelledby="room-preview-title" aria-hidden="true"
                  data-loading="${requestScope.i18n['room.preview.loading']}"
                  data-failed="${requestScope.i18n['room.preview.failed']}"
                  data-limit="${requestScope.i18n['room.preview.limit']}"
-                 data-guest-unit="${requestScope.i18n['room.selection.guestUnit']}"
-                 data-including-max="${requestScope.i18n['room.selection.includingMax']}"
+                 data-adult-unit="${requestScope.i18n['room.selection.adultUnit']}"
                  data-child-unit="${requestScope.i18n['room.selection.childUnit']}">
                 <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
                     <div class="modal-content">

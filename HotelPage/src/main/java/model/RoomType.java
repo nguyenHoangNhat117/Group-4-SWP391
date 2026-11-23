@@ -11,6 +11,11 @@ public class RoomType {
     private BigDecimal pricePerNight; // Base nightly rate for this room type
     private int beds;               // Number of beds in the room
     private int capacity;           // Maximum guest capacity
+    private int maxChildren;
+    private boolean active = true;
+    private int roomCount;
+    private int bookingCount;
+    private int activeBookingCount;
     private String picture;         // URL or path to room type image (optional)
     private List<Amenity> amenities = new ArrayList<>();
     /**
@@ -109,6 +114,20 @@ public class RoomType {
      */
     public int getCapacity() {
         return capacity;
+    }
+
+    public int getMaxChildren() { return maxChildren; }
+    public void setMaxChildren(int maxChildren) { this.maxChildren = maxChildren; }
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+    public int getRoomCount() { return roomCount; }
+    public int getBookingCount() { return bookingCount; }
+    public int getActiveBookingCount() { return activeBookingCount; }
+
+    public void setUsage(int roomCount, int bookingCount, int activeBookingCount) {
+        this.roomCount = roomCount;
+        this.bookingCount = bookingCount;
+        this.activeBookingCount = activeBookingCount;
     }
 
     /**

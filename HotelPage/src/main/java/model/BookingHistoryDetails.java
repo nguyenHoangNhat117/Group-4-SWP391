@@ -33,7 +33,7 @@ public final class BookingHistoryDetails {
             List<?> key = Arrays.asList(detail.getRoomTypeName(), detail.getCheckInDate(),
                     detail.getCheckOutDate(), detail.getPricePerNight(), detail.getSpecialRequest());
             RoomLine line = grouped.computeIfAbsent(key, ignored -> new RoomLine(detail));
-            line.quantity++;
+            line.details.add(detail);
             Integer roomNumber = detail.getRoomNumber();
             if (roomNumber != null && roomNumber > 0) {
                 line.roomNumbers.add(roomNumber);
@@ -112,7 +112,7 @@ public final class BookingHistoryDetails {
     public static final class RoomLine {
         private final BookingDetail detail;
         private final List<Integer> roomNumbers = new ArrayList<>();
-        private int quantity;
+        private final List<BookingDetail> details = new ArrayList<>();
 
         private RoomLine(BookingDetail detail) {
             this.detail = detail;
@@ -124,10 +124,11 @@ public final class BookingHistoryDetails {
         public String getRequest() { return detail.getSpecialRequest(); }
         public BigDecimal getNightly() { return detail.getPricePerNight(); }
         public long getNights() { return ChronoUnit.DAYS.between(getCheckIn(), getCheckOut()); }
-        public int getQuantity() { return quantity; }
+        public int getQuantity() { return details.size(); }
+        public List<BookingDetail> getDetails() { return details; }
         public List<Integer> getRoomNumbers() { return roomNumbers; }
         public BigDecimal getSubtotal() {
-            return getNightly().multiply(BigDecimal.valueOf(getNights())).multiply(BigDecimal.valueOf(quantity));
+            return getNightly().multiply(BigDecimal.valueOf(getNights())).multiply(BigDecimal.valueOf(getQuantity()));
         }
     }
 }

@@ -2,7 +2,6 @@
     const input = document.getElementById('floatingBookingDate') || document.getElementById('detailBookingDates');
     const details = input && input.id === 'detailBookingDates';
     const status = document.getElementById(details ? 'detail-calendar-status' : 'search-calendar-status');
-    const stayNights = document.getElementById('search-stay-nights');
     if (!input || !status || typeof Litepicker === 'undefined') {
         return;
     }
@@ -16,15 +15,6 @@
     let inventory;
     let pending;
     let checkIn;
-
-    function updateStayNights(start, end) {
-        if (stayNights) {
-            const nights = start && end
-                ? (Date.parse(end.format('YYYY-MM-DD')) - Date.parse(start.format('YYYY-MM-DD'))) / 86400000
-                : 0;
-            stayNights.textContent = nights > 0 ? nights + ' ' + stayNights.dataset.unit : '';
-        }
-    }
 
     function markDay(day) {
         const date = day.dataset.stayDate;
@@ -88,7 +78,6 @@
             const end = picker.getEndDate();
             if (!details && start && end && !canBook(start, end)) {
                 picker.clearSelection();
-                updateStayNights();
                 checkIn = null;
                 status.textContent = status.dataset.changed;
             } else {
@@ -130,7 +119,6 @@
                     form.elements.checkOut.value = end.format('YYYY-MM-DD');
                     input.dispatchEvent(new Event('change', {bubbles: true}));
                 }
-                updateStayNights(start, end);
                 if (input.hasAttribute('data-submit-on-select') && start.format('YYYY-MM-DD') < end.format('YYYY-MM-DD')) {
                     form.requestSubmit();
                 }
@@ -147,7 +135,6 @@
             });
         }
     });
-    updateStayNights(picker.getStartDate(), picker.getEndDate());
     if (roomTypeFilter) {
         roomTypeFilter.addEventListener('change', refreshAvailability);
     }

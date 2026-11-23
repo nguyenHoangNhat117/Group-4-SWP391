@@ -6,11 +6,15 @@ public final class BookingContact {
     private final String email;
     private final String country;
 
+    public BookingContact(String name, String phone, String email) {
+        this(name, phone, email, null);
+    }
+
     public BookingContact(String name, String phone, String email, String country) {
         this.name = required(name, 120);
         this.phone = required(phone, 32);
         this.email = required(email, 254);
-        this.country = required(country, 80);
+        this.country = country == null || country.isBlank() ? null : required(country, 80);
         if (!this.phone.matches("[+0-9(). -]+") || this.phone.replaceAll("[^0-9]", "").length() < 7
                 || !this.email.matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")) {
             throw new IllegalArgumentException("Invalid contact information");

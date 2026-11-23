@@ -221,6 +221,7 @@ public class OfflineOperationsDAO extends DBContext {
             require(money(c, "SELECT COUNT_BIG(*) FROM [User] WITH(HOLDLOCK) "
                     + "WHERE UserID=? AND Role='staff' AND AccountStatus='active'", staff).signum() == 1,
                     "Chỉ nhân viên đang hoạt động được nhận phòng.");
+            OnlineCheckInDAO.lockRoomTypes(c, id);
             String sql = "SELECT Status,TotalPrice,CreatedByUserID,OfflineDepositPercent "
                     + "FROM Booking WITH(UPDLOCK,HOLDLOCK) WHERE BookingID=?";
             String status;
@@ -452,8 +453,10 @@ public class OfflineOperationsDAO extends DBContext {
             data.put("customerId", money(c, "SELECT CustomerID FROM Booking WHERE BookingID=?", id).intValueExact());
             data.put("events", rows(c, "SELECT TOP(100) e.Action,e.Note,e.Amount,e.CreatedAt,u.DisplayName Actor FROM OfflineBookingEvent e JOIN [User] u ON u.UserID=e.ActorUserID WHERE e.BookingID=? ORDER BY e.EventID DESC", id));
             data.put("payments", rows(c, "SELECT PaymentID,Amount,PaymentStatus,PaymentMethod,TransactionCode,CounterReference,PaymentDate,COALESCE(RefundedAmount,0) RefundedAmount FROM Payment WHERE BookingID=? ORDER BY PaymentID", id));
-            data.put("rooms", rows(c, "SELECT d.RoomNumber,d.CheckInDate,d.CheckOutDate,d.GuestCount,"
-                    + "r.NeedsCleaning,t.Name AS RoomTypeName FROM BookingDetail d "
+            data.put("rooms", rows(c, "SELECT CASE WHEN d.IsProvisionalRoom=0 THEN d.RoomNumber END AS RoomNumber,"
+                    + "d.CheckInDate,d.CheckOutDate,d.GuestCount,d.BookedAdults,d.BookedChildren,"
+                    + "CASE WHEN d.IsProvisionalRoom=0 THEN r.NeedsCleaning END AS NeedsCleaning,"
+                    + "t.Name AS RoomTypeName FROM BookingDetail d "
                     + "LEFT JOIN Room r ON r.RoomNumber=d.RoomNumber "
                     + "LEFT JOIN RoomType t ON t.RoomTypeID=COALESCE(d.RoomTypeID,r.RoomTypeID) "
                     + "WHERE d.BookingID=? ORDER BY d.BookingDetailID", id));
@@ -465,11 +468,12 @@ public class OfflineOperationsDAO extends DBContext {
                 }
             }
             data.put("earlyCheckout", earlyCheckout);
-            List<Map<String, Object>> stay = rows(c, "SELECT Status, "
+            List<Map<String, Object>> stay = rows(c, "SELECT Status,CreatedByUserID, "
                     + "FORMAT(DATEADD(MINUTE,420,ActualCheckInAt),'dd/MM/yyyy HH:mm') AS CheckInTime "
                     + "FROM Booking WHERE BookingID=?", id);
             if (!stay.isEmpty()) {
                 Map<String, Object> booking = stay.get(0);
+                data.put("online", booking.get("CreatedByUserID") == null);
                 data.put("actualCheckInTime", booking.get("CheckInTime"));
                 if ("confirmed".equals(booking.get("Status"))) {
                     try {

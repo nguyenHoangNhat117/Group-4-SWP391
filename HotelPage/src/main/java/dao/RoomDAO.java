@@ -21,42 +21,9 @@ import util.ReportPeriod;
 
 public class RoomDAO extends DBContext {
 
-    public static final int CHANGE_BLOCKED_BY_BOOKING = -1;
     public static final int MAX_CREATE_QUANTITY = 50;
     private static final String ADMIN_ROOM_FILTER = " WHERE (? IS NULL OR r.RoomTypeID = ?)"
             + " AND (? IS NULL OR r.RoomNumber = ?) ";
-    private static final String NO_ACTIVE_BOOKING = "NOT EXISTS ("
-            + "SELECT 1 FROM BookingDetail bd WITH (HOLDLOCK) "
-            + "JOIN Booking b WITH (HOLDLOCK) ON b.BookingID = bd.BookingID "
-            + "WHERE bd.RoomNumber = r.RoomNumber AND (b.Status = 'checked_in' "
-            + "OR (b.Status IN ('pending', 'confirmed') AND bd.CheckOutDate > ?)))";
-
-    private static final String TYPE_AVAILABILITY
-            = "WITH Nights AS (SELECT CAST(? AS date) AS StayDate "
-            + "UNION ALL SELECT DATEADD(day,1,StayDate) FROM Nights "
-            + "WHERE DATEADD(day,1,StayDate)<CAST(? AS date)), "
-            + "Inventory AS (SELECT rt.RoomTypeID, COUNT(*) AS Total "
-            + "FROM RoomType rt JOIN Room r ON r.RoomTypeID=rt.RoomTypeID "
-            + "WHERE r.Status='available' AND rt.IsActive=1 AND rt.Capacity>=? "
-            + "AND (? IS NULL OR rt.RoomTypeID=?) "
-            + "AND (? IS NULL OR rt.PricePerNight>=?) "
-            + "AND (? IS NULL OR rt.PricePerNight<?) GROUP BY rt.RoomTypeID), "
-            + "Stays AS (SELECT i.RoomTypeID,d.CheckInDate,"
-            + RoomOccupancySql.endDate("b", "d") + " AS EffectiveEnd "
-            + "FROM BookingDetail d JOIN Booking b ON b.BookingID=d.BookingID "
-            + "LEFT JOIN Room legacy ON legacy.RoomNumber=d.RoomNumber AND d.RoomTypeID IS NULL "
-            + "JOIN Inventory i ON i.RoomTypeID=COALESCE(d.RoomTypeID,legacy.RoomTypeID) "
-            + "WHERE " + RoomOccupancySql.active("b") + " AND d.CheckInDate<? AND "
-            + RoomOccupancySql.endDate("b", "d") + ">?), "
-            + "Nightly AS (SELECT i.RoomTypeID,n.StayDate, "
-            + "CASE WHEN COUNT(s.RoomTypeID)>=i.Total THEN 0 ELSE i.Total-COUNT(s.RoomTypeID) END AS FreeRooms "
-            + "FROM Inventory i CROSS JOIN Nights n LEFT JOIN Stays s ON s.RoomTypeID=i.RoomTypeID "
-            + "AND s.CheckInDate<=n.StayDate AND s.EffectiveEnd>n.StayDate "
-            + "GROUP BY i.RoomTypeID,n.StayDate,i.Total) ";
-    private static final String TYPE_AVAILABILITY_TOTALS
-            = "SELECT RoomTypeID,MIN(FreeRooms) AS Available FROM Nightly GROUP BY RoomTypeID";
-    private static final String INVENTORY_QUERY_END = " OPTION (MAXRECURSION 365)";
-
     public static final class AvailableType {
 
         private final RoomType type;
@@ -70,7 +37,7 @@ public class RoomDAO extends DBContext {
                 java.math.BigDecimal rating, Integer readyNow) {
             this.type = type;
             this.available = available;
-            this.maxChildren = Math.min(type.getCapacity(), maxChildren);
+            this.maxChildren = maxChildren;
             this.reviewCount = reviewCount;
             this.rating = rating;
             this.readyNow = readyNow;
@@ -105,17 +72,15 @@ public class RoomDAO extends DBContext {
         }
     }
 
+    public List<AvailableType> findRoomSelectionTypes(LocalDate from, LocalDate to, int adults,
+            int children, String sort) throws SQLException {
+        List<AvailableType> types = findAvailableTypes(from, to, adults, null, model.RoomPriceBand.ALL, sort);
+        types.removeIf(type -> type.getMaxChildren() < children);
+        return types;
+    }
+
     public List<AvailableType> findAvailableTypes(LocalDate from, LocalDate to, int guests,
             Integer typeId, model.RoomPriceBand band, String sort) throws SQLException {
-        return findAvailableTypes(from, to, guests, typeId, band, sort, false);
-    }
-
-    public List<AvailableType> findRoomSelectionTypes(LocalDate from, LocalDate to, String sort) throws SQLException {
-        return findAvailableTypes(from, to, 1, null, model.RoomPriceBand.ALL, sort, true);
-    }
-
-    private List<AvailableType> findAvailableTypes(LocalDate from, LocalDate to, int guests,
-            Integer typeId, model.RoomPriceBand band, String sort, boolean includeSoldOut) throws SQLException {
         String order;
         switch (sort) {
             case "price_asc":
@@ -130,33 +95,29 @@ public class RoomDAO extends DBContext {
             default:
                 order = "rt.RoomTypeID";
         }
-        String sql = TYPE_AVAILABILITY
-                + ", AvailableTypes AS (" + TYPE_AVAILABILITY_TOTALS + ") "
-                + "SELECT rt.*,COALESCE(a.Available,0) AS Available,reviews.ReviewCount,reviews.Rating "
-                + "FROM RoomType rt " + (includeSoldOut ? "LEFT JOIN" : "JOIN")
-                + " AvailableTypes a ON a.RoomTypeID=rt.RoomTypeID CROSS APPLY ("
+        String sql = "SELECT rt.*,reviews.ReviewCount,reviews.Rating FROM RoomType rt CROSS APPLY ("
                 + "SELECT COUNT(*) AS ReviewCount, CAST(AVG(rv.Star) AS DECIMAL(3,1)) AS Rating "
                 + "FROM Review rv WHERE rv.ReviewStatus='approved' AND EXISTS ("
                 + "SELECT 1 FROM BookingDetail bd LEFT JOIN Room r ON r.RoomNumber=bd.RoomNumber "
                 + "WHERE bd.BookingID=rv.BookingID AND COALESCE(bd.RoomTypeID,r.RoomTypeID)=rt.RoomTypeID)"
-                + ") reviews WHERE rt.IsActive=1 "
-                + (includeSoldOut ? "" : "AND a.Available>0 ")
-                + "ORDER BY " + order + INVENTORY_QUERY_END;
+                + ") reviews WHERE " + SALE_FILTER + " ORDER BY " + order;
         List<AvailableType> types = new ArrayList<>();
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            bindInventory(ps, from, to, guests, typeId, band);
+            bindSaleFilter(ps, guests, typeId, band);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    RoomType type = new RoomType(rs.getInt("RoomTypeID"), rs.getString("Name"),
+                    int id = rs.getInt("RoomTypeID");
+                    int available = RoomTypeInventory.load(conn, id, from, null).available(from, to);
+                    if (available == 0) {
+                        continue;
+                    }
+                    RoomType type = new RoomType(id, rs.getString("Name"),
                             rs.getString("Description"), rs.getBigDecimal("PricePerNight"),
                             rs.getInt("Beds"), rs.getInt("Capacity"), rs.getString("Picture"));
-                    types.add(new AvailableType(type, rs.getInt("Available"), rs.getInt("MaxChildren"),
+                    types.add(new AvailableType(type, available, rs.getInt("MaxChildren"),
                             rs.getInt("ReviewCount"), rs.getBigDecimal("Rating"), null));
                 }
             }
-        }
-        if (includeSoldOut) {
-            types.sort(java.util.Comparator.comparing(type -> type.getAvailable() == 0));
         }
         return types;
     }
@@ -170,51 +131,68 @@ public class RoomDAO extends DBContext {
     static int countAvailableRoomsByType(Connection connection, LocalDate from, LocalDate to,
             int typeId, int guestsPerRoom) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(
-                TYPE_AVAILABILITY + TYPE_AVAILABILITY_TOTALS + INVENTORY_QUERY_END)) {
-            bindInventory(ps, from, to, guestsPerRoom, typeId, model.RoomPriceBand.ALL);
+                "SELECT 1 FROM RoomType WHERE RoomTypeID=? AND IsActive=1 AND Capacity>=?")) {
+            ps.setInt(1, typeId);
+            ps.setInt(2, guestsPerRoom);
             try (ResultSet rows = ps.executeQuery()) {
-                return rows.next() ? rows.getInt("Available") : 0;
+                if (!rows.next()) {
+                    return 0;
+                }
             }
         }
+        return RoomTypeInventory.load(connection, typeId, from, null).available(from, to);
     }
 
     public java.util.Map<String, String> findCalendarAvailability(LocalDate from, LocalDate to,
             int guests, Integer typeId, model.RoomPriceBand band, int quantity) throws SQLException {
-        String sql = TYPE_AVAILABILITY
-                + ", StayLimits AS (SELECT StayDate,FreeRooms, "
-                + "MIN(CASE WHEN FreeRooms<? THEN StayDate END) OVER ("
-                + "PARTITION BY RoomTypeID ORDER BY StayDate ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) "
-                + "AS FirstFullNight FROM Nightly) "
-                + "SELECT StayDate,MAX(COALESCE(FirstFullNight,CAST(? AS date))) AS LastCheckout "
-                + "FROM StayLimits WHERE FreeRooms>=? GROUP BY StayDate ORDER BY StayDate" + INVENTORY_QUERY_END;
-        java.util.Map<String, String> availability = new java.util.LinkedHashMap<>();
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            bindInventory(ps, from, to, guests, typeId, band);
-            ps.setInt(12, quantity);
-            ps.setObject(13, to);
-            ps.setInt(14, quantity);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    availability.put(rs.getDate("StayDate").toString(), rs.getDate("LastCheckout").toString());
+        java.util.Map<LocalDate, LocalDate> limits = new java.util.TreeMap<>();
+        List<RoomTypeInventory> inventories = new ArrayList<>();
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "SELECT rt.RoomTypeID FROM RoomType rt WHERE " + SALE_FILTER)) {
+            bindSaleFilter(ps, guests, typeId, band);
+            try (ResultSet rows = ps.executeQuery()) {
+                while (rows.next()) {
+                    inventories.add(RoomTypeInventory.load(conn, rows.getInt(1), from, null));
                 }
             }
         }
+        for (RoomTypeInventory inventory : inventories) {
+            for (LocalDate start = from; start.isBefore(to); start = start.plusDays(1)) {
+                LocalDate earliest = limits.getOrDefault(start, start);
+                long low = earliest.toEpochDay();
+                long high = to.toEpochDay();
+                while (low < high) {
+                    long day = low + (high - low + 1) / 2;
+                    LocalDate end = LocalDate.ofEpochDay(day);
+                    if (inventory.reserve(start, end, quantity).size() == quantity) {
+                        low = day;
+                    } else {
+                        high = day - 1;
+                    }
+                }
+                if (low > earliest.toEpochDay()) {
+                    limits.put(start, LocalDate.ofEpochDay(low));
+                }
+            }
+        }
+        java.util.Map<String, String> availability = new java.util.LinkedHashMap<>();
+        limits.forEach((start, end) -> availability.put(start.toString(), end.toString()));
         return availability;
     }
 
-    private static void bindInventory(PreparedStatement ps, LocalDate from, LocalDate to,
-            int guests, Integer typeId, model.RoomPriceBand band) throws SQLException {
-        ps.setObject(1, from);
-        ps.setObject(2, to);
-        ps.setInt(3, guests);
-        ps.setObject(4, typeId, Types.INTEGER);
-        ps.setObject(5, typeId, Types.INTEGER);
-        ps.setBigDecimal(6, band.getMinimum());
-        ps.setBigDecimal(7, band.getMinimum());
-        ps.setBigDecimal(8, band.getUpperExclusive());
-        ps.setBigDecimal(9, band.getUpperExclusive());
-        ps.setObject(10, to);
-        ps.setObject(11, from);
+    private static final String SALE_FILTER = "rt.IsActive=1 AND rt.Capacity>=? "
+            + "AND (? IS NULL OR rt.RoomTypeID=?) AND (? IS NULL OR rt.PricePerNight>=?) "
+            + "AND (? IS NULL OR rt.PricePerNight<?)";
+
+    private static void bindSaleFilter(PreparedStatement ps, int guests, Integer typeId,
+            model.RoomPriceBand band) throws SQLException {
+        ps.setInt(1, guests);
+        ps.setObject(2, typeId, Types.INTEGER);
+        ps.setObject(3, typeId, Types.INTEGER);
+        ps.setBigDecimal(4, band.getMinimum());
+        ps.setBigDecimal(5, band.getMinimum());
+        ps.setBigDecimal(6, band.getUpperExclusive());
+        ps.setBigDecimal(7, band.getUpperExclusive());
     }
 
     static int countReadyRooms(Connection connection, int typeId, LocalDate from,
@@ -778,7 +756,8 @@ public class RoomDAO extends DBContext {
      * Returns the generated room numbers after the entire group commits.
      * =========================================================
      */
-    public List<Integer> create(String status, int roomTypeId, int quantity) {
+    public List<Integer> create(String status, int roomTypeId, int quantity)
+            throws RoomLimitExceededException {
         if (!isValidRoomStatus(status) || quantity < 1 || quantity > MAX_CREATE_QUANTITY) {
             return Collections.emptyList();
         }
@@ -787,6 +766,11 @@ public class RoomDAO extends DBContext {
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
             try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                // Lock Room before reading the limit, in the same order as a limit update.
+                int registered = countRooms(conn, true);
+                if (quantity > roomLimit(conn) - registered) {
+                    throw new RoomLimitExceededException();
+                }
                 ps.setInt(1, roomTypeId);
                 ps.setString(2, status);
                 List<Integer> roomNumbers = new ArrayList<>(quantity);
@@ -803,7 +787,7 @@ public class RoomDAO extends DBContext {
                 }
                 conn.commit();
                 return roomNumbers;
-            } catch (SQLException ex) {
+            } catch (SQLException | RoomLimitExceededException ex) {
                 conn.rollback();
                 throw ex;
             }
@@ -811,6 +795,89 @@ public class RoomDAO extends DBContext {
             Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, "Room creation failed", ex);
             return Collections.emptyList();
         }
+    }
+
+    public RoomCapacity roomCapacity() throws SQLException {
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                RoomCapacity capacity = new RoomCapacity(countRooms(conn, false), roomLimit(conn));
+                conn.commit();
+                return capacity;
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            }
+        }
+    }
+
+    public boolean updateRoomLimit(int limit) throws SQLException {
+        if (limit < 1) {
+            return false;
+        }
+        String sql = "UPDATE dbo.RoomInventorySettings SET MaxRooms=? WHERE SettingID=1";
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                if (limit < countRooms(conn, true)) {
+                    conn.rollback();
+                    return false;
+                }
+                ps.setInt(1, limit);
+                if (ps.executeUpdate() != 1) {
+                    throw new SQLException("Hotel room inventory settings are missing");
+                }
+                conn.commit();
+                return true;
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            }
+        }
+    }
+
+    private static int countRooms(Connection conn, boolean exclusive) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM dbo.Room WITH (" + (exclusive ? "TABLOCKX" : "TABLOCK") + ", HOLDLOCK)";
+        try (Statement statement = conn.createStatement(); ResultSet rows = statement.executeQuery(sql)) {
+            rows.next();
+            return rows.getInt(1);
+        }
+    }
+
+    private static int roomLimit(Connection conn) throws SQLException {
+        String sql = "SELECT MaxRooms FROM dbo.RoomInventorySettings WHERE SettingID=1";
+        try (Statement statement = conn.createStatement(); ResultSet rows = statement.executeQuery(sql)) {
+            if (!rows.next()) {
+                throw new SQLException("Hotel room inventory settings are missing");
+            }
+            return rows.getInt(1);
+        }
+    }
+
+    public static final class RoomCapacity {
+        private final int registered;
+        private final int limit;
+
+        private RoomCapacity(int registered, int limit) {
+            this.registered = registered;
+            this.limit = limit;
+        }
+
+        public int getRegistered() {
+            return registered;
+        }
+
+        public int getLimit() {
+            return limit;
+        }
+
+        public int getRemaining() {
+            return Math.max(0, limit - registered);
+        }
+    }
+
+    public static final class RoomLimitExceededException extends Exception {
+        private static final long serialVersionUID = 1L;
     }
 
     /*
@@ -822,117 +889,129 @@ public class RoomDAO extends DBContext {
      * =========================================================
      */
     public int update(int roomNumber, String status, int roomTypeId) {
-        if (!isValidRoomStatus(status)) {
-            return 0;
-        }
-
-        String sql = "UPDATE r SET RoomTypeID = ?, Status = ? FROM Room r WITH (UPDLOCK, HOLDLOCK) "
-                + "WHERE r.RoomNumber = ? AND ((r.RoomTypeID = ? AND (r.Status = ? OR ? = 'available')) "
-                + "OR " + NO_ACTIVE_BOOKING + ")";
-
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, roomTypeId);
-            ps.setString(2, status);
-            ps.setInt(3, roomNumber);
-            ps.setInt(4, roomTypeId);
-            ps.setString(5, status);
-            ps.setString(6, status);
-            ps.setObject(7, ReportPeriod.today());
-            return ps.executeUpdate() == 1 ? 1 : CHANGE_BLOCKED_BY_BOOKING;
-        } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-        return 0;
+        return isValidRoomStatus(status) ? changeRoom(roomNumber, status, roomTypeId) : 0;
     }
 
-    /*
-     * =========================================================
-     * 11. CHECK WHETHER ROOM HAS BOOKING HISTORY
-     * =========================================================
-     */
-    public boolean hasBookingHistory(int roomNumber) {
-        String sql = "SELECT 1 "
-                + "FROM BookingDetail "
-                + "WHERE RoomNumber = ?";
+    public int delete(int roomNumber) {
+        return changeRoom(roomNumber, null, null);
+    }
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, roomNumber);
+    public static final class InventoryConflict extends IllegalArgumentException {
+        private static final long serialVersionUID = 1L;
+        private final LocalDate from;
+        private final LocalDate to;
 
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
+        private InventoryConflict(LocalDate from, LocalDate to) {
+            this.from = from;
+            this.to = to;
+        }
+
+        public LocalDate getFrom() { return from; }
+        public LocalDate getTo() { return to; }
+    }
+
+    private int changeRoom(int roomNumber, String status, Integer newType) {
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                Integer oldType = currentType(conn, roomNumber);
+                if (oldType == null) {
+                    conn.rollback();
+                    return 0;
+                }
+                java.util.Set<Integer> types = new java.util.TreeSet<>();
+                types.add(oldType);
+                if (newType != null) {
+                    types.add(newType);
+                }
+                for (int type : types) {
+                    BookingDAO.lockRoomType(conn, type);
+                }
+
+                String oldStatus;
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT Status FROM Room WITH(UPDLOCK,HOLDLOCK) WHERE RoomNumber=? AND RoomTypeID=?")) {
+                    ps.setInt(1, roomNumber);
+                    ps.setInt(2, oldType);
+                    try (ResultSet rows = ps.executeQuery()) {
+                        if (!rows.next()) {
+                            conn.rollback();
+                            return 0;
+                        }
+                        oldStatus = rows.getString(1);
+                    }
+                }
+
+                boolean reducing = newType == null || !oldType.equals(newType)
+                        || ("available".equals(oldStatus) && !"available".equals(status));
+                if (reducing) {
+                    LocalDate today = ReportPeriod.today();
+                    checkFixedBookings(conn, roomNumber, today);
+                    if ("available".equals(oldStatus)) {
+                        RoomTypeInventory inventory = RoomTypeInventory.load(conn, oldType, today, roomNumber);
+                        RoomTypeInventory.Stay conflict = inventory.moveHolds(conn, roomNumber);
+                        if (conflict != null) {
+                            throw new InventoryConflict(conflict.from, conflict.to);
+                        }
+                    }
+                }
+
+                if (newType == null) {
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE FROM Room WHERE RoomNumber=? "
+                            + "AND NOT EXISTS (SELECT 1 FROM BookingDetail WHERE RoomNumber=?)")) {
+                        ps.setInt(1, roomNumber);
+                        ps.setInt(2, roomNumber);
+                        if (ps.executeUpdate() == 1) {
+                            conn.commit();
+                            return 1;
+                        }
+                    }
+                    newType = oldType;
+                    status = "out_of_service";
+                }
+
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE Room SET RoomTypeID=?,Status=? WHERE RoomNumber=?")) {
+                    ps.setInt(1, newType);
+                    ps.setString(2, status);
+                    ps.setInt(3, roomNumber);
+                    int changed = ps.executeUpdate();
+                    conn.commit();
+                    return changed;
+                }
+            } catch (SQLException | RuntimeException ex) {
+                conn.rollback();
+                throw ex;
             }
         } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-        /*
-         * Safer to assume history exists
-         * when DB checking fails.
-         */
-        return true;
-    }
-
-    /*
-     * =========================================================
-     * 12. DELETE ROOM
-     *
-     * RDS requires booking history to remain intact.
-     *
-     * If the room has BookingDetail history:
-     * do NOT physically delete it.
-     *
-     * Instead mark it out_of_service.
-     * =========================================================
-     */
-    public int delete(int roomNumber) {
-        if (!doesRoomExist(roomNumber)) {
+            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, "Room inventory change failed", ex);
             return 0;
         }
-
-        /*
-         * Room already appeared in a booking.
-         * Preserve historical foreign-key references.
-         */
-        if (hasBookingHistory(roomNumber)) {
-            return setRoomOutOfService(roomNumber);
-        }
-
-        /*
-         * Room has never been booked.
-         * Physical delete is safe.
-         */
-        String sql = "DELETE FROM Room "
-                + "WHERE RoomNumber = ?";
-
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, roomNumber);
-            return ps.executeUpdate();
-        } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-        return 0;
     }
 
-    /*
-     * =========================================================
-     * 13. SOFT REMOVE / DISABLE ROOM
-     * =========================================================
-     */
-    public int setRoomOutOfService(int roomNumber) {
-        String sql = "UPDATE r SET Status = 'out_of_service' FROM Room r WITH (UPDLOCK, HOLDLOCK) "
-                + "WHERE r.RoomNumber = ? AND " + NO_ACTIVE_BOOKING;
-
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+    private static Integer currentType(Connection conn, int roomNumber) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement("SELECT RoomTypeID FROM Room WHERE RoomNumber=?")) {
             ps.setInt(1, roomNumber);
-            ps.setObject(2, ReportPeriod.today());
-            return ps.executeUpdate() == 1 ? 1 : CHANGE_BLOCKED_BY_BOOKING;
-        } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
+            try (ResultSet rows = ps.executeQuery()) {
+                return rows.next() ? rows.getInt(1) : null;
+            }
         }
+    }
 
-        return 0;
+    private static void checkFixedBookings(Connection conn, int roomNumber, LocalDate today) throws SQLException {
+        String sql = "SELECT TOP(1) d.CheckInDate,d.CheckOutDate FROM BookingDetail d "
+                + "JOIN Booking b ON b.BookingID=d.BookingID WHERE d.RoomNumber=? AND "
+                + "(b.Status='checked_in' OR (d.IsProvisionalRoom=0 AND b.Status IN ('pending','confirmed') "
+                + "AND d.CheckOutDate>? AND " + RoomOccupancySql.active("b") + ")) ORDER BY d.CheckInDate";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roomNumber);
+            ps.setObject(2, today);
+            try (ResultSet rows = ps.executeQuery()) {
+                if (rows.next()) {
+                    throw new InventoryConflict(rows.getObject(1, LocalDate.class), rows.getObject(2, LocalDate.class));
+                }
+            }
+        }
     }
 
     /*

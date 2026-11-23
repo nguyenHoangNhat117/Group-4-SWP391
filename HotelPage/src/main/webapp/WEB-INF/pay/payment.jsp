@@ -30,6 +30,7 @@
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-modern.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+        <link rel="stylesheet" href="<c:url value='/assets/css/online-booking-select.css?v=2'/>">
 </head>
 
 <body class="bg-light">
@@ -267,8 +268,8 @@
 
                 <c:if test="${firstPayment}">
                     <div class="mb-4">
-                        <label for="payment-percent" class="form-label fw-semibold">Tỷ lệ thanh toán ban đầu</label>
-                        <select id="payment-percent" name="payment-percent" class="form-select form-select-lg" required ${selectedPercent != null ? 'disabled' : ''}>
+                        <label for="payment-percent" class="form-label booking-select-label">Tỷ lệ thanh toán ban đầu</label>
+                        <select id="payment-percent" name="payment-percent" class="form-select booking-select" required ${selectedPercent != null ? 'disabled' : ''}>
                             <option value="10" ${selectedPercent == 10 ? 'selected' : ''}>10%</option>
                             <option value="20" ${selectedPercent == 20 ? 'selected' : ''}>20%</option>
                             <option value="100" ${selectedPercent == 100 ? 'selected' : ''}>100%</option>
@@ -292,8 +293,7 @@
 
                     <label
                         for="payment-method"
-                        class="form-label
-                               fw-semibold">
+                        class="form-label booking-select-label">
 
                         Phương thức thanh toán
 
@@ -303,13 +303,12 @@
                     <select
                         id="payment-method"
                         name="payment-method"
-                        class="form-select
-                               form-select-lg"
+                        class="form-select booking-select"
                         required>
 
 
                         <option value="">
-                            -- Chọn phương thức thanh toán --
+                            Chọn phương thức thanh toán
                         </option>
 
 

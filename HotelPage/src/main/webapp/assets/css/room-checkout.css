@@ -87,6 +87,107 @@ html.stay-page {
     color: #6e5540;
 }
 
+.stay-overview-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .625rem 1rem;
+    margin-block-end: 1rem;
+}
+
+.stay-overview-nights {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    padding: .3125rem .6875rem;
+    border-radius: 2rem;
+    background: #f0e5d7;
+    color: #67472d;
+    font-size: .8125rem;
+    font-weight: 650;
+}
+
+.stay-overview-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 1.3fr);
+    gap: .875rem 1rem;
+    margin: 0;
+    padding: .875rem 1rem;
+    border: 1px solid #eddecd;
+    border-radius: .875rem;
+    background: #f8f1e8;
+}
+
+.stay-overview-facts dt,
+.stay-overview-room-meta {
+    color: #6e5949;
+    font-size: .875rem;
+}
+
+.stay-overview-facts dt {
+    margin-bottom: .1875rem;
+    font-weight: 600;
+}
+
+.stay-overview-facts dd {
+    margin: 0;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+
+.stay-overview-room {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .375rem 1rem;
+    padding-block: .9375rem;
+}
+
+.stay-overview-room + .stay-overview-room {
+    border-top: 1px solid #eddecd;
+}
+
+.stay-overview-room:last-child {
+    padding-bottom: 0;
+}
+
+.stay-overview-room h3 {
+    overflow-wrap: anywhere;
+}
+
+.stay-overview-price {
+    display: flex;
+    flex-direction: column;
+    gap: .125rem .75rem;
+    color: #624023;
+    text-align: end;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 575px) {
+    .stay-overview-facts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stay-overview-party {
+        grid-column: 1 / -1;
+        padding-top: .625rem;
+        border-top: 1px solid #e8d9c7;
+    }
+
+    .stay-overview-room {
+        grid-template-columns: 1fr;
+    }
+
+    .stay-overview-price {
+        flex-flow: row wrap;
+        align-items: baseline;
+        text-align: start;
+    }
+}
+
 .stay-rate {
     margin-bottom: .5rem;
     color: #664729;

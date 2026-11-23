@@ -9,7 +9,7 @@ import model.Customer;
 
 final class BookingContactForm {
     private static final Map<String, Integer> FIELDS = Map.of(
-            "contact-name", 120, "contact-phone", 32, "contact-email", 254, "contact-country", 80);
+            "contact-name", 120, "contact-phone", 32, "contact-email", 254);
 
     private BookingContactForm() { }
 
@@ -25,7 +25,7 @@ final class BookingContactForm {
 
     static BookingContact validate(Map<String, String> fields) {
         return new BookingContact(fields.get("contact-name"), fields.get("contact-phone"),
-                fields.get("contact-email"), fields.get("contact-country"));
+                fields.get("contact-email"));
     }
 
     static void show(HttpServletRequest request, Customer customer, Map<String, String> fields,
@@ -33,13 +33,12 @@ final class BookingContactForm {
         if (lockedContact != null) {
             request.setAttribute("contactReadOnly", true);
             fields = Map.of("contact-name", lockedContact.getName(), "contact-phone", lockedContact.getPhone(),
-                    "contact-email", lockedContact.getEmail(), "contact-country", lockedContact.getCountry());
+                    "contact-email", lockedContact.getEmail());
         } else if (fields.isEmpty()) {
             fields = Map.of("contact-name", (Objects.toString(customer.getLastName(), "") + " "
                             + Objects.toString(customer.getFirstName(), "")).strip(),
                     "contact-phone", Objects.toString(customer.getPhone(), ""),
-                    "contact-email", Objects.toString(customer.getEmail(), ""),
-                    "contact-country", Objects.toString(customer.getCountry(), ""));
+                    "contact-email", Objects.toString(customer.getEmail(), ""));
         }
         request.setAttribute("contactFields", fields);
     }

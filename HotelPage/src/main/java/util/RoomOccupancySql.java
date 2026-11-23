@@ -35,7 +35,8 @@ public final class RoomOccupancySql {
     public static String active(String bookingAlias) {
         String b = alias(bookingAlias);
         return b + ".Status<>'cancelled' AND (" + b + ".Status<>'pending' OR "
-                + b + ".CreatedByUserID IS NOT NULL OR " + b + ".HoldExpiresAt IS NULL OR "
+                + b + ".CreatedByUserID IS NOT NULL OR (" + b + ".HoldExpiresAt IS NULL AND "
+                + b + ".BookingDate>DATEADD(MINUTE,-30,SYSDATETIME())) OR "
                 + b + ".HoldExpiresAt>SYSUTCDATETIME())";
     }
 }

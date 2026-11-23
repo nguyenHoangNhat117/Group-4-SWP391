@@ -269,7 +269,16 @@
                                                     <td class="booking-stay-date">
                                                         <time datetime="${detail.checkOutDate}">${detail.checkOutDate.format(dateFormat)}</time>
                                                     </td>
-                                                    <td class="text-center">${not empty booking.onlineRequestKey ? '—' : detail.guestCount}</td>
+                                                    <td class="text-center">
+                                                        <c:choose>
+                                                            <c:when test="${not empty detail.bookedAdults}">
+                                                                ${detail.bookedAdults} <ui:text key="room.selection.adultUnit"/>
+                                                                · ${detail.bookedChildren} <ui:text key="room.selection.childUnit"/>
+                                                            </c:when>
+                                                            <c:when test="${not booking.offline}"><ui:text key="room.booking.party.unknown"/></c:when>
+                                                            <c:otherwise>${detail.guestCount}</c:otherwise>
+                                                        </c:choose>
+                                                    </td>
                                                     <td class="text-end">
                                                         <span class="booking-money">
                                                             <fmt:formatNumber value="${detail.pricePerNight}" maxFractionDigits="0"/>

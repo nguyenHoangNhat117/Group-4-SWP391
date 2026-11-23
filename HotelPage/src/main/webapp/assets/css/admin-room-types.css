@@ -6,6 +6,10 @@ body.luxe-admin-types {
     background: #f5f7f5;
 }
 
+[data-amenity-list] [hidden] {
+    display: none !important;
+}
+
 .luxe-admin-types .room-types-page {
     --rt-ink: #202c28;
     --rt-muted: #56665f;
@@ -123,15 +127,27 @@ body.luxe-admin-types .room-types-hero h1 {
 
 .room-types-table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: separate;
     border-spacing: 0;
     font-size: .9rem;
 }
 
+.room-types-col-identity { width: 43%; }
+.room-types-col-price { width: 14%; }
+.room-types-col-beds { width: 7%; }
+.room-types-col-capacity { width: 14%; }
+.room-types-col-actions { width: 22%; }
+
 .room-types-table th,
 .room-types-table td {
-    padding: 16px clamp(12px, 1.6vw, 24px);
+    padding: 15px clamp(10px, 1.25vw, 18px);
     vertical-align: middle;
+}
+
+.room-types-table th:nth-child(3),
+.room-types-table td:nth-child(3) {
+    text-align: center;
 }
 
 .room-types-table thead th {
@@ -155,15 +171,14 @@ body.luxe-admin-types .room-types-hero h1 {
 }
 
 .room-types-identity {
-    width: 54%;
     font-weight: 400;
 }
 
 .room-types-record {
     display: grid;
-    grid-template-columns: clamp(70px, 9vw, 112px) minmax(0, 1fr);
-    align-items: start;
-    gap: 16px;
+    grid-template-columns: clamp(68px, 7vw, 96px) minmax(0, 1fr);
+    align-items: center;
+    gap: 14px;
     overflow-wrap: anywhere;
 }
 
@@ -189,17 +204,66 @@ body.luxe-admin-types .room-types-hero h1 {
 }
 
 .room-types-name {
-    display: block;
-    margin: 4px 0 2px;
     font-size: 1rem;
     font-weight: 700;
 }
 
+.room-types-record-title,
+.amenity-catalog-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem .5rem;
+}
+
 .room-types-description {
-    margin: 0;
+    display: -webkit-box;
+    min-height: 2.8em;
+    margin: .25rem 0;
+    overflow: hidden;
     color: var(--rt-muted);
     font-size: .85rem;
-    line-height: 1.5;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.room-types-usage {
+    margin: 0;
+    color: var(--rt-muted);
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.catalog-status {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    padding: .22rem .55rem;
+    border-radius: 1rem;
+    background: #eef0ef;
+    color: #45534d;
+    font-size: .75rem;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.catalog-status.is-active {
+    background: #e5f3eb;
+    color: #1e6245;
+}
+
+.catalog-status::before {
+    width: .375rem;
+    height: .375rem;
+    background: currentColor;
+    border-radius: 50%;
+    content: "";
+}
+
+.room-types-capacity {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }
 
 .room-types-price {
@@ -211,12 +275,15 @@ body.luxe-admin-types .room-types-hero h1 {
 
 .room-types-actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
     gap: 5px;
 }
 
-.room-types-actions .btn {
-    padding-inline: .75rem;
+.room-types-page .room-types-actions .btn,
+.room-types-page .amenity-catalog-actions .btn {
+    min-height: 40px;
+    padding-inline: .625rem;
     white-space: nowrap;
 }
 
@@ -284,11 +351,17 @@ body.luxe-admin-types .room-types-hero h1 {
 .room-types-edit-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+    grid-template-areas:
+        "details photo"
+        "amenities photo";
     align-items: start;
     gap: 20px;
 }
 
-.room-types-edit-fields,
+.room-types-details { grid-area: details; }
+.room-types-edit-amenities { grid-area: amenities; min-width: 0; }
+.room-types-photo { grid-area: photo; }
+
 .room-types-field-grid {
     display: grid;
     min-width: 0;
@@ -310,7 +383,7 @@ body.luxe-admin-types .room-types-form-card h2,
 
 .room-types-numbers {
     display: grid;
-    grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: end;
     gap: 12px;
 }
@@ -413,10 +486,92 @@ body.luxe-admin-types .room-types-form-card h2,
     flex-wrap: wrap;
     gap: 10px;
     margin-top: 20px;
-    padding: 14px clamp(16px, 2.6vw, 28px);
+    padding-top: 16px;
+    border-top: 1px solid var(--rt-line);
 }
 
-@media (max-width: 850px) {
+.amenity-heading,
+.amenity-catalog-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 12px 20px;
+}
+
+.amenity-heading {
+    margin-block: 8px 22px;
+}
+
+.amenity-catalog-toolbar {
+    padding: 18px clamp(14px, 2.2vw, 24px);
+    border-radius: 15px 15px 0 0;
+    background: #edf3ef;
+}
+
+.amenity-catalog-toolbar label {
+    color: #43574e;
+    font-size: .8125rem;
+    font-weight: 650;
+}
+
+.amenity-catalog-filter {
+    flex: 0 1 19rem;
+}
+
+.amenity-catalog-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) 11.5rem;
+    align-items: center;
+    gap: .625rem 1.25rem;
+    padding: 16px clamp(14px, 2.2vw, 24px);
+}
+
+.amenity-catalog-item + .amenity-catalog-item {
+    border-top: 1px solid var(--rt-line);
+}
+
+.amenity-catalog-item h3,
+.amenity-catalog-description {
+    overflow-wrap: anywhere;
+}
+
+.amenity-catalog-description,
+.amenity-catalog-links > span {
+    color: var(--rt-muted);
+    font-size: .8125rem;
+}
+
+.amenity-linked-types {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    margin-top: .375rem;
+}
+
+.amenity-linked-types a {
+    padding: .2rem .55rem;
+    border: 1px solid #dbe7df;
+    border-radius: .375rem;
+    background: #f4f8f5;
+    color: #284d3d;
+    font-size: .8125rem;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.amenity-linked-types a:hover {
+    text-decoration: underline;
+}
+
+.amenity-catalog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .375rem;
+}
+
+@media (max-width: 930px) {
     .room-types-table,
     .room-types-table tbody {
         display: block;
@@ -435,6 +590,14 @@ body.luxe-admin-types .room-types-form-card h2,
         overflow: hidden;
         clip-path: inset(50%);
         white-space: nowrap;
+    }
+
+    .room-types-table colgroup {
+        display: none;
+    }
+
+    .room-types-table td:nth-child(3) {
+        text-align: start;
     }
 
     .room-types-table tbody tr {
@@ -487,10 +650,28 @@ body.luxe-admin-types .room-types-form-card h2,
 
     .room-types-edit-grid {
         grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "details"
+            "photo"
+            "amenities";
     }
 
     .room-types-preview {
         max-height: 340px;
+    }
+}
+
+@media (max-width: 700px) {
+    .amenity-catalog-item {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .amenity-catalog-filter {
+        flex: 1 0 100%;
+    }
+
+    .amenity-catalog-actions {
+        justify-content: flex-start;
     }
 }
 

@@ -17,6 +17,11 @@
             plan.value = 'transfer';
         }
         document.getElementById('deposit-note').hidden = canDeposit;
+        if (canDeposit) {
+            plan.removeAttribute('aria-describedby');
+        } else {
+            plan.setAttribute('aria-describedby', 'deposit-note');
+        }
         const due = plan.value === 'deposit' ? total / 2n : total;
         document.getElementById('checkout-due').textContent = money.format(due);
         document.getElementById('checkout-balance').textContent = money.format(total - due);

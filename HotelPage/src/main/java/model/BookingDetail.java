@@ -13,6 +13,8 @@ public class BookingDetail {
     private LocalDate checkOutDate;
     private BigDecimal pricePerNight;
     private int guestCount;
+    private Integer bookedAdults;
+    private Integer bookedChildren;
     private String specialRequest;
 
     public BookingDetail() {
@@ -96,6 +98,11 @@ public class BookingDetail {
     public void setGuestCount(int guestCount) {
         this.guestCount = guestCount;
     }
+
+    public Integer getBookedAdults() { return bookedAdults; }
+    public void setBookedAdults(Integer value) { bookedAdults = value; }
+    public Integer getBookedChildren() { return bookedChildren; }
+    public void setBookedChildren(Integer value) { bookedChildren = value; }
 
     public String getSpecialRequest() {
         return specialRequest;

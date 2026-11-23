@@ -1,23 +1,33 @@
 package dao;
 
 import db.DBContext;
-import java.math.BigDecimal;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.RoomType;
+import util.ReportPeriod;
+import util.RoomOccupancySql;
 
-/**
- * DAO (Data Access Object) class to handle operations related to RoomType entity in the database. Author: Đặng Hoàng Vũ
- */
 public class RoomTypeDAO extends DBContext {
 
-    /**
-     * Retrieves all room types from the database.
-     *
-     * @return a list of RoomType objects
-     */
+    private static final String ADMIN_TYPES = "SELECT rt.*, "
+            + "(SELECT COUNT(*) FROM Room WHERE RoomTypeID=rt.RoomTypeID) AS RoomCount, "
+            + "usage.BookingCount,usage.ActiveBookingCount FROM RoomType rt OUTER APPLY ("
+            + "SELECT COUNT(DISTINCT b.BookingID) AS BookingCount,"
+            + "COUNT(DISTINCT CASE WHEN b.Status='checked_in' OR (b.Status IN ('pending','confirmed') AND "
+            + RoomOccupancySql.active("b") + " AND d.CheckOutDate>?) THEN b.BookingID END) AS ActiveBookingCount "
+            + "FROM BookingDetail d JOIN Booking b ON b.BookingID=d.BookingID "
+            + "LEFT JOIN Room r ON r.RoomNumber=d.RoomNumber "
+            + "WHERE COALESCE(d.RoomTypeID,r.RoomTypeID)=rt.RoomTypeID) usage";
+
     public List<RoomType> getAll() {
         return getAll(false);
     }
@@ -28,148 +38,93 @@ public class RoomTypeDAO extends DBContext {
 
     private List<RoomType> getAll(boolean activeOnly) {
         List<RoomType> roomTypes = new ArrayList<>();
-        String query = "SELECT RoomTypeID, Name, Description, PricePerNight, Beds, Capacity, Picture FROM RoomType"
-                + (activeOnly ? " WHERE IsActive=1" : "") + " ORDER BY PricePerNight, RoomTypeID";
-        try (Connection conn = getConnection(); PreparedStatement pstatement = conn.prepareStatement(query);
-                ResultSet rs = pstatement.executeQuery()) {
-            while (rs.next()) {
-                int roomTypeId = rs.getInt(1);
-                String roomName = rs.getString(2);
-                String roomDescription = rs.getString(3);
-                BigDecimal roomPrice = rs.getBigDecimal(4);
-                int beds = rs.getInt(5);
-                int capacity = rs.getInt(6);
-                String picture = rs.getString(7);
-
-                RoomType roomType = new RoomType(roomTypeId, roomName, roomDescription, roomPrice, beds, capacity, picture);
-                roomTypes.add(roomType);
+        String sql = "SELECT * FROM RoomType" + (activeOnly ? " WHERE IsActive=1" : "")
+                + " ORDER BY PricePerNight,RoomTypeID";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rows = ps.executeQuery()) {
+            while (rows.next()) {
+                roomTypes.add(mapRoomType(rows));
             }
         } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(RoomTypeDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
         return roomTypes;
     }
 
-    public RoomTypeSpecifications getSpecifications(int roomTypeId) throws SQLException {
-        try (Connection conn = getConnection();
-                PreparedStatement exists = conn.prepareStatement("SELECT OBJECT_ID(N'dbo.RoomTypeSpecifications', N'U')");
-                ResultSet result = exists.executeQuery()) {
-            if (!result.next() || result.getObject(1) == null) {
-                return null;
-            }
-            try (PreparedStatement query = conn.prepareStatement(
-                    "SELECT AreaM2, BedLabel FROM dbo.RoomTypeSpecifications WHERE RoomTypeID=?")) {
-                query.setInt(1, roomTypeId);
-                try (ResultSet row = query.executeQuery()) {
-                    return row.next() ? new RoomTypeSpecifications(row.getInt(1), row.getString(2)) : null;
-                }
-            }
+    public int getTotalPages() throws SQLException {
+        String sql = "SELECT CEILING(COUNT(*) * 1.0 / 5) FROM RoomType";
+        try (Connection conn = getConnection(); Statement statement = conn.createStatement();
+                ResultSet rows = statement.executeQuery(sql)) {
+            rows.next();
+            return rows.getInt(1);
         }
     }
 
-    public static final class RoomTypeSpecifications {
-        private final int areaM2;
-        private final String bedLabel;
-
-        private RoomTypeSpecifications(int areaM2, String bedLabel) {
-            this.areaM2 = areaM2;
-            this.bedLabel = bedLabel;
-        }
-
-        public int getAreaM2() {
-            return areaM2;
-        }
-
-        public String getBedLabel() {
-            return bedLabel;
-        }
-    }
-
-    /**
-     * Calculates the total number of pages for paginated display, assuming 5 items per page.
-     *
-     * @return number of total pages
-     */
-    public int getTotalPages() {
-        try {
-            String query = "SELECT CEILING(COUNT(*) * 1.0 / 5) AS TotalPages FROM RoomType rt;";
-            PreparedStatement pstatement = this.getConnection().prepareStatement(query);
-            ResultSet rs = pstatement.executeQuery();
-
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
-        } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return 0;
-    }
-
-    /**
-     * Retrieves a specific page of RoomType entries based on page index.
-     *
-     * @param index page number (1-based index)
-     * @return a list of RoomType objects for the specified page
-     */
-    public List<RoomType> getPage(int index) {
+    public List<RoomType> getPage(int index) throws SQLException {
         List<RoomType> roomTypes = new ArrayList<>();
-        try {
-            String query = "SELECT * FROM (select ROW_NUMBER() OVER (order by RoomTypeID asc) AS i, RoomTypeID, Name, Description, PricePerNight, Beds, Capacity, Picture FROM RoomType) AS Rooms WHERE i BETWEEN ? AND ?;";
-            Object[] params = {(index - 1) * 5 + 1, index * 5};
-            ResultSet rs = this.executeSelectionQuery(query, params);
-
-            while (rs.next()) {
-                int roomTypeId = rs.getInt(2);
-                String roomName = rs.getString(3);
-                String roomDescription = rs.getString(4);
-                BigDecimal roomPrice = rs.getBigDecimal(5);
-                int beds = rs.getInt(6);
-                int capacity = rs.getInt(7);
-                String picture = rs.getString(8);
-
-                RoomType roomType = new RoomType(roomTypeId, roomName, roomDescription, roomPrice, beds, capacity, picture);
-                roomTypes.add(roomType);
+        String sql = ADMIN_TYPES + " ORDER BY rt.RoomTypeID OFFSET ? ROWS FETCH NEXT 5 ROWS ONLY";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, ReportPeriod.today());
+            ps.setLong(2, (index - 1L) * 5);
+            try (ResultSet rows = ps.executeQuery()) {
+                while (rows.next()) {
+                    roomTypes.add(mapAdminRoomType(rows));
+                }
             }
-        } catch (SQLException ex) {
-            Logger.getLogger(RoomDAO.class.getName()).log(Level.SEVERE, null, ex);
         }
         return roomTypes;
     }
 
-    public boolean saveRoomType(RoomType roomType, String[] selectedAmenities) {
-        Set<Integer> amenityIds = new LinkedHashSet<>();
-        try {
-            if (selectedAmenities != null) {
-                for (String selectedAmenity : selectedAmenities) {
-                    amenityIds.add(Integer.parseInt(selectedAmenity));
-                }
+    public RoomType getAdminRoomType(int id) throws SQLException {
+        String sql = ADMIN_TYPES + " WHERE rt.RoomTypeID=?";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, ReportPeriod.today());
+            ps.setInt(2, id);
+            try (ResultSet rows = ps.executeQuery()) {
+                return rows.next() ? mapAdminRoomType(rows) : null;
             }
-        } catch (NumberFormatException ex) {
-            return false;
         }
+    }
 
+    public boolean setActive(int id, boolean active) throws SQLException {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(
+                "UPDATE RoomType SET IsActive=? WHERE RoomTypeID=?")) {
+            ps.setBoolean(1, active);
+            ps.setInt(2, id);
+            return ps.executeUpdate() == 1;
+        }
+    }
+
+    public enum SaveResult { SAVED, DUPLICATE_NAME, INVALID_AMENITY, FAILED }
+
+    public SaveResult saveRoomType(RoomType roomType, Set<Integer> amenityIds) throws SQLException {
         int id = roomType.getId();
         boolean creating = id == 0;
         String sql = creating
-                ? "INSERT INTO RoomType (Name, Description, PricePerNight, Beds, Capacity, Picture) VALUES (?, ?, ?, ?, ?, ?)"
-                : "UPDATE RoomType SET Name=?, Description=?, PricePerNight=?, Beds=?, Capacity=?, "
-                + "Picture=COALESCE(?, Picture) WHERE RoomTypeID=?";
+                ? "INSERT INTO RoomType(Name,Description,PricePerNight,Beds,Capacity,MaxChildren,Picture) VALUES(?,?,?,?,?,?,?)"
+                : "UPDATE RoomType SET Name=?,Description=?,PricePerNight=?,Beds=?,Capacity=?,MaxChildren=?,"
+                + "Picture=COALESCE(?,Picture) WHERE RoomTypeID=?";
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
             try (PreparedStatement save = conn.prepareStatement(sql,
                     creating ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS)) {
-                save.setString(1, roomType.getName());
-                save.setString(2, roomType.getDescription());
+                if (roomTypeNameExists(conn, roomType.getName(), id)) {
+                    conn.rollback();
+                    return SaveResult.DUPLICATE_NAME;
+                }
+                save.setNString(1, roomType.getName());
+                save.setNString(2, roomType.getDescription());
                 save.setBigDecimal(3, roomType.getPricePerNight());
                 save.setInt(4, roomType.getBeds());
                 save.setInt(5, roomType.getCapacity());
-                save.setString(6, roomType.getPicture());
+                save.setInt(6, roomType.getMaxChildren());
+                save.setNString(7, roomType.getPicture());
                 if (!creating) {
-                    save.setInt(7, id);
+                    save.setInt(8, id);
                 }
                 if (save.executeUpdate() != 1) {
                     conn.rollback();
-                    return false;
+                    return SaveResult.FAILED;
                 }
                 if (creating) {
                     try (ResultSet keys = save.getGeneratedKeys()) {
@@ -179,16 +134,17 @@ public class RoomTypeDAO extends DBContext {
                         id = keys.getInt(1);
                     }
                 }
+                if (!AmenityDAO.canSelectAmenities(conn, id, amenityIds)) {
+                    conn.rollback();
+                    return SaveResult.INVALID_AMENITY;
+                }
                 AmenityDAO.replaceRoomTypeAmenities(conn, id, amenityIds);
                 conn.commit();
-                return true;
+                return SaveResult.SAVED;
             } catch (SQLException ex) {
                 conn.rollback();
                 throw ex;
             }
-        } catch (SQLException ex) {
-            Logger.getLogger(RoomTypeDAO.class.getName()).log(Level.SEVERE, null, ex);
-            return false;
         }
     }
 
@@ -234,12 +190,6 @@ public class RoomTypeDAO extends DBContext {
         }
     }
 
-    /**
-     * Retrieves a RoomType by its ID.
-     *
-     * @param id RoomType ID
-     * @return RoomType object or null if not found
-     */
     public RoomType getRoomTypeById(int id) {
         return getRoomTypeById(id, false);
     }
@@ -249,55 +199,40 @@ public class RoomTypeDAO extends DBContext {
     }
 
     private RoomType getRoomTypeById(int id, boolean activeOnly) {
-        RoomType roomType = null;
-        String query = "SELECT RoomTypeID, Name, Description, PricePerNight, Beds, Capacity, Picture "
-                + "FROM RoomType WHERE RoomTypeID = ?" + (activeOnly ? " AND IsActive = 1" : "");
-        try (java.sql.Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(query)) {
-            statement.setInt(1, id);
-            try (ResultSet rs = statement.executeQuery()) {
-                if (rs.next()) {
-                    roomType = new RoomType(rs.getInt("RoomTypeID"), rs.getString("Name"),
-                            rs.getString("Description"), rs.getBigDecimal("PricePerNight"),
-                            rs.getInt("Beds"), rs.getInt("Capacity"), rs.getString("Picture"));
-                }
+        String sql = "SELECT * FROM RoomType WHERE RoomTypeID=?" + (activeOnly ? " AND IsActive=1" : "");
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rows = ps.executeQuery()) {
+                return rows.next() ? mapRoomType(rows) : null;
             }
         } catch (SQLException ex) {
             Logger.getLogger(RoomTypeDAO.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
         }
-        return roomType;
     }
 
-    /**
-     * Checks if a RoomType name already exists in the database.
-     *
-     * @param roomTypeName the name to check
-     * @return true if exists, false otherwise
-     */
-    public boolean doesRoomTypeNameExist(String roomTypeName) {
-        String sql = "SELECT 1 FROM RoomType WHERE Name = ?";
-        try {
-            ResultSet rs = executeSelectionQuery(sql, new Object[]{roomTypeName});
-            return rs.next();
-        } catch (SQLException e) {
-            e.printStackTrace();
+    private static boolean roomTypeNameExists(Connection conn, String name, int id) throws SQLException {
+        String sql = "SELECT 1 FROM RoomType WITH (UPDLOCK,HOLDLOCK) WHERE Name=? AND RoomTypeID<>?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setNString(1, name);
+            ps.setInt(2, id);
+            try (ResultSet rows = ps.executeQuery()) {
+                return rows.next();
+            }
         }
-        return false;
     }
 
-    /**
-     * Checks if a RoomType ID already exists in the database.
-     *
-     * @param roomTypeId the ID to check
-     * @return true if exists, false otherwise
-     */
-    public boolean doesIDExist(int roomTypeId) {
-        String sql = "SELECT 1 FROM RoomType WHERE RoomTypeID = ?";
-        try {
-            ResultSet rs = executeSelectionQuery(sql, new Object[]{roomTypeId});
-            return rs.next();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
+    private static RoomType mapRoomType(ResultSet row) throws SQLException {
+        RoomType type = new RoomType(row.getInt("RoomTypeID"), row.getString("Name"), row.getString("Description"),
+                row.getBigDecimal("PricePerNight"), row.getInt("Beds"), row.getInt("Capacity"), row.getString("Picture"));
+        type.setMaxChildren(row.getInt("MaxChildren"));
+        type.setActive(row.getBoolean("IsActive"));
+        return type;
+    }
+
+    private static RoomType mapAdminRoomType(ResultSet row) throws SQLException {
+        RoomType type = mapRoomType(row);
+        type.setUsage(row.getInt("RoomCount"), row.getInt("BookingCount"), row.getInt("ActiveBookingCount"));
+        return type;
     }
 }

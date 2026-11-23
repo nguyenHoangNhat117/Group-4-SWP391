@@ -214,7 +214,7 @@
                                                placeholder="${requestScope.i18n['screen.d54be811186bb99f']}"
                                                name="booking-dates"
                                                value="<c:out value='${sessionScope.dates}'/>"
-                                               aria-describedby="search-stay-nights search-calendar-status"
+                                               aria-describedby="search-calendar-status"
                                                readonly required>
                                         <small id="search-calendar-status" class="visually-hidden" aria-live="polite"
                                            data-loading="${requestScope.i18n['room.calendar.loading']}"
@@ -251,8 +251,6 @@
                             </div>
                             <div class="row">
                                 <div class="col-lg-5">
-                                    <small id="search-stay-nights" class="d-block text-muted mt-1" aria-live="polite"
-                                           data-unit="${requestScope.i18n['room.search.party.nights']}"></small>
                                 </div>
                             </div>
                         </form>

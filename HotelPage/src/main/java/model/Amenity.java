@@ -4,6 +4,7 @@ public class Amenity {
     private int amenityID;
     private String name;
     private String description;
+    private boolean active = true;
 
     public Amenity() {
     }
@@ -37,4 +38,7 @@ public class Amenity {
     public void setDescription(String description) {
         this.description = description;
     }
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
 }

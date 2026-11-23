@@ -1,3 +1,5 @@
+import {enhanceBookingSelect} from './booking-select.js';
+
 (() => {
     const form = document.getElementById('booking-confirmation-form');
     const consent = form.elements.namedItem('booking-consent');
@@ -11,6 +13,8 @@
     const discountRow = document.getElementById('confirmation-discount-row');
     const discount = document.getElementById('confirmation-discount');
     const money = new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'});
+    const syncPlan = enhanceBookingSelect(plan);
+    const syncVoucher = enhanceBookingSelect(voucher);
     let submitting = false;
 
     function update() {
@@ -19,6 +23,8 @@
         if (deposit.disabled && plan.value === 'deposit') {
             plan.value = 'transfer';
         }
+        syncPlan();
+        syncVoucher();
         discountRow.hidden = net === gross;
         discount.textContent = money.format(gross - net);
         total.textContent = money.format(net);

@@ -21,13 +21,12 @@ public final class OnlineBookingDraft {
     private Map<String, String> contactFields = Map.of();
     private BookingContact contact;
 
-    public OnlineBookingDraft(LocalDate checkIn, LocalDate checkOut, int adults, int children,
-            List<RoomLine> rooms) {
+    public OnlineBookingDraft(LocalDate checkIn, LocalDate checkOut, List<RoomLine> rooms) {
         this.checkIn = checkIn;
         this.checkOut = checkOut;
-        this.adults = adults;
-        this.children = children;
         this.rooms = List.copyOf(rooms);
+        this.adults = this.rooms.stream().mapToInt(RoomLine::getAdults).sum();
+        this.children = this.rooms.stream().mapToInt(RoomLine::getChildren).sum();
     }
 
     public String getToken() { return token; }
@@ -52,7 +51,7 @@ public final class OnlineBookingDraft {
     }
 
     public BigDecimal getTotal() {
-        return rooms.stream().map(room -> room.nightly.multiply(BigDecimal.valueOf(getNights() * room.quantity)))
+        return rooms.stream().map(room -> room.nightly.multiply(BigDecimal.valueOf(getNights() * room.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -63,22 +62,40 @@ public final class OnlineBookingDraft {
         return customerId == id;
     }
 
+    public static final class RoomParty {
+        private final int adults;
+        private final int children;
+
+        public RoomParty(int adults, int children) {
+            this.adults = adults;
+            this.children = children;
+        }
+
+        public int getAdults() { return adults; }
+        public int getChildren() { return children; }
+    }
+
     public static final class RoomLine {
         private final int typeId;
         private final String name;
         private final BigDecimal nightly;
-        private final int quantity;
+        private final List<RoomParty> parties;
 
-        public RoomLine(RoomType type, int quantity) {
+        public RoomLine(RoomType type, List<RoomParty> parties) {
             this.typeId = type.getId();
             this.name = type.getName();
             this.nightly = type.getPricePerNight();
-            this.quantity = quantity;
+            this.parties = List.copyOf(parties);
         }
 
         public int getTypeId() { return typeId; }
         public String getName() { return name; }
-        public int getQuantity() { return quantity; }
+        public int getQuantity() { return parties.size(); }
+        public List<RoomParty> getParties() { return parties; }
+        public int getAdults() { return parties.stream().mapToInt(party -> party.adults).sum(); }
+        public int getChildren() { return parties.stream().mapToInt(party -> party.children).sum(); }
+        public int getMaxAdultsPerRoom() { return parties.stream().mapToInt(party -> party.adults).max().orElse(0); }
+        public int getMaxChildrenPerRoom() { return parties.stream().mapToInt(party -> party.children).max().orElse(0); }
         public BigDecimal getNightly() { return nightly; }
     }
 }
