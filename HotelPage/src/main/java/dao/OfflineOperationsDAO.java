@@ -466,7 +466,10 @@ public class OfflineOperationsDAO extends DBContext {
         Map<String, Object> data = new LinkedHashMap<>();
         try (Connection c = getConnection()) {
             data.put("customerId", money(c, "SELECT CustomerID FROM Booking WHERE BookingID=?", id).intValueExact());
-            data.put("events", rows(c, "SELECT TOP(100) e.Action,e.Note,e.Amount,e.CreatedAt,u.DisplayName Actor FROM OfflineBookingEvent e JOIN [User] u ON u.UserID=e.ActorUserID WHERE e.BookingID=? ORDER BY e.EventID DESC", id));
+            data.put("events", rows(c, "SELECT TOP(100) e.Action,e.Note,e.Amount,e.CreatedAt,"
+                    + "FORMAT(DATEADD(MINUTE,420,e.CreatedAt),'dd/MM/yyyy HH:mm:ss','en-GB') AS CreatedAtVietnam,"
+                    + "u.DisplayName Actor FROM OfflineBookingEvent e JOIN [User] u ON u.UserID=e.ActorUserID "
+                    + "WHERE e.BookingID=? ORDER BY e.EventID DESC", id));
             data.put("payments", rows(c, "SELECT PaymentID,Amount,PaymentStatus,PaymentMethod,TransactionCode,CounterReference,PaymentDate,COALESCE(RefundedAmount,0) RefundedAmount FROM Payment WHERE BookingID=? ORDER BY PaymentID", id));
             data.put("rooms", rows(c, "SELECT d.BookingDetailID,CASE WHEN d.IsProvisionalRoom=0 THEN d.RoomNumber END AS RoomNumber,"
                     + "d.CheckInDate,d.CheckOutDate,d.GuestCount,d.BookedAdults,d.BookedChildren,"

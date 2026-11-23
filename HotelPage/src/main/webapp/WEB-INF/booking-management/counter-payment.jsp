@@ -78,11 +78,11 @@
                     </c:if>
                     <p class="ob-note">Chính sách trả sớm: tiền phòng theo lịch đã chốt được giữ nguyên, không tự giảm hoặc hoàn tiền cho những đêm chưa ở. Nhân viên cần thông báo cho khách trước khi thu tiền.</p>
                     <c:forEach items="${operations.rooms}" var="room"><p><strong><c:choose>
-                            <c:when test="${empty room.RoomNumber}">Chưa xếp phòng</c:when>
-                            <c:otherwise>#${room.RoomNumber}</c:otherwise>
-                        </c:choose></strong><c:if test="${not empty room.RoomTypeName}"> · <c:out value="${room.RoomTypeName}"/></c:if> · <fmt:formatDate value="${room.CheckInDate}" pattern="dd/MM/yyyy"/> → <fmt:formatDate value="${room.CheckOutDate}" pattern="dd/MM/yyyy"/> ·
-                            <c:choose>
-                                <c:when test="${summary.offline}">${room.GuestCount} khách theo đơn</c:when>
+                                    <c:when test="${empty room.RoomNumber}">Chưa xếp phòng</c:when>
+                                    <c:otherwise>#${room.RoomNumber}</c:otherwise>
+                                </c:choose></strong><c:if test="${not empty room.RoomTypeName}"> · <c:out value="${room.RoomTypeName}"/></c:if> · <fmt:formatDate value="${room.CheckInDate}" pattern="dd/MM/yyyy"/> → <fmt:formatDate value="${room.CheckOutDate}" pattern="dd/MM/yyyy"/> ·
+                                <c:choose>
+                                    <c:when test="${summary.offline}">${room.GuestCount} khách theo đơn</c:when>
                                 <c:when test="${not empty room.BookedAdults}">
                                     ${room.BookedAdults} <ui:text key="room.selection.adultUnit"/>
                                     · ${room.BookedChildren} <ui:text key="room.selection.childUnit"/>
@@ -252,8 +252,8 @@
                                     <button type="submit" class="ob-button ob-primary"><ui:text key="offline.clean"/></button></form></section></c:if>
                     </div></c:if>
                 <details class="ob-panel oc-history"><summary><ui:text key="offline.history"/></summary>
-                    <div class="oc-table"><table><thead><tr><th><ui:text key="offline.action"/></th><th><ui:text key="offline.description"/></th><th><ui:text key="offline.amount"/></th><th><ui:text key="offline.actor"/></th><th>UTC</th></tr></thead><tbody>
-                                <c:forEach items="${operations.events}" var="event"><tr><td><ui:text key="offline.action.${event.Action}"/></td><td><c:out value="${event.Note}"/></td><td><fmt:formatNumber value="${event.Amount}"/></td><td><c:out value="${event.Actor}"/></td><td><c:out value="${event.CreatedAt}"/></td></tr></c:forEach>
+                    <div class="oc-table"><table><thead><tr><th><ui:text key="offline.action"/></th><th><ui:text key="offline.description"/></th><th><ui:text key="offline.amount"/></th><th><ui:text key="offline.actor"/></th><th>Giờ Việt Nam (UTC+7)</th></tr></thead><tbody>
+                                <c:forEach items="${operations.events}" var="event"><tr><td><ui:text key="offline.action.${event.Action}"/></td><td><c:out value="${event.Note}"/></td><td><fmt:formatNumber value="${event.Amount}"/></td><td><c:out value="${event.Actor}"/></td><td><c:out value="${event.CreatedAtVietnam}"/></td></tr></c:forEach>
                                 </tbody></table></div></details>
                     <details class="ob-panel oc-history"><summary><ui:text key="offline.receipts"/></summary><div class="oc-table"><table><thead><tr><th>Mã</th><th><ui:text key="offline.amount"/></th><th><ui:text key="offline.method"/></th><th><ui:text key="offline.reference"/></th><th><ui:text key="offline.status"/></th><th><ui:text key="offline.refunded"/></th></tr></thead><tbody>
                                 <c:forEach items="${operations.payments}" var="payment"><tr><td>${payment.PaymentID}</td><td><fmt:formatNumber value="${payment.Amount}"/></td><td><c:out value="${payment.PaymentMethod}"/></td><td><c:out value="${payment.TransactionCode}"/><br><c:out value="${payment.CounterReference}"/></td><td><c:out value="${payment.PaymentStatus}"/></td><td><fmt:formatNumber value="${payment.RefundedAmount}"/></td></tr></c:forEach>
