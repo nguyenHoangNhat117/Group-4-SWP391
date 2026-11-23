@@ -3,6 +3,9 @@ package model;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Collections;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import util.AuthSupport;
 
@@ -16,8 +19,10 @@ public final class OfflineBookingDraft implements Serializable {
     public final LocalDate checkOut;
 
     public final int guests;
-    public final int roomTypeId;
+    public final int adults;
+    public final int children;
     public final int quantity;
+    public final Map<Integer, Integer> rooms;
 
     public final Integer customerId;
 
@@ -31,9 +36,9 @@ public final class OfflineBookingDraft implements Serializable {
     public OfflineBookingDraft(
             LocalDate checkIn,
             LocalDate checkOut,
-            int guests,
-            int roomTypeId,
-            int quantity,
+            int adults,
+            int children,
+            Map<Integer, Integer> rooms,
             Integer customerId,
             String firstName,
             String lastName,
@@ -44,9 +49,11 @@ public final class OfflineBookingDraft implements Serializable {
     ) {
         this.checkIn = checkIn;
         this.checkOut = checkOut;
-        this.guests = guests;
-        this.roomTypeId = roomTypeId;
-        this.quantity = quantity;
+        this.adults = adults;
+        this.children = children;
+        this.guests = countGuests(adults, children);
+        this.rooms = Collections.unmodifiableMap(new TreeMap<>(rooms));
+        this.quantity = roomCount(this.rooms, adults);
         this.customerId = customerId;
 
         this.firstName = AuthSupport.text(firstName);
@@ -60,10 +67,12 @@ public final class OfflineBookingDraft implements Serializable {
     }
 
     public void validate(LocalDate today) {
+        if (countGuests(adults, children) != guests || rooms == null || roomCount(rooms, adults) != quantity) {
+            throw new IllegalArgumentException("Thông tin khách hoặc phòng đã thay đổi. Vui lòng xem lại báo giá.");
+        }
         validateStay(checkIn, checkOut, guests, today);
 
-        if (roomTypeId <= 0 || quantity < 1 || quantity > guests
-                || (customerId != null && customerId <= 0)) {
+        if (customerId != null && customerId <= 0) {
             throw new IllegalArgumentException(
                     "Vui lòng chọn loại phòng, số lượng và khách hàng hợp lệ."
             );
@@ -88,6 +97,39 @@ public final class OfflineBookingDraft implements Serializable {
                     + "và điện thoại 7–15 chữ số (có thể bắt đầu bằng +)."
             );
         }
+    }
+
+    private static int roomCount(Map<Integer, Integer> rooms, int adults) {
+        if (rooms.isEmpty()) {
+            throw new IllegalArgumentException("Chọn ít nhất một phòng.");
+        }
+        int total = 0;
+        for (Map.Entry<Integer, Integer> entry : rooms.entrySet()) {
+            int count = entry.getValue();
+            if (entry.getKey() < 1 || count < 1 || count > adults - total) {
+                throw new IllegalArgumentException("Mỗi phòng cần ít nhất một người lớn. Kiểm tra lại số phòng.");
+            }
+            total += count;
+        }
+        return total;
+    }
+
+    public static int countGuests(int adults, int children) {
+        if (adults < 1) {
+            throw new IllegalArgumentException("Cần ít nhất một người từ đủ 18 tuổi đi cùng và lưu trú.");
+        }
+        if (adults > 1000 || children < 0 || children > 1000 - adults) {
+            throw new IllegalArgumentException("Tổng số người lớn và trẻ em phải từ 1 đến 1000.");
+        }
+        return adults + children;
+    }
+
+    public int getAdults() {
+        return adults;
+    }
+
+    public int getChildren() {
+        return children;
     }
 
     public static void validateStay(
@@ -130,10 +172,6 @@ public final class OfflineBookingDraft implements Serializable {
 
     public int getGuests() {
         return guests;
-    }
-
-    public int getRoomTypeId() {
-        return roomTypeId;
     }
 
     public int getQuantity() {

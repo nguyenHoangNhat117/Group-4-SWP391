@@ -1,7 +1,6 @@
 package controller;
 
 import dao.OfflineBookingDAO;
-import dao.RoomDAO;
 import dao.OfflineBookingDAO.Quote;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -24,7 +23,7 @@ public class OfflineBookingServlet extends HttpServlet {
     private static final String FORMS = "uc09ReviewedFormsV2";
     private static final long MAX_AGE = 30 * 60 * 1000L;
     private static final long QUOTE_AGE = 5 * 60 * 1000L;
-    private static final String[] FIELDS = {"checkIn", "checkOut", "guests", "quantity", "roomTypeId",
+    private static final String[] FIELDS = {"checkIn", "checkOut", "adults", "children", "roomSelection",
         "customerMode", "customerId", "q", "firstName", "lastName", "email", "phone",
         "promotionCode", "specialRequest"};
 
@@ -87,7 +86,17 @@ public class OfflineBookingServlet extends HttpServlet {
                 showLookup(r, s, "");
                 return;
             }
-            render(r, s, read(r), newForm(r.getSession(false), user.getId()));
+            Map<String, String> form = read(r);
+            boolean search = !form.get("checkIn").isEmpty() || !form.get("checkOut").isEmpty();
+            if (!search) {
+                LocalDate today = ReportPeriod.today();
+                form.put("checkIn", today.toString());
+                form.put("checkOut", today.plusDays(1).toString());
+                if (form.get("adults").isEmpty()) {
+                    form.put("adults", "1");
+                }
+            }
+            render(r, s, form, newForm(r.getSession(false), user.getId()), search);
         } catch (IllegalStateException ex) {
             expired(s);
         }
@@ -110,7 +119,7 @@ public class OfflineBookingServlet extends HttpServlet {
             if (state == null || state.staffId != user.getId()) {
                 s.setStatus(409);
                 r.setAttribute("error", "Form đã hết hạn. Kiểm tra lịch sử nếu đã xác nhận tạo đơn, rồi mở form mới.");
-                render(r, s, form, newForm(r.getSession(false), user.getId()));
+                render(r, s, form, newForm(r.getSession(false), user.getId()), true);
                 return;
             }
             synchronized (state) {
@@ -123,7 +132,7 @@ public class OfflineBookingServlet extends HttpServlet {
                     if (state.uncertain && !"retry".equals(action)) {
                         throw new IllegalArgumentException("Yêu cầu trước chưa rõ kết quả. Kiểm tra lịch sử hoặc bấm Kiểm tra lại yêu cầu cũ; không tạo yêu cầu mới.");
                     }
-                    if ("search".equals(action)) {
+                    if ("search".equals(action) || "search_customer".equals(action)) {
                         state.pending = null;
                     } else if ("preview".equals(action)) {
                         state.pending = null;
@@ -188,7 +197,7 @@ public class OfflineBookingServlet extends HttpServlet {
                             ? "Chưa xác nhận được kết quả. Kiểm tra lịch sử trước; nút Kiểm tra lại yêu cầu cũ sẽ không sinh mã yêu cầu khác."
                             : "Chưa thể kiểm tra dữ liệu. Vui lòng thử lại, chưa tạo đơn.");
                 }
-                render(r, s, state.uncertain && state.pending != null ? state.pending.form : form, state);
+                render(r, s, state.uncertain && state.pending != null ? state.pending.form : form, state, true);
             }
         } catch (IllegalStateException ex) {
             expired(s);
@@ -239,13 +248,38 @@ public class OfflineBookingServlet extends HttpServlet {
         if (!Arrays.asList("existing", "new").contains(mode)) {
             throw new IllegalArgumentException("Chọn khách có sẵn hoặc khách mới.");
         }
-        return new OfflineBookingDraft(
-                LocalDate.parse(form.get("checkIn")), LocalDate.parse(form.get("checkOut")),
-                Integer.parseInt(form.get("guests")), Integer.parseInt(form.get("roomTypeId")),
-                Integer.parseInt(form.get("quantity")),
-                "new".equals(mode) ? null : Integer.valueOf(form.get("customerId")),
+        Integer customer = "new".equals(mode) ? null : existingCustomer(form.get("customerId"));
+        LocalDate checkIn;
+        LocalDate checkOut;
+        try {
+            checkIn = LocalDate.parse(form.get("checkIn"));
+            checkOut = LocalDate.parse(form.get("checkOut"));
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("Chọn ngày nhận và ngày trả phòng hợp lệ.");
+        }
+        int adults;
+        int children;
+        try {
+            adults = adults(form);
+            children = Integer.parseInt(form.get("children"));
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Nhập số người lớn và trẻ em bằng số nguyên.");
+        }
+        return new OfflineBookingDraft(checkIn, checkOut, adults, children, roomSelection(form), customer,
                 form.get("firstName"), form.get("lastName"), form.get("email"), form.get("phone"),
                 form.get("promotionCode"), form.get("specialRequest"));
+    }
+
+    private static int existingCustomer(String value) {
+        try {
+            int id = Integer.parseInt(value);
+            if (id > 0) {
+                return id;
+            }
+        } catch (NumberFormatException ex) {
+            // Hồ sơ cần được chọn trong danh sách kết quả.
+        }
+        throw new IllegalArgumentException("Chọn một hồ sơ trong danh sách Hồ sơ khách hàng trước khi kiểm tra giá.");
     }
 
     private Map<String, String> read(HttpServletRequest r) {
@@ -256,20 +290,23 @@ public class OfflineBookingServlet extends HttpServlet {
         if (values.get("customerMode").isEmpty()) {
             values.put("customerMode", "existing");
         }
-        if (values.get("guests").isEmpty()) {
-            values.put("guests", "1");
+        if (values.get("roomSelection").isEmpty()) {
+            values.put("roomSelection", submittedRoomQuantities(r));
         }
-        if (values.get("quantity").isEmpty()) {
-            values.put("quantity", "1");
+        if (values.get("children").isEmpty()) {
+            values.put("children", "0");
         }
         return values;
     }
 
-    private void render(HttpServletRequest r, HttpServletResponse s, Map<String, String> form, DirectForm state) throws ServletException, IOException {
+    private void render(HttpServletRequest r, HttpServletResponse s, Map<String, String> form, DirectForm state,
+            boolean searchRooms) throws ServletException, IOException {
+        r.setAttribute("offlineBookingFormVersion", "multi-room-quote-1");
         r.setAttribute("form", form);
         r.setAttribute("submissionToken", state.token);
         r.setAttribute("searchedStay", new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(
-                Arrays.asList(form.get("checkIn"), form.get("checkOut"), form.get("guests"), form.get("quantity"))));
+                Arrays.asList(form.get("checkIn"), form.get("checkOut"), form.get("adults"),
+                        form.get("children"))));
         r.setAttribute("today", ReportPeriod.today());
         r.setAttribute("holdMinutes", OfflineBookingPolicy.HOLD_MINUTES);
         r.setAttribute("depositPercent", OfflineBookingPolicy.DEPOSIT_PERCENT);
@@ -288,17 +325,37 @@ public class OfflineBookingServlet extends HttpServlet {
             r.setAttribute("quotedDeposit", state.pending.quote.getPayable().multiply(java.math.BigDecimal.valueOf(OfflineBookingPolicy.DEPOSIT_PERCENT))
                     .divide(java.math.BigDecimal.valueOf(100), 0, java.math.RoundingMode.CEILING));
         }
-        try {
-            OfflineBookingDAO dao = new OfflineBookingDAO();
-            if (!form.get("q").isEmpty()) {
+        OfflineBookingDAO dao = new OfflineBookingDAO();
+        if (!form.get("q").isEmpty()) {
+            try {
                 r.setAttribute("customers", dao.searchCustomers(form.get("q")));
+            } catch (IllegalArgumentException ex) {
+                if (r.getAttribute("error") == null) {
+                    s.setStatus(400);
+                    r.setAttribute("error", ex.getMessage());
+                }
+            } catch (SQLException ex) {
+                log("Không thể tìm khách tại quầy", ex);
+                if (r.getAttribute("error") == null) {
+                    s.setStatus(503);
+                    r.setAttribute("error", "Chưa thể tìm khách. Vui lòng thử lại.");
+                }
             }
-            if (!form.get("checkIn").isEmpty() || !form.get("checkOut").isEmpty()) {
-                List<RoomDAO.AvailableType> rooms = dao.availableTypes(LocalDate.parse(form.get("checkIn")),
-                        LocalDate.parse(form.get("checkOut")), Integer.parseInt(form.get("guests")),
-                        Integer.parseInt(form.get("quantity")));
+        }
+        try {
+            if (searchRooms) {
+                int adults = adults(form);
+                int guests = OfflineBookingDraft.countGuests(adults, Integer.parseInt(form.get("children")));
+                List<OfflineBookingDAO.RoomOption> rooms = dao.availableTypes(LocalDate.parse(form.get("checkIn")),
+                        LocalDate.parse(form.get("checkOut")), guests);
+                long availableCapacity = rooms.stream().mapToLong(option
+                        -> (long) option.getStock().getAvailable() * option.getStock().getType().getCapacity()).sum();
+                r.setAttribute("availableCapacity", availableCapacity);
+                r.setAttribute("requiredCapacity", guests);
                 r.setAttribute("rooms", rooms);
-                if (!rooms.isEmpty()) {
+                r.setAttribute("feasibleCapacity", OfflineBookingDAO.feasibleCapacity(rooms, adults));
+                if (availableCapacity >= guests) {
+                    restoreRoomQuantities(r, rooms, form);
                     r.setAttribute("promotions", dao.availablePromotions());
                 }
                 r.setAttribute("searched", true);
@@ -321,6 +378,84 @@ public class OfflineBookingServlet extends HttpServlet {
             }
         }
         r.getRequestDispatcher("/WEB-INF/booking-management/offline.jsp").forward(r, s);
+    }
+
+    private static String submittedRoomQuantities(HttpServletRequest request) {
+        final String prefix = "roomQty-";
+        Map<Integer, Integer> quantities = new TreeMap<>();
+        try {
+            for (Map.Entry<String, String[]> parameter : request.getParameterMap().entrySet()) {
+                if (!parameter.getKey().startsWith(prefix)) {
+                    continue;
+                }
+                String[] values = parameter.getValue();
+                int id = Integer.parseInt(parameter.getKey().substring(prefix.length()));
+                if (id < 1 || values.length != 1 || values[0].length() > 16 || quantities.containsKey(id)) {
+                    return ":";
+                }
+                int count = values[0].isBlank() ? 0 : new java.math.BigDecimal(values[0]).intValueExact();
+                if (count < 0 || count > 1000) {
+                    return ":";
+                }
+                quantities.put(id, count);
+            }
+        } catch (NumberFormatException | ArithmeticException ex) {
+            return ":";
+        }
+        StringJoiner selection = new StringJoiner(",");
+        quantities.forEach((id, count) -> {
+            if (count > 0) {
+                selection.add(id + ":" + count);
+            }
+        });
+        return selection.toString();
+    }
+
+    private static void restoreRoomQuantities(HttpServletRequest request, List<OfflineBookingDAO.RoomOption> rooms,
+            Map<String, String> form) {
+        Map<Integer, Integer> previous = roomSelection(form);
+        Map<Integer, Integer> current = new TreeMap<>();
+        for (OfflineBookingDAO.RoomOption option : rooms) {
+            int id = option.getStock().getType().getId();
+            int count = Math.min(previous.getOrDefault(id, 0), option.getMaximum());
+            if (count > 0) {
+                current.put(id, count);
+            }
+        }
+        request.setAttribute("roomQuantities", current);
+        request.setAttribute("roomStockChanged", !current.equals(previous));
+    }
+
+    private static int adults(Map<String, String> form) {
+        String value = form.get("adults");
+        return value.isEmpty() ? 0 : Integer.parseInt(value);
+    }
+
+    private static Map<Integer, Integer> roomSelection(Map<String, String> form) {
+        String value = form.get("roomSelection");
+        Map<Integer, Integer> rooms = new TreeMap<>();
+        if (value.isEmpty()) {
+            return rooms;
+        }
+        if (value.length() > 16000) {
+            throw new IllegalArgumentException("Danh sách phòng đã chọn không hợp lệ.");
+        }
+        for (String line : value.split(",", -1)) {
+            if (!line.matches("[0-9]{1,10}:[0-9]{1,4}")) {
+                throw new IllegalArgumentException("Số lượng phòng đã chọn không hợp lệ.");
+            }
+            String[] entry = line.split(":");
+            long typeId = Long.parseLong(entry[0]);
+            if (typeId < 1 || typeId > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException("Mã loại phòng đã chọn không hợp lệ. Vui lòng tìm phòng lại.");
+            }
+            int id = (int) typeId;
+            int count = Integer.parseInt(entry[1]);
+            if (count < 1 || count > 1000 || rooms.putIfAbsent(id, count) != null) {
+                throw new IllegalArgumentException("Danh sách phòng đã chọn không hợp lệ.");
+            }
+        }
+        return rooms;
     }
 
     @SuppressWarnings("unchecked")

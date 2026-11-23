@@ -251,11 +251,26 @@ public class OfflineOperationsDAO extends DBContext {
             require(money(c, "SELECT COUNT_BIG(*) FROM CounterQrCheckout WITH(HOLDLOCK) WHERE BookingID=? "
                     + "AND (Active=1 OR State='review')", id).signum() == 0,
                     "Đang đối soát QR. Kiểm tra kết quả trước khi nhận phòng.");
-            OnlineCheckInDAO.assignRooms(c, id, actualGuests, requestedRooms);
+            Map<Integer, Integer> guestsByRoom = Collections.emptyMap();
+            int guests = actualGuests;
+            if (offline) {
+                require(OfflineChildStayDAO.hasActualRoomGuestCount(c),
+                        "Cơ sở dữ liệu chưa có cột lưu số khách từng phòng. Báo quản trị viên cập nhật trước khi nhận phòng.");
+                guestsByRoom = OfflineChildStayDAO.arrivalGuestsByRoom(c, id, requestedRooms);
+                guests = guestsByRoom.values().stream().mapToInt(Integer::intValue).sum();
+            }
+            OnlineCheckInDAO.assignRooms(c, id, guests, requestedRooms);
+            if (offline) {
+                OfflineChildStayDAO.saveArrivalGuests(c, id, guestsByRoom);
+            }
             require(execute(c, "UPDATE Booking SET Status='checked_in',ActualCheckInAt=SYSUTCDATETIME(),"
                     + "IdentityVerifiedBy=?,ActualGuestCount=? WHERE BookingID=? AND Status='confirmed'",
-                    staff, actualGuests, id) == 1, "Trạng thái đơn vừa thay đổi. Vui lòng mở lại đơn.");
-            event(c, id, staff, token, "check_in", "Đã đối chiếu giấy tờ; số khách: " + actualGuests, BigDecimal.ZERO);
+                    staff, guests, id) == 1, "Trạng thái đơn vừa thay đổi. Vui lòng mở lại đơn.");
+            String note = "Đã đối chiếu giấy tờ; số khách: " + guests;
+            if (offline) {
+                note += "; đã đối chiếu và xác nhận mỗi phòng có người từ đủ 18 tuổi.";
+            }
+            event(c, id, staff, token, "check_in", note, BigDecimal.ZERO);
             return null;
         });
     }
@@ -452,7 +467,7 @@ public class OfflineOperationsDAO extends DBContext {
             data.put("customerId", money(c, "SELECT CustomerID FROM Booking WHERE BookingID=?", id).intValueExact());
             data.put("events", rows(c, "SELECT TOP(100) e.Action,e.Note,e.Amount,e.CreatedAt,u.DisplayName Actor FROM OfflineBookingEvent e JOIN [User] u ON u.UserID=e.ActorUserID WHERE e.BookingID=? ORDER BY e.EventID DESC", id));
             data.put("payments", rows(c, "SELECT PaymentID,Amount,PaymentStatus,PaymentMethod,TransactionCode,CounterReference,PaymentDate,COALESCE(RefundedAmount,0) RefundedAmount FROM Payment WHERE BookingID=? ORDER BY PaymentID", id));
-            data.put("rooms", rows(c, "SELECT d.RoomNumber,d.CheckInDate,d.CheckOutDate,d.GuestCount,"
+            data.put("rooms", rows(c, "SELECT d.BookingDetailID,d.RoomNumber,d.CheckInDate,d.CheckOutDate,d.GuestCount,"
                     + "r.NeedsCleaning,t.Name AS RoomTypeName FROM BookingDetail d "
                     + "LEFT JOIN Room r ON r.RoomNumber=d.RoomNumber "
                     + "LEFT JOIN RoomType t ON t.RoomTypeID=COALESCE(d.RoomTypeID,r.RoomTypeID) "
@@ -465,12 +480,16 @@ public class OfflineOperationsDAO extends DBContext {
                 }
             }
             data.put("earlyCheckout", earlyCheckout);
-            List<Map<String, Object>> stay = rows(c, "SELECT Status, "
+            List<Map<String, Object>> stay = rows(c, "SELECT Status, CreatedByUserID, ActualGuestCount, "
                     + "FORMAT(DATEADD(MINUTE,420,ActualCheckInAt),'dd/MM/yyyy HH:mm') AS CheckInTime "
                     + "FROM Booking WHERE BookingID=?", id);
             if (!stay.isEmpty()) {
                 Map<String, Object> booking = stay.get(0);
                 data.put("actualCheckInTime", booking.get("CheckInTime"));
+                if (booking.get("CreatedByUserID") != null) {
+                    data.put("actualGuestCount", booking.get("ActualGuestCount"));
+                    data.put("offlineRoomGuests", OfflineChildStayDAO.roomGuests(c, id));
+                }
                 if ("confirmed".equals(booking.get("Status"))) {
                     try {
                         data.put("checkIn", OnlineCheckInDAO.preview(c, id));
