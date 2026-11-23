@@ -1,12 +1,16 @@
 <div class="row g-3">
     <div class="col-12">
-        <label for="contact-name" class="form-label"><ui:text key="room.contact.name"/></label>
+        <label for="contact-name" class="form-label"><ui:text key="room.contact.name"/>
+            <c:if test="${showConfirmationRequiredMarks}"><span class="text-danger fw-semibold" aria-hidden="true">*</span></c:if>
+        </label>
         <input class="form-control" id="contact-name" name="contact-name" type="text" autocomplete="name"
                maxlength="120" required ${contactReadOnly ? 'readonly' : ''}
                value="<c:out value="${contactFields['contact-name']}"/>">
     </div>
     <div class="col-6">
-        <label for="contact-phone" class="form-label"><ui:text key="room.contact.phone"/></label>
+        <label for="contact-phone" class="form-label"><ui:text key="room.contact.phone"/>
+            <c:if test="${showConfirmationRequiredMarks}"><span class="text-danger fw-semibold" aria-hidden="true">*</span></c:if>
+        </label>
         <input class="form-control" id="contact-phone" name="contact-phone" type="tel" autocomplete="tel"
                maxlength="32" required ${contactReadOnly ? 'readonly' : ''}
                value="<c:out value="${contactFields['contact-phone']}"/>">

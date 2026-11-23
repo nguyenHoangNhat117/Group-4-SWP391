@@ -79,12 +79,12 @@ BEGIN TRY
         (N'Lối đi/Thang máy riêng biệt',NULL,5),
         (N'Dịch vụ Đưa đón sân bay bằng xe siêu sang (Limousine/Maybach)',NULL,5);
 
-    UPDATE a SET Name=cfg.Name, Description=NULL
+    UPDATE a SET Name=cfg.Name
     FROM dbo.Amenity a JOIN @amenities cfg ON a.Name=cfg.LegacyName
     WHERE NOT EXISTS (SELECT 1 FROM dbo.Amenity target WHERE target.Name=cfg.Name);
 
-    INSERT dbo.Amenity (Name,Description)
-    SELECT cfg.Name,NULL FROM @amenities cfg
+    INSERT dbo.Amenity (Name)
+    SELECT cfg.Name FROM @amenities cfg
     WHERE NOT EXISTS (SELECT 1 FROM dbo.Amenity a WHERE a.Name=cfg.Name);
 
     DECLARE @tiers TABLE (Tier int PRIMARY KEY, Name nvarchar(50));

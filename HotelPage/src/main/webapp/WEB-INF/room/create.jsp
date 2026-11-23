@@ -6,6 +6,7 @@
 <html lang="vi">
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <title>${requestScope.i18n['screen.3f855ba1babcbd8a']}</title>
 
@@ -18,6 +19,8 @@
             rel="stylesheet">
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+        <link rel="stylesheet" href="<c:url value='/assets/css/online-booking-select.css?v=4'/>">
+        <script type="module" src="<c:url value='/assets/js/admin-room-controls.js'/>"></script>
 </head>
 
     <body class="bg-light">
@@ -66,8 +69,7 @@
                 </c:choose>
 
                 <div
-                    class="form-card shadow rounded-4
-                           bg-white p-5 w-50">
+                    class="form-card shadow rounded-4 bg-white col-11 col-md-8 col-lg-6 p-3 p-sm-4 p-lg-5">
 
                     <form
                         id="create-rooms-form"
@@ -112,7 +114,7 @@
                             <select
                                 id="status"
                                 name="status"
-                                class="form-select form-select-lg"
+                                class="form-select booking-select" data-room-admin-select
                                 required>
 
                                 <option value="available" ${param.status == 'available' ? 'selected' : ''}>
@@ -145,7 +147,7 @@
                             <select
                                 id="room-type"
                                 name="room-type-id"
-                                class="form-select form-select-lg"
+                                class="form-select booking-select" data-room-admin-select
                                 required>
 
                                 <c:forEach

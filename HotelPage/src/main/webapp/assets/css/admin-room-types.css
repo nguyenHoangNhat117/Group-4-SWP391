@@ -133,11 +133,11 @@ body.luxe-admin-types .room-types-hero h1 {
     font-size: .9rem;
 }
 
-.room-types-col-identity { width: 43%; }
-.room-types-col-price { width: 14%; }
-.room-types-col-beds { width: 7%; }
-.room-types-col-capacity { width: 14%; }
-.room-types-col-actions { width: 22%; }
+.room-types-col-identity { width: 46%; }
+.room-types-col-price { width: 12%; }
+.room-types-col-beds { width: 10%; }
+.room-types-col-capacity { width: 12%; }
+.room-types-col-actions { width: 20%; }
 
 .room-types-table th,
 .room-types-table td {
@@ -145,9 +145,8 @@ body.luxe-admin-types .room-types-hero h1 {
     vertical-align: middle;
 }
 
-.room-types-table th:nth-child(3),
-.room-types-table td:nth-child(3) {
-    text-align: center;
+.room-types-beds {
+    white-space: nowrap;
 }
 
 .room-types-table thead th {
@@ -155,15 +154,21 @@ body.luxe-admin-types .room-types-hero h1 {
     color: #43574e;
     font-size: .78rem;
     font-weight: 700;
+    text-align: center;
+}
+
+.room-types-table thead th > span {
+    display: inline-block;
+    white-space: nowrap;
 }
 
 .room-types-table thead th:first-child {
     border-start-start-radius: 15px;
+    text-align: start;
 }
 
 .room-types-table thead th:last-child {
     border-start-end-radius: 15px;
-    text-align: end;
 }
 
 .room-types-table tbody tr + tr > * {
@@ -209,6 +214,7 @@ body.luxe-admin-types .room-types-hero h1 {
 }
 
 .room-types-record-title,
+.room-types-badges,
 .amenity-catalog-title {
     display: flex;
     flex-wrap: wrap;
@@ -216,23 +222,15 @@ body.luxe-admin-types .room-types-hero h1 {
     gap: .375rem .5rem;
 }
 
+.room-types-badges {
+    min-width: 0;
+}
+
 .room-types-description {
-    display: -webkit-box;
-    min-height: 2.8em;
     margin: .25rem 0;
-    overflow: hidden;
     color: var(--rt-muted);
     font-size: .85rem;
     line-height: 1.4;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-}
-
-.room-types-usage {
-    margin: 0;
-    color: var(--rt-muted);
-    font-size: .8125rem;
-    font-variant-numeric: tabular-nums;
 }
 
 .catalog-status {
@@ -254,11 +252,17 @@ body.luxe-admin-types .room-types-hero h1 {
 }
 
 .catalog-status::before {
+    flex-shrink: 0;
     width: .375rem;
     height: .375rem;
     background: currentColor;
     border-radius: 50%;
     content: "";
+}
+
+.catalog-status.room-types-usage {
+    font-variant-numeric: tabular-nums;
+    white-space: normal;
 }
 
 .room-types-capacity {
@@ -531,12 +535,10 @@ body.luxe-admin-types .room-types-form-card h2,
     border-top: 1px solid var(--rt-line);
 }
 
-.amenity-catalog-item h3,
-.amenity-catalog-description {
+.amenity-catalog-item h3 {
     overflow-wrap: anywhere;
 }
 
-.amenity-catalog-description,
 .amenity-catalog-links > span {
     color: var(--rt-muted);
     font-size: .8125rem;
@@ -571,6 +573,16 @@ body.luxe-admin-types .room-types-form-card h2,
     gap: .375rem;
 }
 
+@media (min-width: 931px) {
+    .room-types-table td {
+        text-align: center;
+    }
+
+    .room-types-table .room-types-actions {
+        justify-content: center;
+    }
+}
+
 @media (max-width: 930px) {
     .room-types-table,
     .room-types-table tbody {
@@ -594,10 +606,6 @@ body.luxe-admin-types .room-types-form-card h2,
 
     .room-types-table colgroup {
         display: none;
-    }
-
-    .room-types-table td:nth-child(3) {
-        text-align: start;
     }
 
     .room-types-table tbody tr {

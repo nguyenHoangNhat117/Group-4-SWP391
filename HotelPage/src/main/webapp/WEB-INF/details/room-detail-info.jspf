@@ -1,35 +1,45 @@
 <c:url var="pictureUrl" value="/assets/img/${empty roomType.picture ? 'avatar.jpg' : roomType.picture}"/>
+<c:if test="${inRoomPreview}"><div class="room-preview-column"></c:if>
 <img src="<c:out value='${pictureUrl}'/>"
-     class="img-fluid w-100 rounded-4 shadow-sm ${inRoomPreview ? 'room-preview-photo' : 'mb-4'}"
+     class="img-fluid w-100 rounded-4 shadow-sm ${inRoomPreview ? '' : 'mb-4'}"
      style="max-height: 480px; object-fit: cover;"
      alt="<c:out value='${roomType.name}'/>"/>
 
 <!-- Room Description -->
-<div class="${inRoomPreview ? 'room-preview-description' : 'bg-white border rounded-4 p-4 shadow-sm mb-4'}">
-    <div class="${inRoomPreview ? 'room-preview-copy bg-white border rounded-4 p-4' : ''}">
+<c:if test="${not inRoomPreview}"><div class="bg-white border rounded-4 p-4 shadow-sm mb-4"></c:if>
+    <div class="${inRoomPreview ? 'room-preview-copy bg-white border rounded-4' : ''}">
         <h4 class="fw-bold mb-3"><ui:text key="screen.de659431fe98de4e"/></h4>
         <p class="text-secondary ${inRoomPreview ? 'mb-0' : 'mb-3'}">
             <c:out value="${not empty roomType.description ? roomType.description : 'Tận hưởng không gian nghỉ ngơi thoải mái với đầy đủ tiện nghi.'}"/>
         </p>
     </div>
-    <div class="row g-3 text-center ${inRoomPreview ? 'room-preview-specs m-0' : 'pt-2 border-top'}">
-        <div class="col-sm-4">
+<c:if test="${inRoomPreview}">
+    </div>
+    <div class="room-preview-column">
+</c:if>
+    <div class="text-center ${inRoomPreview ? 'room-preview-specs' : 'row g-3 pt-2 border-top'}">
+        <div class="${inRoomPreview ? '' : 'col-sm-4'}">
             <div class="room-spec-card">
                 <div class="text-muted small text-uppercase"><ui:text key="screen.bf193eab4a1aafb0"/></div>
-                <div class="fs-5 fw-bold text-dark"><ui:money amount="${roomType.pricePerNight}"/></div>
+                <div class="fw-bold text-dark ${inRoomPreview ? 'room-preview-spec-value' : 'fs-5'}"><ui:money amount="${roomType.pricePerNight}"/></div>
             </div>
         </div>
-        <div class="col-sm-4">
+        <div class="${inRoomPreview ? '' : 'col-sm-4'}">
             <div class="room-spec-card">
                 <div class="text-muted small text-uppercase"><ui:text key="screen.2e2a3cd1a00809d3"/></div>
-                <div class="fs-5 fw-bold text-dark">${roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></div>
+                <div class="fw-bold text-dark ${inRoomPreview ? 'room-preview-spec-value' : 'fs-5'}">${roomType.beds} <ui:text key="screen.3ec3cf485f379517"/></div>
             </div>
         </div>
-        <div class="col-sm-4">
+        <div class="${inRoomPreview ? '' : 'col-sm-4'}">
             <div class="room-spec-card">
                 <div class="text-muted small text-uppercase"><ui:text key="${inRoomPreview ? 'room.preview.capacity' : 'screen.a641d8404ba319e8'}"/></div>
                 <c:choose>
-                    <c:when test="${inRoomPreview}"><div class="fs-5 fw-bold text-dark" data-preview-capacity></div></c:when>
+                    <c:when test="${inRoomPreview}">
+                        <div class="room-preview-spec-value fw-bold text-dark">
+                            ${roomType.capacity} <ui:text key="room.selection.adultUnit"/>
+                            + ${roomType.maxChildren} <ui:text key="room.selection.childUnit"/>
+                        </div>
+                    </c:when>
                     <c:otherwise>
                         <div class="fs-5 fw-bold text-dark">${roomType.capacity} <ui:text key="screen.3c8e0fde6fcc71e0"/></div>
                     </c:otherwise>
@@ -37,25 +47,21 @@
             </div>
         </div>
     </div>
-</div>
+<c:if test="${not inRoomPreview}"></div></c:if>
 
 <!-- Dynamic RoomType Amenities (Normal Flow Step 2) -->
-<div class="bg-white border rounded-4 p-4 ${inRoomPreview ? 'room-preview-amenities' : 'shadow-sm mb-4'}">
+<div class="bg-white border rounded-4 ${inRoomPreview ? 'room-preview-amenities' : 'p-4 shadow-sm mb-4'}">
     <h4 class="fw-bold mb-3"><ui:text key="screen.fa7a5f35ea119b26"/></h4>
     <c:choose>
         <c:when test="${not empty amenities}">
-            <div class="row g-3">
+            <div class="${inRoomPreview ? 'room-preview-amenity-grid' : 'row g-3'}">
                 <c:forEach var="amenity" items="${amenities}">
-                    <div class="col-md-6">
-                        <div class="room-amenity-card d-flex align-items-center gap-3 p-3 rounded-3 h-100">
-                            <span class="room-amenity-icon"><i class="bi bi-stars" aria-hidden="true"></i></span>
-                            <div>
+                    <div class="${inRoomPreview ? 'room-preview-amenity' : 'col-md-6'}">
+                        <div class="room-amenity-card d-flex rounded-3 h-100 ${inRoomPreview ? 'align-items-start gap-2 p-3' : 'align-items-center gap-3 p-3'}">
+                            <span class="room-amenity-icon"><i class="bi ${inRoomPreview ? 'bi-patch-check' : 'bi-stars'}" aria-hidden="true"></i></span>
+                            <div class="room-amenity-copy">
                                 <c:set var="amenityNameKey" value="room.amenity.name.${amenity.name}"/>
-                                <c:set var="amenityDescriptionKey" value="room.amenity.description.${amenity.description}"/>
                                 <div class="fw-semibold text-dark"><c:out value="${requestScope.i18n[amenityNameKey]}" default="${amenity.name}"/></div>
-                                <c:if test="${not empty amenity.description}">
-                                    <small class="text-muted"><c:out value="${requestScope.i18n[amenityDescriptionKey]}" default="${amenity.description}"/></small>
-                                </c:if>
                             </div>
                         </div>
                     </div>
@@ -67,3 +73,4 @@
         </c:otherwise>
     </c:choose>
 </div>
+<c:if test="${inRoomPreview}"></div></c:if>

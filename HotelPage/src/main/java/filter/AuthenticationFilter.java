@@ -362,7 +362,8 @@ public class AuthenticationFilter implements Filter {
     private boolean isRoomManagementView(String view) {
         return "create".equalsIgnoreCase(view)
                 || "update".equalsIgnoreCase(view)
-                || "delete".equalsIgnoreCase(view);
+                || "delete".equalsIgnoreCase(view)
+                || "preview".equalsIgnoreCase(view);
     }
 
     private boolean isRole(String currentRole, String expectedRole) {

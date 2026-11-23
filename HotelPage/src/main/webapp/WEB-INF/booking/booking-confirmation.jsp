@@ -1,7 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ page import="java.time.format.DateTimeFormatter" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <!doctype html>
 <html class="stay-page" lang="vi">
@@ -13,7 +12,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="<c:url value='/assets/css/general.css'/>">
     <link rel="stylesheet" href="<c:url value='/assets/css/luxe-shared-shell.css'/>">
-    <link rel="stylesheet" href="<c:url value='/assets/css/room-checkout.css?v=2'/>">
+    <link rel="stylesheet" href="<c:url value='/assets/css/room-checkout.css?v=3'/>">
     <link rel="stylesheet" href="<c:url value='/assets/css/online-booking-select.css?v=4'/>">
 </head>
 <body class="body-wrapper">
@@ -50,6 +49,7 @@
                         <c:if test="${contactError}">
                             <p class="alert alert-warning" role="alert"><ui:text key="room.booking.contact.error"/></p>
                         </c:if>
+                        <c:set var="showConfirmationRequiredMarks" value="${true}"/>
                         <%@ include file="booking-contact-fields.jspf" %>
                     </fieldset>
                     <section class="stay-panel stay-overview p-3 p-sm-4" aria-labelledby="stay-overview-title">
@@ -78,12 +78,16 @@
                             <c:forEach var="line" items="${confirmationDraft.rooms}">
                                 <li class="stay-overview-room">
                                     <div>
-                                        <h3 class="h6 fw-bold mb-1"><c:out value="${line.name}"/></h3>
-                                        <p class="stay-overview-room-meta mb-0">
-                                            ${line.quantity} <ui:text key="room.selection.roomUnit"/> &middot;
-                                            ${line.adults} <ui:text key="room.selection.adultUnit"/> &middot;
-                                            ${line.children} <ui:text key="room.selection.childUnit"/>
-                                        </p>
+                                        <h3 class="h6 fw-bold mb-2">${line.quantity} &times; <c:out value="${line.name}"/></h3>
+                                        <ul class="stay-overview-room-parties list-unstyled mb-0" role="list">
+                                            <c:forEach var="party" items="${line.parties}" varStatus="roomIndex">
+                                                <li class="stay-overview-room-party stay-overview-room-meta">
+                                                    <strong><ui:text key="room.confirm.roomOrdinal"/> ${roomIndex.count}</strong>
+                                                    <span>${party.adults} <ui:text key="room.selection.adultUnit"/> &middot;
+                                                        ${party.children} <ui:text key="room.selection.childUnit"/></span>
+                                                </li>
+                                            </c:forEach>
+                                        </ul>
                                     </div>
                                     <div class="stay-overview-price">
                                         <strong><span class="visually-hidden"><ui:text key="room.confirm.lineTotal"/> </span>
@@ -112,16 +116,21 @@
                             <c:forEach var="voucher" items="${voucherTotals}">
                                 <option value="<c:out value='${voucher.key}'/>" data-total="${voucher.value}"
                                         ${selectedVoucher == voucher.key ? 'selected' : ''}>
-                                    <c:out value="${voucher.key}"/> &middot; −<fmt:formatNumber value="${confirmationDraft.total - voucher.value}" maxFractionDigits="0"/> đ
+                                    <c:out value="${voucher.key}"/> &middot; <c:out value="${requestScope.i18n['room.confirm.voucher.subtract']}"/>
+                                    <ui:money amount="${confirmationDraft.total - voucher.value}"/>
                                 </option>
                             </c:forEach>
                         </select>
                         <c:if test="${empty voucherTotals}"><p class="small text-muted"><ui:text key="room.confirm.voucher.empty"/></p></c:if>
                         <c:if test="${voucherError}"><p class="text-danger small" role="alert"><ui:text key="room.confirm.voucher.changed"/></p></c:if>
                         <div class="stay-summary mb-3"><dl class="mb-0">
-                            <div id="confirmation-discount-row" ${discountAmount == 0 ? 'hidden' : ''}>
-                                <dt><ui:text key="room.confirm.voucher.amount"/></dt>
-                                <dd id="confirmation-discount"><ui:money amount="${discountAmount}"/></dd>
+                            <div><dt><ui:text key="room.selection.total"/></dt>
+                                <dd><ui:money amount="${confirmationDraft.total}"/></dd></div>
+                            <div id="confirmation-discount-row" class="stay-voucher-discount" ${discountAmount == 0 ? 'hidden' : ''}>
+                                <dt><ui:text key="room.confirm.voucher.amount"/>
+                                    <span id="confirmation-voucher-code" class="stay-voucher-code"><c:out value="${selectedVoucher}"/></span>
+                                </dt>
+                                <dd id="confirmation-discount">−<ui:money amount="${discountAmount}"/></dd>
                             </div>
                             <div><dt><ui:text key="room.confirm.orderTotal"/></dt>
                                 <dd id="confirmation-total" aria-live="polite"><ui:money amount="${payableTotal}"/></dd></div>
@@ -147,6 +156,6 @@
     </main>
     <%@ include file="../include/footer.jsp" %>
     <script src="<c:url value='/assets/js/bootstrap.bundle.min.js'/>"></script>
-    <script type="module" src="<c:url value='/assets/js/booking-confirmation.js?v=3'/>"></script>
+    <script type="module" src="<c:url value='/assets/js/booking-confirmation.js?v=4'/>"></script>
 </body>
 </html>

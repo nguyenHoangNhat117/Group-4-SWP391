@@ -410,64 +410,18 @@
                                     <ui:text key="auth.changePassword"/>
                                 </a>
 
-                                <c:if test="${sessionScope.loggedUser.role == 'staff'
-                                              or sessionScope.loggedUser.role == 'admin'
-                                              or sessionScope.loggedUser.role == 'manager'}">
+                                <c:if test="${sessionScope.loggedUser.role == 'manager'}">
+                                    <a class="luxe-account-item"
+                                       href="${pageContext.request.contextPath}/wallet-management">
 
-                                      <c:if test="${sessionScope.loggedUser.role == 'manager'}">
+                                        <svg viewBox="0 0 24 24"
+                                             aria-hidden="true">
+                                        <path d="M20 8V5H5a2 2 0 0 0 0 4h15v11H5a2 2 0 0 1-2-2V7"/>
+                                        <path d="M20 12h-5v4h5"/>
+                                        </svg>
 
-                                            <a class="luxe-account-item"
-                                               href="${pageContext.request.contextPath}/wallet-management">
-
-                                                <svg viewBox="0 0 24 24"
-                                                     aria-hidden="true">
-                                                <path d="M20 8V5H5a2 2 0 0 0 0 4h15v11H5a2 2 0 0 1-2-2V7"/>
-                                                <path d="M20 12h-5v4h5"/>
-                                                </svg>
-
-                                                <ui:text key="account.walletManagement"/>
-                                            </a>
-
-                                      </c:if>
-
-
-                                      <form method="post"
-                                            action="${pageContext.request.contextPath}/toggle-animation"
-                                            class="luxe-account-form">
-
-                                          <input type="hidden"
-                                                 name="csrfToken"
-                                                 value="<%= AuthSupport.token(session)%>">
-
-                                          <input type="hidden"
-                                                 name="toggleAnimation"
-                                                 value="${cookie.animation.value == 'disable'
-                                                          ? 'enable'
-                                                          : 'disable'}">
-
-                                          <button type="submit"
-                                                  class="luxe-account-item">
-
-                                              <svg viewBox="0 0 24 24"
-                                                   aria-hidden="true">
-
-                                              <path d="m13 2-8 12h6l-1 8 9-13h-6l1-7Z"/>
-                                              </svg>
-
-                                              <c:choose>
-                                                  <c:when test="${cookie.animation.value == 'disable'}">
-                                                      <ui:text key="account.enableAnimations"/>
-                                                  </c:when>
-
-                                                  <c:otherwise>
-                                                      <ui:text key="account.disableAnimations"/>
-                                                  </c:otherwise>
-                                              </c:choose>
-
-                                              <span class="luxe-animation-dot ${cookie.animation.value == 'disable' ? 'is-off' : 'is-on'}"
-                                                    aria-hidden="true"></span>
-                                          </button>
-                                      </form>
+                                        <ui:text key="account.walletManagement"/>
+                                    </a>
                                 </c:if>
 
                                 <div class="luxe-account-separator"

@@ -19,11 +19,11 @@ import model.RoomType;
 public class AmenityDAO extends DBContext {
 
     public List<Amenity> getAllAmenities() throws SQLException {
-        return listAmenities("SELECT * FROM Amenity ORDER BY Name,AmenityID", null);
+        return listAmenities("SELECT AmenityID,Name,IsActive FROM Amenity ORDER BY Name,AmenityID", null);
     }
 
     public List<Amenity> getSelectableAmenities(int roomTypeId) throws SQLException {
-        return listAmenities("SELECT a.* FROM Amenity a WHERE a.IsActive=1 OR EXISTS ("
+        return listAmenities("SELECT a.AmenityID,a.Name,a.IsActive FROM Amenity a WHERE a.IsActive=1 OR EXISTS ("
                 + "SELECT 1 FROM RoomTypeAmenity rta WHERE rta.AmenityID=a.AmenityID AND rta.RoomTypeID=?) "
                 + "ORDER BY a.IsActive DESC,a.Name,a.AmenityID", roomTypeId);
     }
@@ -36,7 +36,7 @@ public class AmenityDAO extends DBContext {
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Amenity amenity = new Amenity(rs.getInt("AmenityID"), rs.getString("Name"), rs.getString("Description"));
+                    Amenity amenity = new Amenity(rs.getInt("AmenityID"), rs.getString("Name"));
                     amenity.setActive(rs.getBoolean("IsActive"));
                     list.add(amenity);
                 }
@@ -78,7 +78,7 @@ public class AmenityDAO extends DBContext {
     // Lấy những tiện ích của RIÊNG 1 Loại phòng (dựa vào RoomTypeID)
     public List<Amenity> getAmenitiesByRoomTypeId(int roomTypeId) {
         List<Amenity> list = new ArrayList<>();
-        String sql = "SELECT a.AmenityID, a.Name, a.Description "
+        String sql = "SELECT a.AmenityID, a.Name "
                    + "FROM Amenity a "
                    + "JOIN RoomTypeAmenity rta ON a.AmenityID = rta.AmenityID "
                    + "WHERE rta.RoomTypeID=? AND a.IsActive=1 ORDER BY a.AmenityID";
@@ -87,7 +87,7 @@ public class AmenityDAO extends DBContext {
             ps.setInt(1, roomTypeId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    list.add(new Amenity(rs.getInt("AmenityID"), rs.getString("Name"), rs.getString("Description")));
+                    list.add(new Amenity(rs.getInt("AmenityID"), rs.getString("Name")));
                 }
             }
         } catch (SQLException ex) {
@@ -101,8 +101,8 @@ public class AmenityDAO extends DBContext {
     public SaveResult save(Amenity amenity) throws SQLException {
         int id = amenity.getAmenityID();
         String checkSql = "SELECT 1 FROM Amenity WITH (UPDLOCK,HOLDLOCK) WHERE Name=? AND AmenityID<>?";
-        String saveSql = id == 0 ? "INSERT INTO Amenity(Name,Description) VALUES(?,?)"
-                : "UPDATE Amenity SET Name=?,Description=? WHERE AmenityID=?";
+        String saveSql = id == 0 ? "INSERT INTO Amenity(Name) VALUES(?)"
+                : "UPDATE Amenity SET Name=? WHERE AmenityID=?";
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
             try (PreparedStatement check = conn.prepareStatement(checkSql);
@@ -116,9 +116,8 @@ public class AmenityDAO extends DBContext {
                     }
                 }
                 save.setNString(1, amenity.getName());
-                save.setNString(2, amenity.getDescription());
                 if (id != 0) {
-                    save.setInt(3, id);
+                    save.setInt(2, id);
                 }
                 if (save.executeUpdate() != 1) {
                     conn.rollback();

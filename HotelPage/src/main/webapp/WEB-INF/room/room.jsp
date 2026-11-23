@@ -23,7 +23,7 @@
 
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
-        <link rel="stylesheet" href="<c:url value='/assets/css/room-detail-content.css'/>">
+        <link rel="stylesheet" href="<c:url value='/assets/css/room-detail-content.css?v=5'/>">
 
         <style>
             /* ==== ADMIN STYLES ==== */
@@ -148,6 +148,20 @@
                 box-shadow: 0 5px 20px rgba(0,0,0,0.05);
                 margin-bottom: 30px;
             }
+            .search-bar-wrapper .room-search-control,
+            #sort-by,
+            #sort-by-trigger {
+                height: 2.25rem;
+                min-height: 0;
+                padding-block: .375rem;
+                padding-inline-start: .75rem;
+                border: none;
+                border-radius: 12px;
+                background-color: var(--lx-ivory);
+                color: var(--lx-ink);
+                font-weight: 400;
+                line-height: 1.5;
+            }
             .room-selection-layout {
                 display: grid;
                 grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
@@ -220,7 +234,14 @@
         </style>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/search-calendar.css">
         <script src="${pageContext.request.contextPath}/assets/js/search-calendar.js" defer></script>
-        <script type="module" src="<c:url value='/assets/js/room-selection.js?v=6'/>"></script>
+        <c:choose>
+            <c:when test="${sessionScope.loggedUser.role == 'admin'}">
+                <script type="module" src="<c:url value='/assets/js/admin-room-controls.js'/>"></script>
+            </c:when>
+            <c:otherwise>
+                <script type="module" src="<c:url value='/assets/js/room-selection.js?v=9'/>"></script>
+            </c:otherwise>
+        </c:choose>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
     <link rel="stylesheet" href="<c:url value='/assets/css/online-booking-select.css?v=4'/>">
 </head>
@@ -303,7 +324,7 @@
                               action="${pageContext.request.contextPath}/room">
                             <div class="col-sm-5 col-lg-4">
                                 <label for="admin-room-type" class="form-label"><ui:text key="screen.82dea9a01c0033ec"/></label>
-                                <select id="admin-room-type" name="room-type-id" class="form-select">
+                                <select id="admin-room-type" name="room-type-id" class="form-select booking-select" data-room-admin-select>
                                     <option value="">${requestScope.i18n['room.admin.allTypes']}</option>
                                     <c:forEach var="roomType" items="${roomTypes}">
                                         <option value="${roomType.id}" ${roomType.id == adminRoomTypeId ? 'selected' : ''}>
@@ -319,7 +340,17 @@
                                        aria-invalid="${invalidRoomNumber}"
                                        value="<c:out value='${param["room-number"]}'/>">
                             </div>
-                            <input type="hidden" name="sort" value="${priceSort}"><div class="col-sm-4 col-lg-3"><label for="admin-status" class="form-label"><ui:text key="screen.920e413c7d411b61"/></label><select id="admin-status" name="status" class="form-select"><option value="">${requestScope.i18n['management.all']}</option><option value="available" ${adminStatus == 'available' ? 'selected' : ''}>${requestScope.i18n['screen.e674447337e83c13']}</option><option value="maintenance" ${adminStatus == 'maintenance' ? 'selected' : ''}>${requestScope.i18n['screen.17ccfa5b681e3e7b']}</option><option value="out_of_service" ${adminStatus == 'out_of_service' ? 'selected' : ''}>${requestScope.i18n['screen.3cd4b662003a9db7']}</option></select></div><div class="col-sm-auto d-flex gap-2">
+                            <input type="hidden" name="sort" value="${priceSort}">
+                            <div class="col-sm-4 col-lg-3">
+                                <label for="admin-status" class="form-label"><ui:text key="screen.920e413c7d411b61"/></label>
+                                <select id="admin-status" name="status" class="form-select booking-select" data-room-admin-select>
+                                    <option value="">${requestScope.i18n['management.all']}</option>
+                                    <option value="available" ${adminStatus == 'available' ? 'selected' : ''}>${requestScope.i18n['screen.e674447337e83c13']}</option>
+                                    <option value="maintenance" ${adminStatus == 'maintenance' ? 'selected' : ''}>${requestScope.i18n['screen.17ccfa5b681e3e7b']}</option>
+                                    <option value="out_of_service" ${adminStatus == 'out_of_service' ? 'selected' : ''}>${requestScope.i18n['screen.3cd4b662003a9db7']}</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-auto d-flex gap-2">
                                 <button class="btn btn-primary" type="submit"><ui:text key="room.admin.applyFilters"/></button>
                                 <a class="btn btn-outline-secondary" href="${pageContext.request.contextPath}/room">
                                     <ui:text key="room.admin.clearFilters"/>
@@ -367,7 +398,7 @@
                                                 </td>
                                                 <td class="text-center text-secondary">${room.roomType.beds}</td>
                                                 <td class="text-center text-secondary"><i class="bi bi-people-fill me-1"></i>${room.roomType.capacity}</td>
-                                                <td>
+                                                <td data-room-status>
                                                     <c:choose>
                                                         <c:when test="${room.status == 'available'}">
                                                             <span class="badge badge-soft-success px-3 py-2 rounded-pill"><ui:text key="screen.e674447337e83c13"/></span>
@@ -382,10 +413,18 @@
                                                 </td>
                                                 <td class="text-end pe-4">
                                                     <div class="d-flex justify-content-end gap-2">
-                                                        <a href="${pageContext.request.contextPath}/details?roomNumber=${room.roomNumber}"
-                                                           class="btn btn-icon btn-light text-primary" data-bs-toggle="tooltip" title="${requestScope.i18n['screen.90789c12d0731b44']}">
-                                                            <i class="bi bi-eye"></i>
-                                                        </a>
+                                                        <c:url var="adminPreviewUrl" value="/room">
+                                                            <c:param name="view" value="preview"/>
+                                                            <c:param name="roomNumber" value="${room.roomNumber}"/>
+                                                        </c:url>
+                                                        <button type="button" class="btn btn-icon btn-light text-primary"
+                                                                data-admin-room-preview data-preview-url="<c:out value='${adminPreviewUrl}'/>"
+                                                                data-preview-name="#${room.roomNumber} · <c:out value='${room.roomType.name}'/>"
+                                                                aria-haspopup="dialog" aria-controls="room-preview"
+                                                                aria-label="${requestScope.i18n['screen.90789c12d0731b44']} #${room.roomNumber}"
+                                                                data-bs-toggle="tooltip" title="${requestScope.i18n['screen.90789c12d0731b44']}">
+                                                            <i class="bi bi-eye" aria-hidden="true"></i>
+                                                        </button>
                                                         <a href="${pageContext.request.contextPath}/room?view=update&roomNumber=${room.roomNumber}"
                                                            class="btn btn-icon btn-light text-warning" data-bs-toggle="tooltip" title="${requestScope.i18n['screen.1e15cc0c5d15cccb']}">
                                                             <i class="bi bi-pencil-square"></i>
@@ -485,19 +524,19 @@
 
                                 <div class="col-lg-2 col-md-3 col-6">
                                     <label for="selection-adults" class="form-label small fw-bold text-muted mb-1"><ui:text key="room.search.party.adults"/></label>
-                                    <input type="number" min="1" step="1" class="form-control bg-light border-0"
+                                    <input type="number" min="1" step="1" class="form-control room-search-control"
                                            id="selection-adults" name="adults" value="${requestScope.searchAdults}" required>
                                 </div>
 
                                 <div class="col-lg-2 col-md-3 col-6">
                                     <label for="selection-children" class="form-label small fw-bold text-muted mb-1"><ui:text key="room.search.party.children"/></label>
-                                    <input type="number" min="0" step="1" class="form-control bg-light border-0"
+                                    <input type="number" min="0" step="1" class="form-control room-search-control"
                                            id="selection-children" name="children" value="${requestScope.searchChildren}" required>
                                 </div>
 
                                 <div class="col-xl-2 col-lg-3 col-md-4 col-12">
-                                    <label for="sort-by" class="form-label booking-select-label"><ui:text key="screen.6d2227555fccff99"/></label>
-                                    <select class="form-select booking-select" id="sort-by" name="sort-by">
+                                    <label for="sort-by" class="form-label small fw-bold text-muted mb-1"><ui:text key="screen.6d2227555fccff99"/></label>
+                                    <select class="form-select" id="sort-by" name="sort-by">
                                         <option value="price_asc" ${requestScope.searchSortBy == 'price_asc' ? 'selected' : ''}>${requestScope.i18n['screen.3044c75602f03114']}</option>
                                         <option value="price_desc" ${requestScope.searchSortBy == 'price_desc' ? 'selected' : ''}>${requestScope.i18n['screen.8abbc1606cfd7f90']}</option>
                                     </select>
@@ -543,7 +582,6 @@
                                     <c:param name="roomTypeId" value="${type.id}"/>
                                 </c:url>
                                 <div class="col-12 col-md-6" data-room-type="${type.id}" data-available="${result.available}"
-                                     data-capacity="${type.capacity}" data-max-children="${result.maxChildren}"
                                      data-nightly="${type.pricePerNight}" data-preview-url="${previewUrl}">
                                     <article class="card room-card h-100">
                                         <button type="button" class="room-img-wrap d-block w-100 p-0 border-0"
@@ -657,28 +695,31 @@
             </div>
         </c:if>
 
-        <c:if test="${sessionScope.loggedUser.role != 'admin' and not empty availableTypes}">
+        <c:if test="${sessionScope.loggedUser.role == 'admin' ? not empty rooms : not empty availableTypes}">
             <div class="modal fade" id="room-preview" tabindex="-1" aria-labelledby="room-preview-title" aria-hidden="true"
                  data-loading="${requestScope.i18n['room.preview.loading']}"
                  data-failed="${requestScope.i18n['room.preview.failed']}"
-                 data-limit="${requestScope.i18n['room.preview.limit']}"
-                 data-adult-unit="${requestScope.i18n['room.selection.adultUnit']}"
-                 data-child-unit="${requestScope.i18n['room.selection.childUnit']}">
+                 data-limit="${requestScope.i18n['room.preview.limit']}">
                 <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h2 id="room-preview-title" class="modal-title h4"></h2>
+                            <div class="room-preview-heading">
+                                <h2 id="room-preview-title" class="modal-title h4"></h2>
+                                <span class="room-preview-stock" data-preview-stock aria-live="polite"></span>
+                            </div>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"
                                     aria-label="${requestScope.i18n['screen.7d9eb7acb13e2462']}"></button>
                         </div>
-                        <div class="modal-body p-4">
+                        <div class="modal-body">
                             <p class="mb-0" role="status" data-preview-status></p>
                             <div data-preview-content></div>
                         </div>
-                        <div class="modal-footer gap-2">
-                            <p class="text-muted small mb-0" data-preview-stock aria-live="polite"></p>
-                            <button type="button" class="btn btn-book" data-preview-add disabled><ui:text key="room.preview.choose"/></button>
-                        </div>
+                        <c:if test="${sessionScope.loggedUser.role != 'admin'}">
+                            <div class="modal-footer gap-2">
+                                <p class="text-muted small mb-0" data-preview-limit-message role="status" hidden></p>
+                                <button type="button" class="btn btn-book" data-preview-add disabled><ui:text key="room.preview.choose"/></button>
+                            </div>
+                        </c:if>
                     </div>
                 </div>
             </div>

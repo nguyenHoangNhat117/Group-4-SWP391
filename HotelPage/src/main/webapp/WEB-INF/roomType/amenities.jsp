@@ -68,9 +68,6 @@
                                                 <ui:text key="${amenity.active ? 'room.amenity.active' : 'room.amenity.inactive'}"/>
                                             </span>
                                         </div>
-                                        <c:if test="${not empty amenity.description}">
-                                            <p class="amenity-catalog-description mt-1 mb-0"><c:out value="${amenity.description}"/></p>
-                                        </c:if>
                                     </div>
                                     <div class="amenity-catalog-links">
                                         <span><ui:text key="room.amenity.linkedTypes"/></span>
@@ -138,11 +135,8 @@
                         <p class="alert alert-warning" role="alert"><ui:text key="${amenityError}"/></p>
                     </c:if>
                     <label class="form-label" for="amenity-name"><ui:text key="room.amenity.name"/></label>
-                    <input class="form-control mb-3" id="amenity-name" name="name" maxlength="100" required
+                    <input class="form-control" id="amenity-name" name="name" maxlength="100" required
                            value="<c:out value='${editingAmenity.name}'/>">
-                    <label class="form-label" for="amenity-description"><ui:text key="screen.526e0087cc3f254d"/></label>
-                    <textarea class="form-control" id="amenity-description" name="description"
-                              rows="3" maxlength="255"><c:out value="${editingAmenity.description}"/></textarea>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal"><ui:text key="common.cancel"/></button>

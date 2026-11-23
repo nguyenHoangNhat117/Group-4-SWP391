@@ -1,6 +1,8 @@
-<div class="bg-white border rounded-4 p-4 shadow-sm" id="review-title">
+<%@ page import="java.time.format.DateTimeFormatter" %>
+<c:set var="reviewDateFormat" value="${DateTimeFormatter.ofPattern('dd/MM/uuuu HH:mm')}"/>
+<div class="bg-white border rounded-4 shadow-sm ${inRoomPreview ? '' : 'p-4'}" id="review-title">
     <h4 class="fw-bold mb-3">
-        <ui:text key="screen.e7cb00891c5b4234"/>
+        <ui:text key="${inRoomPreview ? 'room.preview.reviews' : 'screen.e7cb00891c5b4234'}"/>
         <c:if test="${not empty reviews}">
             <span class="text-muted fw-normal fs-6">(${reviews.size()})</span>
         </c:if>
@@ -13,7 +15,7 @@
             <div class="mb-3 text-warning fw-semibold">
                 <i class="bi bi-star-fill"></i> ${averageStar} <ui:text key="screen.18fa6f5773c7b8cf"/>
             </div>
-            <div style="max-height: 390px; overflow-y: auto;" aria-label="${requestScope.i18n['screen.8380c237806a24e2']}">
+            <div style="${inRoomPreview ? '' : 'max-height: 390px; overflow-y: auto;'}" aria-label="${requestScope.i18n['screen.8380c237806a24e2']}">
                 <c:forEach var="review" items="${reviews}">
                     <div class="review-box mb-2">
                         <div class="d-flex align-items-center gap-2 mb-2">
@@ -27,9 +29,10 @@
 
                             <div>
                                 <strong><c:out value="${review.booking.customer.user.username}"/></strong>
-                                <div class="text-muted" style="font-size: 0.75rem;">
-                                    <c:out value="${review.reviewDate}"/>
-                                </div>
+                                <c:if test="${not empty review.reviewDate}">
+                                    <time class="d-block text-muted" style="font-size: 0.75rem;"
+                                          datetime="${review.reviewDate.withSecond(0).withNano(0)}">${review.reviewDate.format(reviewDateFormat)}</time>
+                                </c:if>
                             </div>
                             <span class="ms-auto text-warning fw-bold">
 

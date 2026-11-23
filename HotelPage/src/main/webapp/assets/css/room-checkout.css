@@ -139,7 +139,7 @@ html.stay-page {
 .stay-overview-room {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
+    align-items: start;
     gap: .375rem 1rem;
     padding-block: .9375rem;
 }
@@ -154,6 +154,21 @@ html.stay-page {
 
 .stay-overview-room h3 {
     overflow-wrap: anywhere;
+}
+
+.stay-overview-room-parties {
+    display: grid;
+    gap: .375rem;
+}
+
+.stay-overview-room-party {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .125rem .625rem;
+    padding: .375rem .625rem;
+    background: #f8f1e8;
+    border-radius: .5rem;
 }
 
 .stay-overview-price {
@@ -267,6 +282,37 @@ html.stay-page {
     gap: .25rem 1rem;
     justify-content: space-between;
     padding-block: .5rem;
+}
+
+.stay-page .stay-summary dl > .stay-voucher-discount {
+    align-items: center;
+    padding-inline: .75rem;
+    border-radius: .65rem;
+    background: #f8f1e8;
+    color: #624023;
+}
+
+.stay-page .stay-summary dl > .stay-voucher-discount[hidden] {
+    display: none;
+}
+
+.stay-voucher-discount dt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .5rem;
+}
+
+.stay-voucher-code {
+    padding: .1rem .45rem;
+    border-radius: .375rem;
+    background: #f0e5d7;
+    overflow-wrap: anywhere;
+}
+
+.stay-voucher-discount dd {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }
 
 .checkout-stay-meta {

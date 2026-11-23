@@ -1,4 +1,5 @@
 import {enhanceBookingSelect} from './booking-select.js';
+import {createRoomPreview} from './room-preview.js';
 
 (() => {
     const selection = document.getElementById('room-selection');
@@ -14,9 +15,8 @@ import {enhanceBookingSelect} from './booking-select.js';
     const warning = selection.querySelector('[data-cart-warning]');
     const notice = selection.querySelector('[data-cart-notice]');
     const continueButton = selection.querySelector('[data-cart-continue]');
-    const preview = document.getElementById('room-preview');
-    let openPreview;
-    let updatePreview;
+    const previewElement = document.getElementById('room-preview');
+    const preview = createRoomPreview(previewElement, updatePreview);
     const search = document.getElementById('floatingBookingDate').form;
     enhanceBookingSelect(search.elements.namedItem('sort-by'));
     const adults = Number(labels.adults);
@@ -34,8 +34,6 @@ import {enhanceBookingSelect} from './booking-select.js';
             card,
             name: card.querySelector('[data-room-name]').textContent.trim(),
             available: Number(data.available),
-            capacity: Number(data.capacity),
-            maxChildren: Number(data.maxChildren),
             nightly: Number(data.nightly),
             minus: card.querySelector('[data-quantity-minus]'),
             plus: card.querySelector('[data-quantity-plus]'),
@@ -192,9 +190,7 @@ import {enhanceBookingSelect} from './booking-select.js';
         warning.textContent = message;
         warning.hidden = !message;
         continueButton.disabled = checking || cart.size === 0 || Boolean(message);
-        if (updatePreview) {
-            updatePreview();
-        }
+        updatePreview();
     }
 
     function partyText(adultCount, childCount) {
@@ -281,94 +277,42 @@ import {enhanceBookingSelect} from './booking-select.js';
         }
     });
 
-    if (preview && window.bootstrap?.Modal) {
-        const modal = window.bootstrap.Modal.getOrCreateInstance(preview);
-        const previewLabels = preview.dataset;
-        const title = preview.querySelector('.modal-title');
-        const close = preview.querySelector('.btn-close');
-        const status = preview.querySelector('[data-preview-status]');
-        const content = preview.querySelector('[data-preview-content]');
-        const stock = preview.querySelector('[data-preview-stock]');
-        const add = preview.querySelector('[data-preview-add]');
-        let active;
+    function updatePreview(active = preview?.active) {
+        if (!active) {
+            return;
+        }
+        const room = rooms.get(active.id);
+        const limitReached = (cart.get(active.id)?.parties.length || 0) >= room.available;
+        const soldOut = room.available === 0;
+        const stockText = soldOut ? labels.soldOut : room.available + ' ' + labels.available;
+        if (stock.textContent !== stockText) {
+            stock.textContent = stockText;
+        }
+        stock.toggleAttribute('data-sold-out', soldOut);
+        limitMessage.hidden = soldOut || !limitReached;
+        add.disabled = !active.shown || !active.loaded || room.plus.disabled;
+    }
 
-        updatePreview = () => {
-            if (!active) {
-                return;
-            }
-            const room = rooms.get(active.id);
-            const limitReached = (cart.get(active.id)?.parties.length || 0) >= room.available;
-            stock.textContent = room.available === 0 ? labels.soldOut
-                : limitReached ? previewLabels.limit : room.available + ' ' + labels.available;
-            add.disabled = !active.shown || !active.loaded || room.plus.disabled;
-        };
-
-        openPreview = async (id, trigger) => {
-            if (active) {
-                return;
-            }
-            const current = {id, trigger, request: new AbortController(), loaded: false, shown: false};
-            active = current;
-            const room = rooms.get(id);
-            title.textContent = room.name;
-            status.textContent = previewLabels.loading;
-            status.hidden = false;
-            content.replaceChildren();
-            updatePreview();
-            modal.show(trigger);
-
-            try {
-                const response = await fetch(room.card.dataset.previewUrl, {
-                    signal: current.request.signal, cache: 'no-store', redirect: 'error'
-                });
-                if (!response.ok) {
-                    throw new Error('Room preview request failed');
-                }
-                const fragment = await response.text();
-                if (!current.request.signal.aborted) {
-                    content.innerHTML = fragment;
-                    content.querySelector('[data-preview-capacity]').textContent =
-                        room.capacity + ' ' + previewLabels.adultUnit
-                        + ' + ' + room.maxChildren + ' ' + previewLabels.childUnit;
-                    status.hidden = true;
-                    current.loaded = true;
-                    updatePreview();
-                }
-            } catch {
-                if (!current.request.signal.aborted) {
-                    status.textContent = previewLabels.failed;
-                }
-            }
-        };
-
+    const stock = previewElement?.querySelector('[data-preview-stock]');
+    const limitMessage = previewElement?.querySelector('[data-preview-limit-message]');
+    const add = previewElement?.querySelector('[data-preview-add]');
+    if (preview) {
+        limitMessage.textContent = previewElement.dataset.limit;
         add.addEventListener('click', () => {
-            if (active && !add.disabled && changeQuantity(active.id, 1)) {
-                modal.hide();
+            if (preview.active && !add.disabled && changeQuantity(preview.active.id, 1)) {
+                preview.hide();
             }
-        });
-        preview.addEventListener('shown.bs.modal', () => {
-            active.shown = true;
-            updatePreview();
-            close.focus({preventScroll: true});
-        });
-        preview.addEventListener('hide.bs.modal', () => {
-            active.shown = false;
-            active.request.abort();
-            add.disabled = true;
-        });
-        preview.addEventListener('hidden.bs.modal', () => {
-            const trigger = active.trigger;
-            active = null;
-            trigger.focus({preventScroll: true});
         });
     }
 
     for (const [id, room] of rooms) {
         room.minus.addEventListener('click', () => changeQuantity(id, -1));
         room.plus.addEventListener('click', () => changeQuantity(id, 1));
-        if (openPreview) {
+        if (preview) {
             for (const trigger of room.card.querySelectorAll('[data-preview-open]')) {
-                trigger.addEventListener('click', () => openPreview(id, trigger));
+                trigger.addEventListener('click', () => preview.open(trigger, {
+                    id, name: room.name, url: room.card.dataset.previewUrl
+                }));
             }
         }
     }

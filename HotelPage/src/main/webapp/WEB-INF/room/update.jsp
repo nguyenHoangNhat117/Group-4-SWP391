@@ -10,6 +10,7 @@
         <meta
             http-equiv="Content-Type"
             content="text/html; charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <title>${requestScope.i18n['screen.28dd027503c97963']}</title>
 
@@ -23,6 +24,8 @@
 
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-shared-shell.css" />
         <link rel="stylesheet" href="<%= request.getContextPath()%>/assets/css/luxe-ui.css" />
+        <link rel="stylesheet" href="<c:url value='/assets/css/online-booking-select.css?v=4'/>">
+        <script type="module" src="<c:url value='/assets/js/admin-room-controls.js'/>"></script>
 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
 </head>
 
@@ -169,7 +172,7 @@
                             <select
                                 id="status"
                                 name="status"
-                                class="form-select form-select-lg"
+                                class="form-select booking-select" data-room-admin-select
                                 required>
 
                                 <option
@@ -220,7 +223,7 @@
                             <select
                                 id="room-type"
                                 name="room-type-id"
-                                class="form-select form-select-lg"
+                                class="form-select booking-select" data-room-admin-select
                                 required>
 
                                 <c:forEach
@@ -236,7 +239,7 @@
 
                                         ${roomType.id}
                                         -
-                                        ${roomType.name}
+                                        <c:out value="${roomType.name}"/>
 
                                     </option>
 

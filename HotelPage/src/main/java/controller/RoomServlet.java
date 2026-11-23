@@ -119,6 +119,17 @@ public class RoomServlet extends HttpServlet {
         util.AuthSupport.token(session);
         RoomDAO roomDAO = new RoomDAO();
         switch (view) {
+            case "preview": {
+                Integer roomNumber = positiveInt(request.getParameter("roomNumber"));
+                Room room = roomNumber == null ? null : roomDAO.getRoomByNumber(roomNumber);
+                if (room == null) {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    return;
+                }
+                request.setAttribute("adminPreviewRoom", room);
+                request.getRequestDispatcher("/details?action=preview").forward(request, response);
+                return;
+            }
             case "create":
                 showCreateForm(request, response, roomDAO);
                 return;

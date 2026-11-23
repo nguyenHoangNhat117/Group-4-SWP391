@@ -16,7 +16,7 @@
         <link href="${pageContext.request.contextPath}/assets/css/luxe-admin-suite.css" rel="stylesheet">
         <link href="${pageContext.request.contextPath}/assets/css/luxe-shared-shell.css" rel="stylesheet">
         <link href="${pageContext.request.contextPath}/assets/css/luxe-ui.css" rel="stylesheet">
-        <link href="<c:url value='/assets/css/admin-room-types.css?v=3'/>" rel="stylesheet">
+        <link href="<c:url value='/assets/css/admin-room-types.css?v=6'/>" rel="stylesheet">
         <link href="<c:url value='/assets/css/management.css?v=2'/>" rel="stylesheet">
     </head>
 
@@ -83,7 +83,7 @@
                                 <tr role="row">
                                     <th scope="col" role="columnheader"><ui:text key="screen.741b94aab7248c7b"/></th>
                                     <th scope="col" role="columnheader"><ui:text key="screen.2de469ee4cd7c680"/></th>
-                                    <th scope="col" role="columnheader"><ui:text key="screen.2e2a3cd1a00809d3"/></th>
+                                    <th scope="col" role="columnheader" class="room-types-beds"><ui:text key="screen.2e2a3cd1a00809d3"/></th>
                                     <th scope="col" role="columnheader"><ui:text key="screen.ae65d096550ff4eb"/></th>
                                     <th scope="col" role="columnheader"><ui:text key="screen.ff8059dc6752afdd"/></th>
                                 </tr>
@@ -111,15 +111,17 @@
                                                     <div class="room-types-record-title">
                                                         <span class="room-types-name"><c:out value="${roomType.name}"/></span>
                                                         <span class="room-types-id">#${roomType.id}</span>
-                                                        <span class="catalog-status ${roomType.active ? 'is-active' : ''}">
-                                                            <ui:text key="${roomType.active ? 'room.admin.sale.active' : 'room.admin.sale.inactive'}"/>
+                                                        <span class="room-types-badges">
+                                                            <span class="catalog-status ${roomType.active ? 'is-active' : ''}">
+                                                                <ui:text key="${roomType.active ? 'room.admin.sale.active' : 'room.admin.sale.inactive'}"/>
+                                                            </span>
+                                                            <span class="catalog-status room-types-usage">
+                                                                <span>${roomType.roomCount} <ui:text key="room.selection.roomUnit"/> &middot;
+                                                                    ${roomType.activeBookingCount} <ui:text key="room.admin.sale.activeBookingUnit"/></span>
+                                                            </span>
                                                         </span>
                                                     </div>
                                                     <p class="room-types-description"><c:out value="${roomType.description}"/></p>
-                                                    <p class="room-types-usage">
-                                                        ${roomType.roomCount} <ui:text key="room.selection.roomUnit"/>
-                                                        &middot; ${roomType.activeBookingCount} <ui:text key="room.admin.sale.activeBookingUnit"/>
-                                                    </p>
                                                 </div>
                                             </div>
                                         </th>
@@ -127,7 +129,7 @@
                                             <span class="room-types-mobile-label" aria-hidden="true"><ui:text key="screen.2de469ee4cd7c680"/></span>
                                             <ui:money amount="${roomType.pricePerNight}"/>
                                         </td>
-                                        <td role="cell">
+                                        <td role="cell" class="room-types-beds">
                                             <span class="room-types-mobile-label" aria-hidden="true"><ui:text key="screen.2e2a3cd1a00809d3"/></span>
                                             ${roomType.beds}
                                         </td>

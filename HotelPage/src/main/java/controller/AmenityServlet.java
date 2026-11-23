@@ -68,9 +68,8 @@ public class AmenityServlet extends HttpServlet {
                 return;
             }
             String name = AuthSupport.text(request.getParameter("name"));
-            String description = AuthSupport.text(request.getParameter("description"));
-            Amenity form = new Amenity(id, name, description);
-            if (name.isEmpty() || name.length() > 100 || description.length() > 255) {
+            Amenity form = new Amenity(id, name);
+            if (name.isEmpty() || name.length() > 100) {
                 show(request, response, dao, dao.getAllAmenities(), form, "room.amenity.invalid");
                 return;
             }

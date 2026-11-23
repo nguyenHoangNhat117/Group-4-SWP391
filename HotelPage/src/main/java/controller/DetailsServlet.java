@@ -37,7 +37,7 @@ public class DetailsServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if ("preview".equals(request.getParameter("action"))) {
-            showRoomTypePreview(request, response);
+            showRoomPreview(request, response);
             return;
         }
         handleDetails(request, response, false);
@@ -50,20 +50,24 @@ public class DetailsServlet extends HttpServlet {
         handleDetails(request, response, "review".equals(request.getParameter("action")));
     }
 
-    private void showRoomTypePreview(HttpServletRequest request, HttpServletResponse response)
+    private void showRoomPreview(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        int typeId = number(request.getParameter("roomTypeId"), 0);
-        if (typeId < 1) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
+        response.setHeader("Cache-Control", "no-store");
+        Room room = (Room) request.getAttribute("adminPreviewRoom");
+        RoomType type;
+        RoomTypeDAO types = new RoomTypeDAO();
+        if (room != null) {
+            type = types.getRoomTypeById(room.getRoomType().getId());
+        } else {
+            int id = number(request.getParameter("roomTypeId"), 0);
+            type = id > 0 ? types.getActiveRoomTypeById(id) : null;
         }
-        RoomType type = new RoomTypeDAO().getActiveRoomTypeById(typeId);
         if (type == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
         setRoomDetails(request, type);
-        setRoomReviews(request, null, type);
+        setRoomReviews(request, room, type);
         request.getRequestDispatcher("/WEB-INF/details/room-preview.jsp").forward(request, response);
     }
 
