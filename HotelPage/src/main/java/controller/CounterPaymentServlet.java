@@ -155,6 +155,10 @@ public class CounterPaymentServlet extends HttpServlet {
                     s.setHeader("Location", r.getContextPath() + "/counter-payment?bookingId=" + id);
                     return;
                 }
+                case "update_arrived_guests":
+                    ops.updateArrivedGuests(id, actor.getId(), key,
+                            "yes".equals(r.getParameter("identityVerified")), r.getParameterMap());
+                    break;
                 case "check_out":
                     ops.checkOut(id, actor.getId(), key, "yes".equals(r.getParameter("earlyCheckoutAccepted")));
                     break;

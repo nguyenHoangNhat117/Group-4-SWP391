@@ -276,6 +276,78 @@ public class OfflineOperationsDAO extends DBContext {
         });
     }
 
+    public void updateArrivedGuests(int id, int staff, String key, boolean identityVerified,
+            Map<String, String[]> form) throws SQLException {
+        String token = requestKey(key);
+        transaction(c -> {
+            actor(c, staff);
+            List<Map<String, Object>> bookings = rows(c,
+                    "SELECT Status,ActualGuestCount FROM Booking WITH(UPDLOCK,HOLDLOCK) "
+                    + "WHERE BookingID=? AND CreatedByUserID IS NOT NULL", id);
+            require(!bookings.isEmpty(), "Không tìm thấy đơn đặt phòng tại quầy.");
+            if (already(c, id, staff, token, "update_arrived_guests")) {
+                return null;
+            }
+            Map<String, Object> booking = bookings.get(0);
+            require("checked_in".equals(booking.get("Status")), "Chỉ cập nhật khách cho đơn đang lưu trú.");
+            require(identityVerified, "Cần đối chiếu giấy tờ của khách trước khi cập nhật.");
+            require(OfflineChildStayDAO.hasActualRoomGuestCount(c),
+                    "Cơ sở dữ liệu chưa có cột lưu số khách từng phòng.");
+
+            Map<Integer, Map<String, Object>> rooms = OfflineChildStayDAO.roomGuests(c, id, true);
+            Map<Integer, Integer> changes = new LinkedHashMap<>();
+            int total = 0;
+            int submitted = 0;
+            for (Map.Entry<Integer, Map<String, Object>> entry : rooms.entrySet()) {
+                int detailId = entry.getKey();
+                Map<String, Object> room = entry.getValue();
+                Object roomNumber = room.get("roomNumber");
+                require(roomNumber != null, "Đơn còn phòng chưa được xếp. Kiểm tra lại đơn.");
+                Integer current = (Integer) room.get("actualGuests");
+                String[] values = form.get("arrived-" + detailId);
+                require(values != null || current != null, "Nhập số khách đã đến cho các phòng chưa có số liệu.");
+                int count = current == null ? 0 : current;
+                if (values != null) {
+                    submitted++;
+                    count = OfflineChildStayDAO.guestCount(values);
+                    require(current == null || count >= current,
+                            "Số khách phòng #" + roomNumber + " đã thay đổi hoặc thấp hơn số đã ghi nhận. Tải lại đơn.");
+                    if (!Objects.equals(current, count)) {
+                        require(count <= (Integer) room.get("arrivalLimit"),
+                                "Số khách phòng #" + roomNumber + " vượt số đã đặt hoặc sức chứa.");
+                        changes.put(detailId, count);
+                    }
+                }
+                total += count;
+                require(total <= 1000, "Tổng khách thực tế không được vượt 1000.");
+            }
+            require(submitted > 0 && form.keySet().stream().filter(name -> name.startsWith("arrived-")).count() == submitted,
+                    "Thông tin khách chưa khớp với các phòng trong đơn. Vui lòng mở lại đơn.");
+            Integer previousTotal = (Integer) booking.get("ActualGuestCount");
+            require(previousTotal == null || total >= previousTotal,
+                    "Tổng khách thấp hơn số đã ghi nhận của đơn. Kiểm tra lại số khách từng phòng.");
+            if (changes.isEmpty()) {
+                return null;
+            }
+
+            OfflineChildStayDAO.saveArrivalGuests(c, id, changes);
+            require(execute(c, "UPDATE Booking SET ActualGuestCount=? WHERE BookingID=? AND Status='checked_in'",
+                    total, id) == 1, "Trạng thái đơn vừa thay đổi. Vui lòng mở lại đơn.");
+            StringBuilder note = new StringBuilder("Tổng số khách đã đến: ").append(total).append(".");
+            for (Map.Entry<Integer, Integer> change : changes.entrySet()) {
+                String roomNote = " Phòng #" + rooms.get(change.getKey()).get("roomNumber")
+                        + ": " + change.getValue() + " khách.";
+                if (note.length() + roomNote.length() > 496) {
+                    note.append(" …");
+                    break;
+                }
+                note.append(roomNote);
+            }
+            event(c, id, staff, token, "update_arrived_guests", note.toString(), BigDecimal.ZERO);
+            return null;
+        });
+    }
+
     public void checkOut(int id, int staff, String key) throws SQLException {
         checkOut(id, staff, key, false);
     }
@@ -494,8 +566,37 @@ public class OfflineOperationsDAO extends DBContext {
                 data.put("online", booking.get("CreatedByUserID") == null);
                 data.put("actualCheckInTime", booking.get("CheckInTime"));
                 if (booking.get("CreatedByUserID") != null) {
-                    data.put("actualGuestCount", booking.get("ActualGuestCount"));
-                    data.put("offlineRoomGuests", OfflineChildStayDAO.roomGuests(c, id));
+                    boolean hasActualCounts = OfflineChildStayDAO.hasActualRoomGuestCount(c);
+                    Map<Integer, Map<String, Object>> rooms = OfflineChildStayDAO.roomGuests(c, id, hasActualCounts);
+                    int plannedGuests = 0;
+                    int arrivedGuests = 0;
+                    boolean missingCounts = false;
+                    boolean allArrived = !rooms.isEmpty();
+                    boolean allAssigned = !rooms.isEmpty();
+                    boolean canEditRoom = false;
+                    for (Map<String, Object> room : rooms.values()) {
+                        int planned = (Integer) room.get("plannedGuests");
+                        Integer arrived = (Integer) room.get("actualGuests");
+                        int limit = (Integer) room.get("arrivalLimit");
+                        boolean editable = limit > 0 && (arrived == null || arrived < limit);
+                        room.put("canUpdateArrivals", editable);
+                        plannedGuests += planned;
+                        if (arrived != null) {
+                            arrivedGuests += arrived;
+                        }
+                        missingCounts |= arrived == null;
+                        allArrived &= arrived != null && arrived >= planned;
+                        allAssigned &= room.get("roomNumber") != null && (arrived != null || editable);
+                        canEditRoom |= editable;
+                    }
+                    data.put("actualGuestCount", missingCounts || rooms.isEmpty()
+                            ? booking.get("ActualGuestCount") : arrivedGuests);
+                    data.put("plannedGuestCount", plannedGuests);
+                    data.put("missingRoomGuestCounts", missingCounts);
+                    data.put("allGuestsArrived", allArrived);
+                    data.put("canUpdateArrivals", hasActualCounts && allAssigned && canEditRoom
+                            && "checked_in".equals(booking.get("Status")));
+                    data.put("offlineRoomGuests", rooms);
                 }
                 if ("confirmed".equals(booking.get("Status"))) {
                     try {

@@ -13,14 +13,16 @@ final class OfflineChildStayDAO {
     private OfflineChildStayDAO() {
     }
 
-    static Map<Integer, Map<String, Object>> roomGuests(Connection connection, int bookingId) throws SQLException {
+    static Map<Integer, Map<String, Object>> roomGuests(Connection connection, int bookingId, boolean hasActualCounts)
+            throws SQLException {
         boolean legacyCounts = hasLegacyCounts(connection);
         String legacy = legacyCounts
                 ? "d.OfflineUnderSixCount,d.OfflineActualUnderSixCount" : "CAST(0 AS int),CAST(NULL AS int)";
-        String actual = hasActualRoomGuestCount(connection) ? "d.ActualGuestCount" : "CAST(NULL AS int)";
+        String actual = hasActualCounts ? "d.ActualGuestCount" : "CAST(NULL AS int)";
         String sql = "SELECT d.BookingDetailID,d.GuestCount,t.Capacity," + legacy + "," + actual
+                + ",r.RoomNumber"
                 + " FROM BookingDetail d "
-                + "LEFT JOIN Room r ON r.RoomNumber=d.RoomNumber "
+                + "LEFT JOIN Room r ON r.RoomNumber=d.RoomNumber AND d.IsProvisionalRoom=0 "
                 + "LEFT JOIN RoomType t ON t.RoomTypeID=COALESCE(d.RoomTypeID,r.RoomTypeID) "
                 + "WHERE d.BookingID=? ORDER BY d.BookingDetailID";
         Map<Integer, Map<String, Object>> rooms = new LinkedHashMap<>();
@@ -30,10 +32,13 @@ final class OfflineChildStayDAO {
                 while (rows.next()) {
                     Map<String, Object> room = new LinkedHashMap<>();
                     room.put("capacity", rows.getInt(3));
-                    room.put("plannedGuests", rows.getInt(2) + rows.getInt(4));
+                    int plannedGuests = rows.getInt(2) + rows.getInt(4);
+                    room.put("plannedGuests", plannedGuests);
+                    room.put("arrivalLimit", Math.min(1000, Math.min(plannedGuests, rows.getInt(3))));
                     room.put("legacyChildren", rows.getInt(4));
                     room.put("legacyActualChildren", rows.getObject(5));
                     room.put("actualGuests", rows.getObject(6));
+                    room.put("roomNumber", rows.getObject(7));
                     rooms.put(rows.getInt(1), room);
                 }
             }
@@ -108,7 +113,7 @@ final class OfflineChildStayDAO {
         }
     }
 
-    private static int guestCount(String[] values) {
+    static int guestCount(String[] values) {
         if (values != null && values.length == 1) {
             try {
                 int count = Integer.parseInt(values[0]);
@@ -116,7 +121,6 @@ final class OfflineChildStayDAO {
                     return count;
                 }
             } catch (NumberFormatException ignored) {
-                // Báo cùng lỗi cho giá trị rỗng và giá trị không hợp lệ.
             }
         }
         throw new IllegalArgumentException("Nhập đủ số khách thực tế cho từng phòng.");

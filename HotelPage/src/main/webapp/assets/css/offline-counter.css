@@ -60,7 +60,7 @@ html.uc09-page {
     margin:22px 0;
     align-items:start;
 }
-.oc-grid h2,.oc-history h2,.oc-room-list h2 {
+.oc-grid h2,.oc-history h2 {
     margin-bottom:20px!important;
 }
 .oc-form {
@@ -158,5 +158,141 @@ html.uc09-page {
 .counter-payment-page .oc-table th,
 .counter-payment-page .oc-table td {
     border-color: #e3e9e4;
+}
+
+.oc-room-header,
+.oc-arrival-total,
+.oc-stay-record {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.oc-room-header {
+    justify-content: space-between;
+    gap: 12px 24px;
+}
+
+.oc-room-meta,
+.oc-stay-record,
+.oc-room-fact dt,
+.oc-room-identity > span:not(.oc-badge) {
+    color: var(--lx-muted);
+    font-size: .875rem;
+}
+
+.oc-room-header .oc-room-meta {
+    margin: 4px 0 0;
+}
+
+.oc-arrival-total {
+    gap: 4px 12px;
+    padding: 8px 14px;
+    border: 1px solid #d9e5de;
+    border-radius: 12px;
+    background: #edf3ef;
+    color: #18392f;
+    font-size: .875rem;
+}
+
+.oc-arrival-total strong {
+    font-size: 1.125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.oc-arrival-complete {
+    font-weight: 600;
+    color: #345749;
+}
+
+.oc-stay-record {
+    gap: 4px 20px;
+    margin-top: 10px;
+}
+
+.oc-stay-record strong {
+    color: var(--lx-text);
+}
+
+.oc-room-rows {
+    margin: 16px 0 0;
+    border: 1px solid #e3e9e4;
+    border-radius: 12px;
+}
+
+.oc-room-row {
+    padding: 12px 16px;
+}
+
+.oc-room-row + .oc-room-row {
+    border-top: 1px solid #e3e9e4;
+}
+
+.oc-room-row-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+    align-items: start;
+    gap: 10px 20px;
+}
+
+.oc-room-identity {
+    display: grid;
+    justify-items: start;
+    gap: 2px;
+    color: var(--lx-ink);
+}
+
+.oc-room-identity .oc-badge {
+    margin: 2px 0 0;
+}
+
+.oc-room-fact,
+.oc-room-fact dd {
+    margin: 0;
+}
+
+.oc-room-fact dt {
+    margin-bottom: 2px;
+    font-weight: 500;
+}
+
+.oc-room-update,
+.oc-room-policy {
+    margin-top: 10px;
+    font-size: .875rem;
+}
+
+.oc-room-update > summary {
+    cursor: pointer;
+    color: #245940;
+    font-weight: 600;
+}
+
+.oc-room-update .oc-form {
+    gap: 10px;
+    margin-top: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    background: #edf3ef;
+}
+
+.oc-room-update .ob-input {
+    width: min(100%, 10rem);
+}
+
+.oc-room-update .ob-note {
+    margin: 0;
+}
+
+.oc-room-policy {
+    color: var(--lx-muted);
+}
+
+.oc-room-policy > summary {
+    cursor: pointer;
+}
+
+.oc-room-policy > p {
+    margin: 6px 0 0;
 }
 

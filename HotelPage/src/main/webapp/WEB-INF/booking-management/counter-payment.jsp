@@ -21,7 +21,7 @@
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/luxe-ui.css">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/offline-booking.css?v=stable-1">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/management.css">
-        <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/offline-counter.css?v=management-1">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/offline-counter.css?v=rooms-2">
     </head><body class="offline-booking-page management-page counter-payment-page"><div class="body-wrapper">
             <%@include file="/WEB-INF/include/header.jsp"%>
             <main class="ob-page">
@@ -68,49 +68,130 @@
                     <div><small><ui:text key="offline.paid"/></small><strong><fmt:formatNumber value="${summary.paid}"/> VND</strong></div>
                     <div class="oc-balance"><small><ui:text key="offline.remaining"/></small><strong><fmt:formatNumber value="${summary.remaining}"/> VND</strong></div></div>
                 <c:if test="${not empty summary.promotionError}"><div class="oc-message"><c:out value="${summary.promotionError}"/></div></c:if>
-                <section class="ob-panel oc-room-list"><h2>Phòng đã đặt · ${fn:length(operations.rooms)} phòng</h2>
-                    <p class="ob-note">Giờ nhận chuẩn ${operations.standardCheckIn} · Giờ trả chuẩn ${operations.standardCheckOut}</p>
-                    <c:if test="${not empty operations.actualCheckInTime}">
-                        <p>Đã nhận phòng lúc <c:out value="${operations.actualCheckInTime}"/>.</p>
-                    </c:if>
-                    <c:if test="${summary.offline and not empty operations.actualGuestCount}">
-                        <p><strong>Khách thực tế đã nhận phòng:</strong> ${operations.actualGuestCount} khách.</p>
-                    </c:if>
-                    <p class="ob-note">Chính sách trả sớm: tiền phòng theo lịch đã chốt được giữ nguyên, không tự giảm hoặc hoàn tiền cho những đêm chưa ở. Nhân viên cần thông báo cho khách trước khi thu tiền.</p>
-                    <c:forEach items="${operations.rooms}" var="room"><p><strong><c:choose>
-                                    <c:when test="${empty room.RoomNumber}">Chưa xếp phòng</c:when>
-                                    <c:otherwise>#${room.RoomNumber}</c:otherwise>
-                                </c:choose></strong><c:if test="${not empty room.RoomTypeName}"> · <c:out value="${room.RoomTypeName}"/></c:if> · <fmt:formatDate value="${room.CheckInDate}" pattern="dd/MM/yyyy"/> → <fmt:formatDate value="${room.CheckOutDate}" pattern="dd/MM/yyyy"/> ·
-                                <c:choose>
-                                    <c:when test="${summary.offline}">${room.GuestCount} khách theo đơn</c:when>
-                                <c:when test="${not empty room.BookedAdults}">
-                                    ${room.BookedAdults} <ui:text key="room.selection.adultUnit"/>
-                                    · ${room.BookedChildren} <ui:text key="room.selection.childUnit"/>
-                                </c:when>
-                                <c:when test="${operations.online}"><ui:text key="room.booking.party.unknown"/></c:when>
-                                <c:otherwise>${room.GuestCount} <ui:text key="offline.guests"/></c:otherwise>
-                            </c:choose>
-                            <c:if test="${summary.offline}">
-                                <c:set var="stayRoom" value="${operations.offlineRoomGuests[room.BookingDetailID]}"/>
-                                <c:choose>
-                                    <c:when test="${stayRoom.actualGuests ne null}">
-                                        · <strong>${stayRoom.actualGuests} khách lúc nhận phòng</strong>
-                                    </c:when>
-                                    <c:when test="${not empty operations.actualCheckInTime}">
-                                        · Chưa lưu số khách thực tế theo phòng
-                                    </c:when>
-                                </c:choose>
-                                <c:if test="${stayRoom.legacyChildren gt 0}">
-                                    · ${stayRoom.legacyChildren} trẻ dưới 6 tuổi theo đơn cũ
-                                </c:if>
-                                <c:if test="${stayRoom.legacyActualChildren ne null}">
-                                    · ${stayRoom.legacyActualChildren} trẻ thực tế đã ghi trước đây
-                                </c:if>
+                    <section class="ob-panel oc-room-list" aria-labelledby="booked-rooms-heading">
+                        <div class="oc-room-header">
+                            <div>
+                                <h2 id="booked-rooms-heading">Phòng đã đặt</h2>
+                                <p class="oc-room-meta">${fn:length(operations.rooms)} phòng · Giờ nhận ${operations.standardCheckIn} · Giờ trả ${operations.standardCheckOut}</p>
+                        </div>
+                        <c:if test="${summary.offline and not empty operations.actualGuestCount}">
+                            <div class="oc-arrival-total">
+                                <span>Khách đã đến</span>
+                                <strong>${operations.actualGuestCount}/${operations.plannedGuestCount}</strong>
+                                <c:if test="${operations.allGuestsArrived}"><span class="oc-arrival-complete">Đã đến đủ</span></c:if>
+                                </div>
+                        </c:if>
+                    </div>
+                    <c:if test="${not empty operations.actualCheckInTime or not empty operations.actualCheckoutDate}">
+                        <div class="oc-stay-record">
+                            <c:if test="${not empty operations.actualCheckInTime}">
+                                <span>Đã nhận phòng lúc <strong><c:out value="${operations.actualCheckInTime}"/></strong></span>
                             </c:if>
-                            <c:if test="${room.NeedsCleaning}"><span class="oc-badge"><ui:text key="offline.dirty"/></span></c:if></p></c:forEach>
-                        <c:if test="${not empty operations.actualCheckoutDate}">
-                        <p><strong>Ngày trả phòng thực tế (Việt Nam):</strong> <c:out value="${operations.actualCheckoutDate}"/>. Lịch phía trên là lịch đặt ban đầu.</p>
+                            <c:if test="${not empty operations.actualCheckoutDate}">
+                                <span>Trả phòng thực tế (giờ Việt Nam) <strong><c:out value="${operations.actualCheckoutDate}"/></strong></span>
+                            </c:if>
+                        </div>
                     </c:if>
+                    <c:set var="canUpdateArrivals" value="${operations.canUpdateArrivals and empty activeQr}"/>
+                    <ul class="oc-room-rows list-unstyled">
+                        <c:forEach items="${operations.rooms}" var="room">
+                            <c:set var="stayRoom" value="${operations.offlineRoomGuests[room.BookingDetailID]}"/>
+                            <li class="oc-room-row">
+                                <div class="oc-room-row-info">
+                                    <div class="oc-room-identity">
+                                        <strong><c:choose>
+                                                <c:when test="${empty room.RoomNumber}">Chưa xếp phòng</c:when>
+                                                <c:otherwise>Phòng #${room.RoomNumber}</c:otherwise>
+                                            </c:choose></strong>
+                                            <c:if test="${not empty room.RoomTypeName}">
+                                            <span><c:out value="${room.RoomTypeName}"/></span>
+                                        </c:if>
+                                        <c:if test="${room.NeedsCleaning}"><span class="oc-badge"><ui:text key="offline.dirty"/></span></c:if>
+                                        </div>
+                                        <dl class="oc-room-fact">
+                                            <dt>Lịch đặt</dt>
+                                            <dd><fmt:formatDate value="${room.CheckInDate}" pattern="dd/MM/yyyy"/> → <fmt:formatDate value="${room.CheckOutDate}" pattern="dd/MM/yyyy"/></dd>
+                                    </dl>
+                                    <dl class="oc-room-fact">
+                                        <dt>Khách theo đơn</dt>
+                                        <dd><c:choose>
+                                                <c:when test="${summary.offline}">${empty stayRoom ? room.GuestCount : stayRoom.plannedGuests} khách</c:when>
+                                                <c:when test="${not empty room.BookedAdults}">
+                                                    ${room.BookedAdults} <ui:text key="room.selection.adultUnit"/>
+                                                    · ${room.BookedChildren} <ui:text key="room.selection.childUnit"/>
+                                                </c:when>
+                                                <c:when test="${operations.online}"><ui:text key="room.booking.party.unknown"/></c:when>
+                                                <c:otherwise>${room.GuestCount} <ui:text key="offline.guests"/></c:otherwise>
+                                            </c:choose></dd>
+                                            <c:if test="${summary.offline and stayRoom.legacyChildren gt 0}">
+                                            <dd class="oc-room-meta">Gồm ${stayRoom.legacyChildren} trẻ dưới 6 tuổi theo đơn cũ</dd>
+                                        </c:if>
+                                    </dl>
+                                    <c:if test="${summary.offline and (not empty operations.actualCheckInTime or stayRoom.actualGuests ne null or stayRoom.legacyActualChildren ne null)}">
+                                        <dl class="oc-room-fact">
+                                            <dt>Khách đã đến</dt>
+                                            <dd><c:choose>
+                                                    <c:when test="${stayRoom.actualGuests ne null}"><strong>${stayRoom.actualGuests} khách</strong></c:when>
+                                                    <c:otherwise>Chưa ghi nhận</c:otherwise>
+                                                </c:choose></dd>
+                                                <c:if test="${stayRoom.legacyActualChildren ne null}">
+                                                <dd class="oc-room-meta">${stayRoom.legacyActualChildren} trẻ thực tế đã ghi trước đây</dd>
+                                            </c:if>
+                                        </dl>
+                                    </c:if>
+                                </div>
+                                <c:if test="${canUpdateArrivals and not operations.missingRoomGuestCounts and stayRoom.canUpdateArrivals}">
+                                    <details class="oc-room-update">
+                                        <summary><span class="visually-hidden">Phòng #${room.RoomNumber}: </span>Cập nhật khách đã đến</summary>
+                                        <form method="post" action="<c:url value='/counter-payment'/>" class="oc-form">
+                                            <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                                            <input type="hidden" name="paymentKey" value="${paymentKey}">
+                                            <input type="hidden" name="action" value="update_arrived_guests">
+                                            <label>Tổng số khách đã đến phòng #${room.RoomNumber}
+                                                <input class="ob-input" type="number" name="arrived-${room.BookingDetailID}"
+                                                       min="${stayRoom.actualGuests + 1}" max="${stayRoom.arrivalLimit}" required>
+                                            </label>
+                                            <label class="oc-check">
+                                                <input type="checkbox" name="identityVerified" value="yes" required>
+                                                Đã đối chiếu giấy tờ của khách đến thêm
+                                            </label>
+                                            <button type="submit" class="ob-button ob-primary">Lưu số lượng khách đã đến</button>
+                                        </form>
+                                    </details>
+                                </c:if>
+                            </li>
+                        </c:forEach>
+                    </ul>
+                    <c:if test="${canUpdateArrivals and operations.missingRoomGuestCounts}">
+                        <details class="oc-room-update oc-room-update-batch">
+                            <summary>Cập nhật số khách đã đến theo phòng</summary>
+                            <form method="post" action="<c:url value='/counter-payment'/>" class="oc-form">
+                                <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                                <input type="hidden" name="paymentKey" value="${paymentKey}">
+                                <input type="hidden" name="action" value="update_arrived_guests">
+                                <p class="ob-note">Đơn còn thiếu số liệu theo phòng. Nhập số khách đã đến cho những phòng bên dưới.</p>
+                                <c:forEach items="${operations.rooms}" var="room">
+                                    <c:set var="stayRoom" value="${operations.offlineRoomGuests[room.BookingDetailID]}"/>
+                                    <c:if test="${stayRoom.canUpdateArrivals}">
+                                        <label>Tổng số khách đã đến phòng #${room.RoomNumber}
+                                            <input class="ob-input" type="number" name="arrived-${room.BookingDetailID}"
+                                                   min="${empty stayRoom.actualGuests ? 1 : stayRoom.actualGuests}"
+                                                   max="${stayRoom.arrivalLimit}" value="${stayRoom.actualGuests}" required>
+                                        </label>
+                                    </c:if>
+                                </c:forEach>
+                                <label class="oc-check">
+                                    <input type="checkbox" name="identityVerified" value="yes" required>
+                                    Đã xác nhận số khách và đối chiếu giấy tờ
+                                </label>
+                                <button type="submit" class="ob-button ob-primary">Lưu số lượng khách đã đến</button>
+                            </form>
+                        </details>
+                    </c:if>
+                    <details class="oc-room-policy">
+                        <summary>Chính sách trả sớm</summary>
+                        <p>Tiền phòng theo lịch đã chốt được giữ nguyên, không tự giảm hoặc hoàn tiền cho những đêm chưa ở. Nhân viên cần thông báo cho khách trước khi thu tiền.</p>
+                    </details>
                 </section>
                 <c:if test="${not empty activeQr}">
                     <section class="ob-panel">
@@ -253,7 +334,10 @@
                     </div></c:if>
                 <details class="ob-panel oc-history"><summary><ui:text key="offline.history"/></summary>
                     <div class="oc-table"><table><thead><tr><th><ui:text key="offline.action"/></th><th><ui:text key="offline.description"/></th><th><ui:text key="offline.amount"/></th><th><ui:text key="offline.actor"/></th><th>Giờ Việt Nam (UTC+7)</th></tr></thead><tbody>
-                                <c:forEach items="${operations.events}" var="event"><tr><td><ui:text key="offline.action.${event.Action}"/></td><td><c:out value="${event.Note}"/></td><td><fmt:formatNumber value="${event.Amount}"/></td><td><c:out value="${event.Actor}"/></td><td><c:out value="${event.CreatedAtVietnam}"/></td></tr></c:forEach>
+                                <c:forEach items="${operations.events}" var="event"><tr><td><c:choose>
+                                                <c:when test="${event.Action eq 'update_arrived_guests'}">Cập nhật số khách đã đến</c:when>
+                                                <c:otherwise><ui:text key="offline.action.${event.Action}"/></c:otherwise>
+                                            </c:choose></td><td><c:out value="${event.Note}"/></td><td><fmt:formatNumber value="${event.Amount}"/></td><td><c:out value="${event.Actor}"/></td><td><c:out value="${event.CreatedAtVietnam}"/></td></tr></c:forEach>
                                 </tbody></table></div></details>
                     <details class="ob-panel oc-history"><summary><ui:text key="offline.receipts"/></summary><div class="oc-table"><table><thead><tr><th>Mã</th><th><ui:text key="offline.amount"/></th><th><ui:text key="offline.method"/></th><th><ui:text key="offline.reference"/></th><th><ui:text key="offline.status"/></th><th><ui:text key="offline.refunded"/></th></tr></thead><tbody>
                                 <c:forEach items="${operations.payments}" var="payment"><tr><td>${payment.PaymentID}</td><td><fmt:formatNumber value="${payment.Amount}"/></td><td><c:out value="${payment.PaymentMethod}"/></td><td><c:out value="${payment.TransactionCode}"/><br><c:out value="${payment.CounterReference}"/></td><td><c:out value="${payment.PaymentStatus}"/></td><td><fmt:formatNumber value="${payment.RefundedAmount}"/></td></tr></c:forEach>
