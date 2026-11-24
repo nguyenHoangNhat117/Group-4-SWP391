@@ -348,6 +348,63 @@ public class OfflineOperationsDAO extends DBContext {
         });
     }
 
+    /** Extends every room on an in-house booking and collects the added room charge atomically. */
+    public BigDecimal extendStay(int id,int staff,String key,LocalDate newCheckout,String method,String reference) throws SQLException {
+        final String token=requestKey(key), ref=reference(method,reference);
+        require(newCheckout!=null,"Chọn ngày trả phòng mới.");
+        return transaction(c -> {
+            actor(c,staff); BookingRow b=booking(c,id,true);
+            if(already(c,id,staff,token,"stay_extension")) {
+                try(PreparedStatement ps=c.prepareStatement("SELECT Amount FROM OfflineBookingEvent WHERE RequestKey=?")) {
+                    ps.setString(1,token);
+                    try(ResultSet rs=ps.executeQuery()) { return rs.next()?rs.getBigDecimal(1):BigDecimal.ZERO; }
+                }
+            }
+            require("checked_in".equals(b.status),"Chỉ có thể gia hạn booking khách đã nhận phòng.");
+            requireSettledPayments(c,id);
+
+            LocalDate oldCheckout=null;
+            BigDecimal nightlyTotal=BigDecimal.ZERO;
+            int roomCount=0;
+            try(PreparedStatement ps=c.prepareStatement("SELECT d.RoomNumber,d.CheckOutDate,d.PricePerNight FROM BookingDetail d WITH(UPDLOCK,HOLDLOCK) WHERE d.BookingID=? ORDER BY d.RoomNumber")) {
+                ps.setInt(1,id);
+                try(ResultSet rs=ps.executeQuery()) { while(rs.next()) {
+                    LocalDate checkout=rs.getObject("CheckOutDate",LocalDate.class);
+                    require(checkout!=null,"Lịch lưu trú không hợp lệ.");
+                    if(oldCheckout==null) oldCheckout=checkout;
+                    require(oldCheckout.equals(checkout),"Các phòng có ngày trả khác nhau; không thể gia hạn cùng lúc.");
+                    nightlyTotal=nightlyTotal.add(rs.getBigDecimal("PricePerNight")); roomCount++;
+                }}
+            }
+            require(roomCount>0 && oldCheckout!=null,"Booking không có phòng để gia hạn.");
+            require(!newCheckout.isBefore(oldCheckout.plusDays(1)) && !newCheckout.isAfter(oldCheckout.plusDays(365)),
+                    "Ngày trả mới phải thêm từ 1 đến 365 đêm.");
+
+            // Keep the existing room assignment. Reject the extension if any other active booking overlaps it.
+            String conflictSql="SELECT COUNT_BIG(*) FROM BookingDetail d WITH(UPDLOCK,HOLDLOCK) "
+                    +"JOIN Booking other WITH(UPDLOCK,HOLDLOCK) ON other.BookingID=d.BookingID "
+                    +"WHERE d.RoomNumber IN (SELECT RoomNumber FROM BookingDetail WHERE BookingID=?) "
+                    +"AND other.BookingID<>? AND (other.Status IN ('checked_in','confirmed') OR "
+                    +"(other.Status='pending' AND other.HoldExpiresAt>SYSUTCDATETIME())) "
+                    +"AND d.CheckInDate<? AND d.CheckOutDate>?";
+            try(PreparedStatement ps=c.prepareStatement(conflictSql)) {
+                ps.setInt(1,id); ps.setInt(2,id); ps.setObject(3,newCheckout); ps.setObject(4,oldCheckout);
+                try(ResultSet rs=ps.executeQuery()) { rs.next(); require(rs.getLong(1)==0,"Phòng đã được đặt trong khoảng ngày gia hạn. Vui lòng chọn ngày khác hoặc đổi phòng."); }
+            }
+            long addedNights=java.time.temporal.ChronoUnit.DAYS.between(oldCheckout,newCheckout);
+            BigDecimal amount=nightlyTotal.multiply(BigDecimal.valueOf(addedNights));
+            require(amount.signum()>0 && amount.stripTrailingZeros().scale()<=0,"Không tính được số tiền gia hạn hợp lệ.");
+            require(amount.compareTo(new BigDecimal("1000000000"))<=0,"Tiền gia hạn vượt giới hạn cho phép.");
+            int updated=execute(c,"UPDATE BookingDetail SET CheckOutDate=? WHERE BookingID=? AND CheckOutDate=?",newCheckout,id,oldCheckout);
+            require(updated==roomCount,"Lịch booking đã thay đổi. Tải lại trang và thử lại.");
+            execute(c,"UPDATE Booking SET TotalPrice=TotalPrice+? WHERE BookingID=?",amount,id);
+            execute(c,"INSERT Payment(BookingID,PaymentDate,Amount,PaymentMethod,PaymentStatus,TransactionCode,DiscountAmount,CollectedByUserID,CounterRequestKey,CounterReference) VALUES(?,SYSDATETIME(),?,?,'paid',?,0,?,?,?)",
+                    id,amount,method,"EXTEND-"+token,staff,token,ref);
+            event(c,id,staff,token,"stay_extension","Gia hạn đến "+newCheckout+" ("+addedNights+" đêm), thu bằng "+method,amount);
+            return amount;
+        });
+    }
+
     public void checkOut(int id, int staff, String key) throws SQLException {
         checkOut(id, staff, key, false);
     }

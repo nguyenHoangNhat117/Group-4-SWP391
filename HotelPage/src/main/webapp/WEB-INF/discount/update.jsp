@@ -27,6 +27,7 @@
 
             <form action="${pageContext.request.contextPath}/discounts" method="post">
                 <input type="hidden" name="id" value="${discount.id}">
+                <input type="hidden" name="quantity-when-loaded" value="${discount.quantity}">
 
                 <div class="mb-3">
                     <label class="form-label"><ui:text key="screen.fd947a841a798fb7"/></label>

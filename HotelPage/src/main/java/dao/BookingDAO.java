@@ -1338,7 +1338,13 @@ public class BookingDAO extends DBContext {
                 + "'Cancelled by Staff/Admin') "
                 + "ELSE NULL "
                 + "END "
-                + "WHERE BookingID = ? AND Status=?";
+                + "WHERE BookingID = ? AND Status=? "
+                + "AND (? <> 'completed' OR ("
+                + "NOT EXISTS (SELECT 1 FROM Payment p WITH(UPDLOCK,HOLDLOCK) "
+                + "WHERE p.BookingID=Booking.BookingID AND p.PaymentStatus='pending') "
+                + "AND COALESCE((SELECT SUM(p.Amount-COALESCE(p.RefundedAmount,0)) "
+                + "FROM Payment p WITH(UPDLOCK,HOLDLOCK) WHERE p.BookingID=Booking.BookingID "
+                + "AND p.PaymentStatus='paid'),0) >= TotalPrice))";
 
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(sql)) {
@@ -1348,6 +1354,7 @@ public class BookingDAO extends DBContext {
             ps.setString(3, newStatus);
             ps.setInt(4, bookingId);
             ps.setString(5, booking.getStatus());
+            ps.setString(6, newStatus);
 
             return ps.executeUpdate() > 0;
 

@@ -320,6 +320,13 @@ public class BookingManagementServlet
                 "booking",
                 booking
         );
+        request.setAttribute("stayExtensionKey", java.util.UUID.randomUUID().toString());
+
+        HttpSession detailSession = request.getSession(false);
+        if (detailSession != null) {
+            request.setAttribute("stayExtensionMessage", detailSession.getAttribute("stayExtensionMessage:" + bookingId));
+            detailSession.removeAttribute("stayExtensionMessage:" + bookingId);
+        }
 
         try {
             request.setAttribute(
@@ -407,6 +414,33 @@ public class BookingManagementServlet
                 = request.getParameter(
                         "action"
                 );
+
+        if ("extend-stay".equals(action)) {
+            Integer extendId = parseId(request.getParameter("booking-id"));
+            String location = request.getContextPath() + "/booking-management?view=detail&id=" + (extendId == null ? "" : extendId);
+            if (extendId == null) {
+                response.sendRedirect(request.getContextPath() + "/booking-management?message=invalid-data");
+                return;
+            }
+            String message;
+            try {
+                String dateInput = request.getParameter("new-checkout");
+                if (dateInput == null || dateInput.isBlank()) throw new IllegalArgumentException("Chọn ngày trả phòng mới.");
+                LocalDate newCheckout = LocalDate.parse(dateInput);
+                java.math.BigDecimal amount = new dao.OfflineOperationsDAO().extendStay(
+                        extendId, user.getId(), request.getParameter("request-key"), newCheckout,
+                        request.getParameter("payment-method"), request.getParameter("reference"));
+                message = "Đã gia hạn lưu trú và ghi nhận khoản thu " + amount.stripTrailingZeros().toPlainString() + " VND.";
+            } catch (IllegalArgumentException ex) {
+                message = ex.getMessage() == null ? "Thông tin gia hạn không hợp lệ." : ex.getMessage();
+            } catch (SQLException ex) {
+                log("Unable to extend stay for booking " + extendId, ex);
+                message = "Không thể cập nhật gia hạn. Tải lại hồ sơ và kiểm tra trước khi thử lại.";
+            }
+            request.getSession(false).setAttribute("stayExtensionMessage:" + extendId, message);
+            response.sendRedirect(location + "#stay-extension");
+            return;
+        }
 
         if (!"update-status".equals(
                 action)) {
