@@ -171,38 +171,56 @@ public class DiscountDAO extends DBContext {
             BigDecimal minimumAmount,
             BigDecimal maximumDiscount,
             boolean active) {
+        Discount current = getDiscountById(id);
+        return current != null && updateDiscount(id, current.getQuantity(), code, quantity,
+                saleOff, startDate, endDate, minimumAmount, maximumDiscount, active);
+    }
 
-        String sql =
-                "UPDATE Discount "
-                + "SET "
-                + "Code = ?, "
-                + "Quantity = ?, "
-                + "SaleOff = ?, "
-                + "StartDate = ?, "
-                + "EndDate = ?, "
-                + "MinimumAmount = ?, "
-                + "MaximumDiscount = ?, "
-                + "IsActive = ? "
-                + "WHERE DiscountID = ?";
-
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
-
-            ps.setString(1, code);
-            ps.setInt(2, quantity);
-            ps.setBigDecimal(3, saleOff);
-            ps.setObject(4, startDate);
-            ps.setObject(5, endDate);
-            ps.setBigDecimal(6, minimumAmount);
-            ps.setBigDecimal(7, maximumDiscount);
-            ps.setBoolean(8, active);
-            ps.setInt(9, id);
-
-            return ps.executeUpdate() > 0;
-
+    /**
+     * Applies an edit against the quantity the admin saw when opening the form.
+     * Successful checkouts decrement Quantity concurrently; preserve those
+     * decrements when a stale promotion form is submitted.
+     */
+    public boolean updateDiscount(
+            int id, int quantityWhenLoaded, String code, int requestedQuantity,
+            BigDecimal saleOff, LocalDate startDate, LocalDate endDate,
+            BigDecimal minimumAmount, BigDecimal maximumDiscount, boolean active) {
+        if (quantityWhenLoaded < 0 || requestedQuantity < 0) return false;
+        String sql = "UPDATE Discount SET Code=?, Quantity=?, SaleOff=?, StartDate=?, EndDate=?, "
+                + "MinimumAmount=?, MaximumDiscount=?, IsActive=? WHERE DiscountID=?";
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                int currentQuantity;
+                try (PreparedStatement lock = conn.prepareStatement(
+                        "SELECT Quantity FROM Discount WITH(UPDLOCK,HOLDLOCK) WHERE DiscountID=?")) {
+                    lock.setInt(1, id);
+                    try (ResultSet rs = lock.executeQuery()) {
+                        if (!rs.next()) { conn.rollback(); return false; }
+                        currentQuantity = rs.getInt(1);
+                    }
+                }
+                int concurrentUses = Math.max(0, quantityWhenLoaded - currentQuantity);
+                int safeQuantity = Math.max(0, requestedQuantity - concurrentUses);
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, code);
+                    ps.setInt(2, safeQuantity);
+                    ps.setBigDecimal(3, saleOff);
+                    ps.setObject(4, startDate);
+                    ps.setObject(5, endDate);
+                    ps.setBigDecimal(6, minimumAmount);
+                    ps.setBigDecimal(7, maximumDiscount);
+                    ps.setBoolean(8, active);
+                    ps.setInt(9, id);
+                    boolean updated = ps.executeUpdate() > 0;
+                    conn.commit();
+                    return updated;
+                }
+            } catch (SQLException | RuntimeException ex) {
+                conn.rollback();
+                throw ex;
+            }
         } catch (SQLException e) {
-
             e.printStackTrace();
             return false;
         }

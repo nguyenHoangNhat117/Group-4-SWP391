@@ -283,6 +283,42 @@
                         </c:choose>
                     </section>
 
+                    <c:if test="${booking.status eq 'checked_in' and not empty booking.details}">
+                        <section class="card booking-data-card mb-4" id="stay-extension" aria-labelledby="stay-extension-heading">
+                            <h2 class="card-header" id="stay-extension-heading">Gia hạn thời gian lưu trú</h2>
+                            <div class="card-body">
+                                <c:if test="${not empty stayExtensionMessage}">
+                                    <div class="alert alert-info" role="status"><c:out value="${stayExtensionMessage}"/></div>
+                                </c:if>
+                                <p class="text-muted">Gia hạn tất cả phòng trong booking. Hệ thống kiểm tra phòng còn trống và tính tiền theo giá mỗi đêm đã đặt; khoản thu được ghi nhận ngay khi xác nhận.</p>
+                                <form action="${pageContext.request.contextPath}/booking-management" method="post" class="row g-3 align-items-end">
+                                    <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                                    <input type="hidden" name="action" value="extend-stay">
+                                    <input type="hidden" name="booking-id" value="${booking.id}">
+                                    <input type="hidden" name="request-key" value="${stayExtensionKey}">
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="new-checkout">Ngày trả phòng mới</label>
+                                        <input class="form-control" type="date" id="new-checkout" name="new-checkout" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label" for="extension-payment-method">Phương thức thu</label>
+                                        <select class="form-select" id="extension-payment-method" name="payment-method" required>
+                                            <option value="cash">Tiền mặt</option>
+                                            <option value="bank_transfer">Chuyển khoản đã đối chiếu</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label" for="extension-reference">Mã giao dịch (bắt buộc khi chuyển khoản)</label>
+                                        <input class="form-control" id="extension-reference" name="reference" maxlength="100">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-primary w-100" type="submit">Gia hạn và thu tiền</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </section>
+                    </c:if>
+
                     <section class="card booking-data-card mb-4" aria-labelledby="payment-heading">
                         <h2 class="card-header" id="payment-heading"><ui:text key="screen.e9143587ebf6f078"/></h2>
                         <c:choose>

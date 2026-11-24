@@ -165,6 +165,7 @@ public class DiscountServlet extends HttpServlet {
 
         boolean updated = dao.updateDiscount(
                 id,
+                parseNonNegativeInt(request.getParameter("quantity-when-loaded")),
                 input.code,
                 input.quantity,
                 input.saleOff,
@@ -182,6 +183,12 @@ public class DiscountServlet extends HttpServlet {
         }
 
         response.sendRedirect(request.getContextPath() + "/discounts");
+    }
+
+    private int parseNonNegativeInt(String value) {
+        int parsed = Integer.parseInt(value);
+        if (parsed < 0) throw new NumberFormatException("negative quantity");
+        return parsed;
     }
 
     private DiscountInput readAndValidateInput(HttpServletRequest request) {
