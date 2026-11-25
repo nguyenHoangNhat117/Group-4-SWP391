@@ -240,7 +240,7 @@ public class OfflineOperationsDAO extends DBContext {
                     +"JOIN Booking other WITH(UPDLOCK,HOLDLOCK) ON other.BookingID=d.BookingID "
                     +"WHERE d.RoomNumber IN (SELECT RoomNumber FROM BookingDetail WHERE BookingID=?) "
                     +"AND other.BookingID<>? AND (other.Status IN ('checked_in','confirmed') OR "
-                    +"(other.Status='pending' AND other.HoldExpiresAt>SYSUTCDATETIME())) "
+                    +"(other.Status='pending' AND (other.HoldExpiresAt IS NULL OR other.HoldExpiresAt>SYSUTCDATETIME()))) "
                     +"AND d.CheckInDate<? AND d.CheckOutDate>?";
             try(PreparedStatement ps=c.prepareStatement(conflictSql)) {
                 ps.setInt(1,id); ps.setInt(2,id); ps.setObject(3,newCheckout); ps.setObject(4,oldCheckout);

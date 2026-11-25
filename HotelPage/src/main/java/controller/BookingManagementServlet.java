@@ -478,6 +478,8 @@ public class BookingManagementServlet
                 java.math.BigDecimal amount = new dao.OfflineOperationsDAO().extendStay(
                         extendId, user.getId(), request.getParameter("request-key"), newCheckout,promotion);
                 message = "Đã gia hạn lưu trú và ghi nhận khoản thu " + amount.stripTrailingZeros().toPlainString() + " VND.";
+            } catch (DateTimeParseException ex) {
+                message = "Ngày trả phòng không hợp lệ. Hãy chọn ngày hợp lệ trên lịch.";
             } catch (IllegalArgumentException ex) {
                 message = ex.getMessage() == null ? "Thông tin gia hạn không hợp lệ." : ex.getMessage();
             } catch (SQLException ex) {

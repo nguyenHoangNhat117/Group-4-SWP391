@@ -213,7 +213,7 @@ public class CounterQrDAO extends DBContext {
             require(!newCheckout.isBefore(oldCheckout.plusDays(1)) && !newCheckout.isAfter(oldCheckout.plusDays(365)),"Ngày trả mới phải thêm từ 1 đến 365 đêm.");
             String conflict="SELECT COUNT_BIG(*) ConflictCount FROM BookingDetail d WITH(UPDLOCK,HOLDLOCK) JOIN Booking other WITH(UPDLOCK,HOLDLOCK) ON other.BookingID=d.BookingID "
                     +"WHERE d.RoomNumber IN (SELECT RoomNumber FROM BookingDetail WHERE BookingID=?) AND other.BookingID<>? "
-                    +"AND (other.Status IN ('checked_in','confirmed') OR (other.Status='pending' AND other.HoldExpiresAt>SYSUTCDATETIME())) "
+                    +"AND (other.Status IN ('checked_in','confirmed') OR (other.Status='pending' AND (other.HoldExpiresAt IS NULL OR other.HoldExpiresAt>SYSUTCDATETIME()))) "
                     +"AND d.CheckInDate<? AND d.CheckOutDate>?";
             Map<String,Object> conflictRow=row(c,conflict,booking,booking,newCheckout,oldCheckout);
             require(((Number)conflictRow.get("ConflictCount")).longValue()==0,"Phòng đã được đặt trong khoảng ngày gia hạn. Vui lòng chọn ngày khác hoặc đổi phòng.");
