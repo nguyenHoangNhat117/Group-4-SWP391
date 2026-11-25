@@ -80,6 +80,9 @@ public class ReviewServlet
 
             return;
         }
+        if (!util.AuthSupport.checkCsrf(request, response)) {
+            return;
+        }
 
         /*
          * ===============================================
@@ -304,6 +307,7 @@ public class ReviewServlet
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
+        util.AuthSupport.token(session);
         Integer bookingId = parsePositiveInt(request.getParameter("booking-id"));
         Integer roomNumber = parsePositiveInt(request.getParameter("room-number"));
         if (bookingId == null || roomNumber == null) {

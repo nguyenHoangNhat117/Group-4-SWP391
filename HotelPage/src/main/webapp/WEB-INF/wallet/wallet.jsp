@@ -114,6 +114,22 @@
                 border-color: #b49a78;
                 box-shadow: 0 0 0 .2rem #b49a7826;
             }
+            /* Wallet filter buttons */
+            .wallet-filter .filter-actions {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: nowrap;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .wallet-filter .filter-actions button,
+            .wallet-filter .filter-actions a {
+                white-space: nowrap;
+                font-size: 12px;
+                padding: 8px 9px;
+                margin: 0;
+            }
 
             .wallet-table {
                 margin-bottom: 0;
@@ -265,7 +281,7 @@
                 }
             }
         </style>
-    <%@ include file="/WEB-INF/include/date-picker.jsp" %>
+        <%@ include file="/WEB-INF/include/date-picker.jsp" %>
     </head>
 
     <body class="wallet-page">
@@ -412,20 +428,23 @@
                                    class="form-control"
                                    value="${fn:escapeXml(param.toDate)}">
                         </div>
-
                         <div class="col-md-3">
+                            <label class="form-label">
+                                Thao tác
+                            </label>
+                            <div class="filter-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    Áp dụng bộ lọc
+                                </button>
 
-                            <button type="submit"
-                                    class="wallet-btn">
-                                Áp dụng bộ lọc
-                            </button>
-
-                            <a href="${pageContext.request.contextPath}/wallet"
-                               class="btn btn-outline-secondary ms-1">
-                                Xóa bộ lọc
-                            </a>
-
+                                <a href="${pageContext.request.contextPath}/wallet"
+                                   class="btn btn-outline-secondary">
+                                    Xóa bộ lọc
+                                </a>
+                            </div>
                         </div>
+
+
 
                     </form>
 
