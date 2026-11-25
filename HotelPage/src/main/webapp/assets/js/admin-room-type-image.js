@@ -1,9 +1,10 @@
 (() => {
     const input = document.getElementById("picture");
     const preview = document.getElementById("room-picture");
+    const placeholder = document.getElementById("room-picture-placeholder");
     const error = document.getElementById("picture-error");
     const reset = document.getElementById("picture-reset");
-    const originalSource = preview.src;
+    const originalSource = preview.getAttribute("src");
     const maxFileSize = 10 * 1024 * 1024;
     let previewUrl;
 
@@ -18,8 +19,20 @@
         }
     }
 
+    function showPreview(source) {
+        if (source) {
+            preview.src = source;
+        } else {
+            preview.removeAttribute("src");
+        }
+        preview.hidden = !source;
+        if (placeholder) {
+            placeholder.hidden = Boolean(source);
+        }
+    }
+
     async function updatePreview() {
-        preview.src = originalSource;
+        showPreview(originalSource);
         if (previewUrl) {
             URL.revokeObjectURL(previewUrl);
             previewUrl = undefined;
@@ -47,7 +60,7 @@
         try {
             await candidate.decode();
             if (previewUrl === source) {
-                preview.src = source;
+                showPreview(source);
             }
         } catch {
             if (previewUrl === source) {

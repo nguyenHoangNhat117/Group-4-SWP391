@@ -456,6 +456,16 @@ body.luxe-admin-types .room-types-form-card h2,
     margin-bottom: 18px;
 }
 
+.room-types-preview-empty {
+    display: grid;
+    place-items: center;
+    color: var(--rt-muted);
+}
+
+.room-types-preview[hidden] {
+    display: none;
+}
+
 .room-types-page .room-types-file {
     font-size: .875rem;
 }

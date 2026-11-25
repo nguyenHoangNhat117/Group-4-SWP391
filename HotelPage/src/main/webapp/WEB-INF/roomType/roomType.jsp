@@ -27,6 +27,7 @@
             <main class="room-types-page">
                 <c:url var="createUrl" value="/room-type">
                     <c:param name="view" value="create"/>
+                    <c:param name="page-index" value="${pageIndex}"/>
                 </c:url>
 
                 <div class="room-types-hero">

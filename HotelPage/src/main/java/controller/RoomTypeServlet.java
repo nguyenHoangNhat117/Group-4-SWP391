@@ -170,8 +170,7 @@ public class RoomTypeServlet extends HttpServlet {
         request.setAttribute("formValues", values);
         request.setAttribute("selectedAmenities", selected);
         request.setAttribute("allAmenities", new AmenityDAO().getSelectableAmenities(id));
-        request.getRequestDispatcher(existing == null ? "/WEB-INF/roomType/create.jsp" : "/WEB-INF/roomType/update.jsp")
-                .forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/roomType/form.jsp").forward(request, response);
     }
 
     private static void save(HttpServletRequest request, HttpServletResponse response, RoomTypeDAO dao, RoomType existing)
