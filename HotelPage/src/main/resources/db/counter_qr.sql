@@ -25,6 +25,10 @@ BEGIN
         State VARCHAR(20) NOT NULL DEFAULT 'pending',
         CheckoutUrl NVARCHAR(500) NULL,
         LinkAttempted BIT NOT NULL DEFAULT 0,
+        Purpose VARCHAR(24) NOT NULL CONSTRAINT DF_CounterQrCheckout_Purpose DEFAULT 'payment',
+        ExtensionFromDate DATE NULL,
+        ExtensionCheckoutDate DATE NULL,
+        ExtensionGross DECIMAL(18,2) NULL,
         CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
         CheckedAt DATETIME2 NULL,
         CONSTRAINT CK_CounterQr_Order CHECK
@@ -33,6 +37,16 @@ BEGIN
     CREATE UNIQUE INDEX UX_CounterQr_ActiveBooking
         ON dbo.CounterQrCheckout(BookingID) WHERE Active=1;
 END;
+GO
+IF COL_LENGTH('dbo.CounterQrCheckout','Purpose') IS NULL
+    ALTER TABLE dbo.CounterQrCheckout ADD Purpose VARCHAR(24) NOT NULL
+        CONSTRAINT DF_CounterQrCheckout_Purpose DEFAULT 'payment';
+IF COL_LENGTH('dbo.CounterQrCheckout','ExtensionFromDate') IS NULL
+    ALTER TABLE dbo.CounterQrCheckout ADD ExtensionFromDate DATE NULL;
+IF COL_LENGTH('dbo.CounterQrCheckout','ExtensionCheckoutDate') IS NULL
+    ALTER TABLE dbo.CounterQrCheckout ADD ExtensionCheckoutDate DATE NULL;
+IF COL_LENGTH('dbo.CounterQrCheckout','ExtensionGross') IS NULL
+    ALTER TABLE dbo.CounterQrCheckout ADD ExtensionGross DECIMAL(18,2) NULL;
 GO
 -- Không cho sửa giá, mã giảm, khách, hạn giữ hoặc trạng thái khi QR chưa đối soát.
 CREATE OR ALTER TRIGGER dbo.TR_Booking_CounterQrGuard ON dbo.Booking

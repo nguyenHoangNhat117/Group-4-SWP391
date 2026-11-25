@@ -339,6 +339,10 @@ public class BookingManagementServlet
                 booking
         );
         request.setAttribute("stayExtensionKey", java.util.UUID.randomUUID().toString());
+        if (booking.getDetails() != null && !booking.getDetails().isEmpty()
+                && booking.getDetails().get(0).getCheckOutDate() != null) {
+            request.setAttribute("extensionMinDate", booking.getDetails().get(0).getCheckOutDate().plusDays(1).toString());
+        }
 
         HttpSession detailSession = request.getSession(false);
         if (detailSession != null) {
@@ -350,6 +354,10 @@ public class BookingManagementServlet
             request.setAttribute(
                     "offlineCreator",
                     new dao.OfflineBookingDAO().creator(bookingId)
+            );
+            request.setAttribute(
+                    "stayExtensionPromotions",
+                    new dao.OfflineBookingDAO().availablePromotions()
             );
         } catch (java.sql.SQLException e) {
             log(
@@ -453,9 +461,22 @@ public class BookingManagementServlet
                 String dateInput = request.getParameter("new-checkout");
                 if (dateInput == null || dateInput.isBlank()) throw new IllegalArgumentException("Chọn ngày trả phòng mới.");
                 LocalDate newCheckout = LocalDate.parse(dateInput);
+                String promotion=request.getParameter("promotion-code");
+                String paymentMethod=request.getParameter("payment-method");
+                if (!"cash".equals(paymentMethod) && !"bank_transfer".equals(paymentMethod)) {
+                    throw new IllegalArgumentException("Chọn phương thức thanh toán hợp lệ.");
+                }
+                if ("bank_transfer".equals(paymentMethod)) {
+                    long order=new dao.CounterQrDAO().startStayExtension(extendId,user.getId(),request.getParameter("request-key"),newCheckout,promotion);
+                    try { new dao.CounterQrDAO().ensureLink(order); }
+                    catch (InterruptedException ex) { Thread.currentThread().interrupt(); }
+                    catch (Exception ex) { log("QR extension created; payOS link needs reconciliation, booking="+extendId,ex); }
+                    response.setStatus(HttpServletResponse.SC_SEE_OTHER);
+                    response.setHeader("Location",request.getContextPath()+"/counter-payment?bookingId="+extendId+"&view=qr&orderCode="+order);
+                    return;
+                }
                 java.math.BigDecimal amount = new dao.OfflineOperationsDAO().extendStay(
-                        extendId, user.getId(), request.getParameter("request-key"), newCheckout,
-                        request.getParameter("payment-method"), request.getParameter("reference"));
+                        extendId, user.getId(), request.getParameter("request-key"), newCheckout,promotion);
                 message = "Đã gia hạn lưu trú và ghi nhận khoản thu " + amount.stripTrailingZeros().toPlainString() + " VND.";
             } catch (IllegalArgumentException ex) {
                 message = ex.getMessage() == null ? "Thông tin gia hạn không hợp lệ." : ex.getMessage();

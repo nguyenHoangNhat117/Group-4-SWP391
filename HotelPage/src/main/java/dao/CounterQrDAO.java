@@ -173,6 +173,79 @@ public class CounterQrDAO extends DBContext {
         });
     }
 
+    /** Creates a payOS QR and temporarily reserves the extended dates until it is reconciled. */
+    public long startStayExtension(int booking,int staff,String requestKey,java.time.LocalDate newCheckout,String promotionCode) throws SQLException {
+        require(OnlinePaymentConfig.payosConfigured() && OnlinePaymentConfig.callbacksConfigured(),
+                "Chưa cấu hình payOS hoặc địa chỉ HTTPS công khai. Không tạo được QR.");
+        require(newCheckout!=null,"Chọn ngày trả phòng mới.");
+        String key=UUID.fromString(requestKey).toString();
+        String promo=promotionCode==null?"":promotionCode.trim();
+        require(promo.length()<=80 && promo.chars().noneMatch(Character::isISOControl),"Mã giảm giá không hợp lệ.");
+        return tx(c -> {
+            require(row(c,"SELECT UserID FROM [User] WITH(HOLDLOCK) WHERE UserID=? AND Role IN ('staff','admin') AND AccountStatus='active'",staff)!=null,
+                    "Tài khoản không có quyền gia hạn booking.");
+            Map<String,Object> b=row(c,"SELECT Status,TotalPrice FROM Booking WITH(UPDLOCK,HOLDLOCK) WHERE BookingID=? AND (CreatedByUserID IS NOT NULL OR OnlineDepositPolicy=1)",booking);
+            require(b!=null && "checked_in".equals(b.get("Status")),"Chỉ có thể gia hạn booking khách đã nhận phòng.");
+            Map<String,Object> previous=row(c,"SELECT * FROM CounterQrCheckout WHERE RequestKey=?",key);
+            if(previous!=null) {
+                require(((Number)previous.get("BookingID")).intValue()==booking && "stay_extension".equals(previous.get("Purpose")),"Yêu cầu đã được dùng cho thao tác khác.");
+                return ((Number)previous.get("OrderCode")).longValue();
+            }
+            require(row(c,"SELECT TOP(1) OrderCode FROM CounterQrCheckout WHERE BookingID=? AND (Active=1 OR State='review')",booking)==null,
+                    "Booking đang có QR cần thanh toán hoặc đối soát trước.");
+            require(row(c,"SELECT TOP(1) PaymentID FROM Payment WITH(UPDLOCK,HOLDLOCK) WHERE BookingID=? AND PaymentStatus='pending'",booking)==null,
+                    "Booking đang có giao dịch chờ. Cần đối soát trước.");
+
+            java.time.LocalDate oldCheckout=null;
+            BigDecimal nightly=BigDecimal.ZERO;
+            int rooms=0;
+            try(PreparedStatement ps=sql(c,"SELECT RoomNumber,CheckOutDate,PricePerNight FROM BookingDetail WITH(UPDLOCK,HOLDLOCK) WHERE BookingID=? ORDER BY RoomNumber",booking);
+                    ResultSet rs=ps.executeQuery()) {
+                while(rs.next()) {
+                    java.time.LocalDate checkout=rs.getObject("CheckOutDate",java.time.LocalDate.class);
+                    require(checkout!=null,"Lịch lưu trú không hợp lệ.");
+                    if(oldCheckout==null) oldCheckout=checkout;
+                    require(oldCheckout.equals(checkout),"Các phòng có ngày trả khác nhau; không thể gia hạn cùng lúc.");
+                    nightly=nightly.add(rs.getBigDecimal("PricePerNight")); rooms++;
+                }
+            }
+            require(rooms>0 && oldCheckout!=null,"Booking không có phòng để gia hạn.");
+            require(!newCheckout.isBefore(oldCheckout.plusDays(1)) && !newCheckout.isAfter(oldCheckout.plusDays(365)),"Ngày trả mới phải thêm từ 1 đến 365 đêm.");
+            String conflict="SELECT COUNT_BIG(*) ConflictCount FROM BookingDetail d WITH(UPDLOCK,HOLDLOCK) JOIN Booking other WITH(UPDLOCK,HOLDLOCK) ON other.BookingID=d.BookingID "
+                    +"WHERE d.RoomNumber IN (SELECT RoomNumber FROM BookingDetail WHERE BookingID=?) AND other.BookingID<>? "
+                    +"AND (other.Status IN ('checked_in','confirmed') OR (other.Status='pending' AND other.HoldExpiresAt>SYSUTCDATETIME())) "
+                    +"AND d.CheckInDate<? AND d.CheckOutDate>?";
+            Map<String,Object> conflictRow=row(c,conflict,booking,booking,newCheckout,oldCheckout);
+            require(((Number)conflictRow.get("ConflictCount")).longValue()==0,"Phòng đã được đặt trong khoảng ngày gia hạn. Vui lòng chọn ngày khác hoặc đổi phòng.");
+
+            long nights=java.time.temporal.ChronoUnit.DAYS.between(oldCheckout,newCheckout);
+            BigDecimal gross=nightly.multiply(BigDecimal.valueOf(nights));
+            BigDecimal charge=OfflineBookingDAO.discounted(c,promo,gross);
+            require(charge.signum()>0 && charge.stripTrailingZeros().scale()<=0 && charge.compareTo(new BigDecimal("1000000000"))<=0,
+                    "Số tiền gia hạn sau giảm giá không hợp lệ.");
+            Integer discountId=null;
+            if(!promo.isEmpty()) {
+                Map<String,Object> d=row(c,"SELECT DiscountID FROM Discount WITH(UPDLOCK,HOLDLOCK) WHERE Code=? AND Quantity>0",promo);
+                require(d!=null,"Mã giảm đã hết lượt.");
+                discountId=((Number)d.get("DiscountID")).intValue();
+                require(update(c,"UPDATE Discount SET Quantity=Quantity-1 WHERE DiscountID=? AND Quantity>0",discountId)==1,"Mã giảm đã hết lượt.");
+            }
+            long code=ThreadLocalRandom.current().nextLong(900_000_000_000_000L,1_000_000_000_000_000L);
+            Map<String,Object> inserted=row(c,"SET NOCOUNT ON; DECLARE @ids TABLE(ID INT); INSERT Payment(BookingID,Amount,PaymentMethod,PaymentStatus,TransactionCode,DiscountID,DiscountAmount,CollectedByUserID,CounterRequestKey) OUTPUT INSERTED.PaymentID INTO @ids VALUES(?,?,'bank_transfer','pending',?,?,?,?,?); SELECT ID FROM @ids",
+                    booking,charge,"CQR-"+code,discountId,gross.subtract(charge),staff,key);
+            require(inserted!=null,"Không tạo được giao dịch QR.");
+            BigDecimal currentTotal=(BigDecimal)b.get("TotalPrice");
+            BigDecimal newTotal=currentTotal.add(charge);
+            BigDecimal received=paid(c,booking);
+            long expires=Instant.now().getEpochSecond()+600;
+            update(c,"INSERT CounterQrCheckout(OrderCode,BookingID,PaymentID,StaffID,RequestKey,OriginalTotal,Payable,PreviouslyPaid,ExpiresEpoch,Purpose,ExtensionFromDate,ExtensionCheckoutDate,ExtensionGross) VALUES(?,?,?,?,?,?,?,?,?,'stay_extension',?,?,?)",
+                    code,booking,inserted.get("ID"),staff,key,currentTotal,newTotal,received,expires,oldCheckout,newCheckout,gross);
+            require(update(c,"UPDATE BookingDetail SET CheckOutDate=? WHERE BookingID=? AND CheckOutDate=?",newCheckout,booking,oldCheckout)==rooms,
+                    "Lịch booking đã thay đổi. Tải lại trang và thử lại.");
+            return code;
+        });
+    }
+
     static BigDecimal amountDue(BigDecimal payable, BigDecimal received, int percent) {
         require(percent > 0 && percent <= 100, "Tỷ lệ thu không hợp lệ.");
         BigDecimal remaining = payable.subtract(received);
@@ -236,9 +309,17 @@ public class CounterQrDAO extends DBContext {
             require(update(c, "UPDATE Payment SET PaymentStatus='failed' WHERE PaymentID=? AND PaymentStatus='pending'", payment) == 1,
                     "Giao dịch đã đổi trạng thái; cần đối soát.");
             update(c, "UPDATE CounterQrCheckout SET Active=0,State='rejected',CheckedAt=SYSUTCDATETIME() WHERE OrderCode=?", code);
+            releaseExtensionDates(c,q);
             if (p.get("DiscountID") != null) update(c, "UPDATE Discount SET Quantity=Quantity+1 WHERE DiscountID=?", p.get("DiscountID"));
             return null;
         });
+    }
+
+    private static void releaseExtensionDates(Connection c,Map<String,Object> q) throws SQLException {
+        if("stay_extension".equals(q.get("Purpose")) && q.get("ExtensionFromDate")!=null && q.get("ExtensionCheckoutDate")!=null) {
+            update(c,"UPDATE BookingDetail SET CheckOutDate=? WHERE BookingID=? AND CheckOutDate=?",
+                    q.get("ExtensionFromDate"),q.get("BookingID"),q.get("ExtensionCheckoutDate"));
+        }
     }
 
     public static boolean validUrl(String url) {
@@ -289,11 +370,19 @@ public class CounterQrDAO extends DBContext {
             if ("paid".equals(state)) {
                 BigDecimal received = paid(c, booking);
                 boolean offline = b != null && b.get("CreatedByUserID") != null;
+                boolean extension="stay_extension".equals(q.get("Purpose"));
+                boolean extensionReserved=false;
+                if(extension) {
+                    Map<String,Object> reserved=row(c,"SELECT COUNT_BIG(*) ReservationCount FROM BookingDetail WITH(UPDLOCK,HOLDLOCK) WHERE BookingID=? AND CheckOutDate=?",
+                            booking,q.get("ExtensionCheckoutDate"));
+                    extensionReserved=reserved!=null && ((Number)reserved.get("ReservationCount")).intValue()>0;
+                }
                 boolean matches = b != null
                         && (offline || Boolean.TRUE.equals(b.get("OnlineDepositPolicy")))
-                        && canCollect((String) b.get("Status"), offline)
+                        && (extension ? "checked_in".equals(b.get("Status")) : canCollect((String) b.get("Status"), offline))
                         && ((BigDecimal) b.get("TotalPrice")).compareTo((BigDecimal) q.get("OriginalTotal")) == 0
-                        && received.compareTo((BigDecimal) q.get("PreviouslyPaid")) == 0;
+                        && received.compareTo((BigDecimal) q.get("PreviouslyPaid")) == 0
+                        && (!extension || extensionReserved);
                 if (!matches) {
                     update(c, "UPDATE CounterQrCheckout SET State='review',CheckedAt=SYSUTCDATETIME() WHERE OrderCode=?", code);
                     return null;
@@ -306,13 +395,16 @@ public class CounterQrDAO extends DBContext {
                 update(c, "UPDATE Booking SET TotalPrice=?,Status=CASE WHEN Status='pending' THEN 'confirmed' ELSE Status END "
                         + "WHERE BookingID=?", q.get("Payable"), booking);
                 update(c, "INSERT OfflineBookingEvent(BookingID,ActorUserID,RequestKey,Action,Note,Amount) "
-                        + "VALUES(?,?,?,'payment',?,?)", booking, q.get("StaffID"), q.get("RequestKey"),
-                        "QR payOS / " + code, BigDecimal.valueOf(amount));
+                        + "VALUES(?,?,?,?,?,?)", booking, q.get("StaffID"), q.get("RequestKey"),
+                        extension?"stay_extension":"payment",
+                        extension?"Gia hạn đến "+q.get("ExtensionCheckoutDate")+"; QR payOS / "+code:"QR payOS / "+code,
+                        BigDecimal.valueOf(amount));
             } else if ("closed".equals(state)) {
                 update(c, "UPDATE CounterQrCheckout SET Active=0,State='closed',CheckedAt=SYSUTCDATETIME() WHERE OrderCode=?", code);
                 Map<String,Object> p = row(c, "SELECT DiscountID FROM Payment WITH(UPDLOCK,HOLDLOCK) WHERE PaymentID=?", payment);
                 require(update(c, "UPDATE Payment SET PaymentStatus='failed' WHERE PaymentID=? AND PaymentStatus='pending'", payment) == 1,
                         "Trạng thái giao dịch không còn phù hợp.");
+                releaseExtensionDates(c,q);
                 if (p.get("DiscountID") != null) update(c, "UPDATE Discount SET Quantity=Quantity+1 WHERE DiscountID=?", p.get("DiscountID"));
             } else {
                 update(c, "UPDATE CounterQrCheckout SET State=?,CheckedAt=SYSUTCDATETIME() WHERE OrderCode=?", state, code);

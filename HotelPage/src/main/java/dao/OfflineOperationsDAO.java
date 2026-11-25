@@ -202,8 +202,10 @@ public class OfflineOperationsDAO extends DBContext {
     }
 
     /** Extends every room on an in-house booking and collects the added room charge atomically. */
-    public BigDecimal extendStay(int id,int staff,String key,LocalDate newCheckout,String method,String reference) throws SQLException {
-        final String token=requestKey(key), ref=reference(method,reference);
+    public BigDecimal extendStay(int id,int staff,String key,LocalDate newCheckout,String promotionCode) throws SQLException {
+        final String token=requestKey(key);
+        final String promo=promotionCode==null?"":promotionCode.trim();
+        require(promo.length()<=80 && promo.chars().noneMatch(Character::isISOControl),"Mã giảm giá không hợp lệ.");
         require(newCheckout!=null,"Chọn ngày trả phòng mới.");
         return transaction(c -> {
             actor(c,staff); BookingRow b=booking(c,id,true);
@@ -245,15 +247,24 @@ public class OfflineOperationsDAO extends DBContext {
                 try(ResultSet rs=ps.executeQuery()) { rs.next(); require(rs.getLong(1)==0,"Phòng đã được đặt trong khoảng ngày gia hạn. Vui lòng chọn ngày khác hoặc đổi phòng."); }
             }
             long addedNights=java.time.temporal.ChronoUnit.DAYS.between(oldCheckout,newCheckout);
-            BigDecimal amount=nightlyTotal.multiply(BigDecimal.valueOf(addedNights));
+            BigDecimal gross=nightlyTotal.multiply(BigDecimal.valueOf(addedNights));
+            BigDecimal amount=OfflineBookingDAO.discounted(c,promo,gross);
             require(amount.signum()>0 && amount.stripTrailingZeros().scale()<=0,"Không tính được số tiền gia hạn hợp lệ.");
             require(amount.compareTo(new BigDecimal("1000000000"))<=0,"Tiền gia hạn vượt giới hạn cho phép.");
+            Integer discountId=null;
+            if(!promo.isEmpty()) {
+                try(PreparedStatement ps=c.prepareStatement("SELECT DiscountID FROM Discount WITH(UPDLOCK,HOLDLOCK) WHERE Code=? AND Quantity>0")) {
+                    ps.setNString(1,promo);
+                    try(ResultSet rs=ps.executeQuery()) { require(rs.next(),"Mã giảm đã hết lượt."); discountId=rs.getInt(1); }
+                }
+                require(execute(c,"UPDATE Discount SET Quantity=Quantity-1 WHERE DiscountID=? AND Quantity>0",discountId)==1,"Mã giảm đã hết lượt.");
+            }
             int updated=execute(c,"UPDATE BookingDetail SET CheckOutDate=? WHERE BookingID=? AND CheckOutDate=?",newCheckout,id,oldCheckout);
             require(updated==roomCount,"Lịch booking đã thay đổi. Tải lại trang và thử lại.");
             execute(c,"UPDATE Booking SET TotalPrice=TotalPrice+? WHERE BookingID=?",amount,id);
-            execute(c,"INSERT Payment(BookingID,PaymentDate,Amount,PaymentMethod,PaymentStatus,TransactionCode,DiscountAmount,CollectedByUserID,CounterRequestKey,CounterReference) VALUES(?,SYSDATETIME(),?,?,'paid',?,0,?,?,?)",
-                    id,amount,method,"EXTEND-"+token,staff,token,ref);
-            event(c,id,staff,token,"stay_extension","Gia hạn đến "+newCheckout+" ("+addedNights+" đêm), thu bằng "+method,amount);
+            execute(c,"INSERT Payment(BookingID,PaymentDate,Amount,PaymentMethod,PaymentStatus,TransactionCode,DiscountID,DiscountAmount,CollectedByUserID,CounterRequestKey) VALUES(?,SYSDATETIME(),?,'cash','paid',?,?,?,?,?)",
+                    id,amount,"EXTEND-"+token,discountId,gross.subtract(amount),staff,token);
+            event(c,id,staff,token,"stay_extension","Gia hạn đến "+newCheckout+" ("+addedNights+" đêm) bằng tiền mặt"+(promo.isEmpty()?"":"; mã giảm "+promo),amount);
             return amount;
         });
     }

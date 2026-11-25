@@ -210,6 +210,14 @@ public class AuthenticationFilter implements Filter {
 
         if ("/offline-booking".equals(servletPath)
                 || "/counter-payment".equals(servletPath)) {
+            boolean qrReadOnly = "/counter-payment".equals(servletPath)
+                    && "GET".equalsIgnoreCase(req.getMethod())
+                    && ("qr".equals(req.getParameter("view"))
+                    || "qr-status".equals(req.getParameter("view")));
+            if (qrReadOnly && isAnyRole(role, "staff", "admin")) {
+                chain.doFilter(request, response);
+                return;
+            }
             if (!isRole(role, "staff")) {
                 deny(res);
                 return;

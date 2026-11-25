@@ -20,7 +20,8 @@ public class CounterPaymentServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest r,HttpServletResponse s) throws ServletException,IOException {
-        if(OfflineBookingServlet.staff(r,s)==null) return;
+        boolean qrView="qr".equals(r.getParameter("view")) || "qr-status".equals(r.getParameter("view"));
+        if((qrView?qrViewer(r,s):OfflineBookingServlet.staff(r,s))==null) return;
         AuthSupport.noStore(s);
         try {
             int id=positive(r.getParameter("bookingId"));
@@ -42,6 +43,24 @@ public class CounterPaymentServlet extends HttpServlet {
             log("Counter read failed",ex);
             s.sendError(503,"Không thể tải hồ sơ tại quầy. Kiểm tra database và migration counter_qr.sql.");
         }
+    }
+
+    /** Staff and admins can inspect/reconcile an existing QR; counter operations remain staff-only. */
+    private static User qrViewer(HttpServletRequest r,HttpServletResponse s) throws IOException {
+        AuthSupport.noStore(s);
+        HttpSession session=r.getSession(false);
+        Object value=session==null?null:session.getAttribute("loggedUser");
+        if(!(value instanceof User)) {
+            s.sendRedirect(r.getContextPath()+"/login");
+            return null;
+        }
+        User user=(User)value;
+        if(!"active".equalsIgnoreCase(user.getAccountStatus())
+                || (!"staff".equalsIgnoreCase(user.getRole()) && !"admin".equalsIgnoreCase(user.getRole()))) {
+            s.sendError(HttpServletResponse.SC_FORBIDDEN,"Chỉ Staff hoặc Admin đang hoạt động được xem QR thanh toán.");
+            return null;
+        }
+        return user;
     }
 
     static void prepareCounter(HttpServletRequest r, int id) throws SQLException {
