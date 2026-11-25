@@ -67,14 +67,39 @@ public class ProfileServlet extends HttpServlet {
             return;
         }
 
-        // Get customer information based on user's ID
+        String role = loggedUser.getRole();
+
+        if (role == null) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
+        role = role.trim().toLowerCase(java.util.Locale.ROOT);
+
+        if (!java.util.Arrays.asList(
+                "customer", "admin", "staff", "manager"
+        ).contains(role)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
         CustomerDAO dao = new CustomerDAO();
         Customer customer;
+
         util.AuthSupport.token(request.getSession());
+
         try {
-            customer = "customer".equals(loggedUser.getRole())
-                    ? dao.getCustomerByUserID(loggedUser.getId())
-                    : new ProfileDAO().getStaffProfile(loggedUser.getId());
+            if ("customer".equals(role)) {
+                customer = dao.getCustomerByUserID(loggedUser.getId());
+            } else {
+                customer = new ProfileDAO().getStaffProfile(loggedUser.getId());
+            }
+
+            if (customer == null) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+
         } catch (java.sql.SQLException ex) {
             throw new ServletException("Unable to load profile", ex);
         }
@@ -110,8 +135,25 @@ public class ProfileServlet extends HttpServlet {
                     request.getContextPath() + "/login");
             return;
         }
+        String role = loggedUser.getRole();
 
-        if (!util.AuthSupport.checkCsrf(request, response)) return;
+        if (role == null) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
+        role = role.trim().toLowerCase(java.util.Locale.ROOT);
+
+        if (!java.util.Arrays.asList(
+                "customer", "admin", "staff", "manager"
+        ).contains(role)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
+        if (!util.AuthSupport.checkCsrf(request, response)) {
+            return;
+        }
         int userId = loggedUser.getId();
 
         String displayName = trim(
@@ -151,29 +193,78 @@ public class ProfileServlet extends HttpServlet {
             return;
         }
 
-        if (firstName.length() > 50 || lastName.length() > 50 || email.length() > 100
-                || phone.length() > 20 || country.length() > 50 || city.length() > 50 || street.length() > 100) {
-            response.sendRedirect(request.getContextPath() + "/profile?error=invalid-name");
+        if (firstName.length() > 50
+                || lastName.length() > 50
+                || email.length() > 100
+                || phone.length() > 20
+                || country.length() > 50
+                || city.length() > 50
+                || street.length() > 100) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/profile?error=invalid-length");
             return;
         }
-        // Save both tables in one transaction
+
+        // Save profile using the appropriate role
         ProfileDAO profileDAO = new ProfileDAO();
 
-        boolean success = !"customer".equals(loggedUser.getRole())
-                ? profileDAO.updateStaffProfile(userId, displayName, firstName, lastName, email, phone, country, city, street)
-                : profileDAO.updateProfile(
-                userId,
-                displayName,
-                firstName,
-                lastName,
-                email,
-                phone,
-                country,
-                city,
-                street
-        );
+        ProfileDAO.UpdateResult result;
 
-        if (!success) {
+        if ("customer".equals(role)) {
+
+            result = profileDAO.updateProfile(
+                    userId,
+                    displayName,
+                    firstName,
+                    lastName,
+                    email,
+                    phone,
+                    country,
+                    city,
+                    street
+            );
+
+        } else if ("admin".equals(role)
+                || "staff".equals(role)
+                || "manager".equals(role)) {
+
+            result = profileDAO.updateStaffProfile(
+                    userId,
+                    displayName,
+                    firstName,
+                    lastName,
+                    email,
+                    phone,
+                    country,
+                    city,
+                    street
+            );
+
+        } else {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
+        // Handle duplicate email
+        if (result == ProfileDAO.UpdateResult.EMAIL_EXISTS) {
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/profile?error=email-exists");
+            return;
+        }
+
+        // Handle duplicate phone
+        if (result == ProfileDAO.UpdateResult.PHONE_EXISTS) {
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/profile?error=phone-exists");
+            return;
+        }
+
+        // Handle other update failures
+        if (result != ProfileDAO.UpdateResult.SUCCESS) {
             response.sendRedirect(
                     request.getContextPath()
                     + "/profile?error=update-failed");

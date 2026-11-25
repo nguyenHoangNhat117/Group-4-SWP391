@@ -442,7 +442,9 @@ public class WithdrawalDAO {
 
                     ps.setString(
                             3,
-                            "Withdrawal request #" + withdrawalId
+                            (reference.startsWith("DEMO-WD-")
+                                    ? "DEMO ONLY - simulated withdrawal request #"
+                                    : "Withdrawal request #") + withdrawalId
                     );
 
                     if (ps.executeUpdate() != 1) {

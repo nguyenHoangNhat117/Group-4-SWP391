@@ -61,17 +61,17 @@
 
                     <!-- Upload avatar trigger -->
                     <c:if test="${sessionScope.loggedUser.role == 'customer'}"><label for="avatarFile" class="upload-label">
-                        <i class="fas fa-camera upload-icon"></i>
-                        <span><ui:text key="screen.8c58ac4a340f9aad"/></span>
-                    </label></c:if>
-                    <input type="file" id="avatarFile" name="img" accept=".png, .jpg, .jpeg" class="d-none">
-                    <div id="avatarError" class="small text-danger mt-2 d-none" role="alert">
-                    </div>
-                </form>
+                            <i class="fas fa-camera upload-icon"></i>
+                            <span><ui:text key="screen.8c58ac4a340f9aad"/></span>
+                        </label></c:if>
+                        <input type="file" id="avatarFile" name="img" accept=".png, .jpg, .jpeg" class="d-none">
+                        <div id="avatarError" class="small text-danger mt-2 d-none" role="alert">
+                        </div>
+                    </form>
 
-                <!-- Display customer name and email -->
+                    <!-- Display customer name and email -->
 
-                <h4>
+                    <h4>
                     ${fn:escapeXml(customer.firstName)}
                     ${fn:escapeXml(customer.lastName)}
                 </h4>
@@ -110,7 +110,13 @@
                         case "update-failed":
                             message = "Update failed. No changes were saved.";
                             break;
+                        case "email-exists":
+                            message = "This email address is already registered. Please use another email.";
+                            break;
 
+                        case "phone-exists":
+                            message = "This phone number is already registered. Please use another phone number.";
+                            break;
                         case "avatar-too-large":
                             message = "Image must not exceed 5 MB.";
                             break;
@@ -129,7 +135,7 @@
                 %>
 
                 <form id="form-1" method="post" action="<%= request.getContextPath()%>/profile">
-<input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+                    <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
                     <!-- Personal Details Section -->
                     <div class="form-section">
                         <h5><ui:text key="screen.3a886778636502fa"/></h5>

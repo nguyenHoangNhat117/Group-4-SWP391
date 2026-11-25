@@ -23,26 +23,15 @@ public class CancelBookingServlet
 
     private static final long serialVersionUID = 1L;
 
-    /*
-     * =========================================================
-     * GET
-     *
-     * Display cancellation confirmation.
-     * =========================================================
-     */
     @Override
     protected void doGet(
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        HttpSession session =
-                request.getSession(false);
+        HttpSession session
+                = request.getSession(false);
 
-        /*
-         * Only authenticated Customer may cancel
-         * their own booking from this screen.
-         */
         if (session == null
                 || session.getAttribute("loggedUser") == null
                 || session.getAttribute("customer") == null) {
@@ -53,14 +42,15 @@ public class CancelBookingServlet
             );
             return;
         }
+        
 
-        User user =
-                (User) session.getAttribute(
+        User user
+                = (User) session.getAttribute(
                         "loggedUser"
                 );
 
-        Customer customer =
-                (Customer) session.getAttribute(
+        Customer customer
+                = (Customer) session.getAttribute(
                         "customer"
                 );
 
@@ -73,8 +63,8 @@ public class CancelBookingServlet
             return;
         }
 
-        Integer bookingId =
-                parseBookingId(
+        Integer bookingId
+                = parseBookingId(
                         request.getParameter("id")
                 );
 
@@ -90,8 +80,8 @@ public class CancelBookingServlet
             return;
         }
 
-        BookingDAO bookingDAO =
-                new BookingDAO();
+        BookingDAO bookingDAO
+                = new BookingDAO();
 
         /*
          * Prevent Customer A from opening
@@ -108,8 +98,8 @@ public class CancelBookingServlet
             return;
         }
 
-        Booking booking =
-                bookingDAO.getBookingById(
+        Booking booking
+                = bookingDAO.getBookingById(
                         bookingId
                 );
 
@@ -148,7 +138,7 @@ public class CancelBookingServlet
                 "booking",
                 booking
         );
-
+        util.AuthSupport.token(session);
         request.getRequestDispatcher(
                 "/WEB-INF/history/cancelBooking/"
                 + "cancel-booking.jsp"
@@ -170,8 +160,8 @@ public class CancelBookingServlet
 
         request.setCharacterEncoding("UTF-8");
 
-        HttpSession session =
-                request.getSession(false);
+        HttpSession session
+                = request.getSession(false);
 
         if (session == null
                 || session.getAttribute("loggedUser") == null
@@ -183,14 +173,17 @@ public class CancelBookingServlet
             );
             return;
         }
+        if (!util.AuthSupport.checkCsrf(request, response)) {
+            return;
+        }
 
-        User user =
-                (User) session.getAttribute(
+        User user
+                = (User) session.getAttribute(
                         "loggedUser"
                 );
 
-        Customer customer =
-                (Customer) session.getAttribute(
+        Customer customer
+                = (Customer) session.getAttribute(
                         "customer"
                 );
 
@@ -203,8 +196,8 @@ public class CancelBookingServlet
             return;
         }
 
-        Integer bookingId =
-                parseBookingId(
+        Integer bookingId
+                = parseBookingId(
                         request.getParameter("id")
                 );
 
@@ -220,8 +213,8 @@ public class CancelBookingServlet
             return;
         }
 
-        BookingDAO bookingDAO =
-                new BookingDAO();
+        BookingDAO bookingDAO
+                = new BookingDAO();
 
         /*
          * Ownership check is mandatory.
@@ -236,15 +229,15 @@ public class CancelBookingServlet
             return;
         }
 
-        String reason =
-                request.getParameter(
+        String reason
+                = request.getParameter(
                         "reason"
                 );
 
         if (reason != null) {
 
-            reason =
-                    reason.trim();
+            reason
+                    = reason.trim();
 
             if (reason.isEmpty()) {
                 reason = null;
@@ -253,14 +246,16 @@ public class CancelBookingServlet
             /*
              * Keep DB input reasonable.
              */
-            if (reason != null
-                    && reason.length() > 255) {
+            if (reason != null && reason.length() > 255) {
 
-                reason =
-                        reason.substring(
-                                0,
-                                255
-                        );
+                redirectHistory(
+                        request,
+                        response,
+                        customer.getCustomerID(),
+                        "invalid-reason"
+                );
+
+                return;
             }
         }
 
@@ -269,8 +264,8 @@ public class CancelBookingServlet
          */
         if (reason == null) {
 
-            reason =
-                    "Cancelled by customer";
+            reason
+                    = "Cancelled by customer";
         }
 
         /*
@@ -283,8 +278,8 @@ public class CancelBookingServlet
          *
          * It performs UPDATE, not DELETE.
          */
-        boolean cancelled =
-                bookingDAO.cancelBooking(
+        boolean cancelled
+                = bookingDAO.cancelBooking(
                         bookingId,
                         customer.getCustomerID(),
                         reason
@@ -326,8 +321,8 @@ public class CancelBookingServlet
 
         try {
 
-            int id =
-                    Integer.parseInt(
+            int id
+                    = Integer.parseInt(
                             idParam.trim()
                     );
 

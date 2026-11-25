@@ -6,7 +6,7 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ui" tagdir="/WEB-INF/tags" %>
 <%@ page import="java.time.format.DateTimeFormatter" %>
-<c:set var="withdrawalDateFormat" value='<%= DateTimeFormatter.ofPattern("dd/MM/uuuu HH:mm") %>'/>
+<c:set var="withdrawalDateFormat" value='<%= DateTimeFormatter.ofPattern("dd/MM/uuuu HH:mm")%>'/>
 
 <!DOCTYPE html>
 <html lang="vi">
@@ -80,78 +80,97 @@
 
             <c:if test="${param.result == 'success'}">
                 <div class="alert alert-success">
-                    Đã cập nhật yêu cầu rút tiền.
+                    Đã cập nhật yêu cầu rút tiền trong hệ thống.
+                </div>
+            </c:if>
+            <c:if test="${param.result == 'demo-verified'}">
+                <div class="alert alert-success">
+                    Mã xác nhận kiểm thử hợp lệ.
+
                 </div>
             </c:if>
 
+            <c:if test="${param.result == 'code-created'}">
+                <div class="alert alert-info">Đã tạo mã  mới cho yêu cầu đang duyệt.</div>
+            </c:if>
+            <c:if test="${param.result == 'success'}">
+                <div class="alert alert-info">Đã cập nhật ví</div>
+            </c:if>
             <c:if test="${param.result == 'not-processed'}">
                 <div class="alert alert-warning">
                     Không thể xử lý yêu cầu. Vui lòng kiểm tra trạng thái và quyền truy cập.
                 </div>
             </c:if>
+            <c:if test="${param.error == 'invalid-payout-code'}">
+                <div class="alert alert-danger">
+                    Mã xác nhận không chính xác.
+                </div>
+            </c:if>
 
-                <form action="${pageContext.request.contextPath}/withdrawal-management"
-                      method="get"
-                      class="management-filters">
 
-                    <div>
-                        <label for="withdrawal-status" class="form-label">
-                            Lọc theo trạng thái
-                        </label>
 
-                        <select id="withdrawal-status" name="status"
-                                class="form-select">
+            <form action="${pageContext.request.contextPath}/withdrawal-management"
+                  method="get"
+                  class="management-filters">
 
-                            <option value=""
-                                    ${empty selectedStatus ? 'selected' : ''}>
-                                Tất cả yêu cầu
-                            </option>
+                <div>
+                    <label for="withdrawal-status" class="form-label">
+                        Lọc theo trạng thái
+                    </label>
 
-                            <option value="pending"
-                                    ${selectedStatus == 'pending' ? 'selected' : ''}>
-                                Chờ xử lý
-                            </option>
+                    <select id="withdrawal-status" name="status"
+                            class="form-select">
 
-                            <option value="approved"
-                                    ${selectedStatus == 'approved' ? 'selected' : ''}>
-                                Đã duyệt
-                            </option>
+                        <option value=""
+                                ${empty selectedStatus ? 'selected' : ''}>
+                            Tất cả yêu cầu
+                        </option>
 
-                            <option value="rejected"
-                                    ${selectedStatus == 'rejected' ? 'selected' : ''}>
-                                Đã từ chối
-                            </option>
+                        <option value="pending"
+                                ${selectedStatus == 'pending' ? 'selected' : ''}>
+                            Chờ xử lý
+                        </option>
 
-                            <option value="paid"
-                                    ${selectedStatus == 'paid' ? 'selected' : ''}>
-                                Đã thanh toán
-                            </option>
-                        </select>
-                    </div>
+                        <option value="approved"
+                                ${selectedStatus == 'approved' ? 'selected' : ''}>
+                            Đã duyệt
+                        </option>
 
-                    <div>
-                        <label for="withdrawal-date"><ui:text key="management.withdrawalDate"/></label>
-                        <input id="withdrawal-date" class="form-control" name="date" type="date" value="${selectedDate}">
-                    </div>
-                    <div>
-                        <label for="withdrawal-keyword"><ui:text key="management.withdrawalAccount"/></label>
-                        <input id="withdrawal-keyword" class="form-control" name="q" type="search" maxlength="150"
-                               value="<c:out value='${keyword}'/>">
-                    </div>
-                    <div>
-                        <label for="withdrawal-bank"><ui:text key="management.withdrawalBank"/></label>
-                        <input id="withdrawal-bank" class="form-control" name="bank" type="search" maxlength="100"
-                               value="<c:out value='${bank}'/>">
-                    </div>
+                        <option value="rejected"
+                                ${selectedStatus == 'rejected' ? 'selected' : ''}>
+                            Đã từ chối
+                        </option>
 
-                        <button type="submit" class="btn btn-success">
-                            Áp dụng bộ lọc
-                        </button>
-                        <a href="${pageContext.request.contextPath}/withdrawal-management"
-                           class="btn btn-outline-secondary">
-                            Xóa bộ lọc
-                        </a>
-                </form>
+                        <option value="paid"
+                                ${selectedStatus == 'paid' ? 'selected' : ''}>
+                            Đã thanh toán
+                        </option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="withdrawal-date"><ui:text key="management.withdrawalDate"/></label>
+                    <input id="withdrawal-date" class="form-control" name="date" type="date" value="${selectedDate}">
+                </div>
+                <div>
+                    <label for="withdrawal-keyword"><ui:text key="management.withdrawalAccount"/></label>
+                    <input id="withdrawal-keyword" class="form-control" name="q" type="search" maxlength="150"
+                           value="<c:out value='${keyword}'/>">
+                </div>
+                <div>
+                    <label for="withdrawal-bank"><ui:text key="management.withdrawalBank"/></label>
+                    <input id="withdrawal-bank" class="form-control" name="bank" type="search" maxlength="100"
+                           value="<c:out value='${bank}'/>">
+                </div>
+
+                <button type="submit" class="btn btn-success">
+                    Áp dụng bộ lọc
+                </button>
+                <a href="${pageContext.request.contextPath}/withdrawal-management"
+                   class="btn btn-outline-secondary">
+                    Xóa bộ lọc
+                </a>
+            </form>
 
             <section class="management-card overflow-hidden">
                 <div class="table-responsive">
@@ -204,8 +223,8 @@
                                             <c:when test="${not empty w.createdAt}">
                                                 <c:set var="submitted" value="${w.createdAt.atOffset(utcOffset).atZoneSameInstant(hotelZone)}"/>
                                                 <time datetime="${submitted.toOffsetDateTime()}">${submitted.format(withdrawalDateFormat)}</time>
-                                            </c:when>
-                                            <c:otherwise>—</c:otherwise>
+                                                </c:when>
+                                                <c:otherwise>—</c:otherwise>
                                         </c:choose>
                                     </td>
 
@@ -232,7 +251,10 @@
 
                                             <c:when test="${w.status == 'paid'}">
                                                 <span class="badge bg-success">
-                                                    Đã thanh toán
+                                                    <c:choose>
+                                                        <c:when test="${fn:startsWith(w.paymentReference, 'DEMO-WD-')}">Hoàn tất</c:when>
+                                                        <c:otherwise>Đã thanh toán</c:otherwise>
+                                                    </c:choose>
                                                 </span>
                                             </c:when>
 
@@ -305,49 +327,72 @@
 
                                         <c:if test="${w.status == 'approved'}">
 
-                                              <form action="${pageContext.request.contextPath}/withdrawal-action"
-                                                    method="post">
+                                            <c:if test="${sessionScope.managerPayoutWithdrawalId == w.withdrawalId}">
+                                                <div class="alert alert-info mb-2">
+                                                    Mã xác nhận :
+                                                    <strong>
+                                                        <c:out value="${sessionScope.managerPayoutDemoCode}"/>
+                                                    </strong>
+                                                    
+                                                </div>
+                                            </c:if>
+                                            <form action="${pageContext.request.contextPath}/withdrawal-action" method="post" class="mb-2">
+                                                <input type="hidden" name="csrfToken" value="${sessionScope.withdrawalActionCsrfToken}">
+                                                <input type="hidden" name="withdrawalId" value="${w.withdrawalId}">
+                                                <input type="hidden" name="action" value="requestPayoutDemoCode">
+                                                <button type="submit" class="btn btn-outline-secondary btn-sm">Tạo lại mã</button>
+                                            </form>
 
-                                                  <input type="hidden"
-                                                         name="csrfToken"
-                                                         value="${sessionScope.withdrawalActionCsrfToken}">
+                                            <form action="${pageContext.request.contextPath}/withdrawal-action"
+                                                  method="post">
 
-                                                  <input type="hidden"
-                                                         name="withdrawalId"
-                                                         value="${w.withdrawalId}">
+                                                <input type="hidden"
+                                                       name="csrfToken"
+                                                       value="${sessionScope.withdrawalActionCsrfToken}">
 
-                                                  <input type="hidden"
-                                                         name="action"
-                                                         value="markPaid">
+                                                <input type="hidden"
+                                                       name="withdrawalId"
+                                                       value="${w.withdrawalId}">
 
-                                                  <label for="payout-reference-${w.withdrawalId}" class="form-label small">
-                                                      Mã giao dịch chi trả đã kiểm tra
-                                                  </label>
-
-                                                  <input type="text"
-                                                         id="payout-reference-${w.withdrawalId}" name="paymentReference"
-                                                         class="form-control form-control-sm mb-2"
-                                                         maxlength="100"
-                                                         required>
-
-                                                  <label class="form-check mb-2">
-                                                      <input type="checkbox"
-                                                             class="form-check-input"
-                                                             name="payoutConfirmed"
-                                                             value="yes"
-                                                             required>
-
-                                                      <span class="form-check-label">
-                                                          Tôi xác nhận đã kiểm tra khoản chi trả.
-                                                      </span>
-                                                  </label>
+                                                <input type="hidden"
+                                                       name="action"
+                                                       value="verifyPayoutDemo">
 
 
-                                                  <button type="submit"
-                                                          class="btn btn-success btn-sm">
-                                                      Ghi nhận đã chi trả
-                                                  </button>
-                                              </form>
+
+
+
+                                                <label for="payout-code-${w.withdrawalId}"
+                                                       class="form-label small">
+                                                    Mã xác nhận (6 số)
+                                                </label>
+
+                                                <input type="text"
+                                                       id="payout-code-${w.withdrawalId}"
+                                                       name="payoutCode"
+                                                       class="form-control form-control-sm mb-2"
+                                                       maxlength="6"
+                                                       pattern="[0-9]{6}"
+                                                       inputmode="numeric"
+                                                       required>
+
+
+                                                <label class="form-check mb-2">
+                                                    <input type="checkbox"
+                                                           class="form-check-input"
+                                                           name="payoutConfirmed"
+                                                           value="yes"
+                                                           required>
+
+                                                    
+                                                </label>
+
+
+                                                <button type="submit"
+                                                        class="btn btn-success btn-sm">
+                                                    Hoàn tất rút tiền demo
+                                                </button>
+                                            </form>
                                         </c:if>
 
                                         <c:if test="${w.status == 'rejected'}">
@@ -358,7 +403,10 @@
 
                                         <c:if test="${w.status == 'paid'}">
                                             <span class="small text-success">
-                                                Đã ghi nhận chi trả
+                                                <c:choose>
+                                                    <c:when test="${fn:startsWith(w.paymentReference, 'DEMO-WD-')}">Đã trừ ví</c:when>
+                                                    <c:otherwise>Đã ghi nhận chi trả</c:otherwise>
+                                                </c:choose>
                                             </span>
                                         </c:if>
                                     </td>
